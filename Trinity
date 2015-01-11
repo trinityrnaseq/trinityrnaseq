@@ -599,7 +599,6 @@ my $iworm_opts = "";
              
              
     # Butterfly opts
-    'no_run_butterfly'      => \$NO_RUN_BUTTERFLY_FLAG,
     "group_pairs_distance=i" => \$group_pairs_distance,
     'bfly_opts=s'           => \$bfly_opts,
     'bflyHeapSpaceMax=s'    => \$bflyHeapSpaceMax,
@@ -637,7 +636,6 @@ my $iworm_opts = "";
     'glue_factor=f' => \$glue_factor,
     'min_iso_ratio=f' => \$min_iso_ratio,
     'min_pcnt_read_iworm_kmers=i' => \$min_percent_read_iworm_kmers, 
-    'no_run_quantifygraph' => \$NO_RUN_QUANTIFYGRAPH_FLAG,
     'max_reads_per_graph=i' => \$max_reads_per_graph,
     'max_reads_per_loop=i' => \$max_reads_per_loop,
     'no_run_chrysalis' => \$NO_RUN_CHRYSALIS_FLAG,         
@@ -804,7 +802,7 @@ else {
 
 
 ## Check Java version:
-unless ($NO_RUN_BUTTERFLY_FLAG || $NO_RUN_CHRYSALIS_FLAG) {
+unless ($NO_RUN_INCHWORM_FLAG || $NO_RUN_CHRYSALIS_FLAG) {
   my $java_version = `java -Xmx64m -version 2>&1 `;
   unless ($java_version =~ /(java|openjdk) version \"1\.(\d)\./) {
       my $version_id = $1;
@@ -925,7 +923,7 @@ main: {
     $ENV{OMP_NUM_THREADS} = $CPU;
     
 
-    unless ($NO_RUN_BUTTERFLY_FLAG || $NO_RUN_CHRYSALIS_FLAG) {
+    unless ($NO_RUN_INCHWORM_FLAG || $NO_RUN_CHRYSALIS_FLAG) {
         print STDERR "-since butterfly will eventually be run, lets test for proper execution of java\n";
         &test_java_failure_capture();
     }
@@ -1302,7 +1300,7 @@ sub run_Trinity {
         }
     }
         
-    if ($NO_RUN_CHRYSALIS_FLAG) {
+    if ($NO_RUN_CHRYSALIS_FLAG && ! $TRINITY_COMPLETE_FLAG) {
         print "\n\n\n";
         print "#########################################################################\n";
         print "Inchworm is complete.  --no_run_chrysalis was specified, so stopping here.\n";
@@ -1340,57 +1338,44 @@ sub run_Trinity {
     print "Butterfly_cmds: $butterfly_cmds\n";
     
     if ($butterfly_cmds && -s $butterfly_cmds) {
-
-        if ($NO_RUN_BUTTERFLY_FLAG) {
             
-            print "\n\nYou've opted to run butterfly commands independently from this script, such as on a computing grid.\n\n";
-            print "Butterfly commands to execute are available here:\n"
-                . "\t$butterfly_cmds\n\n";
-            print "After executing Butterfly commands, concatenate all Butterfly outputs by running:\n"
-                . "\t\tfind $output_directory/ -name \"\*allProbPaths.fasta\" -exec cat {} + > $output_directory/Trinity.fasta\n\n\n";
-            
-            exit(0);
-
+        ## Run Butterfly
+        
+        print "Inchworm and Chrysalis complete.  Butterfly commands to execute are provided here:\n"
+            . $butterfly_cmds . "\n\n";
+        
+        
+        print STDERR "---------------------------------------------------------------\n"
+            . "-------------------- Butterfly --------------------------------\n"
+            . "-- (Reconstruct transcripts from reads and de Bruijn graphs) --\n"
+            . "---------------------------------------------------------------\n\n";
+        
+        $pm_butterfly_start = `date +%s`;
+        if ($grid_conf_file) {
+            my @bfly_cmds = `cat $butterfly_cmds`;
+            chomp @bfly_cmds;
+            my $grid_runner = new HTC::GridRunner($grid_conf_file, "chrysalis/butterfly_on_grid.cacheSuccess");
+            my $ret = $grid_runner->run_on_grid(@bfly_cmds);
+            if ($ret) {
+                die "Error, not all butterfly commands could complete successfully... cannot continue.";
+            }
         }
         else {
-            
-            ## Run Butterfly
-            
-            print "Inchworm and Chrysalis complete.  Butterfly commands to execute are provided here:\n"
-                . $butterfly_cmds . "\n\n";
-            
-            
-            print STDERR "---------------------------------------------------------------\n"
-                . "-------------------- Butterfly --------------------------------\n"
-                . "-- (Reconstruct transcripts from reads and de Bruijn graphs) --\n"
-                . "---------------------------------------------------------------\n\n";
-            
-            $pm_butterfly_start = `date +%s`;
-            if ($grid_conf_file) {
-                my @bfly_cmds = `cat $butterfly_cmds`;
-                chomp @bfly_cmds;
-                my $grid_runner = new HTC::GridRunner($grid_conf_file, "chrysalis/butterfly_on_grid.cacheSuccess");
-                my $ret = $grid_runner->run_on_grid(@bfly_cmds);
-                if ($ret) {
-                    die "Error, not all butterfly commands could complete successfully... cannot continue.";
-                }
-            }
-            else {
-                my $cmd = "$PARAFLY -c $butterfly_cmds -shuffle -CPU $bflyCPU -failed_cmds failed_butterfly_commands.$$.txt -v ";  # shuffle them since the first ones are usually the longest-running ones.
-                &process_cmd($cmd);
-            }
-            $pm_butterfly_end = `date +%s`;
-
-            ## capture results:
-            # my $cmd = 'find ./chrysalis -name "*allProbPaths.fasta" -exec cat {} + > Trinity.fasta.tmp';
-            # no longer scan the file system... we know which files should exist
-            my $cmd = "$UTILDIR/support_scripts/print_butterfly_assemblies.pl $chrysalis_output_dir/component_base_listing.txt > Trinity.fasta.tmp";
+            my $cmd = "$PARAFLY -c $butterfly_cmds -shuffle -CPU $bflyCPU -failed_cmds failed_butterfly_commands.$$.txt -v ";  # shuffle them since the first ones are usually the longest-running ones.
             &process_cmd($cmd);
-            
         }
-
+        $pm_butterfly_end = `date +%s`;
+        
+        ## capture results:
+        # my $cmd = 'find ./chrysalis -name "*allProbPaths.fasta" -exec cat {} + > Trinity.fasta.tmp';
+        # no longer scan the file system... we know which files should exist
+        my $cmd = "$UTILDIR/support_scripts/print_butterfly_assemblies.pl $chrysalis_output_dir/component_base_listing.txt > Trinity.fasta.tmp";
+        &process_cmd($cmd);
+        
+        
+        
     }
-     
+    
 }
 
 
@@ -1652,69 +1637,40 @@ sub run_chrysalis {
         
     }
      
-    # see if we need to run the quantifyGraph commands:
-    if ($NO_RUN_QUANTIFYGRAPH_FLAG) {
-
-        print "#############################################################################\n";
-        print "## Ceasing Trinity prior to execution of massively parallel operations.\n";
-        print "##\n";
-        print "## To complete Trinity, execute the following sets of commands:\n";
-        print "##\n";
-        print "## First, run the Chrysalis QuantifyGraph commands in parallel:\n";
-        print "##    $quantify_graph_cmds\n";
-        print "##\n";
-        print "## Then, execute all the Butterfly commands:\n";
-        print "##    $butterfly_cmds\n";
-        print "##\n";
-        print "## And, finally, concatenate all Butterfly assemblies into a single output file:\n";
-        print "##\n";
-        print "##     find $output_directory/ -name \"\*allProbPaths.fasta\" -exec cat {} + > $output_directory/Trinity.fasta\n";
-        print "##\n";
-        print "##############################################################################\n";
-        print "\n\n";
+    my $quantify_graph_cmds_finished = &create_full_path("$chrysalis_output_dir/quantifyGraph_commands.run.finished");
+    if (! -e $quantify_graph_cmds_finished) {
+        ## run it
         
-        exit(0);
-    }
-    else {
-
+        print STDERR "---------------------------------------------------\n"
+            . "----------- Chrysalis: QuantifyGraph --------------\n"
+            . "-- (Integrate mapped reads into de Bruijn graph) --\n"
+            . "---------------------------------------------------\n\n";
         
-        my $quantify_graph_cmds_finished = &create_full_path("$chrysalis_output_dir/quantifyGraph_commands.run.finished");
-        if (! -e $quantify_graph_cmds_finished) {
-            ## run it
+        
+        if ($grid_conf_file) {
+            my @quantify_graph_cmds = `cat $quantify_graph_cmds`;
+            chomp @quantify_graph_cmds;
             
-            print STDERR "---------------------------------------------------\n"
-                       . "----------- Chrysalis: QuantifyGraph --------------\n"
-                       . "-- (Integrate mapped reads into de Bruijn graph) --\n"
-                       . "---------------------------------------------------\n\n";
-            
-            
-            if ($grid_conf_file) {
-                my @quantify_graph_cmds = `cat $quantify_graph_cmds`;
-                chomp @quantify_graph_cmds;
-                
-                my $grid_runner = new HTC::GridRunner($grid_conf_file, "chrysalis/chrysalis_quantify_graph_on_grid.cacheSuccess");
-                my $ret = $grid_runner->run_on_grid(@quantify_graph_cmds);
-                if ($ret) {
-                    die "Error, not all Chrysalis quantify_graph commands completed successfully. Cannot continue.";
-                }
+            my $grid_runner = new HTC::GridRunner($grid_conf_file, "chrysalis/chrysalis_quantify_graph_on_grid.cacheSuccess");
+            my $ret = $grid_runner->run_on_grid(@quantify_graph_cmds);
+            if ($ret) {
+                die "Error, not all Chrysalis quantify_graph commands completed successfully. Cannot continue.";
             }
-            else {
-                
-                my $cmd = "$PARAFLY -c $quantify_graph_cmds -CPU $CPU -failed_cmds failed_quantify_graph_commands.$$.txt -v -shuffle ";
-                &process_cmd($cmd);
-            }
-            
-            # write checkpoint
-            &process_cmd("touch $quantify_graph_cmds_finished");
         }
-                
+        else {
+            
+            my $cmd = "$PARAFLY -c $quantify_graph_cmds -CPU $CPU -failed_cmds failed_quantify_graph_commands.$$.txt -v -shuffle ";
+            &process_cmd($cmd);
+        }
         
-        return($butterfly_cmds);
-    
+        # write checkpoint
+        &process_cmd("touch $quantify_graph_cmds_finished");
     }
-
-   
-
+    
+    
+    return($butterfly_cmds);
+    
+    
 }
 
 
@@ -1864,7 +1820,7 @@ sub run_inchworm {
             &process_cmd("touch $jelly_finished_checkpoint_file");
 
 
-            if ($NO_RUN_INCHWORM_FLAG) {
+            if ($NO_RUN_INCHWORM_FLAG && ! $TRINITY_COMPLETE_FLAG) {
                 print STDERR "WARNING:  --no_run_inchworm parameter in effect.  Stopping here prior to running inchworm.\n";
                 exit(0);
             }

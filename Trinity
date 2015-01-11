@@ -436,7 +436,8 @@ my $usage_synopsis = qq^
 #
 #     see: $FindBin::RealBin/sample_data/test_Trinity_Assembly/
 #          for sample data and 'runMe.sh' for example Trinity execution
-#     For more details, visit: http://trinityrnaseq.sf.net
+#
+#     For more details, visit: http://trinityrnaseq.github.io
 #
 ###############################################################################
 

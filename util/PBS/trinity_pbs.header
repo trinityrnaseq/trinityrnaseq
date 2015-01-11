@@ -1,0 +1,179 @@
+##################################################################################################################################
+##########################                                                                ########################################
+##########################     Trinity PBS job submission with multi part dependencies    ########################################
+##########################                                                                ########################################
+##################################################################################################################################
+### Author: Josh Bowden, Alexie Papanicolaou, CSIRO 
+### Version 1.0
+### Function definitions and PBS version specific information
+##################################################################################################################################
+
+######################################################################################################################
+###   Return usage information if user requests --help -h or another incorrect input flag.        
+######################################################################################################################
+function F_USAGE {
+	echo ""
+	echo "	Usage: "
+	echo ""
+	echo "	To start an analysis: "
+	echo "		trinity_pbs.sh <config.file> "
+	echo ""
+	echo "	To stop previously started PBS jobs in the queue: "
+	echo "		trinity_kill.pl OUTPUTDIR "
+	echo ""
+	echo "	Where:"
+	echo "		<config.file> = contains specific job details (see below)"
+	echo "		OUTPUTDIR     = is path to output data directory"
+	echo ""
+	echo "		Note: 	Modify the values in CONFIG_FILE to suit compute cluster and "
+	echo "			input data size and nameing conventions:"
+	echo ""
+	echo "		<config.file> contains data and job input details and user defined variables "
+	echo "		and user and cluster specific options:"
+	echo "				UEMAIL, DATADIRECTORY, OUTPUTDIR, JOBPREFIX, ACCOUNT  "
+	echo "				STANDARD_JOB_DETAILS"
+	echo "		per job details:"
+	echo "				NCPU, WALLTIME, MEM, MEMDIR, NUMPERARRAYITEM"
+	echo ""
+}
+
+ 
+######################################################################################################################
+###   Function to return the PBS header information, depending on PBS type.        
+######################################################################################################################
+# NODESCPUS=$(F_GETNODESTRING $1 $MEM $NCPU large $WALLTIME $JOBNAME $ACCOUNT $PBSUSER $MODTRINITY $JOBPREFIX)
+# NODESCPUS=$(F_GETNODESTRING $1    $2  $3  $4    $5        $6       $7       $8       $9          ${10} )
+function F_GETNODESTRING {
+	if [[ $1 = "--pbspro" ]] ; then
+		echo "
+#PBS -l select=1:ncpus="$3":NodeType="$4":mem="$2"
+#PBS -l walltime="$5" 
+#PBS -N "$6"
+"$7"
+#PBS -j oe 
+#PBS -m a 
+#PBS -V 
+"$8" 
+"$9"
+"
+	elif [[ $1 = "--pbs" ]] ; then
+		echo "
+#PBS -l nodes=1:ppn="$3"
+#PBS -l vmem="$2"
+#PBS -l walltime="$5" 
+#PBS -N "$6"
+#PBS -j oe 
+#PBS -m a 
+"$8" 
+#PBS -V 
+ "$9"
+"
+	fi
+	echo " JOBNAME=$6"
+	echo " JOBPREFIX=${10}"
+}
+
+
+######################################################################################################################
+###   Do some checking that files exist etc.         
+######################################################################################################################
+#DS=$(F_GETNODESTRING $FILENAMEINPUT    $DATADIRECTORY   $FILENAMESINGLE  $FILENAMELEFT   $FILENAMERIGHT)
+# DS=$(F_GETNODESTRING $1                $2               $3               $4              $5  )
+function SET_DS {
+
+	# add the correct filename extension so we can check if inchworm has been run in part 3 below
+	if [[ "$1" == *FR* ]] || [[  "$1" == *RF* ]] ;
+	then
+		DS="."
+	else
+		DS=".DS."
+	fi
+
+}
+
+#AP: i removed this because a) it didn't stop the script from progressing when there was an error, b) it was not handling multiple input files
+function F_CHECKFILES {	
+
+	# Check that input data file(s) exist.  
+	if [[ "$1" == *--single* ]] ; then
+		if [ ! -f ""$2""$3"" ] ; then
+			echo "Input file does not exist: "
+			echo "	"$2""$3""
+			exit 1 
+		fi
+	else # check that both left and right filenames  exist
+		if [ ! -f ""$2""$4"" ] ; then
+			echo "Input file does not exist: "
+			echo "	"$2""$4""
+			exit 1 
+		fi
+		if [ ! -f ""$2""$5"" ] ; then
+			echo "Input file does not exist: "
+			echo "	"$2""$5""
+			exit 1 
+		fi 
+	fi	
+}
+
+
+######################################################################################################################
+###   Checking that files containing stage specific script data exist  
+######################################################################################################################
+#F_WRITESCRIPT(   scriptname  $SOURCENAME  )  
+#F_WRITESCRIPT(   $1         $2 )   
+function F_WRITESCRIPT {	
+	if [ -e "$2" ] ; then
+		source "$2"
+	else
+		echo ""$1" requires file \""$2"\" to be present in the current directory"
+		exit 1
+	fi
+}
+
+
+
+##################################################################################################################################
+# This is used to stop all jobs sent to the PBS queue
+# requires path to the filename as second argument
+# The order of the following tests is important.
+##################################################################################################################################
+if [[ "$1" = "--rm" ]] || [[ "$1" = "-rm" ]] ; then
+	if [[ -e $2/jobnumbers.out ]] ; then
+		cat $2/jobnumbers.out | while read LINE; do 
+			qdel $LINE  || { echo "continuing..." ;} 
+		done
+		#echo " Any parallel  "
+	else
+		echo " Could not stop jobs as could not open file: "
+		echo "		$2"jobnumbers.out""
+	fi	
+	exit 0
+fi
+
+
+
+if [[ "$1" = "--help" ]] || [[ "$1" = "-h" ]] || [[ "$1" = "-?" ]]; then
+	F_USAGE
+	exit 0
+fi
+
+
+##################################################################################################################################
+## User email information required from command line:
+## Provide a valid email address so PBS can email user on start and finish of execution of individual parts (not part 4b or 5b though)
+##################################################################################################################################
+
+if [[ ! -e "$1" ]] ; then
+	echo "input file does not exist: "$1""
+	echo "Please provide an input file"
+	F_USAGE
+	exit 0
+fi
+
+
+
+
+
+
+
+

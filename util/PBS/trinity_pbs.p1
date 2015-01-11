@@ -1,0 +1,29 @@
+##################################################################################################################################
+##########################                                                                ########################################
+##########################     Trinity PBS job submission with multi part dependencies    ########################################
+##########################                                                                ########################################
+##################################################################################################################################
+### Author: Josh Bowden, Alexie Papanicolaou, CSIRO
+### Version 1.0
+### Inchworm P1 script
+##################################################################################################################################
+
+if [[ $MEM_P1 =~ ^([0-9]+) ]]; then
+        let MEM_BASE="${BASH_REMATCH[1]}"
+	JM_MEM="$MEM_BASE"G
+else
+	echo No memory given for kmer counter: "$MEM_P1"
+	exit 1
+fi
+
+JOBSTRING1=""$HASHBANG"
+"$NODESCPUS"
+
+    cd "$OUTPUTDIR"
+    export OMP_NUM_THREADS="$NCPU_P1"
+    export KMP_AFFINITY=compact
+    # this runs Inchworm only
+    "$STANDARD_JOB_DETAILS" --JM "$JM_MEM" --CPU "$NCPU_P1" --no_run_chrysalis
+"
+# Write the JOBSTRING1 to a file for later execution
+echo "${JOBSTRING1}" | cat -> ""$JOBNAME1".sh"

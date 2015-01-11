@@ -1,0 +1,70 @@
+##################################################################################################################################
+##########################                                                                ########################################
+##########################     Trinity PBS job submission with multi part dependencies    ########################################
+##########################                                                                ########################################
+##################################################################################################################################
+##################################################################################################################################
+### Author: Josh Bowden, Alexie Papanicolaou, CSIRO
+### Version 1.0
+###########  The main control script, that we will run and can be run seperately later if the job fails at intermediate stages  ###################
+############################################################################################################################################################
+
+RUNVAR1=""$HASHBANG"
+
+echo Killing any running jobs in "$OUTPUTDIR"
+trinity_kill.pl "$OUTPUTDIR" 2> /dev/null >/dev/null
+echo Checking and submitting any jobs
+###########################################################################################################################################################
+################         Use the Trinity/Chrysalis checkpoint files to work out what part of job remains          #########################################
+################         and queue only those parts that are still required		                                  #########################################
+
+if [ -s \""$OUTPUTDIR"/Trinity.fasta\" ] ; then 
+	echo 'Trinity seemingly finished: Trinity.fasta present in output directory. If you think this is wrong, delete Trinity.fasta and re-submit'
+	exit 0
+fi
+
+
+if [ ! -e \""$OUTPUTDIR"/inchworm.K25.L25"$DS"fa.finished\" ] ;then # do the whole analysis 
+	PBS_JOB1=\`qsub  "$JOBNAME1".sh\`
+	PBS_JOB2=\`qsub -W depend=afterok:\$PBS_JOB1  "$JOBNAME2".sh\`
+	PBS_JOB3=\`qsub -W depend=afternotok:\$PBS_JOB2 "$JOBNAME3".sh\`
+	PBS_JOB4_2=\`qsub -W depend=afterok:\$PBS_JOB2,afterany:\$PBS_JOB3 "$JOBNAME4".sh\`
+	echo  "$JOBNAME1".sh submitted ; echo \"\$PBS_JOB1\" > jobnumbers.out ;
+	echo  "$JOBNAME2".sh submitted ; echo \"\$PBS_JOB2\" >> jobnumbers.out ;
+	echo  "$JOBNAME3".sh submitted ; echo \"\$PBS_JOB3\" >> jobnumbers.out ;
+	echo  "$JOBNAME4".sh post-job "$JOBNAME2" submitted ; echo \"\$PBS_JOB4_2\" >> jobnumbers.out ;
+else # do analysis after inchworm only
+	if [ ! -e \""$OUTPUTDIR"/chrysalis/GraphFromIwormFasta.finished\" ] ; 	then # start analysis after inchworm 
+		PBS_JOB2=\`qsub  "$JOBNAME2".sh\`
+		PBS_JOB3=\`qsub -W depend=afternotok:\$PBS_JOB2 "$JOBNAME3".sh\`
+		PBS_JOB4_2=\`qsub -W depend=afterok:\$PBS_JOB2,afterany:\$PBS_JOB3 "$JOBNAME4".sh\`
+		echo  "$JOBNAME2".sh submitted ; echo \"\$PBS_JOB2\" >  jobnumbers.out ;
+		echo  "$JOBNAME3".sh submitted ; echo \"\$PBS_JOB3\" >> jobnumbers.out ;
+		echo  "$JOBNAME4".sh post-job "$JOBNAME2" submitted ; echo \"\$PBS_JOB4_2\" >> jobnumbers.out ;
+	else 
+		if [ ! -e \""$OUTPUTDIR"/chrysalis/readsToComponents.finished\" ] ;then # start analysis at Chrisyalis ReadsToTranscripts - which is slow due to I/O 
+			PBS_JOB3=\`qsub  "$JOBNAME3".sh\`
+			PBS_JOB4=\`qsub -W depend=afterok:\$PBS_JOB3  "$JOBNAME4".sh\`
+			echo  "$JOBNAME3".sh submitted ; echo \"\$PBS_JOB3\" >  jobnumbers.out ;
+			echo  "$JOBNAME4".sh post-job "$JOBNAME3" submitted ; echo \"\$PBS_JOB4\" >> jobnumbers.out ;
+		else # Run Chrysalis QuantifyGraph and then Butterfly 
+			PBS_JOB4=\`qsub "$JOBNAME4".sh\`
+			echo  "$JOBNAME4".sh submitted ; echo \"\$PBS_JOB4\"  > jobnumbers.out ;
+		fi	
+	fi		
+	echo When JOB ID \"\$PBS_JOB4\" finishes successfully - see output: \"$OUTPUTDIR\"/\"$JOBNAME4\".o\"\$PBS_JOB4\" - either re-run the submit command or use the following command to get all the data into a single file:
+	echo ' find "$OUTPUTDIR"/chrysalis -name *allProbPaths.fasta -exec cat {} \\; > "$OUTPUTDIR"/Trinity.fasta '
+fi
+" 	
+
+echo "${RUNVAR1}" | cat -> ""$JOBPREFIX"_run.sh"
+chmod 744 ""$JOBPREFIX"_run.sh"
+echo "To restart these jobs run either the same command again:"
+echo "    trinity_pbs.sh <the same .config file> "
+echo "	or the following script: "
+echo "    "$JOBPREFIX"_run.sh  found in the output directory "$OUTPUTDIR" "
+echo "To stop these jobs run:"
+echo "    trinity_kill.pl "$OUTPUTDIR" "
+echo "To check progress of these jobs run:"
+echo "    qstat -u "$USER""
+echo ""

@@ -1,0 +1,48 @@
+This document intends to provide usage information for the scripts 'use_express.py' and 'filter_contigs.py'
+ln addition to the mailing list, please email me ("Matthew MacManes" <macmanes@gmail.com>) with comments or suggestion.
+
+
+#############
+use_express.py ##
+###########
+
+This script takes the assembly Trinity.fasta, and calculates expression (FPKM) using Bowtie2 and eXpress, which need to be installed and in your $PATH.
+
+Bowtie2 download and documentation can be found at: http://bowtie-bio.sourceforge.net/bowtie2/index.shtml
+eXpress is documented and can be downloaded at: http://bio.math.berkeley.edu/eXpress/
+
+Usage: python use_express4.py -b input.fa  -t index_name -p [num threads] -X [insert size] -l left.fq -r right.fq -n file.sam]
+
+Required:  
+
+-b file.fa, --b2base=file.fa          fasta file for B2 index (default: Trinity.fasta)
+-l file.fq, --left=file.fq                 comma sep list of left reads
+-r file.fq, --right=file.fq              comma sep list of right reads
+
+and/or
+
+-U unpaired reads, --unpaired=unpaired reads
+
+Optional
+
+-t index, --target=index             Name of bowtie2 index (default=index)
+-p [INT], --threads=[INT]           Number of threads to use (default=2)
+-X [INT], --insert=[INT]              Max inner distance (default=500)
+-o path to output directory,       --outdir=path to output directory (default=CWD)
+-n file.sam,                               full path filename for SAM file from bowtie2 (default=hits.sam)
+
+Running this script should return the file 'results.xprs', which can be used for filtering contigs, as well as for input to edgeR or DESeq.
+
+
+#############
+filter_contigs.py ##
+###########
+
+This script takes the assembly Trinity.fasta, and the results.xprs file generated in the 'use_express.py' script, and filters out rare/poorly supported contigs. The resultant file 'High.cov.*.fasta' will contain only those well supported contigs. 
+
+Required: Biopython
+
+Usage: python filter_contigs.py -b Trinity.fasta -F .8
+
+-b Name of Multifasta file. Important, this must be the same file that you used on the above, or the names wont match up properly.
+-F The minimum FPKM that you want to retail. Default 1. e.g. transcripts <1 FPMK are filtered out.

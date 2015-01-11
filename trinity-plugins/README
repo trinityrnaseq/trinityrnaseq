@@ -1,0 +1,6 @@
+** README **
+
+This trinity-plugins directory contains mostly 3rd party code, each covered under its own separate license. See individual package details for more info.
+
+They are bundled here to both leverage the best tools that are available for various aspects of the Trinity pipeline, and to ensure compatibility with usage of specific versions of these tools.
+

@@ -1,0 +1,351 @@
+
+
+
+
+ifndef project
+     project = L3191
+endif
+
+ifeq ($(USER),kstanley)
+simproj.flu10.REMno     REMEDIATE =  REMEDIATE_ALIGNMENT_SW=True  SW_BANDWIDTH=15 PRINT_IMPROVEMENT_THRESH=10
+endif
+
+ifndef reads
+     reads = $(USER)
+endif
+
+ifndef MAQ
+     MAQ = 22
+endif
+
+#
+#  This can be either REMEDIATE_ALIGNMENT_SW=True or REMEDIATE_ALIGNMENT_FAST=True
+#  or even "REMEDIATE_ALIGNMENT_SW=False  SW_BANDWIDTH=12 PRINT_ALIGNMENT_THRESH=10"
+#  in place of: REMEDIATE_ALIGNMENT_SW=False
+#
+ifndef REMEDIATE
+	REMEDIATE =  REMEDIATE_ALIGNMENT_SW=False
+endif
+
+standard_sim_src = L3191
+
+new_project: CreateReadsFromTemplates
+	time ./CreateReadsFromTemplates DATA=projects/$(project)sim \
+             RUN=$(reads) DEVIATION=5 COUNT1=$(paired_coverage) 
+             INSERT_LENGTH1=4000 COUNT2=$(solo_coverage) INSERT_LENGTH2=0 \
+             GENOME_FILE=/wga/data01/WGAdata/projects/$(project)/contigs.fasta \
+             READ_TEMPLATES=$(standard_sim_src).templates
+
+maxcliq1 = 500
+maxcliq2 = 200
+k_for_merge = 12
+min_links_for_bad = 8
+aggressive_correction = False
+sc_info_min_length = 1000
+
+min_standalone_contig_size1 = 500
+min_standalone_contig_size2 = 4000
+
+simdir = $(predatadir)/projects/simprojects
+psl = $(predatadir)/simlogs
+
+simtoughparams: CreateReadsFromTemplates
+	time ./CreateReadsFromTemplates \
+            DATA=projects/simprojects/$(genome)$(coverage) RUN=garbage \
+            DEVIATION=10 COUNT1=$(coverage) INSERT_LENGTH1=4000 COUNT2=0.5 \
+            INSERT_LENGTH2=40000 MERGE_ALL=True \
+            GENOME_FILE=/wga/data01/WGAdata/$(genome)/contigs.fasta \
+	    READ_TEMPLATES=L3191.simulation_templates \
+	    CHIM_RATE=0.3
+	$(MAKE) full project=simprojects/$(genome)$(coverage) reads=reads \
+            maxcliq1=50 maxcliq2=50 k_for_merge=24
+	cp $(simdir)/$(genome)$(coverage)/reads/evaluate.brief.ps \
+            $(psl)/$(genome).$(coverage).ps
+
+simfull_raw: CreateReadsFromTemplates
+	time ./CreateReadsFromTemplates \
+            DATA=projects/simprojects/$(genome)$(coverage) RUN=garbage \
+            DEVIATION=5 COUNT1=$(coverage) INSERT_LENGTH1=4000 COUNT2=0 \
+            INSERT_LENGTH2=40000 MERGE_ALL=True \
+            GENOME_FILE=/wga/data01/WGAdata/$(genome)/contigs.fasta \
+	    READ_TEMPLATES=L3191.simulation_templates \
+	$(MAKE) full project=simprojects/$(genome)$(coverage) reads=reads \
+            maxcliq1=50 maxcliq2=50 k_for_merge=24
+	cp $(simdir)/$(genome)$(coverage)/reads/evaluate.brief.ps \
+            $(psl)/$(genome).$(coverage).ps
+
+simfull_unpaired: CreateReadsFromTemplates
+	time ./CreateReadsFromTemplates \
+            DATA=projects/simprojects/$(genome)$(coverage) RUN=garbage \
+            DEVIATION=5 COUNT1=0 INSERT_LENGTH1=4000 COUNT2=$(coverage) \
+            INSERT_LENGTH2=0 MERGE_ALL=True \
+            GENOME_FILE=/wga/data01/WGAdata/$(genome)/contigs.fasta \
+	    READ_TEMPLATES=L3191.simulation_templates \
+	$(MAKE) full project=simprojects/$(genome)$(coverage) reads=reads \
+            maxcliq1=50 maxcliq2=50 k_for_merge=24
+	cp $(simdir)/$(genome)$(coverage)/reads/evaluate.brief.ps \
+            $(psl)/$(genome).$(coverage).ps
+
+
+###################################################################################
+# SIMULATION PAPER
+###################################################################################
+
+# simulation paper targets
+
+simdir = $(predatadir)/projects/simprojects
+psl = $(predatadir)/simlogs
+seed = 1
+
+# simfull creates simulated reads, does a full run, and then deletes the
+# source reads.fasta and reads.qual.  Unless you need to redo "make full"
+# from the very beginning (FetchAndTrim), there is no need to run
+# CreateReadsFromTemplates again (which will recreate the source
+# reads.fasta and reads.qual).
+#
+# Somehow the deletion part got deleted.
+
+cosmid_cov          = 0.5
+bac_cov             = 0
+bac_dev             = 10
+bac_length          = 50000
+long_bac_cov        = 0
+long_bac_dev        = 15
+long_bac_length     = 200000
+simfull_genome_size = 0 # this is the default: it means that the full genome is used
+
+simfull: CreateReadsFromTemplates Assemble
+	./Time ./CreateReadsFromTemplates \
+           DATA=projects/simprojects/$(genome).$(cov).$(seed) \
+            RUN=garbage \
+            DEVIATION=10 COUNT1=$(cov) INSERT_LENGTH1=4000 COUNT2=$(cosmid_cov) \
+            INSERT_LENGTH2=40000 MERGE_ALL=True PAIRING_RATE=0.85 CHIM_RATE=0.7 \
+            INSERT_LENGTH3=$(bac_length) COUNT3=$(bac_cov) DEVIATION3=$(bac_dev) \
+            INSERT_LENGTH4=$(long_bac_length) COUNT4=$(long_bac_cov) DEVIATION4=$(long_bac_dev) \
+	    GENOME_SIZE=$(simfull_genome_size) \
+            GENOME_FILE=/wga/data01/WGAdata/$(genome)/contigs.fasta \
+            READ_TEMPLATES=L653.simulation_templates \
+           SEED_1=$(seed)
+	./Time ./Assemble DATA=projects/simprojects/$(genome).$(cov).$(seed) \
+            RUN=reads maxcliq1=50 maxcliq2=50 k_for_merge=24 \
+	    OMIT1=MergeSupercontigs OMIT2=ReportPairings SIMULATE=True
+	cp $(simdir)/$(genome).$(cov).$(seed)/reads/evaluate.brief.ps \
+           $(psl)/$(genome).$(cov).$(seed).ps
+
+human3X100: FetchAndTrim MakeTemplates
+        #time ./FetchAndTrim DATA=projects/L653 RUN=simulation_paper MAQ=13 \
+        #     ML=50 END_FLOOR=10 USE_FINISHING_READS=False
+        #time $(MAKE) Proj%rel project=L653 reads=simulation_paper
+        #time ./MakeTemplates DATA=projects/L653 RUN=simulation_paper \
+        #     OUTPUT=L653.simulation_templates
+	$(MAKE) simfull_alt genome=human100 cov=3 seed=1 \
+             >> $(psl)/human100.3.1.minimal.log 2>&1
+        #./Assemble DATA=projects/simprojects/human100.3.1 \
+        #    RUN=reads maxcliq1=30 maxcliq2=30 k_for_merge=24 \
+        #    PARSEREL=True START=Evaluate >> $(psl)/human100.3.1.log 2>&1
+        #./Assemble DATA=projects/simprojects/human100.3.1 \
+        #    RUN=reads2 maxcliq1=30 maxcliq2=30 k_for_merge=24 \
+        #    PARSEREL=True > $(psl)/human100.3.1.log2 2>&1
+        #./Assemble DATA=projects/simprojects/human100.3.1 \
+        #    RUN=reads3 maxcliq1=30 maxcliq2=30 k_for_merge=24 \
+        #    PARSEREL=True STOP=Fetch
+        #./Time ./ReadsToAligns DATA=projects/simprojects/human100.3.1 RUN=reads2 \
+        #     MAXCLIQ=30 MAXBAD=100 MAXBADLOOK=100000 KMER_MULT_FILE=kmers.mult \
+        #     TRIM2=True MULTI=True MINOVERLAPFORREPORTING=100 \
+        #     EARLY_EXIT=True MAX_ERRS=50 > $(psl)/human100.3.1.log2 2>&1
+
+# make shred1: 2x perfect tiling of human22
+
+shred1: CreateReadsFromTemplates
+	./CreateReadsFromTemplates \
+            DATA=projects/tilers/human22.2xperf \
+            RUN=garbage GENOME_SIZE=0 \
+            DEVIATION=10 COUNT1=0 INSERT_LENGTH1=4000 COUNT2=0 \
+            COUNT_SHREDDED=2 DUPL_SHREDDED=1 \
+            INSERT_LENGTH2=0 MERGE_ALL=True \
+            GENOME_FILE=/wga/data01/WGAdata/human22/contigs.fasta \
+	    READ_TEMPLATES=L3191.simulation_templates SEED_1=1234
+
+# make shred2: 2x random coverage of human 22
+
+shred2: CreateReadsFromTemplates Assemble
+	./CreateReadsFromTemplates \
+            DATA=projects/tilers/human22.2x \
+            RUN=garbage \
+            DEVIATION=10 COUNT1=2 INSERT_LENGTH1=4000 COUNT2=0 \
+            INSERT_LENGTH2=40000 MERGE_ALL=True PAIRING_RATE=0.85 CHIM_RATE=0.5 \
+            INSERT_LENGTH3=0 COUNT3=0 DEVIATION3=10 \
+            INSERT_LENGTH4=0 COUNT4=0 DEVIATION4=$15 \
+            GENOME_FILE=/wga/data01/WGAdata/human22/contigs.fasta \
+            READ_TEMPLATES=L3191.simulation_templates SEED_1=1234
+
+# make shred3: 5x random coverage of human 22
+
+shred3: CreateReadsFromTemplates Assemble
+	./CreateReadsFromTemplates \
+            DATA=projects/tilers/human22.5x \
+            RUN=garbage \
+            DEVIATION=10 COUNT1=4.5 INSERT_LENGTH1=4000 COUNT2=0.5 \
+            INSERT_LENGTH2=40000 MERGE_ALL=True PAIRING_RATE=0.85 CHIM_RATE=0.5 \
+            INSERT_LENGTH3=0 COUNT3=0 DEVIATION3=10 \
+            INSERT_LENGTH4=0 COUNT4=0 DEVIATION4=$15 \
+            GENOME_FILE=/wga/data01/WGAdata/human22/contigs.fasta \
+            READ_TEMPLATES=L3191.simulation_templates SEED_1=1234
+
+# make shred4: 2x perfect tiling plus 5x random coverage, human22
+
+shred4: CreateReadsFromTemplates Assemble
+	./CreateReadsFromTemplates \
+            DATA=projects/tilers/human22.5x+2xperf \
+            RUN=garbage \
+            DEVIATION=10 COUNT1=4.5 INSERT_LENGTH1=4000 COUNT2=0.5 \
+            INSERT_LENGTH2=40000 MERGE_ALL=True PAIRING_RATE=0.85 CHIM_RATE=0.5 \
+            INSERT_LENGTH3=0 COUNT3=0 DEVIATION3=10 \
+            INSERT_LENGTH4=0 COUNT4=0 DEVIATION4=$15 \
+            GENOME_FILE=/wga/data01/WGAdata/human22/contigs.fasta \
+            GENOME_SIZE=0 \
+            COUNT_SHREDDED=2 DUPL_SHREDDED=1 \
+            READ_TEMPLATES=L3191.simulation_templates SEED_1=1234
+
+
+myers_genome_size = 0
+dupl_shredded     = 3
+
+shredfull: CreateReadsFromTemplates
+	time ./CreateReadsFromTemplates \
+            DATA=projects/simprojects/$(genome).$(cov).$(seed).shred \
+            RUN=garbage GENOME_SIZE=$(myers_genome_size) \
+            DEVIATION=10 COUNT1=0 INSERT_LENGTH1=4000 COUNT2=0 \
+            COUNT_SHREDDED=$(cov) DUPL_SHREDDED=$(dupl_shredded) \
+            INSERT_LENGTH2=0 MERGE_ALL=True \
+            GENOME_FILE=/wga/data01/WGAdata/$(genome)/contigs.fasta \
+	    READ_TEMPLATES=L3191.simulation_templates SEED_1=$(seed)
+        #$(MAKE) full project=simprojects/$(genome).$(cov).$(seed).shred reads=reads \
+        #    maxcliq1=50 maxcliq2=50 k_for_merge=24
+        #    $(simdir)/$(genome).$(cov).$(seed).shred/reads/evaluate.brief.ps \
+        #    $(psl)/$(genome).$(cov).$(seed).shred.ps
+
+simulation_paper: FetchAndTrim MakeTemplates
+	time ./FetchAndTrim DATA=projects/L653 RUN=simulation_paper MAQ=13 \
+             ML=50 END_FLOOR=10 USE_FINISHING_READS=False
+	time $(MAKE) Proj%rel project=L653 reads=simulation_paper
+	time ./MakeTemplates DATA=projects/L653 RUN=simulation_paper \
+             OUTPUT=L653.simulation_templates
+
+        #$(MAKE) simfull genome=yeast cov=1.3 seed=1 >> $(psl)/yeast.1.3.1.log 2>&1
+        #$(MAKE) simfull genome=flu cov=10 seed=1 >> $(psl)/flu.10.1.log 2>&1
+        #$(MAKE) simfull genome=flu cov=10 seed=2 >> $(psl)/flu.10.2.log 2>&1
+        #$(MAKE) simfull genome=flu cov=5 seed=1 >> $(psl)/flu.5.1.log 2>&1
+        #$(MAKE) simfull genome=human21 cov=10 seed=1 >> $(psl)/human21.10.1.log 2>&1
+        #$(MAKE) simfull genome=human21 cov=5 seed=1 >> $(psl)/human21.5.1.log 2>&1
+        #$(MAKE) simfull genome=human22 cov=10 seed=1 >> $(psl)/human22.10.1.log 2>&1
+        #$(MAKE) simfull genome=human22 cov=5 seed=1 >> $(psl)/human22.5.1.log 2>&1
+        #$(MAKE) simfull genome=fly cov=10 seed=1 >> $(psl)/fly.10.1.log 2>&1
+        #$(MAKE) simfull genome=fly cov=5 seed=1 >> $(psl)/fly.5.1.log 2>&1
+        #$(MAKE) simfull genome=yeast cov=10 seed=1 >> $(psl)/yeast.10.1.log 2>&1
+        #$(MAKE) simfull genome=yeast cov=5 seed=1 >> $(psl)/yeast.5.1.log 2>&1
+        #
+        # NOT PART OF PAPER:
+        #
+        #$(MAKE) simfull genome=worm cov=10 seed=1 >> $(psl)/worm.10.1.log 2>&1
+        #$(MAKE) simfull genome=worm cov=5 >> $(psl)/worm.5.log 2>&1
+        #$(MAKE) simfull genome=weed cov=10 >> $(psl)/weed.10.log 2>&1
+        #$(MAKE) simfull genome=weed cov=5 >> $(psl)/weed.5.log 2>&1
+
+###################################################################################
+###################################################################################
+
+# fullbacs makes full on 10 disjoint human BACs, and on then 8 more BACs.  They
+# are all supposed to be of high quality.  Also I added L5760, which has a
+# misassembly-inducing chimeric read, L5760P144FH6.T0.
+#
+# Generate a report, bacs.report.{ps,pdf}, and a log file, bacs.log.
+# (NOT ANYMORE.)
+#
+# Usage: make fullbacs >& bacs.log
+
+fullbacs: Assemble
+	./Time ./Assemble DATA=projects/L980  TO=fbdir   >> bacs.log 2>&1
+	./Time ./Assemble DATA=projects/L1030 FROM=fbdir >> bacs.log 2>&1
+	./Time ./Assemble DATA=projects/L1073 FROM=fbdir >> bacs.log 2>&1
+	./Time ./Assemble DATA=projects/L1185 FROM=fbdir >> bacs.log 2>&1
+	./Time ./Assemble DATA=projects/L1218 FROM=fbdir >> bacs.log 2>&1
+	./Time ./Assemble DATA=projects/L1309 FROM=fbdir >> bacs.log 2>&1
+	./Time ./Assemble DATA=projects/L1348 FROM=fbdir >> bacs.log 2>&1
+	./Time ./Assemble DATA=projects/L1481 FROM=fbdir >> bacs.log 2>&1
+	./Time ./Assemble DATA=projects/L1734 FROM=fbdir >> bacs.log 2>&1
+	./Time ./Assemble DATA=projects/L2714 FROM=fbdir >> bacs.log 2>&1
+	./Time ./Assemble DATA=projects/L653  FROM=fbdir >> bacs.log 2>&1
+	./Time ./Assemble DATA=projects/L914  FROM=fbdir >> bacs.log 2>&1
+	./Time ./Assemble DATA=projects/L1046 FROM=fbdir >> bacs.log 2>&1
+	./Time ./Assemble DATA=projects/L1184 FROM=fbdir >> bacs.log 2>&1
+	./Time ./Assemble DATA=projects/L1606 FROM=fbdir >> bacs.log 2>&1
+	./Time ./Assemble DATA=projects/L3191 FROM=fbdir >> bacs.log 2>&1
+	./Time ./Assemble DATA=projects/L4191 FROM=fbdir >> bacs.log 2>&1
+	./Time ./Assemble DATA=projects/L5900 FROM=fbdir >> bacs.log 2>&1
+	./Time ./Assemble DATA=projects/L5760 FROM=fbdir >> bacs.log 2>&1
+
+# Insert length graphs for Neurospora bigmids.  You have to run FetchAndTrim
+# for each project first.  I've saved the resulting plots as G56insert.pdf,
+# G57insert.pdf.  These runs use benchmark.fasta in the respective project
+# directories, which is mergedcontigs.fasta from a G40 run (before adding in
+# long inserts).
+
+# Also for G59.
+
+G59_graph: EstimateInsertLengths
+	EstimateInsertLengths DATA=projects/G40plus RUN=Jan3/preFindSeeds \
+        OUTPUT=woofwoof LOW=0 HIGH=8000 DIVISIONS=40 EXPECTED_INSERT_LENGTH=4530 \
+        TITLE="G59 (Neurospora) insert length frequency" MIN_BENCH_SIZE=100000 \
+        PREFIX=G59
+
+pLorist_graph: EstimateInsertLengths
+	EstimateInsertLengths DATA=projects/G57 RUN=jaffe \
+             OUTPUT=projects/G57/pLorist_inserts BLOCK_SIZE=50 LOW=0 HIGH=50000 \
+             DIVISIONS=50 EXPECTED_INSERT_LENGTH=39550 \
+             TITLE="pLORIST library (G57, Neurospora) insert length frequency" \
+             MIN_BENCH_SIZE=80000
+
+pMOcosX_graph: EstimateInsertLengths
+	EstimateInsertLengths DATA=projects/G56 RUN=jaffe \
+             OUTPUT=projects/G56/pMOcosX_inserts BLOCK_SIZE=50 LOW=0 HIGH=50000 \
+             DIVISIONS=50 EXPECTED_INSERT_LENGTH=38000 \
+             TITLE="pMOcosX library (G56, Neurospora) insert length frequency" \
+             MIN_BENCH_SIZE=80000
+
+simulationb: CreateReadsFromTemplates ReadsToAligns \
+             AllcontigsToPhrap MergeContigsWithGaps \
+             FetchAndTrim ParseRel MakeTemplates
+	./FetchAndTrim DATA=projects/L3191 RUN=test MAQ=13 ML=50 \
+             END_FLOOR=10 USE_FINISHING_READS=False
+	$(MAKE) Proj%rel project=L3191 reads=test
+	./ReadsToAligns DATA=projects/L3191 RUN=test \
+             MAXCLIQ=500 MAXBAD=100 MAXBADLOOK=100000 KMER_MULT_FILE=kmers.mult \
+             MULTI=True MINOVERLAPFORREPORTING=100
+	./MakeTemplates DATA=projects/L3191 RUN=test \
+             OUTPUT=L3191.templates
+	./CreateReadsFromTemplates DATA=projects/h_infl_test RUN=no_qual \
+            DEVIATION=5 COUNT1=12 INSERT_LENGTH1=4000 COUNT2=0 \
+            INSERT_LENGTH2=40000 MERGE_ALL=True \
+            GENOME_FILE=/wga/data01/WGAdata/h_infl/contigs.fasta \
+	    READ_TEMPLATES=L3191.templates \
+	./FetchAndTrim DATA=projects/h_infl_test RUN=full MAQ=13 ML=50 \
+             END_FLOOR=10 USE_FINISHING_READS=False
+	./ReadsToAligns DATA=projects/h_infl_test RUN=full \
+             MAXCLIQ=500 MAXBAD=100
+
+barely_trimmed_reads: FetchAndTrim ReadsToAligns MakeTemplates
+        #time ./FetchAndTrim DATA=projects/L3191 RUN=KenTest MAQ=8 ML=50 \
+        #     END_FLOOR=8 USE_FINISHING_READS=False
+        #time $(MAKE) Proj%rel project=L3191 reads=KenTest
+        #time ./ReadsToAligns DATA=projects/L3191 RUN=KenTest \
+        #     MAXCLIQ=500 MAXBAD=100 MAXBADLOOK=100000 \
+        #     MULTI=True MINOVERLAPFORREPORTING=100
+	time ./MakeTemplates DATA=projects/L3191 RUN=KenTest \
+             OUTPUT=L3191.templates2 LOGFILEN=temp.templ.log2
+        #time ./MakeTemplates DATA=projects/L3191 RUN=test2 \
+        #     OUTPUT=L3191.templates2 LOGFILEN=temp.templ.log2
+	time ./CreateReadsFromTemplates DATA=projects/h_infl_test2 RUN=no_qual \
+            DEVIATION=5 COUNT1=12 INSERT_LENGTH1=4000 COUNT2=0 INSERT_LENGTH2=40000\
+            MERGE_ALL=True GENOME_FILE=/wga/data01/WGAdata/h_infl/contigs.fasta \
+	    READ_TEMPLATES=L3191.templates2 \

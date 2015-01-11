@@ -1,0 +1,44 @@
+= Trinity and Tuxedo RNA-Seq Workshop =
+
+Do you want to learn the basics of how to analyze RNA-Seq data, including genome-based and genome-free transcript reconstruction and differential expression analysis?  Below, we provide materials to help get you started. A VirtualBox virtual machine image is provided that includes several popular tools for analyzing RNA-Seq, including Tuxedo for genome-based and Trinity for genome-free RNA-Seq studies, and small sample RNA-Seq data sets.  Hands-on tutorials are provided to guide users in a step-by-step analysis of these data.
+
+The slides from the lecture part of the workshop are available ftp://ftp.broad.mit.edu/pub/users/bhaas/rnaseq_workshop/rnaseq_workshop_2014/rnaseq_workshop_slides.pdf[here].
+
+== The tutorials are based on the following Nature Protocol papers ==
+
+- *Trinity*: Haas BJ, Papanicolaou A, Yassour M, Grabherr M, Blood PD, Bowden J, Couger MB, Eccles D, Li B, Lieber M, Macmanes MD, Ott M, Orvis J, Pochet N, Strozzi F, Weeks N, Westerman R, William T, Dewey CN, Henschel R, Leduc RD, Friedman N, Regev A. De novo transcript sequence reconstruction from RNA-seq using the Trinity platform for reference generation and analysis. http://www.nature.com/nprot/journal/v8/n8/full/nprot.2013.084.html[Nat Protoc. 2013 Aug;8(8):1494-512. doi: 10.1038/nprot.2013.084. Epub 2013 Jul 11. PubMed PMID: 23845962.]
+
+
+- *Tuxedo*: Trapnell C, Roberts A, Goff L, Pertea G, Kim D, Kelley DR, Pimentel H, Salzberg SL, Rinn JL, Pachter L. Differential gene and transcript expression analysis of RNA-seq experiments with TopHat and Cufflinks. Nat Protoc. 2012 Mar 1;7(3):562-78. doi: 10.1038/nprot.2012.016. PubMed PMID: 22383036; http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3334321/[PubMed Central PMCID: PMC3334321.]
+
+
+== To complete either the Trinity or Tuxedo workshop, you must do the following ==
+
+- Install Virtualbox from http://virtualbox.org[http://virtualbox.org]
+- Download the ftp://ftp.broadinstitute.org/pub/users/bhaas/rnaseq_workshop/rnaseq_workshop_2014/TrinityWorkshopVM_2014.ova[Ubuntu Linux image with pre-installed software and data].
+- Install the Ubuntu image following ftp://ftp.broadinstitute.org/pub/users/bhaas/rnaseq_workshop/rnaseq_workshop_2014/virtualbox_setup.pdf[these instructions].
+- Run through the ftp://ftp.broadinstitute.org/pub/users/bhaas/rnaseq_workshop/rnaseq_workshop_2014/Trinity_workshop_activities.pdf[Trinity Tutorial] and/or the ftp://ftp.broadinstitute.org/pub/users/bhaas/rnaseq_workshop/rnaseq_workshop_2014/Tuxedo_workshop_activities.pdf[Tuxedo Tutorial] provided.
+
+
+== System requirements ==
+
+- a 64-bit computer (Mac OS X, Windows, or Linux)
+- approx. 30 Gb of free disk space
+- approx. 8 Gb of RAM
+
+
+== Time investment ==
+
+- Setup: approx. 30 min.
+- Trinity tutorial: approx. 2 hours.
+- Tuxedo tutorial: approx. 2 hours.
+
+== Workshop events ==
+
+- Oct 25, 2012  Programming for Biology course at CSHL
+- June 18, 2013  http://rna-seqsummit.com/agenda/interactive-workshops[RNA-Seq Summit, Boston, MA]
+- July 29, 2013 http://www.broadinstitute.org/collaboration/cegs/july_29_2013[Center for Cell Circuits Computational Genomics Workshop]
+- Oct 24, 2013 http://meetings.cshl.edu/courses/2013/c-info13.shtml[ Programming for Biology course at CSHL]
+- Nov 2013  University of Virginia
+- Dec 2, 2013  http://www.broadinstitute.org/partnerships/education/broade/broad-workshops[BroadE], Broad Institute
+- Oct 23, 2014 http://meetings.cshl.edu/courses/2014/c-info14.shtml[Programming for Biology Course at CSHL]

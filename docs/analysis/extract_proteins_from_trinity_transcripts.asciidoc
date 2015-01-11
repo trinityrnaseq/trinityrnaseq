@@ -1,0 +1,102 @@
+= Extract Likely Coding Sequences from Trinity Transcripts =
+
+link:index.html[Trinity-home]
+
+Likely coding regions can be extracted from Trinity transcripts using http://transdecoder.sf.net[TransDecoder], which comes included in the Trinity software distribution.  The system works as follows:
+
+- the longest ORF is identified within the Trinity transcript (if strand-specific, this is restricted to the top strand).
+- of all the longest ORFs extracted, a subset corresponding to the very longest ones (and most likely to be genuine) are identified and used to parameterize a Markov model based on hexamers.  These likely coding sequences are randomized to provide a sequence composition corresponding to non-coding sequence.
+- all longest ORFs found are scored according to the Markov Model (log likelihood ratio based on coding/noncoding) in each of the six possible reading frames. If the putative ORF proper coding frame scores positive and is highest of the other presumed wrong reading frames, then that ORF is reported.
+- if a high-scoring ORF is eclipsed by (fully contained within the span of) a longer ORF in a different reading frame, it is excluded.
+
+
+== Extracting Best ORFs ==
+
+Extracting likely coding regions from Trinity transcripts can be done using:
+
+
+  % $TRINITY_HOME/trinity-plugins/transdecoder/TransDecoder
+
+  with options:
+
+
+ ######################################## Options ###################################################################################
+ #
+ # ** Required:
+ #
+ # -t <string>                            transcripts.fasta
+ #
+ # ** Optional:
+ # 
+ # --reuse                                If this option is given, any existing files are not overwritten but reused
+ #
+ # --train <string>                       FASTA file with ORFs to train Markov Mod for protein identification; otherwise 
+ #                                        longest non-redundant ORFs used
+ #
+ # -m <int>                               minimum protein length (default: 100)
+ #
+ # --cd_hit_est <string>                  Optionally and only if it is not in your path, the full path to the cd-hit-est executable
+ #
+ # --workdir                              Force temporary output directory to this directory (e.g. if --reuse is needed)
+ #
+ # -G <string>                            genetic code (default: universal, options: Euplotes, Tetrahymena, Candida, Acetabularia)
+ #
+ #
+ # -h                                     print this option menu and quit
+ # -v                                     verbose
+ #
+ # -S                                     strand-specific (only analyzes top strand)
+ # -T <int>                               If no --train, top longest ORFs to train Markov Model (hexamer stats) (default: 500)
+ #
+ # --retain_long_orfs <int>               retain all ORFs found that are of minimum length in nucleotides (default: 900 bp => 300aa)
+ #
+ ##########################
+ #  Pfam running options:
+ ##########################
+ #
+ # --search_pfam <string>                 /path/to/pfam_db.hmm to search 
+ #                                        using hmmscan (which should be accessible via your PATH setting)
+ # 
+ # --pfam_out <string>                    You can also pre-run the pfam searches if --reuse is set. In that case, 
+ #                                        --pfam_out is the output of hhmscan --tblout using --noali --cut_nc --acc --notextw
+ #
+ # --prepare_pfam                         Prepare data for PFAM search and then quit (for running PFAM on HPC/computing cluster)
+ #
+ # --CPU <int>                            number of threads to use; (default: 2)
+ #
+ # --MPI                                  use MPI w/ execution of hmmscan
+ #
+ # --quiet                                send stderr to /dev/null
+ #
+ #################################################################################################################################### 
+
+
+
+
+
+== Sample Data ==
+
+Sample data and example execution are provided at
+
+  TRINITY_RNASEQ_ROOT/sample_data/test_Trinity_Coding_Extraction
+
+
+Just run 'runMe.sh' to run the process.
+
+The process involves 
+
+Final output files include:
+
+  Trinity.fasta.transdecoder.pep
+  Trinity.fasta.transdecoder.cds
+  Trinity.fasta.transdecoder.bed
+  Trinity.fasta.transdecoder.gff3
+
+
+The .bed file can be loaded into IGV for viewing along with the additional Trinity assembly and alignment data.
+
+
+== More Info ==
+
+TransDecoder is separately maintained on SourceForge.  Visit the http://transdecoder.sf.net[TransDecoder SourceForge Website] for the latest version of the software and documentation.
+

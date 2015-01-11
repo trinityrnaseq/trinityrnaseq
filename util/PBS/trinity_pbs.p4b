@@ -1,0 +1,42 @@
+##################################################################################################################################
+##########################                                                                ########################################
+##########################     Trinity PBS job submission with multi part dependencies    ########################################
+##########################                                                                ########################################
+##################################################################################################################################
+### Author: Josh Bowden, Alexie Papanicolaou, CSIRO
+### Version 1.0
+### QuantifyGraph p4b Script
+##################################################################################################################################
+
+JOBSTRING4b=""$HASHBANG"
+ "$NODESCPUS"
+ if [[ ! \$JOB_INDEX_PADDED ]];then
+	echo \"Error: not a proper submission\"
+	exit 255
+ fi
+ echo \"Processing quantifyGraph_commands index \$JOB_INDEX_PADDED \"
+ cd "$OUTPUTDIR"
+ export OMP_NUM_THREADS=1
+ COREFILENAME=""$OUTPUTDIR"/chrysalis/quantifyGraph_commands.pbs"
+ MYJOBQ=\$COREFILENAME.\$JOB_INDEX_PADDED
+ JOB_FILESIZE=\$(stat -c%s \"$MYJOBQ\")
+ if [ -s \"\$MYJOBQ.completed\" ] ; then
+	JOB_COMPLETED_FILESIZE=\$(stat -c%s \"\$MYJOBQ.completed\")
+	if [ \"\$JOB_FILESIZE\" != \"\$JOB_COMPLETED_FILESIZE\" ] ; then
+        	trap \" echo \\\"Please check \$MYJOBQ Chrysalis QuantifyGraph processes had enough walltime.\\\"; exit 255 \" INT TERM
+	        "$TRINITYPATH"/trinity-plugins/parafly/bin/ParaFly  -CPU "$NCPU_P4" -v -failed_cmds \$MYJOBQ.failed -c \$MYJOBQ
+        	trap - INT TERM EXIT
+	fi
+ else
+        	trap \" echo \\\"Please check \$MYJOBQ Chrysalis QuantifyGraph processes had enough walltime.\\\"; exit 255 \" INT TERM
+	        "$TRINITYPATH"/trinity-plugins/parafly/bin/ParaFly -CPU "$NCPU_P4" -v -failed_cmds \$MYJOBQ.failed -c \$MYJOBQ
+        	trap - INT TERM EXIT
+ fi
+
+ sleep 30 # IO friendship for following butterfly job - sometimes butterfly fails to find output if io is overwhelmed
+ exit
+
+"
+# Write the above script to a file for later execution
+echo "${JOBSTRING4b}" | cat -> "$JOBPREFIX"_p4b.sh
+ 	

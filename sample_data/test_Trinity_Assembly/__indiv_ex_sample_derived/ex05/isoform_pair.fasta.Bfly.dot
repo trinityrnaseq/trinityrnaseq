@@ -1,0 +1,8 @@
+digraph comp0{
+1 [label="AATTGAATCC...TATTCTGAGG:28(1)[3647]" ,style=bold,color="#AF0000"]
+1->10775[label=5]
+1->3648[style=bold,label=32,color="#AF0000"]
+10775 [label="TCCTCTGATA...GCCTGCAGTA:4(10775)[129]"]
+10775->3648[label=2]
+3648 [label="TATCTTTCTG...GAACCTCAGT:31(3648)[1752]" ,style=bold,color="#AF0000"]
+}

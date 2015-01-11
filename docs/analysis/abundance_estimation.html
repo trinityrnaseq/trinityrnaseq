@@ -1,0 +1,1362 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 8.6.8" />
+<title>Trinity: Abundance Estimation Using RSEM or eXpress, and Visualization Using IGV</title>
+<style type="text/css">
+/* Shared CSS for AsciiDoc xhtml11 and html5 backends */
+
+/* Default font. */
+body {
+  font-family: Georgia,serif;
+}
+
+/* Title font. */
+h1, h2, h3, h4, h5, h6,
+div.title, caption.title,
+thead, p.table.header,
+#toctitle,
+#author, #revnumber, #revdate, #revremark,
+#footer {
+  font-family: Arial,Helvetica,sans-serif;
+}
+
+body {
+  margin: 1em 5% 1em 5%;
+}
+
+a {
+  color: blue;
+  text-decoration: underline;
+}
+a:visited {
+  color: fuchsia;
+}
+
+em {
+  font-style: italic;
+  color: navy;
+}
+
+strong {
+  font-weight: bold;
+  color: #083194;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #527bbd;
+  margin-top: 1.2em;
+  margin-bottom: 0.5em;
+  line-height: 1.3;
+}
+
+h1, h2, h3 {
+  border-bottom: 2px solid silver;
+}
+h2 {
+  padding-top: 0.5em;
+}
+h3 {
+  float: left;
+}
+h3 + * {
+  clear: left;
+}
+h5 {
+  font-size: 1.0em;
+}
+
+div.sectionbody {
+  margin-left: 0;
+}
+
+hr {
+  border: 1px solid silver;
+}
+
+p {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+ul, ol, li > p {
+  margin-top: 0;
+}
+ul > li     { color: #aaa; }
+ul > li > * { color: black; }
+
+.monospaced, code, pre {
+  font-family: "Courier New", Courier, monospace;
+  font-size: inherit;
+  color: navy;
+  padding: 0;
+  margin: 0;
+}
+
+
+#author {
+  color: #527bbd;
+  font-weight: bold;
+  font-size: 1.1em;
+}
+#email {
+}
+#revnumber, #revdate, #revremark {
+}
+
+#footer {
+  font-size: small;
+  border-top: 2px solid silver;
+  padding-top: 0.5em;
+  margin-top: 4.0em;
+}
+#footer-text {
+  float: left;
+  padding-bottom: 0.5em;
+}
+#footer-badges {
+  float: right;
+  padding-bottom: 0.5em;
+}
+
+#preamble {
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+}
+div.imageblock, div.exampleblock, div.verseblock,
+div.quoteblock, div.literalblock, div.listingblock, div.sidebarblock,
+div.admonitionblock {
+  margin-top: 1.0em;
+  margin-bottom: 1.5em;
+}
+div.admonitionblock {
+  margin-top: 2.0em;
+  margin-bottom: 2.0em;
+  margin-right: 10%;
+  color: #606060;
+}
+
+div.content { /* Block element content. */
+  padding: 0;
+}
+
+/* Block element titles. */
+div.title, caption.title {
+  color: #527bbd;
+  font-weight: bold;
+  text-align: left;
+  margin-top: 1.0em;
+  margin-bottom: 0.5em;
+}
+div.title + * {
+  margin-top: 0;
+}
+
+td div.title:first-child {
+  margin-top: 0.0em;
+}
+div.content div.title:first-child {
+  margin-top: 0.0em;
+}
+div.content + div.title {
+  margin-top: 0.0em;
+}
+
+div.sidebarblock > div.content {
+  background: #ffffee;
+  border: 1px solid #dddddd;
+  border-left: 4px solid #f0f0f0;
+  padding: 0.5em;
+}
+
+div.listingblock > div.content {
+  border: 1px solid #dddddd;
+  border-left: 5px solid #f0f0f0;
+  background: #f8f8f8;
+  padding: 0.5em;
+}
+
+div.quoteblock, div.verseblock {
+  padding-left: 1.0em;
+  margin-left: 1.0em;
+  margin-right: 10%;
+  border-left: 5px solid #f0f0f0;
+  color: #888;
+}
+
+div.quoteblock > div.attribution {
+  padding-top: 0.5em;
+  text-align: right;
+}
+
+div.verseblock > pre.content {
+  font-family: inherit;
+  font-size: inherit;
+}
+div.verseblock > div.attribution {
+  padding-top: 0.75em;
+  text-align: left;
+}
+/* DEPRECATED: Pre version 8.2.7 verse style literal block. */
+div.verseblock + div.attribution {
+  text-align: left;
+}
+
+div.admonitionblock .icon {
+  vertical-align: top;
+  font-size: 1.1em;
+  font-weight: bold;
+  text-decoration: underline;
+  color: #527bbd;
+  padding-right: 0.5em;
+}
+div.admonitionblock td.content {
+  padding-left: 0.5em;
+  border-left: 3px solid #dddddd;
+}
+
+div.exampleblock > div.content {
+  border-left: 3px solid #dddddd;
+  padding-left: 0.5em;
+}
+
+div.imageblock div.content { padding-left: 0; }
+span.image img { border-style: none; }
+a.image:visited { color: white; }
+
+dl {
+  margin-top: 0.8em;
+  margin-bottom: 0.8em;
+}
+dt {
+  margin-top: 0.5em;
+  margin-bottom: 0;
+  font-style: normal;
+  color: navy;
+}
+dd > *:first-child {
+  margin-top: 0.1em;
+}
+
+ul, ol {
+    list-style-position: outside;
+}
+ol.arabic {
+  list-style-type: decimal;
+}
+ol.loweralpha {
+  list-style-type: lower-alpha;
+}
+ol.upperalpha {
+  list-style-type: upper-alpha;
+}
+ol.lowerroman {
+  list-style-type: lower-roman;
+}
+ol.upperroman {
+  list-style-type: upper-roman;
+}
+
+div.compact ul, div.compact ol,
+div.compact p, div.compact p,
+div.compact div, div.compact div {
+  margin-top: 0.1em;
+  margin-bottom: 0.1em;
+}
+
+tfoot {
+  font-weight: bold;
+}
+td > div.verse {
+  white-space: pre;
+}
+
+div.hdlist {
+  margin-top: 0.8em;
+  margin-bottom: 0.8em;
+}
+div.hdlist tr {
+  padding-bottom: 15px;
+}
+dt.hdlist1.strong, td.hdlist1.strong {
+  font-weight: bold;
+}
+td.hdlist1 {
+  vertical-align: top;
+  font-style: normal;
+  padding-right: 0.8em;
+  color: navy;
+}
+td.hdlist2 {
+  vertical-align: top;
+}
+div.hdlist.compact tr {
+  margin: 0;
+  padding-bottom: 0;
+}
+
+.comment {
+  background: yellow;
+}
+
+.footnote, .footnoteref {
+  font-size: 0.8em;
+}
+
+span.footnote, span.footnoteref {
+  vertical-align: super;
+}
+
+#footnotes {
+  margin: 20px 0 20px 0;
+  padding: 7px 0 0 0;
+}
+
+#footnotes div.footnote {
+  margin: 0 0 5px 0;
+}
+
+#footnotes hr {
+  border: none;
+  border-top: 1px solid silver;
+  height: 1px;
+  text-align: left;
+  margin-left: 0;
+  width: 20%;
+  min-width: 100px;
+}
+
+div.colist td {
+  padding-right: 0.5em;
+  padding-bottom: 0.3em;
+  vertical-align: top;
+}
+div.colist td img {
+  margin-top: 0.3em;
+}
+
+@media print {
+  #footer-badges { display: none; }
+}
+
+#toc {
+  margin-bottom: 2.5em;
+}
+
+#toctitle {
+  color: #527bbd;
+  font-size: 1.1em;
+  font-weight: bold;
+  margin-top: 1.0em;
+  margin-bottom: 0.1em;
+}
+
+div.toclevel0, div.toclevel1, div.toclevel2, div.toclevel3, div.toclevel4 {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+div.toclevel2 {
+  margin-left: 2em;
+  font-size: 0.9em;
+}
+div.toclevel3 {
+  margin-left: 4em;
+  font-size: 0.9em;
+}
+div.toclevel4 {
+  margin-left: 6em;
+  font-size: 0.9em;
+}
+
+span.aqua { color: aqua; }
+span.black { color: black; }
+span.blue { color: blue; }
+span.fuchsia { color: fuchsia; }
+span.gray { color: gray; }
+span.green { color: green; }
+span.lime { color: lime; }
+span.maroon { color: maroon; }
+span.navy { color: navy; }
+span.olive { color: olive; }
+span.purple { color: purple; }
+span.red { color: red; }
+span.silver { color: silver; }
+span.teal { color: teal; }
+span.white { color: white; }
+span.yellow { color: yellow; }
+
+span.aqua-background { background: aqua; }
+span.black-background { background: black; }
+span.blue-background { background: blue; }
+span.fuchsia-background { background: fuchsia; }
+span.gray-background { background: gray; }
+span.green-background { background: green; }
+span.lime-background { background: lime; }
+span.maroon-background { background: maroon; }
+span.navy-background { background: navy; }
+span.olive-background { background: olive; }
+span.purple-background { background: purple; }
+span.red-background { background: red; }
+span.silver-background { background: silver; }
+span.teal-background { background: teal; }
+span.white-background { background: white; }
+span.yellow-background { background: yellow; }
+
+span.big { font-size: 2em; }
+span.small { font-size: 0.6em; }
+
+span.underline { text-decoration: underline; }
+span.overline { text-decoration: overline; }
+span.line-through { text-decoration: line-through; }
+
+div.unbreakable { page-break-inside: avoid; }
+
+
+/*
+ * xhtml11 specific
+ *
+ * */
+
+div.tableblock {
+  margin-top: 1.0em;
+  margin-bottom: 1.5em;
+}
+div.tableblock > table {
+  border: 3px solid #527bbd;
+}
+thead, p.table.header {
+  font-weight: bold;
+  color: #527bbd;
+}
+p.table {
+  margin-top: 0;
+}
+/* Because the table frame attribute is overriden by CSS in most browsers. */
+div.tableblock > table[frame="void"] {
+  border-style: none;
+}
+div.tableblock > table[frame="hsides"] {
+  border-left-style: none;
+  border-right-style: none;
+}
+div.tableblock > table[frame="vsides"] {
+  border-top-style: none;
+  border-bottom-style: none;
+}
+
+
+/*
+ * html5 specific
+ *
+ * */
+
+table.tableblock {
+  margin-top: 1.0em;
+  margin-bottom: 1.5em;
+}
+thead, p.tableblock.header {
+  font-weight: bold;
+  color: #527bbd;
+}
+p.tableblock {
+  margin-top: 0;
+}
+table.tableblock {
+  border-width: 3px;
+  border-spacing: 0px;
+  border-style: solid;
+  border-color: #527bbd;
+  border-collapse: collapse;
+}
+th.tableblock, td.tableblock {
+  border-width: 1px;
+  padding: 4px;
+  border-style: solid;
+  border-color: #527bbd;
+}
+
+table.tableblock.frame-topbot {
+  border-left-style: hidden;
+  border-right-style: hidden;
+}
+table.tableblock.frame-sides {
+  border-top-style: hidden;
+  border-bottom-style: hidden;
+}
+table.tableblock.frame-none {
+  border-style: hidden;
+}
+
+th.tableblock.halign-left, td.tableblock.halign-left {
+  text-align: left;
+}
+th.tableblock.halign-center, td.tableblock.halign-center {
+  text-align: center;
+}
+th.tableblock.halign-right, td.tableblock.halign-right {
+  text-align: right;
+}
+
+th.tableblock.valign-top, td.tableblock.valign-top {
+  vertical-align: top;
+}
+th.tableblock.valign-middle, td.tableblock.valign-middle {
+  vertical-align: middle;
+}
+th.tableblock.valign-bottom, td.tableblock.valign-bottom {
+  vertical-align: bottom;
+}
+
+
+/*
+ * manpage specific
+ *
+ * */
+
+body.manpage h1 {
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+  border-top: 2px solid silver;
+  border-bottom: 2px solid silver;
+}
+body.manpage h2 {
+  border-style: none;
+}
+body.manpage div.sectionbody {
+  margin-left: 3em;
+}
+
+@media print {
+  body.manpage div#toc { display: none; }
+}
+
+
+</style>
+<script type="text/javascript">
+/*<![CDATA[*/
+var asciidoc = {  // Namespace.
+
+/////////////////////////////////////////////////////////////////////
+// Table Of Contents generator
+/////////////////////////////////////////////////////////////////////
+
+/* Author: Mihai Bazon, September 2002
+ * http://students.infoiasi.ro/~mishoo
+ *
+ * Table Of Content generator
+ * Version: 0.4
+ *
+ * Feel free to use this script under the terms of the GNU General Public
+ * License, as long as you do not remove or alter this notice.
+ */
+
+ /* modified by Troy D. Hanson, September 2006. License: GPL */
+ /* modified by Stuart Rackham, 2006, 2009. License: GPL */
+
+// toclevels = 1..4.
+toc: function (toclevels) {
+
+  function getText(el) {
+    var text = "";
+    for (var i = el.firstChild; i != null; i = i.nextSibling) {
+      if (i.nodeType == 3 /* Node.TEXT_NODE */) // IE doesn't speak constants.
+        text += i.data;
+      else if (i.firstChild != null)
+        text += getText(i);
+    }
+    return text;
+  }
+
+  function TocEntry(el, text, toclevel) {
+    this.element = el;
+    this.text = text;
+    this.toclevel = toclevel;
+  }
+
+  function tocEntries(el, toclevels) {
+    var result = new Array;
+    var re = new RegExp('[hH]([1-'+(toclevels+1)+'])');
+    // Function that scans the DOM tree for header elements (the DOM2
+    // nodeIterator API would be a better technique but not supported by all
+    // browsers).
+    var iterate = function (el) {
+      for (var i = el.firstChild; i != null; i = i.nextSibling) {
+        if (i.nodeType == 1 /* Node.ELEMENT_NODE */) {
+          var mo = re.exec(i.tagName);
+          if (mo && (i.getAttribute("class") || i.getAttribute("className")) != "float") {
+            result[result.length] = new TocEntry(i, getText(i), mo[1]-1);
+          }
+          iterate(i);
+        }
+      }
+    }
+    iterate(el);
+    return result;
+  }
+
+  var toc = document.getElementById("toc");
+  if (!toc) {
+    return;
+  }
+
+  // Delete existing TOC entries in case we're reloading the TOC.
+  var tocEntriesToRemove = [];
+  var i;
+  for (i = 0; i < toc.childNodes.length; i++) {
+    var entry = toc.childNodes[i];
+    if (entry.nodeName.toLowerCase() == 'div'
+     && entry.getAttribute("class")
+     && entry.getAttribute("class").match(/^toclevel/))
+      tocEntriesToRemove.push(entry);
+  }
+  for (i = 0; i < tocEntriesToRemove.length; i++) {
+    toc.removeChild(tocEntriesToRemove[i]);
+  }
+
+  // Rebuild TOC entries.
+  var entries = tocEntries(document.getElementById("content"), toclevels);
+  for (var i = 0; i < entries.length; ++i) {
+    var entry = entries[i];
+    if (entry.element.id == "")
+      entry.element.id = "_toc_" + i;
+    var a = document.createElement("a");
+    a.href = "#" + entry.element.id;
+    a.appendChild(document.createTextNode(entry.text));
+    var div = document.createElement("div");
+    div.appendChild(a);
+    div.className = "toclevel" + entry.toclevel;
+    toc.appendChild(div);
+  }
+  if (entries.length == 0)
+    toc.parentNode.removeChild(toc);
+},
+
+
+/////////////////////////////////////////////////////////////////////
+// Footnotes generator
+/////////////////////////////////////////////////////////////////////
+
+/* Based on footnote generation code from:
+ * http://www.brandspankingnew.net/archive/2005/07/format_footnote.html
+ */
+
+footnotes: function () {
+  // Delete existing footnote entries in case we're reloading the footnodes.
+  var i;
+  var noteholder = document.getElementById("footnotes");
+  if (!noteholder) {
+    return;
+  }
+  var entriesToRemove = [];
+  for (i = 0; i < noteholder.childNodes.length; i++) {
+    var entry = noteholder.childNodes[i];
+    if (entry.nodeName.toLowerCase() == 'div' && entry.getAttribute("class") == "footnote")
+      entriesToRemove.push(entry);
+  }
+  for (i = 0; i < entriesToRemove.length; i++) {
+    noteholder.removeChild(entriesToRemove[i]);
+  }
+
+  // Rebuild footnote entries.
+  var cont = document.getElementById("content");
+  var spans = cont.getElementsByTagName("span");
+  var refs = {};
+  var n = 0;
+  for (i=0; i<spans.length; i++) {
+    if (spans[i].className == "footnote") {
+      n++;
+      var note = spans[i].getAttribute("data-note");
+      if (!note) {
+        // Use [\s\S] in place of . so multi-line matches work.
+        // Because JavaScript has no s (dotall) regex flag.
+        note = spans[i].innerHTML.match(/\s*\[([\s\S]*)]\s*/)[1];
+        spans[i].innerHTML =
+          "[<a id='_footnoteref_" + n + "' href='#_footnote_" + n +
+          "' title='View footnote' class='footnote'>" + n + "</a>]";
+        spans[i].setAttribute("data-note", note);
+      }
+      noteholder.innerHTML +=
+        "<div class='footnote' id='_footnote_" + n + "'>" +
+        "<a href='#_footnoteref_" + n + "' title='Return to text'>" +
+        n + "</a>. " + note + "</div>";
+      var id =spans[i].getAttribute("id");
+      if (id != null) refs["#"+id] = n;
+    }
+  }
+  if (n == 0)
+    noteholder.parentNode.removeChild(noteholder);
+  else {
+    // Process footnoterefs.
+    for (i=0; i<spans.length; i++) {
+      if (spans[i].className == "footnoteref") {
+        var href = spans[i].getElementsByTagName("a")[0].getAttribute("href");
+        href = href.match(/#.*/)[0];  // Because IE return full URL.
+        n = refs[href];
+        spans[i].innerHTML =
+          "[<a href='#_footnote_" + n +
+          "' title='View footnote' class='footnote'>" + n + "</a>]";
+      }
+    }
+  }
+},
+
+install: function(toclevels) {
+  var timerId;
+
+  function reinstall() {
+    asciidoc.footnotes();
+    if (toclevels) {
+      asciidoc.toc(toclevels);
+    }
+  }
+
+  function reinstallAndRemoveTimer() {
+    clearInterval(timerId);
+    reinstall();
+  }
+
+  timerId = setInterval(reinstall, 500);
+  if (document.addEventListener)
+    document.addEventListener("DOMContentLoaded", reinstallAndRemoveTimer, false);
+  else
+    window.onload = reinstallAndRemoveTimer;
+}
+
+}
+asciidoc.install();
+/*]]>*/
+</script>
+</head>
+<body class="article">
+<div id="header">
+<h1>Trinity: Abundance Estimation Using RSEM or eXpress, and Visualization Using IGV</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><a href="../index.html">Trinity-home</a></p></div>
+<div class="paragraph"><p>Trinity supports the use of either <a href="http://deweylab.biostat.wisc.edu/rsem/">RSEM</a> or <a href="http://bio.math.berkeley.edu/eXpress/">eXpress</a> for transcript abundance estimation (ie. computing expression values). Be sure to download the software and make it available via our PATH setting.</p></div>
+<div class="paragraph"><p>To compute abundance estimates, the original reads (not in silico normalized) are aligned to the Trinity transcripts using either <a href="http://bowtie-bio.sourceforge.net/index.shtml">bowtie(1)</a> or <a href="http://bowtie-bio.sourceforge.net/bowtie2/index.shtml">bowtie2</a>. Then, either RSEM or eXpress are executed to estimate expression values based on the resulting alignments.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_table_of_contents">Table of Contents</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<a href="#align_and_estimate">Align Reads and Estimate Abundance</a>
+</p>
+</li>
+<li>
+<p>
+<a href="#alignment_output">Alignment output (bam files)</a>
+</p>
+</li>
+<li>
+<p>
+<a href="#RSEM_output">RSEM abundance estimation output</a>
+</p>
+</li>
+<li>
+<p>
+<a href="#how_many_expr">How many expressed genes or transcripts do I have?</a>
+</p>
+</li>
+<li>
+<p>
+<a href="#filtering_transcripts">Filtering lowly-supported transcripts (using RSEM output files)</a>
+</p>
+</li>
+<li>
+<p>
+<a href="#running_express">Running eXpress for abundance estimation</a>
+</p>
+</li>
+<li>
+<p>
+<a href="#Visualization">Visualization of Aligned Reads Using IGV</a>
+</p>
+</li>
+<li>
+<p>
+<a href="#detailed_assessment">Detailed Assessment of Read Content of the Assembly</a>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="align_and_estimate">Align Reads and Estimate Abundance</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The Trinity toolkit comes with a script to faciliate this process:</p></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>$TRINITY_HOME/util/align_and_estimate_abundance.pl</code></pre>
+</div></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>#########################################################################
+#
+#  --transcripts &lt;string&gt;           transcript fasta file
+#  --seqType &lt;string&gt;               fq|fa
+#
+#  If Paired-end:
+#
+#  --left &lt;string&gt;
+#  --right &lt;string&gt;
+#
+#    or Single-end:
+#
+#  --single &lt;string&gt;
+#
+#  --est_method &lt;string&gt;            RSEM|eXpress       abundance estimation method.
+#
+#  --aln_method &lt;string&gt;            bowtie|bowtie2|(path to bam file) alignment method.  (note: RSEM requires bowtie)
+#                                       (if you already have a bam file, you can use it here instead of rerunning bowtie)
+#
+# Optional:
+#
+# --SS_lib_type &lt;string&gt;           strand-specific library type:  paired('RF' or 'FR'), single('F' or 'R').
+#
+# --thread_count                   number of threads to use (default = 4)
+#
+# --max_ins_size &lt;int&gt;             maximum insert size (bowtie -X parameter, default: 800)
+#
+# --debug                          retain intermediate files
+#
+# --output_dir &lt;string&gt;            write all files to output directory
+#
+#
+#  --gene_trans_map &lt;string&gt;        file containing 'gene(tab)transcript' identifiers per line.
+#     or
+#  --trinity_mode                   Setting --trinity_mode will automatically generate the gene_trans_map and use it.
+#
+#
+#  --prep_reference                 prep reference set for eXpress (builds bowtie index, etc)
+#
+#  --output_prefix &lt;string&gt;         prefix for output files.  Defaults to --est_method setting.
+#
+#
+#  --show_full_usage_info           provide more detailed usage info for customizing the alignment or abundance estimation parameters.
+#
+#############################
+#  RSEM opts:
+#  --fragment_length &lt;int&gt;         optionally specify fragment length (not seq length, but frag size ie. 300) for SE reads.
+#
+#########################################################################
+#
+#  Example usage:
+#
+#   ## Just prepare the reference for alignment and abundance estimation
+#
+#    ./align_and_estimate_abundance.pl --transcripts Trinity.fasta --est_method RSEM --aln_method bowtie --trinity_mode --prep_reference
+#
+#   ## Run the alignment and abundance estimation (assumes reference has already been prepped, errors-out if prepped reference not located.)
+#
+#    ./align_and_estimate_abundance.pl --transcripts Trinity.fasta --seqType fq --left reads_1.fq --right reads_2.fq --est_method RSEM --aln_method bowtie --trinity_mode
+#
+##  ## prep the reference and run the alignment/estimation
+#
+#    ./align_and_estimate_abundance.pl --transcripts Trinity.fasta --seqType fq --left reads_1.fq --right reads_2.fq --est_method RSEM --aln_method bowtie --trinity_mode --prep_reference
+#
+#########################################################################</code></pre>
+</div></div>
+<div class="paragraph"><p>If you have strand-specific data, be sure to include the <em>--SS_lib_type</em> parameter.</p></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">It is useful to first run <em>align_and_estimate_abundance.pl</em> to only prep your reference database for alignment, using <em>--prep_reference</em>, and then subsequently running it on each of your sets of reads in parallel to obtain sample-specific abundance estimates.</td>
+</tr></table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="alignment_output">Alignment output (bam)</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The alignment step generates the file <em>bowtie.bam</em>, which is then fed directly into either RSEM or eXpress.  Note, the alignment step also generates a <em>bowtie.csorted.bam</em> file, which is a coordinate-sorted bam file that can be used for visualization using IGV (see below).</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="RSEM_output">RSEM output</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The RSEM computation generates two primary output files containing the abundance estimation information:</p></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>RSEM.isoforms.results  : EM read counts per Trinity transcript
+RSEM.genes.results     : EM read counts on a per-Trinity-component (aka... gene) basis, 'gene' used loosely here.</code></pre>
+</div></div>
+<div class="paragraph"><p>The output for the isoforms file looks like so:</p></div>
+<div class="tableblock">
+<table rules="all"
+width="100%"
+frame="border"
+cellspacing="0" cellpadding="4">
+<col width="12%" />
+<col width="12%" />
+<col width="12%" />
+<col width="12%" />
+<col width="12%" />
+<col width="12%" />
+<col width="12%" />
+<col width="12%" />
+<thead>
+<tr>
+<th align="left" valign="top">transcript_id   </th>
+<th align="left" valign="top">gene_id </th>
+<th align="left" valign="top">length  </th>
+<th align="left" valign="top">effective_length        </th>
+<th align="left" valign="top">expected_count  </th>
+<th align="left" valign="top">TPM     </th>
+<th align="left" valign="top">FPKM    </th>
+<th align="left" valign="top">IsoPct</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left" valign="top"><p class="table">c128_g0_i1</p></td>
+<td align="left" valign="top"><p class="table">c128_g0</p></td>
+<td align="left" valign="top"><p class="table">209</p></td>
+<td align="left" valign="top"><p class="table">1.73</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">c13_g0_i1</p></td>
+<td align="left" valign="top"><p class="table">c13_g0</p></td>
+<td align="left" valign="top"><p class="table">235</p></td>
+<td align="left" valign="top"><p class="table">7.16</p></td>
+<td align="left" valign="top"><p class="table">1.00</p></td>
+<td align="left" valign="top"><p class="table">12561.51</p></td>
+<td align="left" valign="top"><p class="table">5282.75</p></td>
+<td align="left" valign="top"><p class="table">100.00</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">c22_g0_i1</p></td>
+<td align="left" valign="top"><p class="table">c22_g0</p></td>
+<td align="left" valign="top"><p class="table">215</p></td>
+<td align="left" valign="top"><p class="table">2.62</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">c28_g0_i1</p></td>
+<td align="left" valign="top"><p class="table">c28_g0</p></td>
+<td align="left" valign="top"><p class="table">329</p></td>
+<td align="left" valign="top"><p class="table">54.60</p></td>
+<td align="left" valign="top"><p class="table">4.00</p></td>
+<td align="left" valign="top"><p class="table">6591.85</p></td>
+<td align="left" valign="top"><p class="table">2772.21</p></td>
+<td align="left" valign="top"><p class="table">100.00</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">c33_g0_i1</p></td>
+<td align="left" valign="top"><p class="table">c33_g0</p></td>
+<td align="left" valign="top"><p class="table">307</p></td>
+<td align="left" valign="top"><p class="table">40.30</p></td>
+<td align="left" valign="top"><p class="table">3.00</p></td>
+<td align="left" valign="top"><p class="table">6697.56</p></td>
+<td align="left" valign="top"><p class="table">2816.66</p></td>
+<td align="left" valign="top"><p class="table">100.00</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">c35_g0_i1</p></td>
+<td align="left" valign="top"><p class="table">c35_g0</p></td>
+<td align="left" valign="top"><p class="table">219</p></td>
+<td align="left" valign="top"><p class="table">3.33</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">c35_g1_i1</p></td>
+<td align="left" valign="top"><p class="table">c35_g1</p></td>
+<td align="left" valign="top"><p class="table">204</p></td>
+<td align="left" valign="top"><p class="table">1.19</p></td>
+<td align="left" valign="top"><p class="table">1.00</p></td>
+<td align="left" valign="top"><p class="table">75295.99</p></td>
+<td align="left" valign="top"><p class="table">31665.75</p></td>
+<td align="left" valign="top"><p class="table">100.00</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">c39_g0_i1</p></td>
+<td align="left" valign="top"><p class="table">c39_g0</p></td>
+<td align="left" valign="top"><p class="table">348</p></td>
+<td align="left" valign="top"><p class="table">68.20</p></td>
+<td align="left" valign="top"><p class="table">1.00</p></td>
+<td align="left" valign="top"><p class="table">1319.32</p></td>
+<td align="left" valign="top"><p class="table">554.84</p></td>
+<td align="left" valign="top"><p class="table">100.00</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">c39_g0_i2</p></td>
+<td align="left" valign="top"><p class="table">c39_g0</p></td>
+<td align="left" valign="top"><p class="table">255</p></td>
+<td align="left" valign="top"><p class="table">13.97</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">c41_g0_i1</p></td>
+<td align="left" valign="top"><p class="table">c41_g0</p></td>
+<td align="left" valign="top"><p class="table">592</p></td>
+<td align="left" valign="top"><p class="table">295.77</p></td>
+<td align="left" valign="top"><p class="table">12.00</p></td>
+<td align="left" valign="top"><p class="table">3650.37</p></td>
+<td align="left" valign="top"><p class="table">1535.16</p></td>
+<td align="left" valign="top"><p class="table">100.00</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">c44_g0_i1</p></td>
+<td align="left" valign="top"><p class="table">c44_g0</p></td>
+<td align="left" valign="top"><p class="table">361</p></td>
+<td align="left" valign="top"><p class="table">78.10</p></td>
+<td align="left" valign="top"><p class="table">1.00</p></td>
+<td align="left" valign="top"><p class="table">1151.96</p></td>
+<td align="left" valign="top"><p class="table">484.46</p></td>
+<td align="left" valign="top"><p class="table">100.00</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">c44_g1_i1</p></td>
+<td align="left" valign="top"><p class="table">c44_g1</p></td>
+<td align="left" valign="top"><p class="table">280</p></td>
+<td align="left" valign="top"><p class="table">25.22</p></td>
+<td align="left" valign="top"><p class="table">1.00</p></td>
+<td align="left" valign="top"><p class="table">3568.05</p></td>
+<td align="left" valign="top"><p class="table">1500.54</p></td>
+<td align="left" valign="top"><p class="table">100.00</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="paragraph"><p>and the <em>genes</em> file provides expression results on a per-Trinity component basis:</p></div>
+<div class="tableblock">
+<table rules="all"
+width="100%"
+frame="border"
+cellspacing="0" cellpadding="4">
+<col width="14%" />
+<col width="14%" />
+<col width="14%" />
+<col width="14%" />
+<col width="14%" />
+<col width="14%" />
+<col width="14%" />
+<thead>
+<tr>
+<th align="left" valign="top">gene_id </th>
+<th align="left" valign="top">transcript_id(s)        </th>
+<th align="left" valign="top">length  </th>
+<th align="left" valign="top">effective_length        </th>
+<th align="left" valign="top">expected_count  </th>
+<th align="left" valign="top">TPM     </th>
+<th align="left" valign="top">FPKM</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left" valign="top"><p class="table">c128_g0</p></td>
+<td align="left" valign="top"><p class="table">c128_g0_i1</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">c13_g0</p></td>
+<td align="left" valign="top"><p class="table">c13_g0_i1</p></td>
+<td align="left" valign="top"><p class="table">235.00</p></td>
+<td align="left" valign="top"><p class="table">7.16</p></td>
+<td align="left" valign="top"><p class="table">1.00</p></td>
+<td align="left" valign="top"><p class="table">12561.51</p></td>
+<td align="left" valign="top"><p class="table">5282.75</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">c22_g0</p></td>
+<td align="left" valign="top"><p class="table">c22_g0_i1</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">c28_g0</p></td>
+<td align="left" valign="top"><p class="table">c28_g0_i1</p></td>
+<td align="left" valign="top"><p class="table">329.00</p></td>
+<td align="left" valign="top"><p class="table">54.60</p></td>
+<td align="left" valign="top"><p class="table">4.00</p></td>
+<td align="left" valign="top"><p class="table">6591.85</p></td>
+<td align="left" valign="top"><p class="table">2772.21</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">c33_g0</p></td>
+<td align="left" valign="top"><p class="table">c33_g0_i1</p></td>
+<td align="left" valign="top"><p class="table">307.00</p></td>
+<td align="left" valign="top"><p class="table">40.30</p></td>
+<td align="left" valign="top"><p class="table">3.00</p></td>
+<td align="left" valign="top"><p class="table">6697.56</p></td>
+<td align="left" valign="top"><p class="table">2816.66</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">c35_g0</p></td>
+<td align="left" valign="top"><p class="table">c35_g0_i1</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+<td align="left" valign="top"><p class="table">0.00</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">c35_g1</p></td>
+<td align="left" valign="top"><p class="table">c35_g1_i1</p></td>
+<td align="left" valign="top"><p class="table">204.00</p></td>
+<td align="left" valign="top"><p class="table">1.19</p></td>
+<td align="left" valign="top"><p class="table">1.00</p></td>
+<td align="left" valign="top"><p class="table">75295.99</p></td>
+<td align="left" valign="top"><p class="table">31665.75</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">c39_g0</p></td>
+<td align="left" valign="top"><p class="table">c39_g0_i1,c39_g0_i2</p></td>
+<td align="left" valign="top"><p class="table">348.00</p></td>
+<td align="left" valign="top"><p class="table">68.20</p></td>
+<td align="left" valign="top"><p class="table">1.00</p></td>
+<td align="left" valign="top"><p class="table">1319.32</p></td>
+<td align="left" valign="top"><p class="table">554.84</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">c41_g0</p></td>
+<td align="left" valign="top"><p class="table">c41_g0_i1</p></td>
+<td align="left" valign="top"><p class="table">592.00</p></td>
+<td align="left" valign="top"><p class="table">295.77</p></td>
+<td align="left" valign="top"><p class="table">12.00</p></td>
+<td align="left" valign="top"><p class="table">3650.37</p></td>
+<td align="left" valign="top"><p class="table">1535.16</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">c44_g0</p></td>
+<td align="left" valign="top"><p class="table">c44_g0_i1</p></td>
+<td align="left" valign="top"><p class="table">361.00</p></td>
+<td align="left" valign="top"><p class="table">78.10</p></td>
+<td align="left" valign="top"><p class="table">1.00</p></td>
+<td align="left" valign="top"><p class="table">1151.96</p></td>
+<td align="left" valign="top"><p class="table">484.46</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">c44_g1</p></td>
+<td align="left" valign="top"><p class="table">c44_g1_i1</p></td>
+<td align="left" valign="top"><p class="table">280.00</p></td>
+<td align="left" valign="top"><p class="table">25.22</p></td>
+<td align="left" valign="top"><p class="table">1.00</p></td>
+<td align="left" valign="top"><p class="table">3568.05</p></td>
+<td align="left" valign="top"><p class="table">1500.54</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="how_many_expr">How many expressed genes or transcripts do I have?</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Presumably, a transcript is expressed if it has been assembled from RNA-Seq data, but as we know, transcription can be quite pervasive, and many transcripts, particularly the very lowly expressed ones, have questionable biological significance.  Note that some transcripts may have artificially low (or zero) expression values simply because they are incompletely assembled and do not recruit both pairs of PE reads in order to be properly accounted for during abundance estimation.  If we assume that most biologically relevant transcripts are reasonably well assembled and well quantified by the abundance estimation method used, we might infer the approximate number of expressed genes or transcripts as the number that are expressed above some minimum expression threshold.</p></div>
+<div class="paragraph"><p>Given an RSEM output file, you can plot the number of genes (or transcripts) that are expressed above a minimum FPKM expression threshold like so.</p></div>
+<div class="paragraph"><p>Generate a data file containing the minimum fpkm threshold and count of features (genes or transcripts) by running the following on your gene or transcript RSEM output file:</p></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>$TRINITY_HOME/util/misc/count_features_given_MIN_FPKM_threshold.pl RSEM.genes.results &gt; cumul_counts.txt</code></pre>
+</div></div>
+<div class="paragraph"><p>which will generate output like so:</p></div>
+<div class="tableblock">
+<table rules="all"
+width="100%"
+frame="border"
+cellspacing="0" cellpadding="4">
+<col width="50%" />
+<col width="50%" />
+<thead>
+<tr>
+<th align="left" valign="top">neg_min_fpkm    </th>
+<th align="left" valign="top">num_features</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left" valign="top"><p class="table">-15510</p></td>
+<td align="left" valign="top"><p class="table">1</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">-15260</p></td>
+<td align="left" valign="top"><p class="table">2</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">-11615</p></td>
+<td align="left" valign="top"><p class="table">3</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">-11459</p></td>
+<td align="left" valign="top"><p class="table">4</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">&#8230; skipping many lines</p></td>
+<td align="left" valign="top"><p class="table">&#8230;</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">-5</p></td>
+<td align="left" valign="top"><p class="table">9730</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">-4</p></td>
+<td align="left" valign="top"><p class="table">11806</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">-3</p></td>
+<td align="left" valign="top"><p class="table">15310</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">-2</p></td>
+<td align="left" valign="top"><p class="table">23685</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">-1</p></td>
+<td align="left" valign="top"><p class="table">47930</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table">0</p></td>
+<td align="left" valign="top"><p class="table">1388798</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="paragraph"><p>The above table indicates that we have at least 23,685 <em>genes</em> expressed by at least 2 FPKM (after first rounding FPKM values).</p></div>
+<div class="paragraph"><p>The data can be plotted using your favorite utility. If you choose to use R, you might do it like so:</p></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>R
+&gt;data = read.table("cumul_counts.txt", header=T)
+&gt;plot(data, xlim=c(-10,0), ylim=c(0,50000), xlab='-1*minFPKM', ylab='cumul gene count', type='b', main='gene count vs. minFPKM')</code></pre>
+</div></div>
+<div class="paragraph"><p>which would generate the following plot:</p></div>
+<div class="paragraph"><p><span class="image">
+<img src="../images/genes_vs_minFPKM_plot.png" alt=""genes_vs_minFPKM"" />
+</span></p></div>
+<div class="paragraph"><p>You can see that, in my current sample, we have over 1.3 million <em>genes</em>, but only a fraction of them (47,930) are expressed at least by 1 FPKM (after rounding the FPKM values).</p></div>
+<div class="paragraph"><p>If we want higher precision in the number of genes expressed between 0 and 1 FPKM, we can count them by running a filter on the RSEM output file like so:</p></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>cat RSEM.genes.results | sed '1,1d' | awk '$7 &gt;= 0.1' |wc -l</code></pre>
+</div></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>84097</code></pre>
+</div></div>
+<div class="paragraph"><p>To reproduce one of the numbers in the above table, it would look like so:</p></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>cat RSEM.genes.results | sed '1,1d' | awk 'int($7 + 0.5) &gt;= 2' |wc -l</code></pre>
+</div></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>23685</code></pre>
+</div></div>
+<div class="paragraph"><p>Ultimately, the most biologically relevant transcription is this particular case is probably ~30k genes, but of course, this is highly subjective, as is the definition of a gene itself and what many would consider to be biologically relevant. Simpler operational definitions can suffice here as part of generating bulk statistics.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="filtering_transcripts">Filtering lowly supported transcripts (using RSEM output files)</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>If you want to filter out the likely transcript artifacts and lowly expressed transcripts, you might consider retaining only those that represent at least 1% of the per-component (IsoPct) expression level.  Because Trinity transcripts are not currently scaffolded across sequencing gaps, there will be cases where smaller transcript fragments may lack enough properly-paired read support to show up as <em>expressed</em>, but are still otherwise supported by the read data.  Therefore, filter cautiously and we don&#8217;t recommend discarding such lowly expressed (or seemingly unexpressed) transcripts, but rather putting them aside for further study.</p></div>
+<div class="paragraph"><p>The utility script <em>TRINITY_RNASEQ_ROOT/util/filter_fasta_by_rsem_values.pl</em> can be used to filter your FASTA file of assembled transcripts using the RSEM values within the RSEM.isoforms.results file, according to min IsoPct, min FPKM, and min TPM.  Note, you can provide a list of RSEM output files, one for each sample, and filter out those transcripts that do not meet the specified requirements in any of the samples given.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="running_express">Running eXpress</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>If parameter setting <em>--est_method eXpress</em> is used, eXpress will be run, and files generated will include:</p></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>results.xprs : the primary eXpress output file, containing expression values for transcripts.
+results.xprs.genes : a 'genes' expression output file, generated by the Trinity toolkit, based on the eXpress transcript results.</code></pre>
+</div></div>
+<div class="paragraph"><p>Note, the <em>results.xprs.genes</em> file content is formatted identically to the <em>results.xprs</em> file, but limited in data content to the length, counts, and FPKM expression values. The remainder of the fields are set to <em>NA</em>.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_sample_data">Sample Data</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Under <em>TRINITY_RNASEQ_ROOT/sample_data/test_Trinity_Assembly</em>, execute</p></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>% runMe.sh 1</code></pre>
+</div></div>
+<div class="paragraph"><p>to first build Trinity transcript assemblies using the sample data, and then run through the downstream alignment and abundance estimation steps.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Visualization">Visualization of Aligned Reads Using IGV</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The Trinity Transcripts and read alignments can be visualized using the <a href="http://www.broadinstitute.org/igv/">Integrated Genomics Viewer</a>.</p></div>
+<div class="paragraph"><p>Just import the Trinity.fasta file as a <em>genome</em>, and load up the coordinate-sorted bam file containing the aligned reads (bowtie.csorted.bam).  A screenshot below shows how the data are displayed:</p></div>
+<div class="paragraph"><p><span class="image">
+<img src="../images/IGV_Trinity_screenshot.png" alt="Trinity_in_IGV" />
+</span></p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="detailed_assessment">Detailed Assessment of Read Content of the Assembly</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The above methods for quantitation rely on sets of properly paired reads.  However, it is sometimes the case that certain (usually small) reconstructed transcript fragments can capture alignments to individual reads but not to both paired reads of RNA-Seq fragments.  By running the process below, both the single-end and propery paired reads can be captured, counted, and visualized:</p></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>$TRINITY_HOME/util/bowtie_PE_separate_then_join.pl --seqType fq --left left.fq --right right.fq \
+                --target Trinity.fasta --aligner bowtie -- -p 4 --all --best --strata -m 300</code></pre>
+</div></div>
+<div class="paragraph"><p>As usual, if you have strand-specific RNA-Seq data, indicate this with the <em>--SS_lib_type</em> parameter.</p></div>
+<div class="paragraph"><p>An output directory <em>bowtie_out</em> is created and should include the files:</p></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>bowtie_out.nameSorted.bam  : alignments sorted by read name
+bowtie_out.coordSorted.bam : alignments sorted by coordinate.</code></pre>
+</div></div>
+<div class="paragraph"><p>To get alignment statistics, run the following on the name-sorted bam file:</p></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>$TRINITY_HOME/util/SAM_nameSorted_to_uniq_count_stats.pl bowtie_out/bowtie_out.nameSorted.bam</code></pre>
+</div></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>#read_type  count   pct
+proper_pairs    47042   83.59  (left and right reads align to the same transcript)
+improper_pairs  6824    12.13  (left and right reads align, but to different transcripts)
+left_only   1300    2.31
+right_only  1110    1.97</code></pre>
+</div></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>Total aligned reads: 56276  (counting individual reads of pairs, each read counts only once).</code></pre>
+</div></div>
+<div class="paragraph"><p>You can load up the <em>bowtie_out.coordSorted.bam</em> file into IGV for visualization.</p></div>
+</div>
+</div>
+</div>
+<div id="footnotes"><hr /></div>
+<div id="footer">
+<div id="footer-text">
+Last updated 2014-04-16 11:07:29 EDT
+</div>
+</div>
+</body>
+</html>

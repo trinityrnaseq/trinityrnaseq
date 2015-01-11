@@ -1,0 +1,184 @@
+###
+### This file is generated automatically.  DO NOT MODIFY BY HAND!
+###
+
+GraphFromFasta_MPI.o: $(SRC)/GraphFromFasta_MPI.cc $(SRC)/aligns/KmerAlignCore.h $(SRC)/analysis/AACodons.h $(SRC)/analysis/DNAVector.h $(SRC)/analysis/DeBruijnGraph.h $(SRC)/analysis/KmerTable.h $(SRC)/analysis/NonRedKmerTable.h $(SRC)/analysis/sequenceUtil.h $(SRC)/base/CommandLineParser.h $(SRC)/base/ErrorHandling.h $(SRC)/base/FileParser.h $(SRC)/base/SVector.h $(SRC)/base/StringUtil.h $(SRC)/util/mutil.h 
+ReadsToTranscripts_MPI.o: $(SRC)/ReadsToTranscripts_MPI.cc $(SRC)/analysis/AACodons.h $(SRC)/analysis/CompMgr.h $(SRC)/analysis/DNAVector.h $(SRC)/analysis/NonRedKmerTable.h $(SRC)/base/CommandLineParser.h $(SRC)/base/ErrorHandling.h $(SRC)/base/FileParser.h $(SRC)/base/SVector.h $(SRC)/base/StringUtil.h $(SRC)/util/mutil.h 
+ReadsToTranscripts_MPI_chang.o: $(SRC)/ReadsToTranscripts_MPI_chang.cc $(SRC)/analysis/AACodons.h $(SRC)/analysis/CompMgr.h $(SRC)/analysis/DNAVector.h $(SRC)/analysis/NonRedKmerTable.h $(SRC)/base/CommandLineParser.h $(SRC)/base/ErrorHandling.h $(SRC)/base/FileParser.h $(SRC)/base/SVector.h $(SRC)/base/StringUtil.h $(SRC)/util/mutil.h 
+aligns/KmerAlignCore.o: $(SRC)/aligns/KmerAlignCore.cc $(SRC)/aligns/KmerAlignCore.h $(SRC)/analysis/AACodons.h $(SRC)/analysis/DNAVector.h $(SRC)/base/ErrorHandling.h $(SRC)/base/FileParser.h $(SRC)/base/SVector.h $(SRC)/util/mutil.h 
+analysis/AACodons.o: $(SRC)/analysis/AACodons.cc $(SRC)/analysis/AACodons.h $(SRC)/analysis/DNAVector.h $(SRC)/base/ErrorHandling.h $(SRC)/base/FileParser.h $(SRC)/base/SVector.h $(SRC)/util/mutil.h 
+analysis/BreakTransByPairs.o: $(SRC)/aligns/KmerAlignCore.h $(SRC)/analysis/AACodons.h $(SRC)/analysis/BreakTransByPairs.cc $(SRC)/analysis/DNAVector.h $(SRC)/analysis/KmerTable.h $(SRC)/base/CommandLineParser.h $(SRC)/base/ErrorHandling.h $(SRC)/base/FileParser.h $(SRC)/base/SVector.h $(SRC)/base/StringUtil.h $(SRC)/util/mutil.h 
+analysis/Chrysalis.o: $(SRC)/analysis/AACodons.h $(SRC)/analysis/Chrysalis.cc $(SRC)/analysis/CompMgr.h $(SRC)/analysis/DNAVector.h $(SRC)/analysis/TranscriptomeGraph.h $(SRC)/base/CommandLineParser.h $(SRC)/base/ErrorHandling.h $(SRC)/base/FileParser.h $(SRC)/base/SVector.h $(SRC)/base/StringUtil.h $(SRC)/util/mutil.h 
+analysis/CreateIwormFastaBundle.o: $(SRC)/analysis/AACodons.h $(SRC)/analysis/CreateIwormFastaBundle.cc $(SRC)/analysis/DNAVector.h $(SRC)/base/CommandLineParser.h $(SRC)/base/ErrorHandling.h $(SRC)/base/FileParser.h $(SRC)/base/SVector.h $(SRC)/base/StringUtil.h $(SRC)/util/mutil.h 
+analysis/DNAVector.o: $(SRC)/analysis/AACodons.h $(SRC)/analysis/DNAVector.cc $(SRC)/analysis/DNAVector.h $(SRC)/base/ErrorHandling.h $(SRC)/base/FileParser.h $(SRC)/base/SVector.h $(SRC)/util/mutil.h 
+analysis/DeBruijnGraph.o: $(SRC)/analysis/DeBruijnGraph.cc $(SRC)/analysis/DeBruijnGraph.h $(SRC)/analysis/sequenceUtil.h $(SRC)/analysis/string_util.h 
+analysis/GraphFromFasta.o: $(SRC)/aligns/KmerAlignCore.h $(SRC)/analysis/AACodons.h $(SRC)/analysis/DNAVector.h $(SRC)/analysis/DeBruijnGraph.h $(SRC)/analysis/GraphFromFasta.cc $(SRC)/analysis/KmerTable.h $(SRC)/analysis/NonRedKmerTable.h $(SRC)/analysis/sequenceUtil.h $(SRC)/base/CommandLineParser.h $(SRC)/base/ErrorHandling.h $(SRC)/base/FileParser.h $(SRC)/base/SVector.h $(SRC)/base/StringUtil.h $(SRC)/util/mutil.h 
+analysis/IsoformAugment.o: $(SRC)/aligns/KmerAlignCore.h $(SRC)/analysis/AACodons.h $(SRC)/analysis/DNAVector.h $(SRC)/analysis/IsoformAugment.cc $(SRC)/base/CommandLineParser.h $(SRC)/base/ErrorHandling.h $(SRC)/base/FileParser.h $(SRC)/base/SVector.h $(SRC)/base/StringUtil.h $(SRC)/util/mutil.h 
+analysis/JoinTransByPairs.o: $(SRC)/aligns/KmerAlignCore.h $(SRC)/analysis/AACodons.h $(SRC)/analysis/DNAVector.h $(SRC)/analysis/JoinTransByPairs.cc $(SRC)/analysis/KmerTable.h $(SRC)/base/CommandLineParser.h $(SRC)/base/ErrorHandling.h $(SRC)/base/FileParser.h $(SRC)/base/SVector.h $(SRC)/base/StringUtil.h $(SRC)/util/mutil.h 
+analysis/KmerTable.o: $(SRC)/aligns/KmerAlignCore.h $(SRC)/analysis/AACodons.h $(SRC)/analysis/DNAVector.h $(SRC)/analysis/KmerTable.cc $(SRC)/analysis/KmerTable.h $(SRC)/analysis/NonRedKmerTable.h $(SRC)/base/ErrorHandling.h $(SRC)/base/FileParser.h $(SRC)/base/SVector.h $(SRC)/util/mutil.h 
+analysis/NonRedKmerTable.o: $(SRC)/analysis/AACodons.h $(SRC)/analysis/DNAVector.h $(SRC)/analysis/NonRedKmerTable.cc $(SRC)/analysis/NonRedKmerTable.h $(SRC)/base/ErrorHandling.h $(SRC)/base/FileParser.h $(SRC)/base/SVector.h $(SRC)/util/mutil.h 
+analysis/QuantifyGraph.o: $(SRC)/aligns/KmerAlignCore.h $(SRC)/analysis/AACodons.h $(SRC)/analysis/CompMgr.h $(SRC)/analysis/DNAVector.h $(SRC)/analysis/KmerTable.h $(SRC)/analysis/QuantifyGraph.cc $(SRC)/base/CommandLineParser.h $(SRC)/base/ErrorHandling.h $(SRC)/base/FileParser.h $(SRC)/base/SVector.h $(SRC)/base/StringUtil.h $(SRC)/util/mutil.h 
+analysis/ReadsToTranscripts.o: $(SRC)/analysis/AACodons.h $(SRC)/analysis/DNAVector.h $(SRC)/analysis/NonRedKmerTable.h $(SRC)/analysis/ReadsToTranscripts.cc $(SRC)/base/CommandLineParser.h $(SRC)/base/ErrorHandling.h $(SRC)/base/FileParser.h $(SRC)/base/SVector.h $(SRC)/base/StringUtil.h $(SRC)/util/mutil.h 
+analysis/RunButterfly.o: $(SRC)/analysis/RunButterfly.cc $(SRC)/base/CommandLineParser.h $(SRC)/base/ErrorHandling.h $(SRC)/base/FileParser.h $(SRC)/base/SVector.h $(SRC)/base/StringUtil.h $(SRC)/util/mutil.h 
+analysis/TranscriptomeFromVaryK.o: $(SRC)/aligns/KmerAlignCore.h $(SRC)/analysis/AACodons.h $(SRC)/analysis/DNAVector.h $(SRC)/analysis/KmerTable.h $(SRC)/analysis/TranscriptomeFromVaryK.cc $(SRC)/base/CommandLineParser.h $(SRC)/base/ErrorHandling.h $(SRC)/base/FileParser.h $(SRC)/base/SVector.h $(SRC)/base/StringUtil.h $(SRC)/util/mutil.h 
+analysis/TranscriptomeGraph.o: $(SRC)/aligns/KmerAlignCore.h $(SRC)/analysis/AACodons.h $(SRC)/analysis/DNAVector.h $(SRC)/analysis/TranscriptomeGraph.cc $(SRC)/analysis/TranscriptomeGraph.h $(SRC)/base/CommandLineParser.h $(SRC)/base/ErrorHandling.h $(SRC)/base/FileParser.h $(SRC)/base/SVector.h $(SRC)/base/StringUtil.h $(SRC)/util/mutil.h 
+analysis/sequenceUtil.o: $(SRC)/analysis/sequenceUtil.cc $(SRC)/analysis/sequenceUtil.h $(SRC)/analysis/stacktrace.h 
+analysis/stacktrace.o: $(SRC)/analysis/stacktrace.cc $(SRC)/analysis/stacktrace.h 
+base/ErrorHandling.o: $(SRC)/base/ErrorHandling.cc $(SRC)/base/ErrorHandling.h 
+base/FileParser.o: $(SRC)/base/ErrorHandling.h $(SRC)/base/FileParser.cc $(SRC)/base/FileParser.h $(SRC)/base/SVector.h $(SRC)/util/mutil.h 
+base/StringUtil.o: $(SRC)/base/StringUtil.cc $(SRC)/base/StringUtil.h 
+util/mutil.o: $(SRC)/util/mutil.cc $(SRC)/util/mutil.h 
+BreakTransByPairs:  checkLock
+BreakTransByPairs:  aligns/KmerAlignCore.o analysis/AACodons.o analysis/BreakTransByPairs.o analysis/DNAVector.o analysis/KmerTable.o analysis/NonRedKmerTable.o base/ErrorHandling.o base/FileParser.o base/StringUtil.o util/mutil.o
+	/bin/rm -f lib_BreakTransByPairs_temp.a
+	$(AR) $(ARFLAGS) lib_BreakTransByPairs_temp.a $(OBJ)/aligns/KmerAlignCore.o $(OBJ)/analysis/AACodons.o $(OBJ)/analysis/BreakTransByPairs.o $(OBJ)/analysis/DNAVector.o $(OBJ)/analysis/KmerTable.o $(OBJ)/analysis/NonRedKmerTable.o $(OBJ)/base/ErrorHandling.o $(OBJ)/base/FileParser.o $(OBJ)/base/StringUtil.o $(OBJ)/util/mutil.o
+	$(BIN)/checkLock $(BIN)/$@
+	$(CPLUSPLUS) $(LINK_OPTIONS) -o $(BIN)/$@  $(OBJ)/analysis/BreakTransByPairs.o -L. $(LINK_LIBS) -l_BreakTransByPairs_temp
+	/bin/rm lib_BreakTransByPairs_temp.a
+Chrysalis:  checkLock
+Chrysalis:  aligns/KmerAlignCore.o analysis/AACodons.o analysis/Chrysalis.o analysis/DNAVector.o analysis/TranscriptomeGraph.o base/ErrorHandling.o base/FileParser.o base/StringUtil.o util/mutil.o
+	/bin/rm -f lib_Chrysalis_temp.a
+	$(AR) $(ARFLAGS) lib_Chrysalis_temp.a $(OBJ)/aligns/KmerAlignCore.o $(OBJ)/analysis/AACodons.o $(OBJ)/analysis/Chrysalis.o $(OBJ)/analysis/DNAVector.o $(OBJ)/analysis/TranscriptomeGraph.o $(OBJ)/base/ErrorHandling.o $(OBJ)/base/FileParser.o $(OBJ)/base/StringUtil.o $(OBJ)/util/mutil.o
+	$(BIN)/checkLock $(BIN)/$@
+	$(CPLUSPLUS) $(LINK_OPTIONS) -o $(BIN)/$@  $(OBJ)/analysis/Chrysalis.o -L. $(LINK_LIBS) -l_Chrysalis_temp
+	/bin/rm lib_Chrysalis_temp.a
+CreateIwormFastaBundle:  checkLock
+CreateIwormFastaBundle:  analysis/AACodons.o analysis/CreateIwormFastaBundle.o analysis/DNAVector.o base/ErrorHandling.o base/FileParser.o base/StringUtil.o util/mutil.o
+	/bin/rm -f lib_CreateIwormFastaBundle_temp.a
+	$(AR) $(ARFLAGS) lib_CreateIwormFastaBundle_temp.a $(OBJ)/analysis/AACodons.o $(OBJ)/analysis/CreateIwormFastaBundle.o $(OBJ)/analysis/DNAVector.o $(OBJ)/base/ErrorHandling.o $(OBJ)/base/FileParser.o $(OBJ)/base/StringUtil.o $(OBJ)/util/mutil.o
+	$(BIN)/checkLock $(BIN)/$@
+	$(CPLUSPLUS) $(LINK_OPTIONS) -o $(BIN)/$@  $(OBJ)/analysis/CreateIwormFastaBundle.o -L. $(LINK_LIBS) -l_CreateIwormFastaBundle_temp
+	/bin/rm lib_CreateIwormFastaBundle_temp.a
+GraphFromFasta:  checkLock
+GraphFromFasta:  aligns/KmerAlignCore.o analysis/AACodons.o analysis/DNAVector.o analysis/DeBruijnGraph.o analysis/GraphFromFasta.o analysis/KmerTable.o analysis/NonRedKmerTable.o analysis/sequenceUtil.o analysis/stacktrace.o base/ErrorHandling.o base/FileParser.o base/StringUtil.o util/mutil.o
+	/bin/rm -f lib_GraphFromFasta_temp.a
+	$(AR) $(ARFLAGS) lib_GraphFromFasta_temp.a $(OBJ)/aligns/KmerAlignCore.o $(OBJ)/analysis/AACodons.o $(OBJ)/analysis/DNAVector.o $(OBJ)/analysis/DeBruijnGraph.o $(OBJ)/analysis/GraphFromFasta.o $(OBJ)/analysis/KmerTable.o $(OBJ)/analysis/NonRedKmerTable.o $(OBJ)/analysis/sequenceUtil.o $(OBJ)/analysis/stacktrace.o $(OBJ)/base/ErrorHandling.o $(OBJ)/base/FileParser.o $(OBJ)/base/StringUtil.o $(OBJ)/util/mutil.o
+	$(BIN)/checkLock $(BIN)/$@
+	$(CPLUSPLUS) $(LINK_OPTIONS) -o $(BIN)/$@  $(OBJ)/analysis/GraphFromFasta.o -L. $(LINK_LIBS) -l_GraphFromFasta_temp
+	/bin/rm lib_GraphFromFasta_temp.a
+GraphFromFasta_MPI:  checkLock
+GraphFromFasta_MPI:  GraphFromFasta_MPI.o aligns/KmerAlignCore.o analysis/AACodons.o analysis/DNAVector.o analysis/DeBruijnGraph.o analysis/KmerTable.o analysis/NonRedKmerTable.o analysis/sequenceUtil.o analysis/stacktrace.o base/ErrorHandling.o base/FileParser.o base/StringUtil.o util/mutil.o
+	/bin/rm -f lib_GraphFromFasta_MPI_temp.a
+	$(AR) $(ARFLAGS) lib_GraphFromFasta_MPI_temp.a $(OBJ)/GraphFromFasta_MPI.o $(OBJ)/aligns/KmerAlignCore.o $(OBJ)/analysis/AACodons.o $(OBJ)/analysis/DNAVector.o $(OBJ)/analysis/DeBruijnGraph.o $(OBJ)/analysis/KmerTable.o $(OBJ)/analysis/NonRedKmerTable.o $(OBJ)/analysis/sequenceUtil.o $(OBJ)/analysis/stacktrace.o $(OBJ)/base/ErrorHandling.o $(OBJ)/base/FileParser.o $(OBJ)/base/StringUtil.o $(OBJ)/util/mutil.o
+	$(BIN)/checkLock $(BIN)/$@
+	$(CPLUSPLUS) $(LINK_OPTIONS) -o $(BIN)/$@  $(OBJ)/GraphFromFasta_MPI.o -L. $(LINK_LIBS) -l_GraphFromFasta_MPI_temp
+	/bin/rm lib_GraphFromFasta_MPI_temp.a
+IsoformAugment:  checkLock
+IsoformAugment:  aligns/KmerAlignCore.o analysis/AACodons.o analysis/DNAVector.o analysis/IsoformAugment.o base/ErrorHandling.o base/FileParser.o base/StringUtil.o util/mutil.o
+	/bin/rm -f lib_IsoformAugment_temp.a
+	$(AR) $(ARFLAGS) lib_IsoformAugment_temp.a $(OBJ)/aligns/KmerAlignCore.o $(OBJ)/analysis/AACodons.o $(OBJ)/analysis/DNAVector.o $(OBJ)/analysis/IsoformAugment.o $(OBJ)/base/ErrorHandling.o $(OBJ)/base/FileParser.o $(OBJ)/base/StringUtil.o $(OBJ)/util/mutil.o
+	$(BIN)/checkLock $(BIN)/$@
+	$(CPLUSPLUS) $(LINK_OPTIONS) -o $(BIN)/$@  $(OBJ)/analysis/IsoformAugment.o -L. $(LINK_LIBS) -l_IsoformAugment_temp
+	/bin/rm lib_IsoformAugment_temp.a
+JoinTransByPairs:  checkLock
+JoinTransByPairs:  aligns/KmerAlignCore.o analysis/AACodons.o analysis/DNAVector.o analysis/JoinTransByPairs.o analysis/KmerTable.o analysis/NonRedKmerTable.o base/ErrorHandling.o base/FileParser.o base/StringUtil.o util/mutil.o
+	/bin/rm -f lib_JoinTransByPairs_temp.a
+	$(AR) $(ARFLAGS) lib_JoinTransByPairs_temp.a $(OBJ)/aligns/KmerAlignCore.o $(OBJ)/analysis/AACodons.o $(OBJ)/analysis/DNAVector.o $(OBJ)/analysis/JoinTransByPairs.o $(OBJ)/analysis/KmerTable.o $(OBJ)/analysis/NonRedKmerTable.o $(OBJ)/base/ErrorHandling.o $(OBJ)/base/FileParser.o $(OBJ)/base/StringUtil.o $(OBJ)/util/mutil.o
+	$(BIN)/checkLock $(BIN)/$@
+	$(CPLUSPLUS) $(LINK_OPTIONS) -o $(BIN)/$@  $(OBJ)/analysis/JoinTransByPairs.o -L. $(LINK_LIBS) -l_JoinTransByPairs_temp
+	/bin/rm lib_JoinTransByPairs_temp.a
+QuantifyGraph:  checkLock
+QuantifyGraph:  aligns/KmerAlignCore.o analysis/AACodons.o analysis/DNAVector.o analysis/KmerTable.o analysis/NonRedKmerTable.o analysis/QuantifyGraph.o base/ErrorHandling.o base/FileParser.o base/StringUtil.o util/mutil.o
+	/bin/rm -f lib_QuantifyGraph_temp.a
+	$(AR) $(ARFLAGS) lib_QuantifyGraph_temp.a $(OBJ)/aligns/KmerAlignCore.o $(OBJ)/analysis/AACodons.o $(OBJ)/analysis/DNAVector.o $(OBJ)/analysis/KmerTable.o $(OBJ)/analysis/NonRedKmerTable.o $(OBJ)/analysis/QuantifyGraph.o $(OBJ)/base/ErrorHandling.o $(OBJ)/base/FileParser.o $(OBJ)/base/StringUtil.o $(OBJ)/util/mutil.o
+	$(BIN)/checkLock $(BIN)/$@
+	$(CPLUSPLUS) $(LINK_OPTIONS) -o $(BIN)/$@  $(OBJ)/analysis/QuantifyGraph.o -L. $(LINK_LIBS) -l_QuantifyGraph_temp
+	/bin/rm lib_QuantifyGraph_temp.a
+ReadsToTranscripts:  checkLock
+ReadsToTranscripts:  analysis/AACodons.o analysis/DNAVector.o analysis/NonRedKmerTable.o analysis/ReadsToTranscripts.o base/ErrorHandling.o base/FileParser.o base/StringUtil.o util/mutil.o
+	/bin/rm -f lib_ReadsToTranscripts_temp.a
+	$(AR) $(ARFLAGS) lib_ReadsToTranscripts_temp.a $(OBJ)/analysis/AACodons.o $(OBJ)/analysis/DNAVector.o $(OBJ)/analysis/NonRedKmerTable.o $(OBJ)/analysis/ReadsToTranscripts.o $(OBJ)/base/ErrorHandling.o $(OBJ)/base/FileParser.o $(OBJ)/base/StringUtil.o $(OBJ)/util/mutil.o
+	$(BIN)/checkLock $(BIN)/$@
+	$(CPLUSPLUS) $(LINK_OPTIONS) -o $(BIN)/$@  $(OBJ)/analysis/ReadsToTranscripts.o -L. $(LINK_LIBS) -l_ReadsToTranscripts_temp
+	/bin/rm lib_ReadsToTranscripts_temp.a
+ReadsToTranscripts_MPI:  checkLock
+ReadsToTranscripts_MPI:  ReadsToTranscripts_MPI.o analysis/AACodons.o analysis/DNAVector.o analysis/NonRedKmerTable.o base/ErrorHandling.o base/FileParser.o base/StringUtil.o util/mutil.o
+	/bin/rm -f lib_ReadsToTranscripts_MPI_temp.a
+	$(AR) $(ARFLAGS) lib_ReadsToTranscripts_MPI_temp.a $(OBJ)/ReadsToTranscripts_MPI.o $(OBJ)/analysis/AACodons.o $(OBJ)/analysis/DNAVector.o $(OBJ)/analysis/NonRedKmerTable.o $(OBJ)/base/ErrorHandling.o $(OBJ)/base/FileParser.o $(OBJ)/base/StringUtil.o $(OBJ)/util/mutil.o
+	$(BIN)/checkLock $(BIN)/$@
+	$(CPLUSPLUS) $(LINK_OPTIONS) -o $(BIN)/$@  $(OBJ)/ReadsToTranscripts_MPI.o -L. $(LINK_LIBS) -l_ReadsToTranscripts_MPI_temp
+	/bin/rm lib_ReadsToTranscripts_MPI_temp.a
+ReadsToTranscripts_MPI_chang:  checkLock
+ReadsToTranscripts_MPI_chang:  ReadsToTranscripts_MPI_chang.o analysis/AACodons.o analysis/DNAVector.o analysis/NonRedKmerTable.o base/ErrorHandling.o base/FileParser.o base/StringUtil.o util/mutil.o
+	/bin/rm -f lib_ReadsToTranscripts_MPI_chang_temp.a
+	$(AR) $(ARFLAGS) lib_ReadsToTranscripts_MPI_chang_temp.a $(OBJ)/ReadsToTranscripts_MPI_chang.o $(OBJ)/analysis/AACodons.o $(OBJ)/analysis/DNAVector.o $(OBJ)/analysis/NonRedKmerTable.o $(OBJ)/base/ErrorHandling.o $(OBJ)/base/FileParser.o $(OBJ)/base/StringUtil.o $(OBJ)/util/mutil.o
+	$(BIN)/checkLock $(BIN)/$@
+	$(CPLUSPLUS) $(LINK_OPTIONS) -o $(BIN)/$@  $(OBJ)/ReadsToTranscripts_MPI_chang.o -L. $(LINK_LIBS) -l_ReadsToTranscripts_MPI_chang_temp
+	/bin/rm lib_ReadsToTranscripts_MPI_chang_temp.a
+RunButterfly:  checkLock
+RunButterfly:  analysis/RunButterfly.o base/ErrorHandling.o base/FileParser.o base/StringUtil.o util/mutil.o
+	/bin/rm -f lib_RunButterfly_temp.a
+	$(AR) $(ARFLAGS) lib_RunButterfly_temp.a $(OBJ)/analysis/RunButterfly.o $(OBJ)/base/ErrorHandling.o $(OBJ)/base/FileParser.o $(OBJ)/base/StringUtil.o $(OBJ)/util/mutil.o
+	$(BIN)/checkLock $(BIN)/$@
+	$(CPLUSPLUS) $(LINK_OPTIONS) -o $(BIN)/$@  $(OBJ)/analysis/RunButterfly.o -L. $(LINK_LIBS) -l_RunButterfly_temp
+	/bin/rm lib_RunButterfly_temp.a
+TranscriptomeFromVaryK:  checkLock
+TranscriptomeFromVaryK:  aligns/KmerAlignCore.o analysis/AACodons.o analysis/DNAVector.o analysis/KmerTable.o analysis/NonRedKmerTable.o analysis/TranscriptomeFromVaryK.o base/ErrorHandling.o base/FileParser.o base/StringUtil.o util/mutil.o
+	/bin/rm -f lib_TranscriptomeFromVaryK_temp.a
+	$(AR) $(ARFLAGS) lib_TranscriptomeFromVaryK_temp.a $(OBJ)/aligns/KmerAlignCore.o $(OBJ)/analysis/AACodons.o $(OBJ)/analysis/DNAVector.o $(OBJ)/analysis/KmerTable.o $(OBJ)/analysis/NonRedKmerTable.o $(OBJ)/analysis/TranscriptomeFromVaryK.o $(OBJ)/base/ErrorHandling.o $(OBJ)/base/FileParser.o $(OBJ)/base/StringUtil.o $(OBJ)/util/mutil.o
+	$(BIN)/checkLock $(BIN)/$@
+	$(CPLUSPLUS) $(LINK_OPTIONS) -o $(BIN)/$@  $(OBJ)/analysis/TranscriptomeFromVaryK.o -L. $(LINK_LIBS) -l_TranscriptomeFromVaryK_temp
+	/bin/rm lib_TranscriptomeFromVaryK_temp.a
+
+# Target lists
+
+OBJECTS = \
+  GraphFromFasta_MPI.o\
+  ReadsToTranscripts_MPI.o\
+  ReadsToTranscripts_MPI_chang.o\
+  aligns/KmerAlignCore.o\
+  analysis/AACodons.o\
+  analysis/BreakTransByPairs.o\
+  analysis/Chrysalis.o\
+  analysis/CreateIwormFastaBundle.o\
+  analysis/DNAVector.o\
+  analysis/DeBruijnGraph.o\
+  analysis/GraphFromFasta.o\
+  analysis/IsoformAugment.o\
+  analysis/JoinTransByPairs.o\
+  analysis/KmerTable.o\
+  analysis/NonRedKmerTable.o\
+  analysis/QuantifyGraph.o\
+  analysis/ReadsToTranscripts.o\
+  analysis/RunButterfly.o\
+  analysis/TranscriptomeFromVaryK.o\
+  analysis/TranscriptomeGraph.o\
+  analysis/sequenceUtil.o\
+  analysis/stacktrace.o\
+  base/ErrorHandling.o\
+  base/FileParser.o\
+  base/StringUtil.o\
+  util/mutil.o\
+
+nolink: $(OBJECTS)
+
+EXECUTABLES = \
+  BreakTransByPairs\
+  Chrysalis\
+  CreateIwormFastaBundle\
+  GraphFromFasta\
+  GraphFromFasta_MPI\
+  IsoformAugment\
+  JoinTransByPairs\
+  QuantifyGraph\
+  ReadsToTranscripts\
+  ReadsToTranscripts_MPI\
+  ReadsToTranscripts_MPI_chang\
+  RunButterfly\
+  TranscriptomeFromVaryK\
+
+everything: $(EXECUTABLES)
+
+.PHONY: analysis
+analysis: \
+  BreakTransByPairs\
+  Chrysalis\
+  CreateIwormFastaBundle\
+  GraphFromFasta\
+  IsoformAugment\
+  JoinTransByPairs\
+  QuantifyGraph\
+  ReadsToTranscripts\
+  RunButterfly\
+  TranscriptomeFromVaryK\
+

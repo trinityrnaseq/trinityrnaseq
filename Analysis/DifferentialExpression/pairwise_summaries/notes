@@ -1,0 +1,20 @@
+First, build the method-based summary file using the (method)_to_pairwise_summary.pl
+
+Then, generate a venn of all comparisons using: venn_pairwise_summaries.pl --minFC 2 
+
+# stats for agreement between methods.
+venn_pairwise_summaries.pair_stats.pl  venn.min2fold.summary > venn.min2fold.summary.stats
+
+# get those features where at least 2 DE progs agree:
+c venn.min2fold.summary | perl -lane '@x = split(/,/, $F[3]); if (scalar @x > 1) { print;}' > venn.min2fold.summary.min2progsAgree 
+
+# pull those corresponding records from the original pairwise summary files:
+extract_venn_agree_from_summaries.pl venn.min2fold.summary.min2progsAgree EBSeq.pairwise.gene.post0.05.dat edgeR.genes.pairwise_summary.FDR0.05.dat MMDIFF.gene.pairwise_summary.PostProb0.2.dat > venn.min2fold.summary.min2progsAgree.all_summaries
+
+# generate the multi-sample DE classifications:
+pairwise_DE_summary_to_DE_classification.pl  venn.min2fold.summary.min2progsAgree.all_summaries
+    generates: .class, .graph, and .class.prioritized
+
+
+# get counts of enrichment categories (up and down)
+add_counts_to_classes.pl venn.min2fold.summary.min2progsAgree.all_summaries.class > venn.min2fold.summary.min2progsAgree.all_summaries.class.wCounts.

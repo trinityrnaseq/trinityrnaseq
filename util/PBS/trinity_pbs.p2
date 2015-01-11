@@ -1,0 +1,43 @@
+##################################################################################################################################
+##########################                                                                ########################################
+##########################     Trinity PBS job submission with multi part dependencies    ########################################
+##########################                                                                ########################################
+##################################################################################################################################
+### Author: Josh Bowden, Alexie Papanicolaou, CSIRO
+### Version 1.0
+### Chrysalis P2 script
+##################################################################################################################################
+
+if [[ $MEM_P2 =~ ^([0-9]+) ]]; then
+        let MEM_BASE="${BASH_REMATCH[1]}"
+        let ALIGN_MEM=$MEM_BASE-5
+        if [ $ALIGN_MEM -le 0 ];then
+                let ALIGN_MEM=$MEM_BASE-2
+                if [ $ALIGN_MEM -le 0 ];then
+                        echo "Memory requested for MEM_P2 is too low. Ask for at least 5 gigabytes"
+                        exit 1
+                fi
+        fi
+        ALIGN_MEM="$ALIGN_MEM"G
+else
+        echo No memory given: "$MEM_P2"
+        exit 1
+fi
+
+
+JOBSTRING2=""$HASHBANG"
+"$NODESCPUS"
+ cd "$OUTPUTDIR"
+ # set stack size to unlimited for Chrysalis (part 1)
+ ulimit -s unlimited
+ export OMP_NUM_THREADS="$NCPU_P2"
+ export KMP_AFFINITY=scatter
+ # this runs Chrysalis::GraphFromFasta and maybe Chrysalis::GraphFromFasta if there is still walltime
+ "$STANDARD_JOB_DETAILS" --JM "$ALIGN_MEM" --CPU "$NCPU_P2" --no_run_quantifygraph
+"
+
+
+# Write the JOBSTRING2 to a file for later execution
+echo "${JOBSTRING2}" | cat -> ""$JOBNAME2".sh"
+
+	

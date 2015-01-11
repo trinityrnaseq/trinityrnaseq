@@ -1,0 +1,7 @@
+MLF	MLF_rep2.genes
+MLF	MLF_rep1.genes
+NPC	NPC_rep1.genes
+NPC	NPC_rep2.genes
+mESC	mESC_rep3.genes
+mESC	mESC_rep2.genes
+mESC	mESC_rep1.genes

@@ -1,0 +1,156 @@
+##################################################################################################################################
+##########################                                                                ########################################
+##########################     Trinity PBS job submission with multi part dependencies    ########################################
+##########################                                                                ########################################
+##################################################################################################################################
+### Author: Josh Bowden, Alexie Papanicolaou, CSIRO
+### Version 1.0
+### QuantifyGraph and Butterfly p4a Script
+##################################################################################################################################
+# we will not use array in order to ensure only jobs that have not finished are Submitting.
+# this does cause a problem when wanting to kill them manually but best to use kill script
+## JOBPREFIX is passed via HASHBANG
+JOBSTRING4=""$HASHBANG"
+"$NODESCPUS"
+ JOB_CHRYSALIS="$JOBPREFIX"_p4b
+ JOB_BUTTERFLY="$JOBPREFIX"_p5b
+ cd "$OUTPUTDIR"
+
+ rm -f \$JOB_CHRYSALIS.jobnames \$JOB_BUTTERFLY.jobnames
+ FILENAME=""$OUTPUTDIR"/chrysalis/quantifyGraph_commands"
+ FILENAMEBFLY=""$OUTPUTDIR"/chrysalis/butterfly_commands"
+
+ if [ ! -e \$FILENAME.pbs ];then
+	sed  -e 's/.*/if [[ -e SEDPLACEHOLDER ]]; then &;fi/' \$FILENAME|sed -r 's/(-e\s)SEDPLACEHOLDER(\s.+-i\s)(\S+).tmp/\1\3.tmp\2\3.tmp/' > \$FILENAME.pbs
+	split -d -a 3 -l "1000" \$FILENAME.pbs  \$FILENAME.pbs.  
+	sleep 5
+ fi
+ if [ ! -e \$FILENAMEBFLY.pbs ];then
+	sed  -e 's/.*/if [ -e SEDPLACEHOLDER ]; then &;fi/' \$FILENAMEBFLY|sed -r 's/(-e\s)SEDPLACEHOLDER(\s.+-C\s)(\S+)/\1\3.out\2\3/' > \$FILENAMEBFLY.pbs
+	split -d -a 3 -l "1000" \$FILENAMEBFLY.pbs  \$FILENAMEBFLY.pbs. 
+	sleep 5
+ fi
+
+ FILENAME=\$FILENAME.pbs
+ FILENAMEBFLY=\$FILENAMEBFLY.pbs
+
+ NUMCMDS=\`ls -l \$FILENAME.??? | wc -l\`
+ NUMCMDSBFLY=\`ls -l \$FILENAMEBFLY.??? | wc -l\`
+ let NUMCMDS=\$NUMCMDS-1
+ let NUMCMDSBFLY=\$NUMCMDSBFLY-1
+ let SUBMITTED_C=0
+ let SUBMITTED_B=0
+
+ for ((JOBID=0;JOBID<=\$NUMCMDS;++JOBID));do
+  JOB_INDEX_PADDED=\`printf "%03d" \$JOBID\`
+  MYJOBQ=\""\$FILENAME".\$JOB_INDEX_PADDED\"
+  MYJOBB=\""\$FILENAMEBFLY".\$JOB_INDEX_PADDED\"
+  JOB_FILESIZE_Q=\$(stat -c%s \$MYJOBQ)
+  JOB_FILESIZE_B=\$(stat -c%s \$MYJOBB)
+
+  #if some Q have completed:
+  if [ -s  \"\$MYJOBQ.completed\" ] ; then
+        JOB_COMPLETED_FILESIZE_Q=\$(stat -c%s \"\$MYJOBQ.completed\")
+        # if not all have completed then run both Q and B
+        if [ \"\$JOB_FILESIZE_Q\" -gt \"\$JOB_COMPLETED_FILESIZE_Q\" ] ; then
+                PBS_JOB4=\`qsub -v JOB_INDEX_PADDED=\$JOB_INDEX_PADDED \"\$JOB_CHRYSALIS.sh\" \`
+		if [[ ! \$PBS_JOB4 ]]; then
+			echo \"Submission for qsub -v JOB_INDEX_PADDED=\$JOB_INDEX_PADDED \"\$JOB_CHRYSALIS.sh\" FAILED. Aborting...\"
+			exit 255
+		fi
+		let SUBMITTED_C++
+                echo \$PBS_JOB4 >> \"\$JOB_CHRYSALIS.jobnames\"
+                echo \$PBS_JOB4 >> jobnumbers.out ;
+                PBS_JOB5=\`qsub -v JOB_INDEX_PADDED=\$JOB_INDEX_PADDED -W depend=afterok:$PBS_JOB4 \"\$JOB_BUTTERFLY.sh\" \`
+		if [[ ! \$PBS_JOB5 ]]; then
+			echo \"Submission for qsub -v JOB_INDEX_PADDED=\$JOB_INDEX_PADDED -W depend=afterok:$PBS_JOB4 \"\$JOB_BUTTERFLY.sh\" FAILED. Aborting...\"
+			exit 255
+		fi
+		let SUBMITTED_B++
+                echo \$PBS_JOB5 >> \"\$JOB_BUTTERFLY.jobnames\"
+                echo \$PBS_JOB5 >> jobnumbers.out ;
+		if [ \$(( \$JOBID % 20 )) -eq 0 ] ; then
+			echo Submitting up to 20 Quantify and/or Butterfly jobs
+			sleep 3 # be nice
+		fi
+        # else all Q have completed; have B completed?
+        else
+                # if at least some B have completed
+                if [ -s \"\$MYJOBB.completed\" ] ; then
+                        JOB_COMPLETED_FILESIZE_B=\$(stat -c%s \"\$MYJOBB.completed\" )
+                        # if not all, run them with no dependency (Q has completed)
+                        if [ \"\$JOB_FILESIZE_B\" -gt \"\$JOB_COMPLETED_FILESIZE_B\" ] ; then
+                                PBS_JOB5=\`qsub -v JOB_INDEX_PADDED=\$JOB_INDEX_PADDED \"\$JOB_BUTTERFLY.sh\" \`
+				if [[ ! \$PBS_JOB5 ]]; then
+					echo \"Submission for qsub -v JOB_INDEX_PADDED=\$JOB_INDEX_PADDED \"\$JOB_BUTTERFLY.sh\" FAILED. Aborting...\"
+					exit 255
+				fi
+				let SUBMITTED_B++
+                                echo \$PBS_JOB5 >> \"\$JOB_BUTTERFLY.jobnames\"
+                                echo \$PBS_JOB5 >> jobnumbers.out ;
+				if [ \$(( \$JOBID % 20 )) -eq 0 ] ; then
+					echo Submitting up to 20 Quantify and/or Butterfly jobs
+					sleep 3 # be nice
+				fi
+                        fi
+                # else no Q have completed; run them without dependency
+                else
+                        PBS_JOB5=\`qsub -v JOB_INDEX_PADDED=\$JOB_INDEX_PADDED \"\$JOB_BUTTERFLY.sh\" \`
+			if [[ ! \$PBS_JOB5 ]]; then
+				echo \"Submission for qsub -v JOB_INDEX_PADDED=\$JOB_INDEX_PADDED \"\$JOB_BUTTERFLY.sh\" FAILED. Aborting...\"
+				exit 255
+			fi
+			let SUBMITTED_B++
+                        echo \$PBS_JOB5 >> \"\$JOB_BUTTERFLY.jobnames\"
+                        echo \$PBS_JOB5 >> jobnumbers.out ;
+			if [ \$(( \$JOBID % 20 )) -eq 0 ] ; then
+				echo Submitting up to 20 Quantify and/or Butterfly jobs
+				sleep 3 # be nice
+			fi
+                fi
+        fi
+ # neither Q (and thus nor B) have ever ran successfully, submit both with a dependency
+ else
+        PBS_JOB4=\`qsub -v JOB_INDEX_PADDED=\$JOB_INDEX_PADDED \"\$JOB_CHRYSALIS.sh\" \`
+	if [[ ! \$PBS_JOB4 ]]; then
+		echo \"Submission for qsub -v JOB_INDEX_PADDED=\$JOB_INDEX_PADDED \"\$JOB_CHRYSALIS.sh\" FAILED. Aborting...\"
+		exit 255
+	fi
+	let SUBMITTED_C++
+        echo \$PBS_JOB4 >> \"\$JOB_CHRYSALIS.jobnames\"
+        echo \$PBS_JOB4 >> jobnumbers.out ;
+        PBS_JOB5=\`qsub -v JOB_INDEX_PADDED=\$JOB_INDEX_PADDED -W depend=afterok:\$PBS_JOB4 \"\$JOB_BUTTERFLY.sh\" \`
+	if [[ ! \$PBS_JOB5 ]]; then
+           echo \"Submission for qsub -v JOB_INDEX_PADDED=\$JOB_INDEX_PADDED -W depend=afterok:\$PBS_JOB4 \"\$JOB_BUTTERFLY.sh\" FAILED. Aborting...\"
+           exit 255
+        fi
+	let SUBMITTED_B++
+        echo \$PBS_JOB5 >> \"\$JOB_BUTTERFLY.jobnames\"
+        echo \$PBS_JOB5 >> jobnumbers.out ;
+	if [ \$(( \$JOBID % 20 )) -eq 0 ] ; then
+		echo Submitting up to 20 Quantify and/or Butterfly jobs
+		sleep 3 # be nice
+	fi
+ fi
+ done
+ 
+ echo Submitted \$SUBMITTED_C Chrysalis and \$SUBMITTED_B Butterfly jobs
+
+ if [[ \$SUBMITTED_B == 0 && \$SUBMITTED_C == 0 ]]; then
+ 	echo \"No Trinity jobs need to be submitted \"
+	if [ -s "$OUTPUTDIR"/Trinity.fasta.complete ]; then
+		echo \"Trinity RNA-Seq assembly is complete! Result file is present as "$OUTPUTDIR"/Trinity.fasta \"
+	else
+		echo \"Proceeding with capturing the output with this command\"
+        	echo ' find "$OUTPUTDIR"/chrysalis -name *allProbPaths.fasta -exec cat {} \\; > "$OUTPUTDIR"/Trinity.fasta '
+		find "$OUTPUTDIR"/chrysalis -name *allProbPaths.fasta -exec cat {} \\; > "$OUTPUTDIR"/Trinity.fasta
+		touch "$OUTPUTDIR"/Trinity.fasta.complete
+                echo DO: rm -f "$OUTPUTDIR"/bowtie.nameSorted.sam* "$OUTPUTDIR"/both.fa* "$OUTPUTDIR"/inchworm.kmer_count "$OUTPUTDIR"/iworm_* "$OUTPUTDIR"/target* "$OUTPUTDIR"/jellyfish* "$OUTPUTDIR"/scaffolding* "$OUTPUTDIR"/*.finished "$OUTPUTDIR"/mer_counts_* 
+	fi
+ fi
+"
+
+
+######
+##### Write the above script to a file for later execution
+echo "${JOBSTRING4}" | cat -> "$JOBNAME4.sh"

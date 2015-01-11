@@ -1,0 +1,2767 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use threads;
+no strict qw(subs refs);
+
+use FindBin;
+use lib ("$FindBin::Bin/PerlLib");
+use File::Basename;
+use Time::localtime;
+use Cwd;
+use Carp;
+use COMMON;
+use Getopt::Long qw(:config no_ignore_case pass_through); 
+use LWP::Simple;
+use Pipeliner;
+use Fasta_reader;
+
+
+BEGIN {
+
+    $ENV{TRINITY_HOME} = "$FindBin::Bin";
+
+}
+
+use HTC::GridRunner;
+
+
+open (STDERR, ">&STDOUT");  ## capturing stderr and stdout in a single stdout stream
+
+# Site specific setup
+
+my $KMER_SIZE = 25;
+my $MAX_KMER_SIZE = 32;
+
+my $INCHWORM_CUSTOM_PARAMS;
+
+# option list:
+my ($seqType, @left_files, @right_files, @single_files, $SS_lib_type, $min_contig_length,
+    $group_pairs_distance, $jaccard_clip, $show_advanced_options,
+    $output_directory, $prep_only
+    );
+
+# What is allowed for the options. Put string to be displayed in '%allowed'; this
+#   will be showed to the user via  help and on error.   Keys are the variable names.
+#   Actual hash to be used for checking is auto-generated. Fancy regex inside map 
+#   is just to get rid of the syntaxical sugar 'or' in the display string.
+
+my %allowed = 
+    ( seqType       => 'fa, or fq'
+    , kmer_method   => 'jellyfish, meryl, or inchworm'
+    );
+
+my %allowed_check;
+foreach my $all (keys %allowed) {
+    my %h = map { (my $s = $_) =~ s/^or //; $s => 1 } split ', ', $allowed{$all};
+    $allowed_check{$all} = \%h;
+}
+
+# defaults:
+
+$output_directory = &create_full_path("trinity_out_dir", 0);
+
+
+#  butterfly opts
+$min_contig_length = 200;
+$group_pairs_distance = 500;
+my $path_reinforcement_distance;
+my $PE_path_reinforcement_distance = 75;
+my $SE_path_reinforcement_distance = 25;
+
+my $NO_RUN_BUTTERFLY_FLAG = 0;
+my $RERUN_BUTTERFLY_FLAG = 0;
+my $bfly_opts = "";
+my $bflyHeapSpaceMax = "4G";
+my $bflyHeapSpaceInit = "1G";
+
+my $BFLY_JAR = "";
+
+# butterfly path merging criteria 
+my $NO_PATH_MERGING = 0;
+my $MIN_PER_ID_SAME_PATH;  # leave these at the butterfy defaults
+my $MAX_DIFFS_SAME_PATH;
+my $MAX_INTERNAL_GAP_SAME_PATH;
+
+
+# misc opts
+my $min_kmer_cov = 1;
+my $meryl_opts = "";
+my $inchworm_cpu = 6;
+
+my $min_percent_read_iworm_kmers = -1; # experimental, off
+
+my $CPU = 2;
+my $np = 1;
+my $mpiexec = "mpiexec";
+my $bflyCPU;
+my $bflyCalculateCPU = 0;
+my $bflyGCThreads = 2;
+
+my $long_reads = "";
+
+
+## ADVANCED OPTIONS:
+
+my $no_meryl_flag = 0;
+
+## Chrysalis opts
+my $min_glue = 2;
+my $min_iso_ratio = 0.05;
+my $glue_factor = 0.05;
+my $max_reads_per_graph = 200000;
+my $max_reads_per_loop = 10000000;
+my $min_pct_read_mapping = 0;
+my $NO_RUN_QUANTIFYGRAPH_FLAG = 0;
+my $NO_RUN_CHRYSALIS_FLAG = 0;
+my $chrysalis_output_dir = "chrysalis";
+my $component_directory;
+
+my $help_flag;
+my $advanced_help_flag;
+my $SHOW_CITATION_FLAG = 0;
+
+my $VERSION = "BLEEDING_EDGE"; 
+my $show_version_flag = 0;
+
+## Kmer methods
+my $kmer_method = "";
+
+## Jellyfish
+my $max_memory;
+
+
+## Grid computing options:
+my $grid_conf_file;
+
+## Performance monitoring options 
+my $pm_logfile = "Trinity.timing";
+my $pm_trinity_startstring;
+my $pm_trinity_endstring;
+my $pm_trinity_start=0;
+my $pm_trinity_end=0;
+my $pm_inchworm_start=0;
+my $pm_inchworm_end=0;
+my $pm_chrysalis_start=0;
+my $pm_chrysalis_end=0;
+my $pm_butterfly_start=0;
+my $pm_butterfly_end=0;
+my $pm_left_fa_size=0;
+my $pm_right_fa_size=0;
+my $pm_single_fa_size=0;
+my $pm_trinity_fa_size=0;
+my $pm_trinity_arguments="";
+my $pm_inchworm_kmers=0;
+my $pm_read_count=0;
+
+my $run_with_collectl = 0;
+# flush each second, record procs+rest every 5 secs, use only process subsystem
+my $collectl_param = "-F1 -i5:5 -sZ";
+my $collectl_output_directory = "collectl";
+my $collectl_pid = 0;
+my $collectl_out = "";
+my $collectl_titlename = "";
+my $start_dir = cwd();
+
+## misc other opts, mostly for testing purposes
+my $run_as_paired_flag = 0;  ## in case we have paired reads in single fasta file, already oriented.
+my $weldmer_size = 48;
+my $FORCE_INCHWORM_KMER_METHOD = 0; 
+
+
+my $PARALLEL_IWORM_FLAG = 1;
+my $NO_PARALLEL_IWORM = 0;
+
+## Quality trimming params
+my $RUN_TRIMMOMATIC_FLAG = 0;
+my $trimmomatic_quality_trim_params = "LEADING:5 TRAILING:5 MINLEN:36";
+
+## Normalize reads
+my $NORMALIZE_READS_FLAG = 0;
+my $normalize_max_read_cov = 50;
+my $NORMALIZE_BY_READ_SET = 0; 
+
+
+my $grid_node_CPU = 1;
+my $grid_node_max_memory = "1G";
+
+# Note: For the Trinity logo below the backslashes are quoted in order to keep
+#   them from quoting the character than follows them.  "\\" keeps "\ " from occuring.
+
+my $basic_usage = qq^
+
+
+###############################################################################
+#
+#     ______  ____   ____  ____   ____  ______  __ __
+#    |      ||    \\ |    ||    \\ |    ||      ||  |  |
+#    |      ||  D  ) |  | |  _  | |  | |      ||  |  |
+#    |_|  |_||    /  |  | |  |  | |  | |_|  |_||  ~  |
+#      |  |  |    \\  |  | |  |  | |  |   |  |  |___, |
+#      |  |  |  .  \\ |  | |  |  | |  |   |  |  |     |
+#      |__|  |__|\\_||____||__|__||____|  |__|  |____/
+#
+###############################################################################
+#
+# Required:
+#
+#  --seqType <string>      :type of reads: ( $allowed{seqType} )
+#
+#  --max_memory|M <string>      :suggested max memory to use by Trinity where limiting can be enabled. (jellyfish, sorting, etc)
+#                            provied in Gb of RAM, ie.  '--max_memory 10G'
+#
+#  If paired reads:
+#      --left  <string>    :left reads, one or more (separated by space)
+#      --right <string>    :right reads, one or more (separated by space)
+#
+#  Or, if unpaired reads:
+#      --single <string>   :single reads, one or more (note, if single file contains pairs, can use flag: --run_as_paired )
+#
+####################################
+##  Misc:  #########################
+#
+#  --SS_lib_type <string>          :Strand-specific RNA-Seq read orientation.
+#                                   if paired: RF or FR,
+#                                   if single: F or R.   (dUTP method = RF)
+#                                   See web documentation.
+#
+#  --CPU <int>                     :number of CPUs to use, default: $CPU
+#  --min_contig_length <int>       :minimum assembled contig length to report
+#                                   (def=$min_contig_length)
+#
+#  --long_reads <string>           :fasta file containing error-corrected or circular consensus (CCS) pac bio reads
+#
+#  --genome_guided_bam <string>    :genome guided mode, provide path to coordinate-sorted bam file.
+#                                   (see genome-guided param section under --show_full_usage_info)
+#
+#  --jaccard_clip                  :option, set if you have paired reads and
+#                                   you expect high gene density with UTR
+#                                   overlap (use FASTQ input file format
+#                                   for reads).
+#                                   (note: jaccard_clip is an expensive
+#                                   operation, so avoid using it unless
+#                                   necessary due to finding excessive fusion
+#                                   transcripts w/o it.)
+#
+#  --trimmomatic                   :run Trimmomatic to quality trim reads
+#                                        see '--quality_trimming_params' under full usage info for tailored settings.
+#                                  
+#
+#  --normalize_reads               :run in silico normalization of reads. Defaults to max. read coverage of $normalize_max_read_cov.
+#                                       see '--normalize_max_read_cov' under full usage info for tailored settings.
+#     
+#
+#  --output <string>               :name of directory for output (will be
+#                                   created if it doesn't already exist)
+#                                   default( your current working directory: "$output_directory" 
+#                                    note: must include 'trinity' in the name as a safety precaution! )
+#  
+#  --full_cleanup                  :only retain the Trinity fasta file, rename as \${output_dir}.Trinity.fasta
+#
+#  --cite                          :show the Trinity literature citation
+#
+#  --version                       :reports Trinity version ($VERSION) and exits.
+#
+#  --show_full_usage_info          :show the many many more options available for running Trinity (expert usage).
+^;
+
+my $full_usage = qq^
+#
+#  --KMER_SIZE <int>               :kmer length to use (default: 25)  max=32
+#
+#  --prep                          :Only prepare files (high I/O usage) and stop before kmer counting.
+#
+#  --no_cleanup                    :retain all intermediate input files.
+#
+####################################################
+# Inchworm and K-mer counting-related options: #####
+#
+#  --min_kmer_cov <int>           :min count for K-mers to be assembled by
+#                                  Inchworm (default: $min_kmer_cov)
+#  --inchworm_cpu <int>           :number of CPUs to use for Inchworm, default is min(6, --CPU option)
+#
+#  --no_run_inchworm              :stop after running jellyfish, before inchworm.
+#
+###################################
+# Chrysalis-related options: ######
+#
+#  --max_reads_per_graph <int>    :maximum number of reads to anchor within
+#                                  a single graph (default: $max_reads_per_graph)
+#  --min_glue <int>               :min number of reads needed to glue two inchworm contigs
+#                                  together. (default: $min_glue) 
+#  --no_run_chrysalis             :stop Trinity after Inchworm and before
+#                                  running Chrysalis
+#  --no_run_quantifygraph         :stop Trinity just before running the
+#                                  parallel QuantifyGraph computes, to
+#                                  leverage a compute farm and massively
+#                                  parallel execution..
+#
+#  --chrysalis_output <string>    :name of directory for chrysalis output (will be
+#                                  created if it doesn't already exist)
+#                                  default( "$chrysalis_output_dir" )
+#
+#  --no_bowtie                    :dont run bowtie to use pair info in chrysalis clustering.
+#
+#####################################
+###  Butterfly-related options:  ####
+#
+#  --bfly_opts <string>            :additional parameters to pass through to butterfly
+#                                   (see butterfly options: java -jar Butterfly.jar ).
+#                                   (note: only for expert or experimental use.  Commonly used parameters are exposed through this Trinity menu here).
+#
+#    //////////////////////////////////
+#    Alternative reconstruction modes:
+#                                  Default mode is the 'regular' Butterfly transcript reconstruction by graph node extension.
+#
+#       --PasaFly                  PASA-like algorithm for maximally-supported isoforms 
+#           or
+#       --CuffFly                  Cufflinks-like algorithm to report minimum transcripts
+#
+#
+#  Butterfly read-pair grouping settings (used for all reconstruction modes to define 'pair paths'):
+#
+#  --group_pairs_distance <int>    :maximum length expected between fragment pairs (default: $group_pairs_distance)
+#                                   (reads outside this distance are treated as single-end)
+#
+#  ///////////////////////////////////////////////
+#  Butterfly default reconstruction mode settings. (no CuffFly or PasaFly custom settings are currently available).
+#                                   
+#  --path_reinforcement_distance <int>   :minimum overlap of reads with growing transcript 
+#                                         path (default: PE: $PE_path_reinforcement_distance, SE: $SE_path_reinforcement_distance)
+#                                         Set to 1 for the most lenient path extension requirements.
+#
+#
+#  /////////////////////////////////////////
+#  Butterfly transcript reduction settings:
+#
+#  --no_path_merging            : all final transcript candidates are output (including SNP variations, however, some SNPs may be unphased)  
+#
+#  By default, alternative transcript candidates are merged (in reality, discarded) if they are found to be too similar, according to the following logic:
+#
+#  (identity=(numberOfMatches/shorterLen) > 95.0% or if we have <= 2 mismatches) and if we have internal gap lengths <= 10
+#
+#  with parameters as:
+#      
+#      --min_per_id_same_path <int>          default: 98     min percent identity for two paths to be merged into single paths
+#      --max_diffs_same_path <int>           default: 2      max allowed differences encountered between path sequences to combine them
+#      --max_internal_gap_same_path <int>    default: 10     maximum number of internal consecutive gap characters allowed for paths to be merged into single paths.
+#
+#      If, in a comparison between two alternative transcripts, they are found too similar, the transcript with the greatest cumulative 
+#      compatible read (pair-path) support is retained, and the other is discarded.
+#
+#
+#  //////////////////////////////////////////////
+#  Butterfly Java and parallel execution settings.
+#
+#  --bflyHeapSpaceMax <string>     :java max heap space setting for butterfly
+#                                   (default: $bflyHeapSpaceMax) => yields command
+#                  'java -Xmx$bflyHeapSpaceMax -jar Butterfly.jar ... \$bfly_opts'
+#  --bflyHeapSpaceInit <string>    :java initial hap space settings for
+#                                   butterfly (default: $bflyHeapSpaceInit) => yields command
+#                  'java -Xms$bflyHeapSpaceInit -jar Butterfly.jar ... \$bfly_opts'
+#  --bflyGCThreads <int>           :threads for garbage collection
+#                                   (default: $bflyGCThreads))
+#  --bflyCPU <int>                 :CPUs to use (default will be normal 
+#                                   number of CPUs; e.g., $CPU)
+#  --bflyCalculateCPU              :Calculate CPUs based on 80% of max_memory
+#                                   divided by maxbflyHeapSpaceMax
+#  --no_run_butterfly              :stops after the Chrysalis stage. You'll
+#                                   need to run the Butterfly computes
+#                                   separately, such as on a computing grid.
+#                  Then, concatenate all the Butterfly assemblies by running:
+#                  'find trinity_out_dir/ -name "\*allProbPaths.fasta" \
+#                   -exec cat {} + > trinity_out_dir/Trinity.fasta'
+#
+#  --bfly_jar <string>             : /path/to/Butterfly.jar, otherwise default
+#                                    Trinity-installed version is used. 
+#                                    
+#
+#
+################################################################################
+#### Quality Trimming Options ####  
+# 
+#  --quality_trimming_params <string>   defaults to: "$trimmomatic_quality_trim_params"
+#
+################################################################################
+####  In silico Read Normalization Options ###
+#
+#  --normalize_max_read_cov <int>       defaults to 50
+#  --normalize_by_read_set              run normalization separate for each pair of fastq files,
+#                                       then one final normalization that combines the individual normalized reads.
+#                                       Consider using this if RAM limitations are a consideration.
+#
+################################################################################
+#### Genome-guided de novo assembly
+# 
+#  * required:
+#
+# --genome_guided_max_intron <int>     :maximum allowed intron length (also maximum fragment span on genome)
+#
+#  * optional:
+#
+# --genome_guided_min_coverage <int>   :minimum read coverage for identifying and expressed region of the genome. (default: 1)
+#
+# --genome_guided_min_reads_per_partition <int>   :default min of 10 reads per partition
+#
+# --genome_guided_just_prep            : process stops after prepping the reads for assembly (prior to submitting to a computing grid for parallel execution)
+#
+#################################
+# Grid-computing options: #######
+#
+#  --grid_conf_file <string>            :configuration file for supported compute farms
+#                                       ex.  TRINITY_HOME/htc_conf/BroadInst_LSF.conf
+#                                       currently supported computing gris: LSF, SGE
+#
+#  --grid_node_CPU <int>                number of threads for each parallel process to leverage. (default: $grid_node_CPU)
+#
+#  --grid_node_max_memory <string>         max memory targeted for each grid node. (default: $grid_node_max_memory)
+#
+#
+    ^;
+
+my $usage_synopsis = qq^
+
+###############################################################################
+#
+#  *Note, a typical Trinity command might be:
+#
+#        Trinity --seqType fq --max_memory 50G --left reads_1.fq  --right reads_2.fq --CPU 6
+#
+#
+#    and for Genome-guided Trinity:
+#
+#        Trinity --genome_guided_bam rnaseq_alignments.csorted.bam --max_memory 50G\
+#                --genome_guided_max_intron 10000 --CPU 6
+#
+#     see: $FindBin::RealBin/sample_data/test_Trinity_Assembly/
+#          for sample data and 'runMe.sh' for example Trinity execution
+#     For more details, visit: http://trinityrnaseq.sf.net
+#
+###############################################################################
+
+
+    ^;
+
+
+
+my $advanced_usage =  <<_ADVANCEDUSAGE_;
+###################################################################################
+     ## Not intended for users, instead for experimentation by developers ## 
+###################################################################################
+#
+#
+#  Inchworm-related options:
+#
+#  --INCHWORM_CUSTOM_PARAMS <string>     :additional parameters to be passed on to Inchworm
+#  --FORCE_INCHWORM_KMER_METHOD           :uses inchworm built-in kmer cataloger instead of jellyfish (not recommended)  
+#  --NO_PARALLEL_IWORM                : turn off parallel iworm assembly
+#  --iworm_opts <string>              : options for inchworm
+#
+#
+#  Chyrsalis-related options:
+#
+#    --min_pcnt_read_iworm_kmers <int>      :min percentage of a read sequence that must be composed of inchworm kmers to be pursued 
+#                                               by chrysalis (default: $min_percent_read_iworm_kmers)  note: off if < 0
+#
+#  --min_iso_ratio <float>        :min fraction of average kmer coverage between two iworm contigs
+#                                  required for gluing.  (default: $min_iso_ratio)
+#  --glue_factor <float>          :fraction of max (iworm pair coverage) for read glue support (default: $glue_factor)
+#
+#  --max_reads_per_loop <int>     :maximum number of reads to read into
+#                                  memory at once (default: $max_reads_per_loop)
+#  --min_pct_read_mapping <int>   :minimum percent of a reads kmers that must map to an
+#                                  inchworm bundle (aka. component)  default: 0
+#
+#  --bowtie_components            :use bowtie2 to generate readsToTranscripts mappings
+#
+#
+#  Other:
+#  --monitoring                    :use collectl to monitor all steps of Trinity
+#  
+#  --compdir|component_directory   : use a temporary or local directory for Components_bin
+#
+#
+
+
+_ADVANCEDUSAGE_
+
+ ;
+
+
+my $ROOTDIR = "$FindBin::RealBin";
+my $UTILDIR = "$ROOTDIR/util";
+my $MISCDIR = "$UTILDIR/misc";
+my $INCHWORM_DIR = "$ROOTDIR/Inchworm/bin/";
+my $CHRYSALIS_DIR = "$ROOTDIR/Chrysalis";
+my $BUTTERFLY_DIR = "$ROOTDIR/Butterfly";
+my $JELLYFISH_DIR = "$ROOTDIR/trinity-plugins/jellyfish";
+my $FASTOOL_DIR = "$ROOTDIR/trinity-plugins/fastool";
+my $COLLECTL_DIR = "$ROOTDIR/trinity-plugins/collectl/bin";
+my $COREUTILS_DIR = "$ROOTDIR/trinity-plugins/coreutils/bin";
+my $PARAFLY = "$ROOTDIR/trinity-plugins/parafly/bin/ParaFly";
+my $TRIMMOMATIC = "$ROOTDIR/trinity-plugins/Trimmomatic/trimmomatic.jar";
+
+#&version_check();
+
+my $usage = $basic_usage . $usage_synopsis;
+
+unless (@ARGV) {
+    die "$usage\n";
+}
+
+# Log command line parameters for performance monitoring
+foreach (@ARGV) {
+    $pm_trinity_arguments = $pm_trinity_arguments . " " . $_;
+};
+
+
+my $sort_exec = &COMMON::get_sort_exec($CPU);
+
+my $NO_FASTOOL = 0;
+my $NO_CLEANUP = 0;
+my $FULL_CLEANUP = 0;
+my $NO_BOWTIE = 0;
+
+
+my $BOWTIE_COMP = 0;
+
+my $NO_RUN_INCHWORM_FLAG = 0;
+
+my $JELLY_S;
+
+
+my $PASAFLY_MODE = 0;
+my $CUFFFLY_MODE = 0;
+
+my $full_usage_info_flag;
+
+my $NO_TRIPLET_LOCK;
+
+## Genome-guided params:
+my $genome_guided_max_intron;
+my $genome_guided_bam;
+my $genome_guided_min_coverage = 1;
+my $genome_guided_min_reads_per_partition = 10;
+my $genome_guided_just_prep_flag = 0;
+
+## trinity complete flag
+my $TRINITY_COMPLETE_FLAG = 0;
+
+my @ORIG_ARGS = @ARGV;
+
+my $CHRYSALIS_DEBUG_WELD_ALL = 0;
+my $iworm_opts = "";
+
+
+
+&GetOptions( 
+    
+    'h|help' => \$help_flag,
+    'advanced_help' => \$advanced_help_flag,
+    'show_full_usage_info' => \$full_usage_info_flag,         
+             
+    ## general opts
+    "seqType=s" => \$seqType,
+    "left=s{,}" => \@left_files,
+    "right=s{,}" => \@right_files,
+    "single=s{,}" => \@single_files,
+    
+    "SS_lib_type=s" => \$SS_lib_type,
+
+    "long_reads=s" => \$long_reads,
+
+    "output=s" => \$output_directory,
+    
+    "min_contig_length=i" => \$min_contig_length,
+
+    "jaccard_clip" => \$jaccard_clip,
+    
+    "cite" => \$SHOW_CITATION_FLAG,
+    
+    'CPU=i' => \$CPU,
+    'np=i'   => \$np,
+    'mpiexec=s' => \$mpiexec,
+    'prep' => \$prep_only,    
+
+    'KMER_SIZE=i' => \$KMER_SIZE,
+    
+
+    # Quality trimming:
+             'trimmomatic' => \$RUN_TRIMMOMATIC_FLAG,
+             'quality_trimming_params=s' => \$trimmomatic_quality_trim_params,
+             
+    # In silico read normalization
+             'normalize_reads' => \$NORMALIZE_READS_FLAG,
+             'normalize_max_read_cov=i' => \$normalize_max_read_cov,
+             'normalize_by_read_set' =>  \$NORMALIZE_BY_READ_SET,
+             
+             
+    # Butterfly opts
+    'no_run_butterfly'      => \$NO_RUN_BUTTERFLY_FLAG,
+    "group_pairs_distance=i" => \$group_pairs_distance,
+    'bfly_opts=s'           => \$bfly_opts,
+    'bflyHeapSpaceMax=s'    => \$bflyHeapSpaceMax,
+    'bflyHeapSpaceInit=s'   => \$bflyHeapSpaceInit,
+    'bflyGCThreads=i'       => \$bflyGCThreads,
+    'bflyCPU=i'             => \$bflyCPU,
+    'bflyCalculateCPU'      => \$bflyCalculateCPU,
+    'bfly_jar=s' => \$BFLY_JAR,
+    
+    'path_reinforcement_distance=i' => \$path_reinforcement_distance,
+    'rerun_butterfly' => \$RERUN_BUTTERFLY_FLAG,
+
+    'no_path_merging' => \$NO_PATH_MERGING,
+    'min_per_id_same_path=i' => \$MIN_PER_ID_SAME_PATH,
+    'max_diffs_same_path=i' => \$MAX_DIFFS_SAME_PATH,
+    'max_internal_gap_same_path=i' => \$MAX_INTERNAL_GAP_SAME_PATH,
+             
+    
+    'PasaFly' => \$PASAFLY_MODE,
+    'CuffFly' => \$CUFFFLY_MODE,
+
+    # Inchworm & kmer catalog opts
+
+    'min_kmer_cov=i'        => \$min_kmer_cov,
+    'inchworm_cpu=i'        => \$inchworm_cpu,
+    'FORCE_INCHWORM_KMER_METHOD' => \$FORCE_INCHWORM_KMER_METHOD,              
+    'INCHWORM_CUSTOM_PARAMS=s' => \$INCHWORM_CUSTOM_PARAMS,
+    'no_run_inchworm' => \$NO_RUN_INCHWORM_FLAG,
+    'iworm_opts=s' => \$iworm_opts,
+    
+    'max_memory|M=s'          => \$max_memory, # in GB
+    
+    # Chrysalis -related opts
+    'min_glue=i' => \$min_glue,
+    'glue_factor=f' => \$glue_factor,
+    'min_iso_ratio=f' => \$min_iso_ratio,
+    'min_pcnt_read_iworm_kmers=i' => \$min_percent_read_iworm_kmers, 
+    'no_run_quantifygraph' => \$NO_RUN_QUANTIFYGRAPH_FLAG,
+    'max_reads_per_graph=i' => \$max_reads_per_graph,
+    'max_reads_per_loop=i' => \$max_reads_per_loop,
+    'no_run_chrysalis' => \$NO_RUN_CHRYSALIS_FLAG,         
+    'min_pct_read_mapping=i' => \$min_pct_read_mapping,
+    'weldmer_size=i' => \$weldmer_size,
+    "chrysalis_output=s" => \$chrysalis_output_dir,
+    "no_bowtie" => \$NO_BOWTIE,
+    "bowtie_comp" => \$BOWTIE_COMP,
+             
+    # Grid computing options
+    'grid_conf_file=s' => \$grid_conf_file,         
+             
+    "show_advanced_options" => \$show_advanced_options,
+
+             
+    # misc
+    'run_as_paired' => \$run_as_paired_flag,
+    'no_fastool' => \$NO_FASTOOL,
+    'no_cleanup' => \$NO_CLEANUP,
+    'full_cleanup' => \$FULL_CLEANUP,
+    'version' => \$show_version_flag,
+    'monitoring' => \$run_with_collectl,
+    
+    # hidden (don't look here! ;) 
+    'KMER_SIZE=i' => \$KMER_SIZE,
+    'jelly_s=i' => \$JELLY_S,
+    'compdir|component_directory=s'  => \$component_directory,
+    'NO_PARALLEL_IWORM' => \$NO_PARALLEL_IWORM,
+    'chrysalis_debug_weld_all' => \$CHRYSALIS_DEBUG_WELD_ALL,
+             
+    
+    # genome guided
+    "genome_guided_bam=s" => \$genome_guided_bam,
+    "genome_guided_max_intron=i" => \$genome_guided_max_intron,
+
+    "genome_guided_min_coverage=i" => \$genome_guided_min_coverage,
+    "genome_guided_min_reads_per_partition=i" => \$genome_guided_min_reads_per_partition,
+    "genome_guided_just_prep" => \$genome_guided_just_prep_flag,
+
+    "trinity_complete" => \$TRINITY_COMPLETE_FLAG,
+    
+    "grid_node_CPU=i" => \$grid_node_CPU,
+    "grid_node_max_memory=s" => \$grid_node_max_memory,
+    
+    
+
+             );
+
+
+
+if ($SHOW_CITATION_FLAG) {
+    &show_lit_citation();
+    exit(0);
+}
+
+
+if ($full_usage_info_flag) {
+    $usage = $basic_usage . $full_usage . $usage_synopsis;
+    die "$usage\n";
+}
+
+
+if ($advanced_help_flag) {
+    die "$advanced_usage\n";
+}
+if ($help_flag) {
+    die "$usage\n";
+}
+
+if ($show_version_flag) {
+    print "Trinity version: $VERSION\n";
+    exit(1);
+}
+
+if ($NO_CLEANUP && $FULL_CLEANUP) {
+    die "cannot set --no_cleanup and --full_cleanup as they contradict";
+}
+
+
+if ($KMER_SIZE > $MAX_KMER_SIZE) {
+    die "Error, kmer size can be at most $MAX_KMER_SIZE ";
+}
+
+
+
+if ($NO_PARALLEL_IWORM) {
+    # turn it off.
+    $PARALLEL_IWORM_FLAG = 0;
+}
+
+my $MIN_IWORM_LEN = $KMER_SIZE;
+
+
+if (@ARGV) {
+    die "Error, do not understand options: @ARGV\n";
+}
+
+if ($run_with_collectl && $^O !~ /linux/i) {
+    print STDERR "WARNING, --monitoring can only be used on linux. Turning it off.\n\n";
+    $run_with_collectl = 0;
+}
+
+unless ($BFLY_JAR) {
+    $BFLY_JAR = "$BUTTERFLY_DIR/Butterfly.jar";
+}
+
+
+my $USE_FASTOOL = 1; # by default, using fastool for fastq to fasta conversion
+if ($NO_FASTOOL) {
+    $USE_FASTOOL = 0;
+}
+
+if ($SS_lib_type) {
+    unless ($SS_lib_type =~ /^(R|F|RF|FR)$/) {
+        die "Error, unrecognized SS_lib_type value of $SS_lib_type. Should be: F, R, RF, or FR\n";
+    }
+    
+    if (@single_files) {
+        if ($run_as_paired_flag) {
+            die "Error, if you have paired-end reads and want to run as strand-specific, then you must specify the --left and --right parameters";
+        }
+        if (length($SS_lib_type) != 1) {
+            die "Error, with --single reads, the --SS_lib_type can be 'F' or 'R' only.\n";
+        }
+    }
+    if (@left_files && @right_files) {
+        if (length($SS_lib_type) != 2) {
+            die "Error, with paired end reads, the --SS_lib_type can be 'RF' or 'FR' only.\n";
+        }
+    }
+    
+}
+
+unless ($genome_guided_bam ||  (@left_files && @right_files) || @single_files ) {
+    die "Error, need either options 'left' and 'right' or option 'single' or 'genome_guided_bam'\n";
+}
+
+if (@left_files) {
+    @left_files = split(",", join(",", @left_files));
+}
+if (@right_files) {
+    @right_files = split(",", join(",", @right_files));
+}
+if (@single_files) {
+    @single_files = split(",", join(",", @single_files));
+}
+
+
+if ($min_iso_ratio > 1) {
+    die "Error, --min_iso_ratio should be <= 1 \n";
+}
+
+## keep the original 'xG' format string for the --JM option, then calculate the numerical value for jellyfish_ram
+my $jellyfish_ram = $max_memory;    ## this one is used in the Chrysalis exec string
+if ($jellyfish_ram) {
+    $jellyfish_ram =~ /^([\d\.]+)G$/ or die "Error, cannot parse jellyfish_ram value of $jellyfish_ram.  Set it to 'xG' where x is a numerical value\n";
+    
+    $jellyfish_ram = $1;
+    $jellyfish_ram *= 1024**3; # convert to from gig to bytes
+}
+else {
+    die "Error, must specify max memory for jellyfish to use, eg.  --max_memory 10G \n";
+}
+
+
+## Check Java version:
+unless ($NO_RUN_BUTTERFLY_FLAG || $NO_RUN_CHRYSALIS_FLAG) {
+  my $java_version = `java -Xmx64m -version 2>&1 `;
+  unless ($java_version =~ /(java|openjdk) version \"1\.(\d)\./) {
+      my $version_id = $1;
+      if ($version_id < 7) {
+          die "Error, Trinity requires access to Java version 1.7.  Currently installed version is: $java_version";
+      }
+  }
+}
+
+# Give the variable with memory size and a user-oriented name
+
+sub bfly_check {
+    my ($mem, $name) = @_;
+    my ($num, $type) = $mem =~ /^(\d+)([MG])$/;
+    if (!defined $mem || !defined $type) {
+        die "Error, $name must be set to a value of format: \\d+G or \\d+M  (eg. 1G or 1000M)\n  Currently: $mem\n";
+    }
+    return $type eq 'G' ? $num * 1024**3 : $num * 1024**2;
+}
+
+my $bflyHeapSpaceMaxBytes  = bfly_check($bflyHeapSpaceMax , 'bflyHeapSpaceMax' );
+my $bflyHeapSpaceInitBytes = bfly_check($bflyHeapSpaceInit, 'bflyHeapSpaceInit');
+
+if ($bflyHeapSpaceInitBytes > $bflyHeapSpaceMaxBytes) {
+    die "Error, bflyHeapSpaceInit ($bflyHeapSpaceInit) must be less or equal to bflyHeapSpaceMax ($bflyHeapSpaceMax).\n";
+}
+
+
+
+if ($inchworm_cpu > $CPU) {
+    $inchworm_cpu = $CPU;
+}
+
+if ($bflyCalculateCPU && $jellyfish_ram) {
+    $bflyCPU = int ($jellyfish_ram * 0.80 / $bflyHeapSpaceMaxBytes);
+}
+
+$bflyCPU = $CPU if !defined $bflyCPU;
+
+
+if (defined($bflyGCThreads) && $bflyGCThreads > 32) {
+    die "Error, you probably want fewer than $bflyGCThreads java garbage collection threads. Try a number less than 32.";
+}
+
+
+if ($genome_guided_bam) {
+    ## genome-guided mode.
+    unless ($genome_guided_max_intron) {
+        die "Error, must specifiy --genome_guided_max_intron <int>  for genome-guided mode.\n";
+    }
+}
+
+
+
+$ENV{OMP_NUM_THREADS} = $CPU; ## for Inchworm and Chrysalis
+
+
+my $PAIRED_MODE = ( (@left_files && @right_files)  || $run_as_paired_flag) ? 1:0;
+if ($PAIRED_MODE && (!$NO_RUN_CHRYSALIS_FLAG)  && (!$NO_BOWTIE)) {
+    ## be sure we can find 'bowtie', since we use it as part of the iworm pair scaffolding step
+    my $bowtie_path = `which bowtie`;
+    my $bowtie_build_path = `which bowtie-build`;
+    if ($bowtie_path =~ /\w/ && $bowtie_build_path =~ /\w/) {
+        print "Paired mode requires bowtie. Found bowtie at: $bowtie_path\n and bowtie-build at $bowtie_build_path\n\n";
+    }
+    else {
+        die "Error, cannot find path to bowtie ($bowtie_path) or bowtie-build ($bowtie_build_path), which is now needed as part of Chrysalis' read scaffolding step.  If you should choose to not run bowtie, include the --no_bowtie in your Trinity command.\n\n";
+    }
+    
+    my $samtools_path = `which samtools`;
+    if ($samtools_path =~ /\w/) {
+        print "Found samtools at: $samtools_path\n";
+    }
+    else {
+        die "Error, cannot find samtools. Please be sure samtools is installed and included in your PATH setting.\n";
+    }
+
+    unless ($path_reinforcement_distance) {
+        $path_reinforcement_distance = $PE_path_reinforcement_distance;
+    }
+}
+else {
+    unless ($path_reinforcement_distance) {
+        $path_reinforcement_distance = $SE_path_reinforcement_distance;
+    }
+}
+
+
+my $MKDIR_OUTDIR_FLAG = 0; ## only purging output_directory if we create it in this run.
+
+
+## Regular run.  Name the output based on the butterfly reconstruction mode.
+my $butterfly_output_filename = "Trinity.fasta";
+if ($PASAFLY_MODE) {
+    $butterfly_output_filename = "Trinity.Pasafly.fasta";
+}
+elsif ($CUFFFLY_MODE) {
+    $butterfly_output_filename = "Trinity.Cufffly.fasta";
+}
+
+
+
+my $PARALLEL_SAMTOOLS_SORT_TOKEN = "";
+{
+    my $samtools_version_info = `samtools 2>&1`;
+    if ($samtools_version_info =~ /Version: 1.1/) {
+	$PARALLEL_SAMTOOLS_SORT_TOKEN = "-\@ $CPU";
+    }
+}
+
+
+unless (basename($output_directory) =~ /trinity/i) {
+    die "Error, output directory must contain the word 'trinity' as a safety precaution, given that auto-deletion can take place.\n";
+}
+
+
+main: {
+    $ENV{OMP_NUM_THREADS} = $CPU;
+    
+
+    unless ($NO_RUN_BUTTERFLY_FLAG || $NO_RUN_CHRYSALIS_FLAG) {
+        print STDERR "-since butterfly will eventually be run, lets test for proper execution of java\n";
+        &test_java_failure_capture();
+    }
+    
+    unless ($genome_guided_bam) {
+            
+        if (basename($chrysalis_output_dir) !~ /chrysalis/i) {
+            die "Error, chrysalis output directory name must include 'chrysalis' in the name."; # lets try to prevent bad things from happening... (security issue)
+        }
+        
+        if ($FULL_CLEANUP && basename($output_directory) !~ /\w/) {
+            die "Error, working in full-cleanup mode. Specify a named directory for the output. The directory and contents are purged at end of a successful run.";
+        }
+        
+        
+        if ($chrysalis_output_dir !~ /^\//) {
+            $chrysalis_output_dir = "$output_directory/$chrysalis_output_dir";
+        }
+        
+        $chrysalis_output_dir = &create_full_path($chrysalis_output_dir, 0);
+        
+        if ($component_directory){
+            # does a component directory exist from a previous run?
+            if (-e $chrysalis_output_dir.'/Component_bins'){
+                if (-l $chrysalis_output_dir.'/Component_bins'){
+                    $component_directory = readlink($chrysalis_output_dir.'/Component_bins');
+                }else{
+                    $component_directory = $chrysalis_output_dir.'/Component_bins';
+                }
+                warn "Reusing existing component directory $component_directory\n";
+            }else{
+                $component_directory .= "/Trinity.$$";
+                mkdir($component_directory) || die ("component directory cannot be created or already exists!\n");
+                die "Cannot create component directory $component_directory" unless -d $component_directory;
+                $component_directory .= "/Component_bins";
+                mkdir($component_directory) || die ("component directory cannot be created or already exists!\n");
+                die "Cannot create component directory $component_directory" unless -d $component_directory;
+            }
+            # so that users know where it is/remember to remove it if manually done?
+            symlink($component_directory,$chrysalis_output_dir.'/Component_bins') unless -e $chrysalis_output_dir.'/Component_bins'; 
+        }else{
+            $component_directory = $chrysalis_output_dir . '/Component_bins';
+            $component_directory = &create_full_path($component_directory,0);
+        }
+    }
+
+    
+    
+    ## create complete paths for input files:
+    @left_files = &create_full_path(\@left_files, 1) if @left_files;
+    @right_files = &create_full_path(\@right_files, 1) if @right_files;
+    @single_files = &create_full_path(\@single_files, 1) if @single_files;
+    $output_directory = &create_full_path($output_directory, 0);
+    $long_reads = &create_full_path($long_reads, 1) if $long_reads;
+    $genome_guided_bam = &create_full_path($genome_guided_bam, 1) if $genome_guided_bam;
+    
+    $grid_conf_file = &create_full_path($grid_conf_file, 1) if $grid_conf_file;
+    
+    unless (-d $output_directory) {
+        
+        &process_cmd("mkdir -p $output_directory");
+        $MKDIR_OUTDIR_FLAG = 1;
+    }
+
+    if ((! $genome_guided_bam) && (! -d $chrysalis_output_dir)) {
+        &process_cmd("mkdir -p $chrysalis_output_dir"); # note, won't be auto-cleaned up if not in the trinity_out_dir/
+    }
+    
+    chdir ($output_directory) or die "Error, cannot cd to $output_directory";
+    
+    collectl_start() unless ($FULL_CLEANUP);
+    &perfmon_start() unless ($FULL_CLEANUP);
+
+    ##########################
+    ##  Run Quality Trimming
+    ##########################
+    
+    if ($RUN_TRIMMOMATIC_FLAG) {
+
+        print STDERR "---------------------------------------------------------------\n"
+                   . "------ Quality Trimming Via Trimmomatic  ---------------------\n"
+                   . "<< $trimmomatic_quality_trim_params >>\n"
+                   . "---------------------------------------------------------------\n\n";
+
+
+        unless ($seqType eq 'fq') {
+            die "Error, cannot do quality trimming on fasta files, need fastq files.";
+        }
+        
+        if (@left_files && @right_files) {
+            my @trimmed_left_files;
+            my @trimmed_right_files;
+            
+            while (@left_files) {
+                my $left_file = shift @left_files;
+                my $right_file = shift @right_files;
+
+                # note: trimmomatic can use gzipped files directly.
+                my ($left_file_trimmed, $right_file_trimmed) = &run_trimmomatic_PE($left_file, $right_file, $trimmomatic_quality_trim_params);
+                push (@trimmed_left_files, $left_file_trimmed);
+                push (@trimmed_right_files, $right_file_trimmed);
+            }
+            
+            @left_files = @trimmed_left_files;
+            @right_files = @trimmed_right_files;
+        }
+        elsif (@single_files) {
+            my @trimmed_single_files;
+            foreach my $single_file (@single_files) {
+                my $trimmed_single_file = &run_trimmomatic_SE($single_file, $trimmomatic_quality_trim_params);
+                push (@trimmed_single_files, $trimmed_single_file);
+            }
+            @single_files = @trimmed_single_files;
+        }
+    }
+    
+    ##########################################
+    ## In silico normalization
+    ##########################################
+   
+    if ($NORMALIZE_READS_FLAG) {
+        
+        if (@left_files && @right_files) {
+            my ($left_norm_file, $right_norm_file) = &run_normalization($normalize_max_read_cov, \@left_files, \@right_files);
+            @left_files = ($left_norm_file);
+            @right_files = ($right_norm_file);
+        }
+        elsif (@single_files) {
+            @single_files = &run_normalization($normalize_max_read_cov, \@single_files);
+        }
+    }
+       
+    if ($genome_guided_bam) {
+        &run_genome_guided_Trinity();
+        
+        exit(0);
+    }
+
+    
+    eval {
+        &run_Trinity();
+    };
+    
+    if ($@) {
+        print STDERR "$@\n";
+        if ($@ !~ /^NON_FATAL_EXCEPTION/) {
+            die "Trinity run failed. Must investigate error above.";
+        }
+    }
+    
+    
+    if ($FULL_CLEANUP) {
+        print "Fully cleaning up.\n";
+        $output_directory =~ s|/+$||g; # remove any trailing directory slash
+    
+        if (-s "Trinity.fasta.tmp") {
+            rename("Trinity.fasta.tmp", "$output_directory.Trinity.fasta") or die "Error, cannot rename Trinity.fasta.tmp to $output_directory.Trinity.fasta";
+            
+            print "\n\n";
+            print "###################################################################\n";
+            print "Butterfly assemblies are written to $output_directory.Trinity.fasta\n";
+            print "###################################################################\n\n\n";
+            
+        }
+        else {
+            print "\n\n";
+            print "####################################\n";
+            print "## No butterfly assemblies to report.\n";
+            print "####################################\n\n\n";
+        }
+        
+        if ($MKDIR_OUTDIR_FLAG && basename($output_directory) =~ /trinity/i) { # ensure outdirectory as trinity in the name, just to be sure we dont delete something non-trinity related!!!
+            system("rm -rf $output_directory &"); # ignore filesystem errors on failed cleanup
+        }
+        else {
+            print STDERR "WARNING, cannot remove output directory $output_directory, since not created in this run. (safety precaution)\n";
+        }
+        
+    }
+    else {
+        
+        
+        if (-s "Trinity.fasta.tmp") {
+            rename("Trinity.fasta.tmp", $butterfly_output_filename) or die "Error, cannot rename Trinity.fasta.tmp to $butterfly_output_filename"; # now that process has finished.
+        }
+        
+        if (-s $butterfly_output_filename) {
+            
+            print "\n\n";
+            print "###################################################################\n";
+            print "Butterfly assemblies are written to $output_directory/$butterfly_output_filename\n";
+            print "###################################################################\n\n\n";
+        }
+        else {
+            die "ERROR, no butterfly assemblies reported.";
+        }
+        
+    }
+    
+    &perfmon_end() unless ($FULL_CLEANUP);
+    exit(0);
+
+    
+}
+
+
+####
+sub run_Trinity {
+    
+    ## create inchworm file name
+    my $inchworm_file = "inchworm.K$KMER_SIZE.L$MIN_IWORM_LEN";
+    unless ($SS_lib_type) {
+        $inchworm_file .= ".DS";
+    }
+    $inchworm_file .= ".fa";
+    $inchworm_file = &create_full_path($inchworm_file, 0);
+    
+    my $trinity_target_fa = (@single_files) ? "single.fa" : "both.fa"; 
+    my $inchworm_target_fa = $trinity_target_fa; # change this later if we have long_reads
+    my $bowtie_reads_fa = $trinity_target_fa; # dont include long reads in this... keep them separate.
+    
+    ## Don't prep the inputs if Inchworm already exists.... Resuming earlier operations.
+    my $inchworm_finished_checkpoint_file = "$inchworm_file.finished";
+    if (-s $inchworm_file && -e $inchworm_finished_checkpoint_file) {
+        print "\n\n#######################################################################\n"
+            . "Inchworm file: $inchworm_file detected.\n"
+            . "Skipping Inchworm Step, Using Previous Inchworm Assembly\n"
+            . "#######################################################################\n\n";
+        #sleep(2);
+    }
+    else {
+        
+        ## Prep data for Inchworm
+        my $count_of_reads;
+        if (@left_files && @right_files) {
+
+            unless (-s $trinity_target_fa && !-e "left.fa" && !-e "right.fa") {
+                
+                my ($left_SS_type, $right_SS_type);
+                if ($SS_lib_type) {
+                    ($left_SS_type, $right_SS_type) = split(//, $SS_lib_type);
+                }
+                print("Converting input files. (in parallel)");
+                my $thr1;
+                my $thr2;
+                if (!(-s "left.fa")) {
+                    $thr1 = threads->create('prep_seqs', \@left_files, $seqType, "left", $left_SS_type);
+                } else {
+                    $thr1 = threads->create(sub { print ("left file exists, nothing to do");});
+                }
+                if (!(-s "right.fa")) {
+                    $thr2 = threads->create('prep_seqs', \@right_files, $seqType, "right", $right_SS_type);
+                } else {
+                    $thr2 = threads->create(sub { print ("right file exists, nothing to do");});
+                }
+                @left_files = @{$thr1->join()};
+                @right_files =@{$thr2->join()};
+                
+                if ($thr1->error() || $thr2->error()) {
+                    die "Error prepping sequences.";
+                }
+
+                print("Done converting input files.");
+                ## Calculate input file sizes for performance monitoring
+                # this should be set as the created fasta otherwise results will differ for same data passed as .fq and .fa?
+                my $pm_temp = -s "left.fa";
+                $pm_temp = $pm_temp / 1024 / 1024;
+                $pm_left_fa_size = sprintf('%.0f', $pm_temp);
+                $pm_temp = -s "right.fa";
+                $pm_temp = $pm_temp / 1024 / 1024;
+                $pm_right_fa_size = sprintf('%.0f', $pm_temp);
+                
+                &process_cmd("cat left.fa right.fa > $trinity_target_fa") unless (-s $trinity_target_fa && (-s $trinity_target_fa == ((-s "left.fa") + (-s "right.fa"))));
+                unless (-s $trinity_target_fa == ((-s "left.fa") + (-s "right.fa"))){
+                    die "$trinity_target_fa is smaller (".(-s $trinity_target_fa)." bytes) than the combined size of left.fa and right.fa (".((-s "left.fa") + (-s "right.fa"))." bytes)\n";
+                }
+                
+                # we keep if we have jaccard; delete later
+                unlink ("left.fa", "right.fa") unless $jaccard_clip; # no longer needed now that we have 'both.fa', which is needed by chryaslis
+            }
+
+           foreach my $f ((@left_files,@right_files)){
+		if (-s $f.'.readcount'){
+			open (IN,$f.'.readcount');
+			my $s = <IN>;
+			close IN;
+			$s=~/([0-9]+)$/;
+			$count_of_reads += $1 if $1;
+		}
+           }
+
+
+        }
+        elsif (@single_files) {
+            
+            @single_files = @{&prep_seqs(\@single_files, $seqType, "single", $SS_lib_type) unless (-s "single.fa")};
+            ## Calculate input file sizes for performance monitoring
+            my $pm_temp = -s "single.fa";
+            $pm_temp = $pm_temp / 1024 / 1024;
+            $pm_single_fa_size = sprintf('%.0f', $pm_temp);
+            foreach my $f (@single_files){
+		if (-s $f.'.readcount'){
+			open (IN,$f.'.readcount');
+			my $s = <IN>;
+			close IN;
+			$s=~/([0-9]+)$/;
+			$count_of_reads += $1 if $1;
+		}
+            }
+        }
+        
+        else {
+            die "not sure what to do. "; # should never get here.
+        }
+
+        if (!$count_of_reads){    
+            $count_of_reads = `wc -l < $inchworm_target_fa`;chomp($count_of_reads); #AP: grep is  expensive; one test took 2h...!
+            $count_of_reads/=2;
+        }
+        if ($long_reads) {
+            
+            # adjust the inchworm target, tack on the longer reads.
+            
+            $inchworm_target_fa .= ".wLongReads.fa";
+            $count_of_reads += `grep -c '^>' $long_reads | wc -l`; #AP we don't know if these will be one single line
+            
+            &process_cmd("cat $long_reads | sed 's/>/>LR\\\$\\\|/' > $inchworm_target_fa");
+
+            ## merge the long reads with the short reads into a new target file.
+            &process_cmd("cat $trinity_target_fa >> $inchworm_target_fa");
+            
+            #&process_cmd("cat $long_reads $trinity_target_fa > $inchworm_target_fa");
+        }
+            
+        open (my $ofh, ">$inchworm_target_fa.read_count") or die $!;
+        print $ofh $count_of_reads."\n";
+        close $ofh;
+    }
+    
+    if ($prep_only){
+        print "Data has been prepared. Exiting now as per user request\n";
+        exit();
+    }
+    
+    #################
+    ## Inchworm step:
+    $pm_inchworm_start = `date +%s`;
+    unless (-s $inchworm_file && -e $inchworm_finished_checkpoint_file) {
+                    
+
+        &run_inchworm($inchworm_file, $inchworm_target_fa, $SS_lib_type, $kmer_method);
+        &process_cmd("touch $inchworm_finished_checkpoint_file");
+    }
+    $pm_inchworm_end = `date +%s`;
+
+    
+    unless (-s $inchworm_file) {
+        
+        die "NON_FATAL_EXCEPTION: WARNING, no Inchworm output is detected at: $inchworm_file";
+    }
+    
+    
+    
+    if ($jaccard_clip && $TRINITY_COMPLETE_FLAG) {
+        
+        if ($jaccard_clip && -s 'left.fa' && -s 'right.fa') {
+            $inchworm_file = &run_jaccard_clip_left_right($inchworm_file, \@left_files, \@right_files, $seqType, $SS_lib_type);
+            #$inchworm_file = &run_jaccard_clip_left_right($inchworm_file, $left_file, $right_file, $seqType, $SS_lib_type);
+            
+        }
+        elsif ($jaccard_clip && -s 'single.fa') {
+            $inchworm_file = &run_jaccard_clip_single_but_really_paired($inchworm_file, \@single_files, $seqType, $SS_lib_type);
+            #$inchworm_file = &run_jaccard_clip_single_but_really_paired($inchworm_file, $single_file, $seqType, $SS_lib_type);
+        }
+    }
+        
+    if ($NO_RUN_CHRYSALIS_FLAG) {
+        print "\n\n\n";
+        print "#########################################################################\n";
+        print "Inchworm is complete.  --no_run_chrysalis was specified, so stopping here.\n";
+        print "#########################################################################\n\n\n";
+    
+        exit(0);
+    }
+    $ENV{OMP_NUM_THREADS} = $CPU;
+    ##################
+    ## Chrysalis step:
+    
+    if ($min_percent_read_iworm_kmers > 0) {
+        
+        ###  EXPERIMENTAL:  DO NOT USE!
+        
+        $trinity_target_fa = &extract_reads_with_iworm_kmers($trinity_target_fa, $inchworm_file, $min_percent_read_iworm_kmers, $SS_lib_type);
+        
+    }
+    
+    ## butterfly commands can be reparameterized for exploring different assembly requirements
+    ## chrysalis will just run or resume depending on what's already been processed.
+    $pm_chrysalis_start = `date +%s`;
+    my $butterfly_cmds = &run_chrysalis($inchworm_file, $inchworm_target_fa,
+                                        $min_contig_length, $group_pairs_distance, $SS_lib_type, 
+                                        $trinity_target_fa, $bowtie_reads_fa);
+    
+    if ($butterfly_cmds eq "RECURSIVE_TRINITY_COMPLETE") {
+        ## stop here.  all done!   ## FIXME: this is very bad coding style!!! yes, I know.
+        return;
+    }
+    
+
+    $pm_chrysalis_end = `date +%s`;
+
+    print "Butterfly_cmds: $butterfly_cmds\n";
+    
+    if ($butterfly_cmds && -s $butterfly_cmds) {
+
+        if ($NO_RUN_BUTTERFLY_FLAG) {
+            
+            print "\n\nYou've opted to run butterfly commands independently from this script, such as on a computing grid.\n\n";
+            print "Butterfly commands to execute are available here:\n"
+                . "\t$butterfly_cmds\n\n";
+            print "After executing Butterfly commands, concatenate all Butterfly outputs by running:\n"
+                . "\t\tfind $output_directory/ -name \"\*allProbPaths.fasta\" -exec cat {} + > $output_directory/Trinity.fasta\n\n\n";
+            
+            exit(0);
+
+        }
+        else {
+            
+            ## Run Butterfly
+            
+            print "Inchworm and Chrysalis complete.  Butterfly commands to execute are provided here:\n"
+                . $butterfly_cmds . "\n\n";
+            
+            
+            print STDERR "---------------------------------------------------------------\n"
+                . "-------------------- Butterfly --------------------------------\n"
+                . "-- (Reconstruct transcripts from reads and de Bruijn graphs) --\n"
+                . "---------------------------------------------------------------\n\n";
+            
+            $pm_butterfly_start = `date +%s`;
+            if ($grid_conf_file) {
+                my @bfly_cmds = `cat $butterfly_cmds`;
+                chomp @bfly_cmds;
+                my $grid_runner = new HTC::GridRunner($grid_conf_file, "chrysalis/butterfly_on_grid.cacheSuccess");
+                my $ret = $grid_runner->run_on_grid(@bfly_cmds);
+                if ($ret) {
+                    die "Error, not all butterfly commands could complete successfully... cannot continue.";
+                }
+            }
+            else {
+                my $cmd = "$PARAFLY -c $butterfly_cmds -shuffle -CPU $bflyCPU -failed_cmds failed_butterfly_commands.$$.txt -v ";  # shuffle them since the first ones are usually the longest-running ones.
+                &process_cmd($cmd);
+            }
+            $pm_butterfly_end = `date +%s`;
+
+            ## capture results:
+            # my $cmd = 'find ./chrysalis -name "*allProbPaths.fasta" -exec cat {} + > Trinity.fasta.tmp';
+            # no longer scan the file system... we know which files should exist
+            my $cmd = "$UTILDIR/support_scripts/print_butterfly_assemblies.pl $chrysalis_output_dir/component_base_listing.txt > Trinity.fasta.tmp";
+            &process_cmd($cmd);
+            
+        }
+
+    }
+     
+}
+
+
+####
+sub run_chrysalis {
+    my ($inchworm_file, $reads_file,
+        $min_contig_length, $group_pairs_distance, $SS_lib_type, $pairs_fa, $bowtie_reads_fa) = @_;
+    
+    
+    my $butterfly_cmds = &create_full_path("$chrysalis_output_dir/butterfly_commands");
+    
+    my $quantify_graph_cmds = &create_full_path("$chrysalis_output_dir/quantifyGraph_commands");
+    
+    my $pair_links_file = "";
+
+    ## Define iworm links via paired-end read mappings:
+    if ($PAIRED_MODE && ! $NO_BOWTIE) {
+
+        my $pipeliner = new Pipeliner();
+        
+        # generate the pair links.
+        my $iworm_min100_fa_file = "$chrysalis_output_dir/" . basename("$inchworm_file.min100");
+        my $cmd = "$MISCDIR/fasta_filter_by_min_length.pl $inchworm_file 100 > $iworm_min100_fa_file";
+        $pipeliner->add_commands( new Command($cmd, "$iworm_min100_fa_file.ok"));
+        $pipeliner->run();
+        
+        $pipeliner = new Pipeliner();
+        $cmd = "bowtie-build -q $iworm_min100_fa_file $iworm_min100_fa_file";
+        if (-s "$iworm_min100_fa_file") {
+            $pipeliner->add_commands( new Command($cmd, "$iworm_min100_fa_file.bowtie_build.ok"));
+
+            my $bowtie_sam_file = "$chrysalis_output_dir/iworm.bowtie.nameSorted.bam";
+            $cmd = "bash -c \" set -o pipefail; bowtie -a -m 20 --best --strata --threads $CPU  --chunkmbs 512 -q -S -f $iworm_min100_fa_file $bowtie_reads_fa  | samtools view -F4 -Sb - | samtools sort $PARALLEL_SAMTOOLS_SORT_TOKEN -no - - > $bowtie_sam_file\" ";
+            
+            $pipeliner->add_commands( new Command($cmd, "$bowtie_sam_file.ok"));
+            
+            ## generate the scaffold info
+            my $iworm_scaffolds_file = "$chrysalis_output_dir/iworm_scaffolds.txt";
+            $cmd = "$UTILDIR/support_scripts/scaffold_iworm_contigs.pl $bowtie_sam_file $inchworm_file > $iworm_scaffolds_file"; # important, must use original inchworm file because positions are indexed for later use by GraphFromFasta
+            $pipeliner->add_commands( new Command($cmd, "$iworm_scaffolds_file.ok"));
+            
+            $pair_links_file = $iworm_scaffolds_file;
+            
+            $pipeliner->run();
+            
+        }
+    }
+    
+    
+    
+    my $chrysalis_pipeliner = new Pipeliner();
+    
+
+    my $graphFromFasta_outfile = "$chrysalis_output_dir/GraphFromIwormFasta.out";
+    
+    { # GraphFromFasta
+    
+        my $graphFromFasta_cmd = "-i $inchworm_file -r $reads_file -min_contig_length $min_contig_length -min_glue $min_glue -glue_factor $glue_factor -min_iso_ratio $min_iso_ratio -t $CPU -k " . ($KMER_SIZE-1) . " -kk " . 2*($KMER_SIZE-1) . " ";
+        # use MPI if MPI Procs >1
+        if ($np > 1) {
+            $graphFromFasta_cmd = "$mpiexec -np $np $CHRYSALIS_DIR/GraphFromFasta_MPI $graphFromFasta_cmd"
+        }
+        else {
+            $graphFromFasta_cmd = "$CHRYSALIS_DIR/GraphFromFasta $graphFromFasta_cmd"
+        }
+        if ($SS_lib_type) {
+            $graphFromFasta_cmd .= " -strand ";
+        }
+        if ($pair_links_file) {
+            $graphFromFasta_cmd .= " -scaffolding $pair_links_file ";
+        }
+        if ($CHRYSALIS_DEBUG_WELD_ALL) {
+            $graphFromFasta_cmd .= " -debug_weld_all ";
+        }
+        
+        $graphFromFasta_cmd .= " > $graphFromFasta_outfile";
+        
+        my $checkpoint = "$graphFromFasta_outfile.ok";
+        $chrysalis_pipeliner->add_commands( new Command($graphFromFasta_cmd, $checkpoint) );
+    }
+    
+
+    my $iworm_bundles_fasta_file = "$chrysalis_output_dir/bundled_iworm_contigs.fasta";
+    { 
+        ## create iworm bundles
+        
+        
+        my $cmd = "$CHRYSALIS_DIR/CreateIwormFastaBundle -i $graphFromFasta_outfile -o $iworm_bundles_fasta_file -min $min_contig_length";
+        $chrysalis_pipeliner->add_commands( new Command($cmd, "$iworm_bundles_fasta_file.ok"));
+    
+    }
+    
+
+    my $reads_to_components_output_file = "$chrysalis_output_dir/readsToComponents.out";
+    { 
+        ## map reads to chrysalis components:
+                
+
+        my $cmd = ($BOWTIE_COMP) ? "$CHRYSALIS_DIR/ReadsToComponents.pl" : "$CHRYSALIS_DIR/ReadsToTranscripts";
+        if ("$cmd" eq "$CHRYSALIS_DIR/ReadsToTranscripts" ) {
+		if ($np > 1) {
+		    $cmd = "$mpiexec -np $np $CHRYSALIS_DIR/ReadsToTranscripts_MPI"
+		}
+        }
+
+        $cmd .= " -i $reads_file -f $iworm_bundles_fasta_file -o $reads_to_components_output_file -t $CPU -max_mem_reads $max_reads_per_loop ";
+        if ($SS_lib_type) {
+            $cmd .= " -strand ";
+        }
+        if ($min_pct_read_mapping) {
+            $cmd .= " -min_pct_read_mapping $min_pct_read_mapping ";
+        }
+        $chrysalis_pipeliner->add_commands( new Command($cmd, "$reads_to_components_output_file.ok"));
+    }
+    
+
+    my $sorted_reads_to_components_file = "$reads_to_components_output_file.sort";
+    { 
+        ## sort the read mappings:
+        
+        my $cmd = "$sort_exec -T . -S $max_memory -k 1,1n $reads_to_components_output_file > $sorted_reads_to_components_file";
+        $chrysalis_pipeliner->add_commands( new Command($cmd, "$sorted_reads_to_components_file.ok"));
+
+    }
+    
+    if (! $TRINITY_COMPLETE_FLAG) {
+        
+        $chrysalis_pipeliner->run();
+        
+        &run_recursive_trinity($sorted_reads_to_components_file);
+        
+        return ("RECURSIVE_TRINITY_COMPLETE"); # indicate to caller that we're in recursive trinity mode.
+    }
+    
+
+
+    
+    my $deBruijnGraph_outfile = "$iworm_bundles_fasta_file.deBruijn";
+
+    {
+        ## write the deBruijn graphs:
+
+        my $cmd = "$INCHWORM_DIR/FastaToDeBruijn --fasta $iworm_bundles_fasta_file -K " . ($KMER_SIZE-1) . " --graph_per_record --threads $CPU";
+        if ($SS_lib_type) {
+            $cmd .= " --SS ";
+        }
+        
+        $cmd .= " > $deBruijnGraph_outfile";
+        
+        $chrysalis_pipeliner->add_commands(new Command($cmd, "$deBruijnGraph_outfile.ok") );
+    }
+    $chrysalis_pipeliner->run();
+    
+    
+        
+    unless (-s "$chrysalis_output_dir/bundled_iworm_contigs.fasta.deBruijn") {
+        die "NON_FATAL_EXCEPTION: WARNING, no deBruijn graphs generated based on inchworm contigs: $chrysalis_output_dir/bundled_iworm_contigs.fasta.deBruijn";
+    }
+    
+    #################################################################################
+    ## partition the graphs and reads in prep for quantify graph and butterfly steps.
+    #################################################################################
+
+    
+    my $partitioning_checkpoint_file = "$chrysalis_output_dir/file_partitioning.ok";
+
+    my $cmd = "$UTILDIR/support_scripts/partition_chrysalis_graphs_n_reads.pl --deBruijns $chrysalis_output_dir/bundled_iworm_contigs.fasta.deBruijn --componentReads $chrysalis_output_dir/readsToComponents.out.sort -N 1000 -L $min_contig_length --compdir $component_directory ";
+
+    &process_cmd($cmd) unless (-e $partitioning_checkpoint_file);
+    
+    &process_cmd("touch $partitioning_checkpoint_file") unless (-e $partitioning_checkpoint_file);
+    
+    ## write the quantifygraph commands and butterfly commands
+    my $component_base_listing_file = "$chrysalis_output_dir/component_base_listing.txt";
+    if (-e $component_base_listing_file && ! -s $component_base_listing_file) {
+
+        die "NON_FATAL_EXCEPTION: WARNING, component base listing file: $component_base_listing_file exists and is empty - likely sparse data";
+        
+    }
+    
+    
+    {
+        open (my $bfly_cmds_ofh, ">$butterfly_cmds") or die $!;
+        open (my $qgraph_cmd_ofh, ">$quantify_graph_cmds") or die $!;
+
+
+        open (my $fh, $component_base_listing_file) or die $!;
+        while (<$fh>) {
+            chomp;
+            my ($component_id, $base_filename) = split(/\t/);
+            
+
+            { # quantify graph command
+                
+                my $quantify_graph_cmd = "$CHRYSALIS_DIR/QuantifyGraph -g $base_filename.graph.tmp "
+                    . " -i $base_filename.reads.tmp "
+                    . " -o $base_filename.graph.out "
+                    . " -max_reads $max_reads_per_graph "
+                    . " -k " . ($KMER_SIZE - 1);
+                
+                if ($SS_lib_type) {
+                    $quantify_graph_cmd .= " -strand ";
+                }
+                if ($NO_CLEANUP) {
+                    
+                    $quantify_graph_cmd .= " -no_cleanup ";
+                }
+                
+                print $qgraph_cmd_ofh $quantify_graph_cmd . "\n";
+                
+            }
+
+            { # butterfly command
+                
+
+                my $bfly_cmd = "java -Xmx$bflyHeapSpaceMax -Xms$bflyHeapSpaceInit ";
+        
+                if (defined($bflyGCThreads)) {
+                    $bfly_cmd .= " -XX:ParallelGCThreads=$bflyGCThreads ";
+                }
+                
+                $bfly_cmd .= " -jar $BFLY_JAR -N 100000 -L $min_contig_length -F $group_pairs_distance -C $base_filename.graph ";
+                
+                if ($bfly_opts) {
+                    $bfly_cmd .= " $bfly_opts ";
+                }
+                
+                $bfly_cmd .= " --path_reinforcement_distance=$path_reinforcement_distance ";
+                
+                if ($NO_PATH_MERGING) {
+                    $bfly_cmd .= " --no_path_merging ";
+                }
+                else {
+                    if (defined($MIN_PER_ID_SAME_PATH)) {
+                        $bfly_cmd .= " --min_per_id_same_path=$MIN_PER_ID_SAME_PATH ";
+                    }
+                    if (defined($MAX_DIFFS_SAME_PATH)) {
+                        $bfly_cmd .= " --max_diffs_same_path=$MAX_DIFFS_SAME_PATH ";
+                    }
+                    if (defined($MAX_INTERNAL_GAP_SAME_PATH)) {
+                        $bfly_cmd .= " --max_internal_gap_same_path=$MAX_INTERNAL_GAP_SAME_PATH ";
+                    }
+                }
+                
+                if ($PASAFLY_MODE) {
+                    $bfly_cmd .= " --PasaFly ";
+                }
+                elsif ($CUFFFLY_MODE) {
+                    $bfly_cmd .= " --CuffFly ";
+                }
+                
+                print $bfly_cmds_ofh $bfly_cmd . "\n";
+                
+            }
+        }
+        close $fh;
+        close $bfly_cmds_ofh;
+        close $qgraph_cmd_ofh;
+        
+    }
+     
+    # see if we need to run the quantifyGraph commands:
+    if ($NO_RUN_QUANTIFYGRAPH_FLAG) {
+
+        print "#############################################################################\n";
+        print "## Ceasing Trinity prior to execution of massively parallel operations.\n";
+        print "##\n";
+        print "## To complete Trinity, execute the following sets of commands:\n";
+        print "##\n";
+        print "## First, run the Chrysalis QuantifyGraph commands in parallel:\n";
+        print "##    $quantify_graph_cmds\n";
+        print "##\n";
+        print "## Then, execute all the Butterfly commands:\n";
+        print "##    $butterfly_cmds\n";
+        print "##\n";
+        print "## And, finally, concatenate all Butterfly assemblies into a single output file:\n";
+        print "##\n";
+        print "##     find $output_directory/ -name \"\*allProbPaths.fasta\" -exec cat {} + > $output_directory/Trinity.fasta\n";
+        print "##\n";
+        print "##############################################################################\n";
+        print "\n\n";
+        
+        exit(0);
+    }
+    else {
+
+        
+        my $quantify_graph_cmds_finished = &create_full_path("$chrysalis_output_dir/quantifyGraph_commands.run.finished");
+        if (! -e $quantify_graph_cmds_finished) {
+            ## run it
+            
+            print STDERR "---------------------------------------------------\n"
+                       . "----------- Chrysalis: QuantifyGraph --------------\n"
+                       . "-- (Integrate mapped reads into de Bruijn graph) --\n"
+                       . "---------------------------------------------------\n\n";
+            
+            
+            if ($grid_conf_file) {
+                my @quantify_graph_cmds = `cat $quantify_graph_cmds`;
+                chomp @quantify_graph_cmds;
+                
+                my $grid_runner = new HTC::GridRunner($grid_conf_file, "chrysalis/chrysalis_quantify_graph_on_grid.cacheSuccess");
+                my $ret = $grid_runner->run_on_grid(@quantify_graph_cmds);
+                if ($ret) {
+                    die "Error, not all Chrysalis quantify_graph commands completed successfully. Cannot continue.";
+                }
+            }
+            else {
+                
+                my $cmd = "$PARAFLY -c $quantify_graph_cmds -CPU $CPU -failed_cmds failed_quantify_graph_commands.$$.txt -v -shuffle ";
+                &process_cmd($cmd);
+            }
+            
+            # write checkpoint
+            &process_cmd("touch $quantify_graph_cmds_finished");
+        }
+                
+        
+        return($butterfly_cmds);
+    
+    }
+
+   
+
+}
+
+
+####
+sub run_recursive_trinity {
+    my ($reads_sorted_by_component_file) = @_;
+
+    my $target_files_per_dir = 100;
+    my $file_bins_per_dir = 10000;
+
+    my $component_counter = 0;
+    
+    my $prev_component_id = -1;
+    my $ofh = undef;
+    
+    my $read_filenames = "partitioned_reads.files.list";
+    open (my $ofh_read_filenames, ">$read_filenames") or die $!;
+
+    my $currdir = cwd();
+
+    open (my $fh, $reads_sorted_by_component_file) or die $!;
+    while (<$fh>) {
+	chomp;
+	my ($component_id, $read_name, $pct, $read_seq) = split(/\t/);
+	
+	if ($component_id != $prev_component_id) {
+	    
+	    $prev_component_id = $component_id;
+	    close $ofh if $ofh;
+	    my $base_dir = "read_partitions/Fb_" . (int($component_counter/$file_bins_per_dir)) . "/CBin_" . (int($component_counter/$target_files_per_dir));
+	    if (! -d $base_dir) {
+		&process_cmd("mkdir -p $base_dir");
+	    }
+	    my $readsfile = "$currdir/$base_dir/c$component_id.trinity.reads.fa";
+	    
+	    open ($ofh, ">$readsfile") or die "Error, cannot write to file $readsfile";
+	    print $ofh_read_filenames "$readsfile\n";
+	}
+	print $ofh "$read_name\n$read_seq\n";
+    }
+    close $ofh if $ofh;
+    close $ofh_read_filenames;
+
+    
+    &write_trinity_partitioned_cmds($read_filenames, "recursive_trinity.cmds");
+    
+    print STDERR "Done prepping partitioned cmds.";
+    
+    &run_trinity_partitioned_cmds("recursive_trinity.cmds");
+    
+    my $cmd = "find read_partitions/  -name '*inity.fasta'  | $UTILDIR/support_scripts/partitioned_trinity_aggregator.pl TR > Trinity.fasta.tmp";
+    &process_cmd($cmd);
+    
+    return;
+    
+}
+
+
+
+
+
+
+####
+sub run_inchworm {
+    my ($inchworm_outfile, $reads, $strand_specific_flag, $kmer_method) = @_;
+    
+    
+    ## get count of number of reads to be assembled.
+    my $read_count_file = "$reads.read_count";
+    if (! -s $read_count_file) {
+        my $count_of_reads = `wc -l < $reads`;chomp($count_of_reads); #AP: grep is  expensive; one test took 2h...!
+        $count_of_reads/=2;  # assume fasta; two lines per read
+        $pm_read_count = $count_of_reads;
+        open (my $ofh, ">$read_count_file") or die $!;
+        print $ofh $count_of_reads."\n";
+        close $ofh;
+    }
+    
+
+    my $inchworm_cmd;
+    
+    my @tmp_files; # to be deleted after successful inchworm run.
+
+    
+    #####################################################
+    ## Using Jellyfish kmer method
+    #####################################################
+
+    if (! $FORCE_INCHWORM_KMER_METHOD) {
+
+        my $jelly_kmer_fa_file = "jellyfish.kmers.fa";
+        my $jelly_finished_checkpoint_file = "jellyfish.$min_kmer_cov.finished";
+        unless (-e $jelly_finished_checkpoint_file) {
+            
+
+            print STDERR "-------------------------------------------\n"
+                       . "----------- Jellyfish  --------------------\n"
+                       . "-- (building a k-mer catalog from reads) --\n"
+                       . "-------------------------------------------\n\n";
+
+            
+            my $read_file_size = -s $reads;
+            
+            my $jelly_hash_size = int( ($jellyfish_ram - $read_file_size)/7); # decided upon by Rick Westerman
+            
+            
+            if ($jelly_hash_size < 100e6) {
+                $jelly_hash_size = 100e6; # seems reasonable for a min hash size as 100M
+            }
+
+            ## for testing
+            if ($JELLY_S) {
+                $jelly_hash_size = $JELLY_S;
+            }
+            
+            my $cmd = "$JELLYFISH_DIR/bin/jellyfish count -t $CPU -m $KMER_SIZE -s $jelly_hash_size ";
+            
+            unless ($SS_lib_type) {
+                ## count both strands
+                $cmd .= " --canonical ";
+            }
+            
+            $cmd .= " $reads";
+            
+            &process_cmd($cmd);
+            
+            
+            if (-s $jelly_kmer_fa_file) {
+                unlink($jelly_kmer_fa_file) or die "Error, cannot unlink $jelly_kmer_fa_file";
+            }
+
+            my $jelly_db = "mer_counts.jf";
+            
+            $cmd = "$JELLYFISH_DIR/bin/jellyfish dump -L $min_kmer_cov $jelly_db > $jelly_kmer_fa_file";
+
+            &process_cmd($cmd);
+        
+            
+            ## write a histogram of the kmer counts.
+            $cmd = "$JELLYFISH_DIR/bin/jellyfish histo -t $CPU -o $jelly_kmer_fa_file.histo $jelly_db";
+            &process_cmd($cmd);
+            
+
+            unlink($jelly_db);
+            
+            ## if got this far, consider jellyfish done.
+            &process_cmd("touch $jelly_finished_checkpoint_file");
+
+
+            if ($NO_RUN_INCHWORM_FLAG) {
+                print STDERR "WARNING:  --no_run_inchworm parameter in effect.  Stopping here prior to running inchworm.\n";
+                exit(0);
+            }
+
+                    
+        }
+        
+        
+        $inchworm_cmd = "$INCHWORM_DIR/inchworm --kmers $jelly_kmer_fa_file --run_inchworm -K $KMER_SIZE -L $MIN_IWORM_LEN --monitor 1 $iworm_opts ";
+
+        # hold on to the jellyfish file - we might use it for other applications.
+        #push (@tmp_files, $jelly_finished_checkpoint_file, $jelly_kmer_fa_file) unless $NO_CLEANUP;
+        
+    }
+    else {
+        
+        ######################################################
+        ## Using Inchworm kmer method (original, slow method)
+        ######################################################
+                
+        $inchworm_cmd = "$INCHWORM_DIR/inchworm --reads $reads --run_inchworm -K $KMER_SIZE -L $MIN_IWORM_LEN --monitor 1 ";
+        if ($min_kmer_cov > 1) {
+            $inchworm_cmd .= " --minKmerCount $min_kmer_cov ";
+        }
+    }
+    
+
+    ## finish constructing the inchworm command to execute
+    
+    unless ($strand_specific_flag) {
+        $inchworm_cmd .= " --DS ";
+    }
+
+    unless ($NO_CLEANUP) {
+        $inchworm_cmd .= " --keep_tmp_files ";
+    }
+    
+
+    my $num_threads = ($inchworm_cpu) ? $inchworm_cpu : $CPU;
+    $inchworm_cmd .= " --num_threads $num_threads ";
+    
+    if ($PARALLEL_IWORM_FLAG) {
+        $inchworm_cmd .= " --PARALLEL_IWORM ";
+    }
+    
+    if ($INCHWORM_CUSTOM_PARAMS) {
+        $inchworm_cmd .= " $INCHWORM_CUSTOM_PARAMS ";
+    }
+    
+    #$inchworm_cmd .= " 2>inchworm.log > $inchworm_outfile.tmp";
+    $inchworm_cmd .= " > $inchworm_outfile.tmp"; 
+    
+    print STDERR "----------------------------------------------\n"
+               . "--------------- Inchworm ---------------------\n"
+               . "-- (Linear contig construction from k-mers) --\n"
+               . "----------------------------------------------\n\n";
+
+    
+    eval {
+                
+        &process_cmd($inchworm_cmd);;
+    };
+    
+    if ($@) {
+        
+        print STDERR "$@\n";
+        print "** The inchworm process failed.";
+        print STDERR "\n\nIf it indicates bad_alloc(), then Inchworm ran out of memory.  You'll need to either reduce the size of your data set or run Trinity on a server with more memory available.\n\n";
+        exit(1);
+    }
+    
+    rename("$inchworm_outfile.tmp", $inchworm_outfile) or die "Error, cannot rename $inchworm_outfile.tmp to $inchworm_outfile"; # now we know for sure it's done.
+    
+        
+    return;
+    
+}
+
+####
+sub prep_seqs {
+    my ($initial_files_ref, $seqType, $file_prefix, $SS_lib_type) = @_;
+    my @initial_files = @$initial_files_ref;
+    return if -e "$file_prefix.fa";
+   	for (my $i=0;$i<scalar(@initial_files);$i++){
+        my $f = $initial_files[$i];
+        if ($f=~/\.gz$/){
+            my $new = $f;
+            $new=~s/\.gz$//;
+            unlink($new);
+            &process_cmd("gunzip -c $f > $new");
+            $initial_files[$i] = $new;
+        }elsif ($f=~/\.bz2$/){
+            my $new = $f;
+            $new=~s/\.bz2$//;
+            unlink($new);
+            &process_cmd("bunzip2 -dkc $f > $new");
+            $initial_files[$i] = $new;
+        }
+   	}
+   	
+   	my $initial_file_str = join(" ",@initial_files);
+    if ($seqType eq "fq") {
+        # make fasta
+        foreach my $f (@initial_files){
+            my $perlcmd = "$UTILDIR/support_scripts/fastQ_to_fastA.pl -I $f ";
+            my $fastool_cmd = "$FASTOOL_DIR/fastool";
+            if ($SS_lib_type && $SS_lib_type eq "R") {
+                $perlcmd .= " --rev ";
+                $fastool_cmd .= " --rev ";
+            }
+            $fastool_cmd .= " --illumina-trinity --to-fasta $f >> $file_prefix.fa 2> $f.readcount ";
+            $perlcmd .= " >> $file_prefix.fa 2> $f.readcount ";  
+            my $cmd = ($USE_FASTOOL) ? $fastool_cmd : $perlcmd;
+            &process_cmd($cmd);
+        }
+    }
+    elsif ($seqType eq "fa") {
+        if (scalar(@initial_files) == 1 && (!$SS_lib_type || $SS_lib_type ne "R")) {
+            ## just symlink it here:
+            my $cmd = "ln -s $initial_file_str $file_prefix.fa";
+            &process_cmd($cmd);
+        }elsif(scalar(@initial_files) > 1 && (!$SS_lib_type || $SS_lib_type ne "R")){
+        	my $cmd = "cat $initial_file_str > $file_prefix.fa";
+        	&process_cmd($cmd);
+        }else {
+            #if ($SS_lib_type && $SS_lib_type eq "R") {
+            foreach my $f (@initial_files){
+                my $cmd = "$UTILDIR/support_scripts/revcomp_fasta.pl $f >> $file_prefix.fa";
+                &process_cmd($cmd);
+          	}
+        }
+    }
+    elsif (($seqType eq "cfa") | ($seqType eq "cfq")) {
+        confess "cfa, cfq not supported";
+    }
+    return \@initial_files;
+}
+
+
+
+###
+sub create_full_path {
+    my ($file, $verify_exists) = @_;
+    if (ref($file) eq "ARRAY"){
+        for (my $i=0;$i<scalar(@$file);$i++){
+            my $filename = $file->[$i];
+            if ($verify_exists && ! -e $filename) {
+                confess "Error, cannot locate file: $filename";
+            }
+            $file->[$i] = &create_full_path($filename);
+        }
+        return @$file;
+    }
+    else {
+        if ($verify_exists && ! -e $file) {
+            confess "Error, cannot locate file: $file";
+        }
+        my $cwd = cwd();
+        if ($file !~ m|^/|) { # must be a full path
+            $file = $cwd . "/$file";
+        }
+        return($file);
+    }
+}
+
+
+
+####
+sub process_cmd {
+    my ($cmd) = @_;
+
+    print &mytime."CMD: $cmd\n";
+    
+    my $start_time = time();
+    my $ret = system("bash", "-c", $cmd);
+    my $end_time = time();
+
+    if ($ret) {
+        die "Error, cmd: $cmd died with ret $ret";
+    }
+    
+    print "CMD finished (" . ($end_time - $start_time) . " seconds)\n";    
+
+    return;
+}
+
+
+####
+sub run_jaccard_clip_left_right {
+    my ($inchworm_file, $left_files_aref, $right_files_aref, $seqType, $SS_lib_type) = @_;
+
+    my $output_file = "$inchworm_file.clipped.fa";
+
+    if (-s $output_file) {
+        print STDERR "###### WARNING: $output_file already exists, skipping the jaccard-clip step, using already existing output: $output_file\n";
+        return($output_file);
+    }
+    
+    my $cmd = "$UTILDIR/support_scripts/inchworm_transcript_splitter.pl --iworm $inchworm_file "
+        . " --left " . join(",", @$left_files_aref) . " --right " . join(",", @$right_files_aref) . "  --seqType $seqType --CPU $CPU ";
+    
+    if ($SS_lib_type) {
+        $cmd .= " --SS_lib_type $SS_lib_type ";
+    }
+    
+    &process_cmd($cmd);
+    
+    unless (-s $output_file) {
+        croak "Error, jaccard clipping didn't produce the expected output file: $output_file";
+    }
+
+    return($output_file);
+}
+
+
+
+####
+sub run_jaccard_clip_single_but_really_paired {
+    my ($inchworm_file, $single_files_aref, $seqType, $SS_lib_type) = @_;
+
+    my $output_file = "$inchworm_file.clipped.fa";
+
+    if (-s $output_file) {
+        print STDERR "###### WARNING: $output_file already exists, skipping the jaccard-clip step, using already existing output: $output_file\n";
+        return($output_file);
+    }
+    
+    my $cmd = "$UTILDIR/support_scripts/inchworm_transcript_splitter.pl --iworm $inchworm_file "
+        . " --single_but_really_paired " . join(",", @$single_files_aref) . " --seqType $seqType --CPU $CPU ";
+    
+    if ($SS_lib_type) {
+        $cmd .= " --SS_lib_type $SS_lib_type ";
+    }
+    
+    &process_cmd($cmd);
+
+
+
+    unless (-s $output_file) {
+        croak "Error, jaccard clipping didn't produce the expected output file: $output_file";
+    }
+
+    return($output_file);
+}
+
+####
+sub test_java_failure_capture {
+    
+    print "#######################################\n";
+    print "Running Java Tests\n";
+    
+    my $java_prog = `which java`;
+    unless ($java_prog) {
+        die "Error, cannot find 'java'.  Please be sure it is available within your \${PATH} setting and then try again.";
+    }
+    
+
+    my $cmd = "java -Xmx64m -jar $UTILDIR/support_scripts/ExitTester.jar 0";
+    eval {
+        &process_cmd($cmd);
+    };
+    if ($@) {
+        print STDERR "Error encountered in testing for running of a simple java application. ";
+        print "$@\n\n";
+        print STDERR "Please check your java configuration.\n";
+        exit(1);
+        
+    }
+    
+    $cmd = "java -Xmx64m -jar $UTILDIR/support_scripts/ExitTester.jar 1";
+    eval {
+        &process_cmd($cmd);
+    };
+
+    if ($@) {
+        print "-we properly captured the java failure status, as needed.  Looking good.\n";
+    }
+    else {
+        print STDERR "-we are unable to properly capture java failure status.  Please be sure that java (or any wrapper around java that's being used) can properly capture and propagate failure status before proceeding.\n";
+        exit(1);
+    }
+
+    print "Java tests succeeded.\n";
+    print "###################################\n\n";
+    
+    return;
+}
+
+
+####
+sub extract_reads_with_iworm_kmers {
+    my ($trinity_target_fa, $inchworm_file, $min_percent_read_containing_kmers, $SS_lib_type) = @_;
+
+    my $extracted_reads_file = "$trinity_target_fa." . $min_percent_read_containing_kmers . "pcnt.iworm_extracted";
+
+    my $cmd = "$INCHWORM_DIR/pull_reads_with_kmers "
+        . "--target $inchworm_file "
+        . "--reads $trinity_target_fa "
+        . "--min_percent_read_containing_kmers $min_percent_read_containing_kmers ";
+    
+    unless ($SS_lib_type) {
+        $cmd .= " --DS ";
+    }
+    
+    $cmd .= " > $extracted_reads_file ";
+    
+    if (-s $extracted_reads_file) {
+        print STDERR "-warning, iworm kmer-extracted reads file already exists: $extracted_reads_file.  Re-using it.\n";
+    }
+    else {
+
+        &process_cmd($cmd);
+    }
+
+    return($extracted_reads_file);
+}
+
+
+sub try_unlimit_stacksize {
+
+    # from Ryan Thompson
+    eval "use BSD::Resource; setrlimit(RLIMIT_STACK, RLIM_INFINITY, RLIM_INFINITY); ";
+    
+    if( $@ ) {
+        warn <<"EOF";
+        
+            $@
+
+            Unable to set unlimited stack size. Please install the BSD::Resource
+            Perl module to allow this script to set the stack size, or set it
+            yourself in your shell before running Trinity (ignore this warning if
+            you have set the stack limit in your shell). See the following URL for
+            more information:
+
+            http://trinityrnaseq.sourceforge.net/trinity_faq.html#ques_E
+
+EOF
+;
+    }
+    else {
+        print "Successfully set unlimited stack size.\n";
+        print "###################################\n\n";
+    }
+    return;;
+}
+
+sub mytime() {
+  my @mabbr = qw(January February March April May June July August September October November December);
+  my @wabbr = qw(Sunday Monday Tuesday Wednesday Thursday Friday Saturday);
+  my $sec = localtime->sec() < 10 ? '0' . localtime->sec() : localtime->sec();
+  my $min = localtime->min() < 10 ? '0' . localtime->min() : localtime->min();
+  my $hour = localtime->hour() < 10 ? '0' . localtime->hour() : localtime->hour();
+  my $wday = $wabbr[localtime->wday];
+  my $mday = localtime->mday;
+  my $mon = $mabbr[localtime->mon];
+  my $year = localtime->year() + 1900;
+  return "$wday, $mon $mday, $year: $hour:$min:$sec\t";
+}
+
+
+
+####
+sub show_lit_citation {
+    
+    print "\n\n* Trinity:\n"
+        . "Full-length transcriptome assembly from RNA-Seq data without a reference genome.\n"
+        . "Grabherr MG, Haas BJ, Yassour M, Levin JZ, Thompson DA, Amit I, Adiconis X, Fan L,\n"
+        . "Raychowdhury R, Zeng Q, Chen Z, Mauceli E, Hacohen N, Gnirke A, Rhind N, di Palma F,\n"
+        . "Birren BW, Nusbaum C, Lindblad-Toh K, Friedman N, Regev A.\n"
+        . "Nature Biotechnology 29, 644–652 (2011)\n"
+        . "Paper: http://www.nature.com/nbt/journal/v29/n7/full/nbt.1883.html\n"
+        . "Code:  http://trinityrnaseq.sf.net\n\n\n";
+
+=included_in_trinity
+    
+-----------------------------------------------------------------------------------------
+----- Tools Below are Used Within Trinity Accordingly -----------------------------------
+-----------------------------------------------------------------------------------------
+
+* Fastool (for fast fastQ-to-fastA conversion)
+Francesco Strozzi
+Code: https://github.com/fstrozzi/Fastool
+
+* Jellyfish (for fast K-mer counting)
+A fast, lock-free approach for efficient parallel counting of occurrences of k-mers.
+Guillaume Marcais and Carl Kingsford.
+Bioinformatics (2011) 27(6): 764-770
+Paper: http://bioinformatics.oxfordjournals.org/content/27/6/764.long\n
+Code: http://www.cbcb.umd.edu/software/jellyfish
+
+* Trimmomatic
+Lohse M, Bolger AM, Nagel A, Fernie AR, Lunn JE, Stitt M, Usadel B. RobiNA: a 
+user-friendly, integrated software solution for RNA-Seq-based transcriptomics.
+Nucleic Acids Res. 2012 Jul;40(Web Server issue):W622-7.
+Code: http://www.usadellab.org/cms/?page=trimmomatic
+
+
+=cut
+    
+    return;
+}
+
+# clean-up after normal termination, exit(), or die()
+END {
+    &collectl_stop();
+}
+
+
+sub perfmon_start {
+    open (FILE, ">", "$output_directory/$pm_logfile") or die "Error, cannot write to: $output_directory/$pm_logfile";
+    print FILE "Statistics:\n";
+    print FILE "===========\n";
+    print FILE     "Trinity Version:      $VERSION\n";
+    my $tempp="";
+    $tempp=`ldd $INCHWORM_DIR/inchworm 2>/dev/null | grep "libgomp"`;
+    if  ($tempp eq "") {
+	print FILE "Compiler:             Intel\n";
+    } else {
+	print FILE "Compiler:             GCC\n";
+    }
+    print FILE "Trinity Parameters:  $pm_trinity_arguments\n";
+    $pm_trinity_startstring = `date`;
+    $pm_trinity_start = `date +%s`;
+    close (FILE);
+}
+
+sub perfmon_end {
+    $pm_trinity_endstring = `date`;
+    $pm_trinity_end = `date +%s`;
+    my $timestamp = `date +%s`;
+    if ( -e "$output_directory/$pm_logfile" ) {
+        open (FILE, '>>', "$output_directory/$pm_logfile") or die;
+        if ($PAIRED_MODE) {
+            print FILE "Paired mode\n";
+            print FILE " Input data\n";
+            if (@left_files && @right_files) {
+                print FILE "  Left.fasta    $pm_left_fa_size MByte\n";
+                print FILE "  Right.fasta   $pm_right_fa_size MByte\n";
+            } else {
+                print FILE "  Single.fasta  $pm_single_fa_size MByte\n";
+            }
+        } else {
+            print FILE "Unpaired read mode\n";
+            print FILE " Input data\n";
+            print FILE "  Single.fasta  $pm_single_fa_size MByte\n";
+        }
+    }
+    $pm_inchworm_kmers = `cat $output_directory/inchworm.kmer_count`;
+    print FILE "  Number of unique KMERs: $pm_inchworm_kmers";
+    print FILE "  Number of reads:        $pm_read_count";
+    print FILE " Output data\n";
+    my $pm_temp = -s "$output_directory/Trinity.fasta" || 0;
+    $pm_temp = $pm_temp / 1024 / 1024;
+    my $pm_trinity_fa_size = sprintf('%.0f', $pm_temp);
+    print FILE "  Trinity.fasta $pm_trinity_fa_size MByte\n\n";
+    print FILE "Runtime\n";
+    print FILE "=======\n";
+    print FILE "Start:       $pm_trinity_startstring";
+    print FILE "End:         $pm_trinity_endstring";
+    my $pm_trinity_time = $pm_trinity_end - $pm_trinity_start;
+    print FILE "Trinity   $pm_trinity_time seconds\n";
+    my $pm_inchworm_time = $pm_inchworm_end - $pm_inchworm_start;
+    print FILE "  Inchworm   $pm_inchworm_time seconds\n";
+    my $pm_chrysalis_time = $pm_chrysalis_end - $pm_chrysalis_start;
+    print FILE "  Chrysalis  $pm_chrysalis_time seconds\n";
+    my $pm_butterfly_time = $pm_butterfly_end - $pm_butterfly_start;
+    print FILE "  Butterfly  $pm_butterfly_time seconds\n";
+    my $pm_rest_time = $pm_trinity_time - $pm_butterfly_time - $pm_chrysalis_time - $pm_inchworm_time;
+    print FILE "  Rest       $pm_rest_time seconds\n";
+    close (FILE);
+}
+
+sub collectl_start {
+    # install signal handler to stop collectl on interrupt
+    $SIG{INT} = sub { print "Trinity interrupted\n"; &collectl_stop(); exit(1); };
+
+    if ($run_with_collectl){
+        warn "STARTING COLLECTL\n";
+        $collectl_output_directory = "$start_dir/collectl";
+        `rm -rf $collectl_output_directory `;
+        $collectl_output_directory = &create_full_path($collectl_output_directory, 0);
+        unless (-d $collectl_output_directory) {
+            mkdir $collectl_output_directory or die "Error, cannot mkdir $collectl_output_directory";
+        }
+        my $collectl_userid = qx(id --user --real);
+	chomp($collectl_userid);
+        my $cmd = "cd $collectl_output_directory && exec ${COLLECTL_DIR}/collectl $collectl_param --procfilt u$collectl_userid -f $collectl_output_directory/y";
+	## fork a child to run collectl
+	$collectl_pid = fork();
+	if (not defined $collectl_pid) {	
+	    warn "FORK FAILED - NO COLLECTL PROCESS STARTED\n";
+	} elsif ($collectl_pid == 0) {
+	    warn "I'M THE CHILD RUNNING TRINITY\n";
+	    exec($cmd);
+	    warn "COLLECTL FINISHED BEVORE KILL WAS CALLED\n";
+	    exit(0);
+	} else {
+    	warn "I'M THE PARENT, COLLECTL_PID=$collectl_pid\n";
+	}
+    }
+}
+
+# finish collectl monitoring and create collectl plots
+sub collectl_stop {
+    if ($run_with_collectl && $collectl_pid>0) {
+        warn "TERMINATING COLLECTL, PID = $collectl_pid\n";
+	# try to be nice here as a hard kill will result in broken/unusable raw.gz file
+	system("sync");
+	kill("INT", $collectl_pid);
+	kill("TERM", $collectl_pid);
+	waitpid($collectl_pid,0);
+        chdir($collectl_output_directory) or return;
+        system("python $COLLECTL_DIR/make_data_files.py");
+        system("python $COLLECTL_DIR/timetable.py");
+        $collectl_titlename = "${VERSION} ${CPU} @{left_files}@{single_files}";
+        system("python $COLLECTL_DIR/plot.py \"$collectl_titlename\" ${CPU}");
+    }
+}
+
+####
+sub run_trimmomatic_PE {
+    my ($left_fq_file, $right_fq_file, $trimmomatic_params) = @_;
+
+    my $trimmed_left_file_base = basename($left_fq_file);
+    my $trimmed_right_file_base = basename($right_fq_file);
+
+    my ($trimmed_left_fq, $trimmed_right_fq) = ("$trimmed_left_file_base.PwU.qtrim.fq", "$trimmed_right_file_base.PwU.qtrim.fq");
+    my $checkpoint = "trimmomatic.ok";
+    
+    if (&files_exist($trimmed_left_fq, $trimmed_right_fq, $checkpoint)) {
+
+        print STDERR "###############################################################################\n";
+        print STDERR "#### Trimmomatic  process was previously completed. Skipping it and using existing qual-trimmed files: $trimmed_left_fq, $trimmed_right_fq\n";
+        print STDERR "###############################################################################\n";
+
+        return($trimmed_left_fq, $trimmed_right_fq);
+    }
+        
+
+    my $cmd = "java -jar $TRIMMOMATIC PE -threads $CPU -phred33 "
+            . " $left_fq_file $right_fq_file "
+            . " $trimmed_left_file_base.P.qtrim $trimmed_left_file_base.U.qtrim "
+            . " $trimmed_right_file_base.P.qtrim $trimmed_right_file_base.U.qtrim "
+            . " $trimmomatic_params ";
+    
+    &process_cmd($cmd);
+    
+    if ($NORMALIZE_READS_FLAG) {
+        ## can't use the orphans:
+        &process_cmd("cp $trimmed_left_file_base.P.qtrim $trimmed_left_fq");
+        &process_cmd("cp $trimmed_right_file_base.P.qtrim $trimmed_right_fq");
+    }
+    else {
+        
+        ## append the orphans so we can still use them in assembly
+        &process_cmd("cat $trimmed_left_file_base.P.qtrim $trimmed_left_file_base.U.qtrim > $trimmed_left_fq");
+        &process_cmd("cat $trimmed_right_file_base.P.qtrim $trimmed_right_file_base.U.qtrim > $trimmed_right_fq");
+    }
+    
+    &process_cmd("touch $checkpoint");
+    
+    # compress the trimmomatic direct outputs to conserve space:
+    &process_cmd("gzip $trimmed_left_file_base.P.qtrim $trimmed_left_file_base.U.qtrim $trimmed_right_file_base.P.qtrim $trimmed_right_file_base.U.qtrim &");
+
+    return($trimmed_left_fq, $trimmed_right_fq);
+    
+    
+}
+
+####
+sub run_trimmomatic_SE {
+    my ($single_fq, $trimmomatic_params) = @_;
+
+    
+    my $trimmed_fq = basename($single_fq) . ".qtrim.fq";
+
+    my $checkpoint = "trimmomatic.ok";
+    
+    if (&files_exist($trimmed_fq, $checkpoint)) {
+
+        print STDERR "###############################################################################\n";
+        print STDERR "#### Trimmomatic  process was previously completed. Skipping it and using existing qual-trimmed file: $trimmed_fq\n";
+        print STDERR "###############################################################################\n";
+
+        return($trimmed_fq);
+    }
+    
+    my $cmd = "java -jar $TRIMMOMATIC SE -threads $CPU -phred33 "
+        . " $single_fq "
+        . " $trimmed_fq "
+        . " $trimmomatic_params ";
+    
+    &process_cmd($cmd);
+
+    &process_cmd("touch $checkpoint");
+    
+    return($trimmed_fq);
+}
+
+####
+sub run_normalization {
+    my ($max_read_coverage, @read_files) = @_;
+
+    if ($NORMALIZE_BY_READ_SET) {
+        
+        my ($reads_left_or_single_aref, $right_reads_aref) = @read_files;
+        
+        my @normalized_left_or_single;
+        my @normalized_right;
+        
+        my $counter = 0;
+        while (@$reads_left_or_single_aref) {
+            my $left_or_single_reads = shift @$reads_left_or_single_aref;
+            my @reads_to_process = ([$left_or_single_reads]);
+            if (ref $right_reads_aref) {
+                my $right_reads = shift @$right_reads_aref;
+                push (@reads_to_process, [$right_reads]);
+            }
+            $counter++;
+            my $norm_out_dir = cwd() . "/norm_for_read_set_$counter";
+            my @norm_read_files = &normalize($norm_out_dir, $max_read_coverage, @reads_to_process);
+            push (@normalized_left_or_single, $norm_read_files[0]);
+            if (scalar @norm_read_files == 2) {
+                # PE norm
+                push (@normalized_right, $norm_read_files[1]);
+            }
+            
+        }
+        
+        ## now merge them in one final round:
+        my $norm_merged_dir = cwd() . "/insilico_read_normalization_altogether";
+        my @reads = (\@normalized_left_or_single);
+        if (@normalized_right) {
+            push (@reads, \@normalized_right);
+        }
+        my @ret_files = &normalize($norm_merged_dir, $max_read_coverage, @reads);
+        return(@ret_files);
+        
+    }
+    else {
+        ## all at once.
+        my $normalize_outdir = cwd() . "/insilico_read_normalization";    
+        
+        my @ret_files = &normalize($normalize_outdir, $max_read_coverage, @read_files);
+        return(@ret_files);
+        
+    }
+
+
+}
+
+####
+sub normalize {
+    my ($normalize_outdir, $max_read_coverage, @read_files) = @_;
+
+    print STDERR "---------------------------------------------------------------\n"
+               . "------------ In silico Read Normalization ---------------------\n"
+               . "-- (Removing Excess Reads Beyond $max_read_coverage Coverage --\n"
+               . "-- $normalize_outdir --\n"
+               . "---------------------------------------------------------------\n\n";
+    
+    
+
+    my $cmd = "$UTILDIR/insilico_read_normalization.pl --seqType $seqType --JM $max_memory "
+        . " --max_cov $max_read_coverage --CPU $CPU --output $normalize_outdir";
+    
+    if ($SS_lib_type) {
+        $cmd .= " --SS_lib_type $SS_lib_type ";
+    }
+
+    if ($NO_CLEANUP) {
+        $cmd .= " --no_cleanup ";
+    }
+    
+    #@read_files = &add_fifo_for_gzip(@read_files);
+
+
+    my @ret_files;    
+    if (scalar @read_files == 2) {
+        $cmd .= " --left " . join(",", @{$read_files[0]}) . " --right " . join(",", @{$read_files[1]})
+            .  " --pairs_together --PARALLEL_STATS  ";
+        @ret_files = ("$normalize_outdir/left.norm.$seqType", "$normalize_outdir/right.norm.$seqType");
+        
+    }
+    elsif (scalar @read_files == 1) {
+        $cmd .= " --single " . join(",", @{$read_files[0]}); 
+        @ret_files = ("$normalize_outdir/single.norm.$seqType");
+    }
+    else {
+        confess "how did we end up with " . scalar(@read_files) . " read files?  @read_files\nNot sure what to do.... ";
+    }
+    
+    my $checkpoint = "$normalize_outdir/normalization.ok";
+    if (&files_exist(@ret_files, $checkpoint)) {
+        
+        print STDERR "###############################################################################\n";
+        print STDERR "#### Normalization process was previously completed. Skipping it and using existing normalized files: @ret_files\n";
+        print STDERR "###############################################################################\n";
+        
+    }
+    else {
+        # do the normalization
+
+        &process_cmd($cmd);
+        
+        &process_cmd("touch $checkpoint");
+    }
+    
+
+    return(@ret_files);
+}
+
+
+####
+sub files_exist {
+    my @files = @_;
+
+    foreach my $file (@files) {
+        if (! -e $file) {
+            return(0); # not exists
+        }
+    }
+
+    return(1); # all exist
+}
+
+####
+sub run_genome_guided_Trinity {
+    ## partition the reads according to coverage piles:
+    
+    my $cmd = "$UTILDIR/support_scripts/prep_rnaseq_alignments_for_genome_assisted_assembly.pl --coord_sorted_SAM $genome_guided_bam -I $genome_guided_max_intron --sort_buffer $max_memory --CPU $CPU ";
+    
+    if ($SS_lib_type) {
+        $cmd .= " --SS_lib_type $SS_lib_type ";
+    }
+    &process_cmd($cmd) unless (-e "partitions.ok");
+
+    &process_cmd("touch partitions.ok") unless (-e "partitions.ok");
+    
+    ## generate list of the read files:
+    $cmd = "find Dir_\* -name '*reads' > read_files.list";
+    
+    &process_cmd($cmd) unless (-s "read_files.list" && -e "read_files.list.ok");
+    &process_cmd("touch read_files.list.ok") unless (-e "read_files.list.ok"); # checkpoint
+
+    &write_trinity_partitioned_cmds("read_files.list", "trinity_GG.cmds");
+    
+    
+    if ($genome_guided_just_prep_flag) {
+        print STDERR "######  Just prepping data for genome-guided assembly. Stopping here due to --genome_guided_just_prep invocation. #####\n\n";
+        exit(0);
+    }
+    
+    &run_trinity_partitioned_cmds("trinity_GG.cmds");
+    
+        
+    ## pull together the final outputs:
+    $cmd = "find Dir_*  -name '*inity.fasta'  | $UTILDIR/support_scripts/partitioned_trinity_aggregator.pl GG > Trinity-GG.fasta.tmp";
+    &process_cmd($cmd);
+
+    rename("Trinity-GG.fasta.tmp", "Trinity-GG.fasta"); # now that it's done.
+    
+    print STDERR "\n\nFinished. See Trinity-GG.fasta for reconstructed transcripts\n\n";
+        
+    return;
+}
+
+####
+sub run_trinity_partitioned_cmds {
+    my ($cmds_file) = @_;
+    
+    ## execute the commands:
+    if ($grid_conf_file) {
+        my @cmds = `cat $cmds_file`;
+        chomp @cmds;
+        
+        my $grid_runner = new HTC::GridRunner($grid_conf_file, "$cmds_file.htc_cache_success");
+        my $ret = $grid_runner->run_on_grid(@cmds);
+        if ($ret) {
+            die "Error, not all $cmds_file commands completed successfully.  Cannot continue.";
+        }
+        
+    }
+    else {
+        my $cmd = "$PARAFLY -c $cmds_file -CPU $CPU -v ";
+        &process_cmd($cmd);
+    }
+
+    return;
+}
+
+
+####
+sub write_trinity_partitioned_cmds {
+    my ($reads_list_file, $cmds_file) = @_;
+    
+    ##################################################
+    ## write Trinity assembly commands for partitions:
+    ##################################################
+
+    my $cmd = "$UTILDIR/support_scripts/GG_write_trinity_cmds.pl --reads_list_file $reads_list_file --CPU $grid_node_CPU --max_memory $grid_node_max_memory ";
+    if ($run_as_paired_flag) {
+        $cmd .= " --run_as_paired ";
+    }
+    if ($SS_lib_type) {
+        $cmd .= " --SS_lib_type F "; # all sequences already reoriented
+    }
+    
+    $cmd .= " --full_cleanup --seqType fa --trinity_complete";
+    
+    my @potential_args = @ORIG_ARGS;
+
+    while (@potential_args) {
+        my $arg = shift @potential_args;
+        
+        # single value options that aren't needed:
+        if ($arg =~ /run_as_paired|normalize_by_read_set|trimmomatic|normalize_reads|prep|recurs|clean/) {
+            next;
+        }
+        
+        # value specified options that aren't needed
+        if ($arg =~ /seqType|left|right|single|genome|SS_lib_type|GMAP|quality_trimming|output|normalize_max_read_cov|grid_conf|max_mem|grid/
+            ||
+            # more precise identification of parameter
+            $arg =~ /^(--CPU)$/
+            
+            ) {
+            # skipping these, already represented by opt configuration above.
+            my $val = shift @potential_args;
+            next;
+        }
+        
+        if ($arg eq "--bfly_opts") {
+            # wrap val in quotes
+            my $val = shift @potential_args;
+            $cmd .= "$arg \"$val\" ";
+        }
+        else {
+            ## just passing it on.
+            $cmd .= " $arg ";
+        }
+    }
+    
+    $cmd .= " > $cmds_file";
+    
+    &process_cmd($cmd) unless (-e "$cmds_file.ok");
+    &process_cmd("touch $cmds_file.ok") unless (-e "$cmds_file.ok");
+
+    
+    return;
+}
+
+
+sub add_zcat_gz {
+    my (@in_files) = @_;
+
+    my @files;
+
+    foreach my $file (@in_files) {
+        
+        if ($file =~ /\.gz$/) {
+            
+            $file = "<(zcat $file)";
+            
+        }
+        push (@files, $file);
+    }
+    
+    return(@files);
+}
+
+
+####
+sub add_fifo_for_gzip {
+    my @files = @_;
+
+    foreach my $file (@files) {
+        if (ref $file eq "ARRAY") {
+            my @f = &add_fifo_for_gzip(@{$file});
+            $file = [@f];
+        }
+        elsif ($file =~ /\.gz$/) {
+            $file = "<(zcat $file)";
+        }
+    }
+    
+    return(@files);
+
+}
+
+sub version_check {
+    my $content = get("http://rt-trinity.uits.indiana.edu/flask/version/" . $VERSION . "?timestamp=" . time);
+    if (defined $content) {
+        if ($content ne 'yes') {
+            print "Trinity version " . $content . " is available";
+        }
+    }
+    else {
+        print "Version check failed";
+    }
+}

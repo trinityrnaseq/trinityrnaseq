@@ -1,0 +1,122 @@
+##################################################################################################################################
+##########################                                                                ########################################
+##########################     Trinity PBS job submission with multi part dependencies    ########################################
+##########################     User modifiyable input file                                ########################################
+##########################                                                                ########################################
+##################################################################################################################################
+### 	Author: Josh Bowden, CSIRO IM&T, Alexie Papanicolaou CSIRO CES
+###     Email: alexie@butterflybase.org
+###     Version 1.0
+###
+###	Configuration file for script to split the Trinity workflow into multiple stages so as to efficiently request 
+###	and use appropriate resources (walltime and number of cores) on a computer cluster / supercomputer.
+###
+###	User must set all the variables in this file to appropriate values 
+###	and then run the trinity_pbs.sh script with this file as input as shown below:
+###
+###	Command line usage:
+###			To start (or re-start) an analysis:
+###				>trinity_pbs.sh TRINITY.CONFIG.template
+###			To stop previously started PBS jobs on the queue:
+###				>trinity_pbs.sh --rm OUTPUTDIR 
+###			Where:
+###				TRINITY.CONFIG.template = user specific job details (i.e. the current file)
+###				OUTPUTDIR   = is path to output data directory (set below)
+###
+###	If any stage fails, the jobs may be resubmitted and only the scripts that have not completed 
+###	will be resubmitted to the batch system. Either the scripts can be re-run (by using trinity_pbs.sh) 
+###	with original (or new) inputs from the current file (changing the variables below)
+###	or the original scripts created by trinity_pbs.sh can be re-run by finding them in the output directory.
+###
+###	Each stage and each array job will have a PBS output file sent to the output directory when the job finishes.
+###	This means there will be many output files from the PBS system when the array job runs (from part 4 and 5 mostly). 
+###	If any part fails, errors will be specified in these output files.
+###
+### N.B. The trinity_pbs.sh file must have a number of system specific variables set by a system administrator
+###
+##################################################################################################################################
+
+# USER must edit these:
+###### Set an email to which job progress and status will be sent to.
+UEMAIL=
+###### Set a valid account (if available), otherwise leave blank.
+ACCOUNT="#PBS -A sf-CSIRO"
+###### Select a value for JOBPRFIX that is not longer than 7 characters. NO spaces or other non-alphanumeric characters
+JOBPREFIX=
+
+###### Set output data directory (OUTPUTDIR)
+###### OUTPUTDIR is where PBS scripts will be written and also Trinity results will be stored
+###### This area requires a large amount of space (possibly 100's of GB) and a high file count
+###### ($WORKDIR is a standard area on some systems, however users should check that it is valid on their machine)
+OUTPUTDIR="$WORKDIR"/trinityrnaseq/"$JOBPREFIX"
+
+###### Set input data directory. This has to be explicitly set as it is used in other internal scripts.
+###### Make sure you include the final forward slash. Defaults to current directory
+DATADIRECTORY=$PWD/
+###### Set input filenames, you can use wildcards if you embed the filename is 'single quotes'
+FILENAMELEFT='*_left.fasta' # change this
+FILENAMERIGHT='*_right.fasta' #change this
+FILENAMESINGLE=single.fasta # change this or set it to empty
+SEQTYPE=fa # change this to fa (FASTA) fq (FASTQ) or cfa/cfq (FASTA or FASTQ colour space SOLiD ABI)
+
+
+# User may opt to change these:
+# we set --max_reads_per_graph to 1million because very high I/O is needed otherwise. It is unlikely that a transcript needs more than 1 million reads to be assembled....
+FILENAMEINPUT=" --seqType "$SEQTYPE" --left "$DATADIRECTORY""$FILENAMELEFT" --right "$DATADIRECTORY""$FILENAMERIGHT" --max_reads_per_graph 1000000 "
+### STANDARD_JOB_DETAILS sets analysis specific input to Trinity.pl 
+### N.B. do not use --CPU or JM flag as this is automatically appended
+STANDARD_JOB_DETAILS="Trinity.pl "$FILENAMEINPUT" --output "$OUTPUTDIR""
+
+
+# This is where you specify resource limits. We provide some defaults values
+# Ultimately settings depends on your data size and complexity
+# Steps that go beyond their walltime will not complete. Edit these values and resubmit
+### Stage P1: Time and resources required for Inchworm stage
+### Only use at maximum, half the available CPUs on a node 
+# - Inchworm will not efficiently use any more than 4 CPUs and you will have to take longer for resources to be assigned
+WALLTIME_P1="2:00:00"
+MEM_P1="20gb" # will use it for --JM
+NCPU_P1="4"
+PBSNODETYPE_P1="any"  # ask you system administrator what Nodetypes exists
+
+### Stage P2: Time and resources required for Chrysalis stage
+### Starts with Bowtie alignment and post-processing of alignment file
+### All CPUs presenct can be used for the Chrysalis parts. 
+#They may take a while to be provisioned, so the less request, possibly the faster the jobs turnaround.
+# For one step (the parallel sort) it needs as much memory as specified in P1. Less memory, means more I/O for sorting
+# increase for more lanes of data: 3 lanes-> 60gb of RAM and 24h of time will do it.
+# The bowtie step will take considerable amount of time with more data
+WALLTIME_P2="12:00:00"
+MEM_P2="20gb" # will use it for the parallel sort of the SAM after alignment
+NCPU_P2="6"
+PBSNODETYPE_P2="any"
+
+### Stage P3: This is a backup stage for Chrysalis - only runs if time ran out in P2 above.
+### This will need about 1 day per lane
+WALLTIME_P3="18:00:00"
+MEM_P3="8gb"
+NCPU_P3="6"
+PBSNODETYPE_P3="medium"
+
+### Stage P4: QuantifyGraph graph runs in many parallel parts 
+### Tasks that fail will reamain in the OUTPUTDIR/chrysalis/quantifyGraph_commands.XYZ files (XYZ is a number)
+### The remaining tasks can be run by running the job submission command "trinity_pbs.sh <config_file>" again.
+NUMPERARRAYITEM_P4=5000
+WALLTIME_P4="00:30:00"
+MEM_P4="4gb"
+NCPU_P4="1"
+PBSNODETYPE_P4="medium"
+
+### Stage P5: Butterfly options. Some butterfly jobs can take exceedingly long. Users may need to restart trinity_pbs multiple times to complete. 
+### Tasks that fail will reamain in the OUTPUTDIR/chrysalis/butterfly_commands.adj.XYZ files (XYZ is a number)
+### Often there will be a few tasks that take a lot longer than others so multiple submissions to the cluster may be required.
+### The remaining tasks can be run by running the job submission command "trinity_pbs.sh <config_file>" again.
+### Running the long running tasks seperately may also be a good option.
+NUMPERARRAYITEM_P5=5000
+WALLTIME_P5="01:00:00"
+MEM_P5="10gb"
+NCPU_P5="1"
+PBSNODETYPE_P5="medium"
+
+
+

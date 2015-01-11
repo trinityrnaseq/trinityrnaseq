@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="create_run_jar" name="Create Runnable Jar for Project TrinityButterflySVN with Jar-in-Jar Loader">
+    <!--this file was created by Eclipse Runnable JAR Export Wizard-->
+    <!--ANT 1.7 is required                                        -->
+    <target name="create_run_jar">
+        <jar destfile="/Users/bhaas/ECLIPSE/workspace/TrinityButterflySVN/Butterfly.jar">
+            <manifest>
+                <attribute name="Main-Class" value="org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader"/>
+                <attribute name="Rsrc-Main-Class" value="TransAssembly_allProbPaths"/>
+                <attribute name="Class-Path" value="."/>
+                <attribute name="Rsrc-Class-Path" value="./ collections-generic-4.01.jar Jaligner.jar java-getopt-1.0.13.jar jung-api-2.0.1.jar jung-algorithms-2.0.1.jar jung-graph-impl-2.0.1.jar"/>
+            </manifest>
+            <zipfileset src="jar-in-jar-loader.zip"/>
+            <fileset dir="/Users/bhaas/ECLIPSE/workspace/TrinityButterflySVN/bin"/>
+            <zipfileset dir="/Users/bhaas/ECLIPSE/workspace/TrinityButterflySVN/src/lib" includes="collections-generic-4.01.jar"/>
+            <zipfileset dir="/Users/bhaas/ECLIPSE/workspace/TrinityButterflySVN/src/lib" includes="Jaligner.jar"/>
+            <zipfileset dir="/Users/bhaas/ECLIPSE/workspace/TrinityButterflySVN/src/lib" includes="java-getopt-1.0.13.jar"/>
+            <zipfileset dir="/Users/bhaas/ECLIPSE/workspace/TrinityButterflySVN/src/lib" includes="jung-api-2.0.1.jar"/>
+            <zipfileset dir="/Users/bhaas/ECLIPSE/workspace/TrinityButterflySVN/src/lib" includes="jung-algorithms-2.0.1.jar"/>
+            <zipfileset dir="/Users/bhaas/ECLIPSE/workspace/TrinityButterflySVN/src/lib" includes="jung-graph-impl-2.0.1.jar"/>
+        </jar>
+    </target>
+</project>

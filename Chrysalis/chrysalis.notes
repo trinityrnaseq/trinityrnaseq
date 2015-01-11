@@ -1,0 +1,30 @@
+there are two parts for the graph, one is finalgraph.out: for each component, you have the identifier
+
+Component 144
+
+followed by the list of nodes:
+
+477     476     850     TATCTTTGTTTAGATTAATTCTGC        0
+478     477     576     ATCTTTGTTTAGATTAATTCTGCG        0
+479     478     291     TCTTTGTTTAGATTAATTCTGCGC        0
+480     479     235     CTTTGTTTAGATTAATTCTGCGCT        0
+481     480     190     TTTGTTTAGATTAATTCTGCGCTA        0
+
+listing, in each line:
+- the node ID
+- the incoming (left) node ID
+- the edge weight, i.e. the 25-mer count going into this node (in the example above, node 478 lists the number of 25-mers TATCTTTGTTTAGATTAATTCTGCG  since the incoming node, 477, starts with "A").
+- Last column, ignore (a debug flag)
+
+Nodes can list the same 24-mer (up to 4 times). The second part is finalgraph.out.reads, which basically lists all the reads that contribute at least one edge to the component:
+
+>SRR039231.29_FC42DB6AAXX:2:1:2:1297/1  0       324     50      16522           AAATTTTTGAGAAGTTCTCATTTACAAAATAAATTGCGACCTCGATGTTGGATTAAGAACAACTTATAAAGAAAA
+
+- read name
+- first k-mer position used in component in read coordinates
+- first node id in graph corresponding to first used k-mer read
+- last k-mer position used in component in read coordinates (always less than read length - k)
+- last node id in graph corresponding to last used k-mer in read
+- read sequence
+
+The transformation from inchworm to finalgraph is lossless, modulo breaking and joining

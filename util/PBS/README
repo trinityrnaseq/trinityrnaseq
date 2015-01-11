@@ -1,0 +1,58 @@
+################################################################################################################
+########################     README file                                                ########################
+########################     Trinity PBS job submission with multi part dependencies    ########################
+########################     Author: Josh Bowden, Alexie Papanicolaou, CSIRO            ########################
+########################     Email: alexie@butterflybase.org                            ########################
+########################     Version 1.0                                                ########################
+################################################################################################################
+
+DESCRIPTION: BASH shell scripts for submission of Trinity jobs to clusters that use PBS Torque or PBS Pro.
+The set of scripts stages the parts of the Trinity workflow into 6 stages:
+	1/ Inchworm
+	2/ Chrysalis::GraphFromFasta and Chrysalis::ReadsToTranscripts if walltime permits
+	3/ Chrysalis::ReadsToTranscripts
+	4/ Chrysalis::QuantifyGraph
+	5/ Butterfly
+	6/ Gather together resulting transcripts into "Trinity.fasta" file
+	
+Each stage is submitted as a PBS job, with dependencies i.e. the following stage will only execute after successfull completion of the stage before.
+Due to their parallel nature, stages 4 and 5 are submitted as 'array jobs', with each job made up of a user defined number of subtasks.
+
+ADMINISTRATION setup instructions:
+	trinity_pbs script install instructions:
+		1. Copy all trinity_pbs.* files into a directory (we will call it "TRINITY_PBS_DIR") in a user accessible, read only, area.
+		2. Add TRINITY_PBS_DIR to the PATH i.e. export or set PATH=TRINITY_PBS_DIR:$PATH
+		3. Make sure trinity_pbs.sh is executable (chmod 755 trinity_pbs.sh)
+		In the file trinity_pbs.sh, do the following:
+		4. Change the "TRINITYPATH" variable to point to the trinity.pl installation directory.
+		5. Set MEMDIRIN to the name of a node-local filesystem so a network drive is not needed for final parallel stages
+		6. Set MODTRINITY so that the trinity executables will be available - load approprite modules and set PATH.
+		7. Set PBSTYPE to --pbspro or --pbs, dependent on the system present.
+		That should be all that is needed from an admin perspective. These scripts have been tested on PBS Torque 3.0.6 and PBS Pro 11.0.2.
+		There may be PBS system specific changes due to PBS version incompatabilities.
+		8. Maybe make any system-specific changes to the user-specific text README below or TRINITY.CONFIG.template before distributing
+	
+USER setup instructions:
+	1. Users should make a copy of TRINITY.CONFIG.template (possibly a copy for each job they want to run) and then modify variables in it 
+	to suit the system the job is being run on (number of CPUs, amount of memory) and the expected runtime of the Trinity process
+	 (which is a function of the datset size). Further instructions are provided within the TRINITY.CONFIG.template file.
+	2. While it is running, you can use qsub -u $USER to see your jobs
+	3. We provide a script, pbs_check.pl, that allows you to see the progress of your jobs; just give the job id
+	4. If any step fails, then some jobs that depended on a /successful/ completion of that step will be stuck in a HOLD (H) status
+	5. The script trinity_kill.pl can be used to kill all running, queued or held jobs by passing it the output data directory (OUTPUTDIR).
+	6. When you re-submit a job with trinity_pbs.sh <config file>, trinity_kill.pl will automatically run and stop and jobs in the directory specified by
+	 your config file
+           (we take no responsibility if you delete the chrysalis directory and Trinity.fasta does not have all the data - e.g.  because the PBS crashed)
+
+
+USER recommendations
+	* Walltimes depend on how much data you have and also on your local HPC environment well (e.g. speed of I/O - hard disks and CPU configuration). 
+	  In the beginning you may want to err towards higher walltimes, ask colleagues using the same machines. The default values worked well for us.
+        * For quantify graph/Butterfly (steps 4/5), we start with a particular walltime (say 2h). Often not all jobs complete. Because it is a batch of many commands,
+          the best approach is to simply re-launch trinity_pbs and it will continue to process the rest of the commands. Check the logfile output from the PBS
+          to see if the job fails because one particular quantifygraph or Butterfly job takes longer than the given walltime (in that case: increase the walltime, run the command
+          manually or decrease the number of reads used - -max_reads for quantifygraph). It is possible that it is a very long gene, a bacterial contaminant or
+          some other oddity that is delaying your assembly.
+        * Do not overload the I/O of the system (steps 4/5) by starting a lot of jobs (i.e. multiple trinity assemblies). In that case, increase the 
+          number of commands run within each step 4/5 batch (NUMPERARRAYITEM variable in the CONFIG)
+	* NB: Always count how many sequences you get at the end (Trinity.fasta) to make sure that the script has completed as you expected. 

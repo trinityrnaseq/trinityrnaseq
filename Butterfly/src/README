@@ -1,0 +1,12 @@
+To build the java source, simply type:
+
+  ant
+
+in this directory.
+
+After building, you can test the software by running the example:
+
+   ./runExample.sh
+
+
+

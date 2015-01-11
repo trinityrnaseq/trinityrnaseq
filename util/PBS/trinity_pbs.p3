@@ -1,0 +1,38 @@
+##################################################################################################################################
+##########################                                                                ########################################
+##########################     Trinity PBS job submission with multi part dependencies    ########################################
+##########################                                                                ########################################
+##################################################################################################################################
+### Author: Josh Bowden, Alexie Papanicolaou, CSIRO
+### Version 1.0
+### Chrysalis P3 script (only run if Chrysalis P3 has not completed)
+##################################################################################################################################
+
+if [[ $MEM_P3 =~ ^([0-9]+) ]]; then
+        let MEM_BASE="${BASH_REMATCH[1]}"
+        let ALIGN_MEM=$MEM_BASE-5
+        if [ $ALIGN_MEM -le 0 ];then
+                let ALIGN_MEM=$MEM_BASE-2
+                if [ $ALIGN_MEM -le 0 ];then
+			echo "Memory requested for MEM_P3 is too low. Ask for at least 5 gigabytes"
+			exit 1
+                fi
+        fi
+        ALIGN_MEM="$ALIGN_MEM"G
+else
+        echo No memory given: "$MEM_P3"
+        exit 1
+fi
+
+JOBSTRING3=""$HASHBANG"
+"$NODESCPUS"
+ cd "$OUTPUTDIR"
+ ulimit -s unlimited
+ export OMP_NUM_THREADS="$NCPU_P3"
+ export KMP_AFFINITY=scatter
+ # this runs Chrysalis::ReadsToTranscripts if it has not completed in the previous step
+ "$STANDARD_JOB_DETAILS" --JM "$ALIGN_MEM" --CPU "$NCPU_P3" --no_run_quantifygraph
+"
+
+# Write the JOBSTRING3 to a file for later execution
+echo "${JOBSTRING3}" | cat -> ""$JOBNAME3".sh"

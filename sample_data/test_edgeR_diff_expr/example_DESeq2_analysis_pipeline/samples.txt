@@ -1,0 +1,9 @@
+condA	A1
+condA	A2
+condA	A3
+condA	A4
+condA	A5
+condB	B1
+condB	B2
+condB	B3
+condB	B4

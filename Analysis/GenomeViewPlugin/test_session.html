@@ -1,0 +1,63 @@
+Content-Type: text/html; charset=ISO-8859-1
+
+<!DOCTYPE html
+	PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+	 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en-US" xml:lang="en-US">
+<head>
+<title>RNA-Seq Sample Report</title>
+<link rel="stylesheet" type="text/css" href="CSS/common.css" />
+<script src="http://www.java.com/js/deployJava.js" type="text/javascript"></script>
+<script src="http://genomeview.org/start/genomeview.js" type="text/javascript"></script>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+</head>
+<body>
+<script>  <!-- needed for genomeview communication -->
+ instanceID = 'ALL'
+</script>
+
+
+       <script type="text/javascript"> 
+           var instanceID="ALL";
+    var gv_url= "http://www.broadinstitute.org/~bhaas/Trinity.fasta";
+    var gv_config= "http://www.broadinstitute.org/~bhaas/gv_config.txt";
+    var gv_location= null;
+    var gv_extra    = "http://www.broadinstitute.org/~bhaas/best_candidates.gff3"
+ +" http://www.broadinstitute.org/~bhaas/bowtie_out.coordSorted.sam.plus.bam";
+              
+   // var wsUrl = "http://genomeview.org/start/launch.jnlp? --config " + gv_config + " --url " + gv_url + " " + gv_extra;
+    wsUrl = "http://genomeview.org/start/launch.jnlp? --config http://www.broadinstitute.org/~bhaas/gv_config.txt --session http://www.broadinstitute.org/~bhaas/session.php";
+
+    function launchGV () {
+                   
+                  // launch as applet, but tied to existing page
+                      //startGV(gv_url,gv_location,gv_config,gv_extra,500,500);
+                   
+
+                  // launch using webstart, remains active across multiple pages.
+                      jQuery('#frame1').attr("src", wsUrl);
+
+              }
+
+
+         </script>
+
+<iframe id="frame1" style="display:none"></iframe>
+<div id='toolbar' style="border:1px solid black; margin:auto; width:60%; background-color:#004242">
+    <button id='GenomeViewBttn'>GenomeView</button>
+</div>
+
+<script>
+jQuery(function() { 
+    jQuery('#GenomeViewBttn').click( function() { launchGV(); });
+});
+</script>
+<ul>Example links:
+<li><a href='javascript:void(0);' onClick="javascript:positionGV('comp65_c1_seq6:1:100');" >comp65_c1_seq6</a>
+<li><a href='javascript:void(0);' onClick="javascript:positionGV('comp28_c0_seq1:1:100');" >comp28_c0_seq1</a>
+<li><a href='javascript:void(0);' onClick="javascript:positionGV('comp33_c0_seq1:1:100');" >comp33_c0_seq1</a>
+</ul>
+
+</body>
+</html>

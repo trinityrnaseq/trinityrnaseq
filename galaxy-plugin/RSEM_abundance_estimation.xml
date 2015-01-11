@@ -1,0 +1,72 @@
+<tool id="RSEM_abundance_estimation" name="RSEM_abundance_estimation" version="0.0.1">
+
+    <description>run RSEM to estimate transcript abundances</description>
+    <requirements>
+        <requirement type="package">trinity</requirement>
+    </requirements>
+    <command interpreter="python">
+
+        trinityToolWrapper.py util/RSEM_util/run_RSEM.pl  --transcripts $transcripts --name_sorted_bam $name_sorted_bam
+
+        ## Inputs.
+        #if str($read_type.paired_or_single) == "single":
+            #if  int($read_type.fragment_length) > 0:
+                --fragment_length $read_type.fragment_length
+            #end if
+        #end if
+
+                
+		#if str($target_type) == "Other":
+			--no_group_by_component
+		#end if         
+
+
+    </command>
+    <inputs>
+		<param format="fasta" name="transcripts" type="data" label="transcripts_fasta" help="Fasta sequences for which reads are aligned."  />
+
+		 <param name="target_type" type="select" label="transcript target type" help="">
+			<option value="trinity_mode">Trinity</option>
+			<option value="other">Other</option>
+		</param>
+
+
+        <conditional name="read_type">
+		    <param name="paired_or_single" type="select" label="Paired or Single-end data?">
+                <option value="paired">Paired</option>
+                <option value="single">Single</option>
+            </param>
+            <when value="paired">
+            </when>
+            <when value="single">
+                <param name="fragment_length" type="integer" value="0" label="fragment_length" help="Mean fragment length. Note, for de novo assemblies, leave as zero (treated as unset)"/>
+            </when>
+        </conditional>
+
+		<param format="bam" name="name_sorted_bam" type="data" label="name_sorted_bam_file" help=""/>
+
+
+    </inputs>
+    <outputs>
+        <data format="text" name="transcript_counts" label="${tool.name} on ${on_string}: Isoform Counts" from_work_dir="RSEM.isoforms.results"/>
+		<data format="text" name="gene_counts" label="${tool.name} on ${on_string}: Gene counts" from_work_dir="RSEM.genes.results"/>
+
+
+	</outputs>
+    <tests>
+
+
+		<test>
+			<param name="target" value="trinity/Trinity.fasta" />
+			<param name="aligner" value="bowtie" />
+			<param name="paired_or_single" value="single" />
+			<param name="library_type" value="None" />
+			<param name="input" value="trinity/reads.left.fq" />
+        </test>
+	
+
+    </tests>
+    <help>
+        .. _Trinity: http://trinityrnaseq.sourceforge.net
+    </help>
+</tool>

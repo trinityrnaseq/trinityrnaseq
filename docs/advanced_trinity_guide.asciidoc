@@ -1,0 +1,204 @@
+= Advanced Guide to Trinity =
+
+link:index.html[Trinity-home]
+
+Welcome to the advanced guide to trinity.  You are probably reading this because you want to better understand what all those zillions of output files and output directories correspond to, and how you can attempt to troubleshoot certain processes.  We aim to provide much of that information here.
+
+Below, the individual Trinity processes (Inchworm, Chrysalis, and then Butterfly) are described, including their expected output files and data formats.  In the case of Butterfly, additional options are presented for being able to explore transcript graphs and tracking the progress of butterfly as it works its way through these graphs.
+
+Trinity was written as a collective effort by three individuals (Inchworm by Brian Haas, Chrysalis by Manfred Grabherr, and Butterfly by Moran Yassour). In addition to each tool being engineered separately, they each use different code-bases, Inchworm and Chrysalis were written in C++, and Butterfly was written in Java.  They interact only through well-defined file formats for intermediate products used as inputs by downstream processes.
+
+The Trinity assembly algorithm involves the following steps, each of which are described in more detail below, with respect to inputs and outputs generated at each stage.
+
+- <<FASTA_to_FASTQ, Generating fasta files from Illumina Fastq files.>>
+- <<Kmer_catalog, Computing a K-mer abundance catalog>>
+- <<Inchworm_assembly, Inchworm assembly of contigs via greedy K-mer extension>>
+- <<Chrysalis_clustering, Chrysalis clustering of Inchworm contigs based on shared subsequences (k-1mers) and read support.>>
+- <<Chrysalis_graphs, Chrysalis construction of deBruijn graphs>>
+- <<Chrysalis_read_mapping, Chrysalis mapping of reads to Inchworm contig bundles>>
+- <<Chrysalis_graph_reads, Chrysalis incorporation of reads into deBruijn graphs>>
+- <<Butterfly_reconstruction, Butterfly reconstruction of transcripts including alternatively spliced isoforms.>>
+
+[[FASTA_to_FASTQ]]
+== FASTQ to FASTA conversion ==
+Trinity uses Francesco Strozzi's https://github.com/fstrozzi/Fastool[Fastool] software to efficiently convert FASTQ-formatted reads to FASTA format.  If the reads are specified as generated from strand-specific RNA-sequencing, then those reads (left or right fragments) indicated to match the reverse-complement of the transcript's sense strand are first reverse complemented before written to the FASTA file.  Hence, all reads in the resulting 'trinity_out_dir/both.fa' file should be in the sense orientation in the case of strand-specific RNA-Seq processing. 
+
+[[Kmer_catalog]]
+== Kmer Abundance Catalog Construction ==
+Originally, extracting the kmers from the reads and computing their abundance values was a function of Inchworm.  Since the first release of Trinity, we've become aware of faster kmer abundance catalog-generating tools, and have incorporated these as alternatives to Inchworm for this step.  
+
+- Jellyfish: A fast, lock-free approach for efficient parallel counting of occurrences of k-mers. Guillaume Marcais and Carl Kingsford. http://bioinformatics.oxfordjournals.org/content/27/6/764.long[Bioinformatics (2011) 27(6): 764-770],  Code: http://www.cbcb.umd.edu/software/jellyfish[http://www.cbcb.umd.edu/software/jellyfish].
+
+[NOTE]
+As of the 2012-06-08 Trinity release, Jellyfish is used exclusively for building the kmer catalog.
+
+In the context of strand-specific RNA-Seq data, only the sense-strand kmers are cataloged. Otherwise, both strands are analyed, and forward and reverse-complement kmers are considered equivalent.
+
+[[Inchworm_assembly]]
+== Inchworm assembly of contigs via greedy K-mer extension ==
+
+Inchworm reads the kmer abundance catalog and stores the pair(kmer, count) in memory in the form of a hash table.  The key-value pairs are the k-mers as keys and the abundance of the corresponding k-mer as the value.  The k-mer is stored as a 2-bit encoded unsigned integer, and with 64-bit architectures, allows for k-mers up to 32-mers to be stored.  We find that 25-mers work very well for both highly and lowly expressed transcripts, and so we leverage 25-mers as a fixed option with Trinity.  If you should run Inchworm separately, you can use any length k-mer up to 32-mers, but only the 25-mers are currently compatible with the Trinity package.
+
+When using strand-specific RNA-Seq data, inchworm is run in strand-specific mode, and retains the original k-mer orientation throughout.  Resulting inchworm contigs are then provided in the sense-orientation. 
+
+The Inchworm-assembled contigs are reported as the file 'trinity_out_dir/inchworm.K25.L48.fa', with the name of the file indicating that a k-mer of 25 was used, and contigs at least 48 long were reported.  If strand-specific rna-seq data was not used, the filename will include 'DS' to indicate double-stranded.  The fasta sequence accession for each contig contains information that is used by Chrysalis in the next step.  For example, the following header for an Inchworm fasta assembly:
+
+  >a1;142 K: 25 length: 3697
+  GGAGCTGGAGGCCCCCAGGCAACTACACCGTCCACGTA....
+
+indicates that the sequence entry 'a1;142' has an average k-mer abundance value of 142.  This value is a proxy for transcript expression.
+
+Inchworm does a very good job at reconstructing full-length transcripts from RNA-Seq data, but since it leverages only unique k-mers for contig construction, it can only report the parts of alternatively spliced isoforms that are unique.  Subsequent Trinity steps reconstruct the full-length alternatively spliced transcripts.
+
+Since Inchworm puts all kmers into memory, it is a memory-intensive step, and is currently perhaps THE memory-limiting step of Trinity.  In the case of hundreds of millions of RNA-Seq reads, you can lower memory consumption by setting a minimum kmer threshold abundance, such as 2 (the default is 1 -- so all kmers). Error-containing kmers will be greatly enriched within the low-abundance kmer counts and can be excluded with minimal loss is transcript reconstruction sensitivity. Set 'Trinity --min_kmer_cov 2' to reduce memory requirements with large read sets.
+
+[[Chrysalis_clustering]]
+== Chrysalis clustering of inchworm contigs based on shared subsequences (k-1mers) and read support ==
+
+Inchworm contigs are generated by the greedy extension of kmers according to abundance values.  No two inchworm contigs, by definition, can share a k-mer.  Hence, alternatively spliced isoforms and paralogs that share sequences in common cannot be fully represented by inchworm contigs.  However, such related transcripts will contain (k-1)mers in common, and given common k-1mers as seeds, Chrysalis can determine if there are reads in the original RNA-Seq data that further support junctions between inchworm contigs.  The 'GraphFromFasta' utility of Chrysalis performs pairwise comparisons among the inchworm contigs, and determines the number of reads that support junctions. Junction support requires a (k-1)mer in common and half a k-mer on each flank of the junction to exist within the reads.  Full transitive closure (single-linkage clustering) of inchworm contigs based on satisfied junction support defines the inchworm bundles.
+
+Trinity parameters that influence inchworm contig clustering include:
+
+ #  --min_glue <int>               :min number of reads needed to glue two inchworm contigs
+ #                                  together. (default: 2) 
+ #  --min_iso_ratio <float>        :min fraction of average kmer coverage between two iworm contigs
+ #                                  required for gluing.  (default: 0.05)
+ #  --glue_factor <float>          :fraction of max (iworm pair coverage) for read glue support (default: 0.05)
+
+The bundled inchworm contigs are written as 'trinity_out_dir/chrysalis/bundled.fasta'.  The inchworm contig sequences in a single bundle are described as a concatenated string with each contig delimited by an 'X' character.
+
+Each bundle of sequences corresponds to an individual Chrysalis 'component'.  The Chrysalis component definitions are written to 'trinity_out_dir/chrysalis/GraphFromIwormFasta.out', and looks like so:
+
+ COMPONENT 0     3
+ >Component_0 9 0 [iworm>a1;142_K:_25_length:_3697]
+ GGAGCTGGAGGCCCCCAGGCAACTACACCGTCCACGTACCCAGAGGGGCTGGGCCCTCCCACCAGAGACCACGCCCTGGT
+ GTGCCTTAGGGGCCCTGGTTTGTTAGTCTCTGAGTGTGCAGTTGCTGCACATGGGGCCCTGGCGCTTGCTGCACCAACTT
+ CCTGTTGGGCCCGTGGTCCTTGGAGGCATGCAGTTCAGCAGACAGTGACTCAGCCATCCACCCAACATGCGGAACGTGTC
+  ... many more seq lines
+ GTTTTTTGTTTGTTTTTTTTTAAACGAGCGTGGCTCCTCGCTAACTGCACCCCACCAGGCCGACAGCAAACGCCTCCAGC
+ TTCCCGACAGACTCAGACCAAGGTGCGGCCCCGTATTTATGGAATGGCAAATAAAACCCGAGCCCTTTGGTCTCCACGTT
+ TCTGATCTCTCCTTTCC
+ >Component_0 9 24 [iworm>a25;13_K:_25_length:_85]
+ AGGCTCCCCCGGGATGATCTACAGTACTCGTTATGGGAGTCCCAAAAGACAGCTCCAGTTTTACAGGAATCTGGGCAAAT
+ CTGGC
+ >Component_0 9 29 [iworm>a30;8_K:_25_length:_49]
+ TCAACCTGTTCGATACGGCGGAGGGCTACGCTGCTGGAAAAGCTGAAGT
+
+ 
+
+The header line indicates that (COMPONENT 0) is being described and that it contains 3 inchworm contig entries. 
+Each inchworm contig that exists as part of that component is then described.
+
+Each component-specific bundle of inchworm contigs is written as a separate file for subsequent parallel processing:
+
+     ex.  chrysalis/RawComps.0/comp0.iworm_bundle
+
+[[Chrysalis_graphs]]
+== Chrysalis construction of deBruijn graphs ==
+
+Chrysalis constructs a deBruijn graph from each of the compX.iworm_bundle files using the 'FastaToDeBruijn' utility, generating files:
+
+     ex. chrysalis/Component_bins/Cbin0/c.graph.tmp  :de Bruijn graph based on Inchworm contigs only
+
+with format like so:
+
+  Component 0
+  1       -1      1       GGAGCTGGAGGCCCCCAGGCAACT        1
+  2       1       1       GAGCTGGAGGCCCCCAGGCAACTA        1
+  3       2       1       AGCTGGAGGCCCCCAGGCAACTAC        1
+  4       3       1       GCTGGAGGCCCCCAGGCAACTACA        1
+  5       4       1       CTGGAGGCCCCCAGGCAACTACAC        1
+  6       5       1       TGGAGGCCCCCAGGCAACTACACC        1
+  ...
+
+  and column headings:
+  id     prev     1       kmer                            1
+
+(ignore the 1 columns for now, since they're just placeholders).
+
+Node identifier -1 is a start node with no k-mer sequence.
+
+In the case of strand-specific data, the deBruijn graph is constructed in a strand-specific way.  For non-strand-specific data, a non-redundant deBruijn graph is presented, which can represent transcripts in either (or both, including antisense) orientation.
+
+
+[[Chrysalis_read_mapping]]
+== Chrysalis mapping of reads to Inchworm contig bundles ==
+
+The Chrysalis 'ReadsToTranscripts' utility maps each of the original RNA-Seq reads to the inchworm bundle containing the largest number of kmers in common.  'ReadsToTranscripts' reads the 'trinity_out_dir/both.fa' reads fasta file and the 'trinity_out_dir/chrysalis/bundled.fasta' file, streaming the 'Trinity --max_reads_per_loop' reads at a time and writing to component-specific read files:
+
+   ex.  trinity_out_dir/chrysalis/Component_bins/Cbin0/c0.reads.tmp
+
+[[Chrysalis_graph_reads]]
+== Chrysalis incorporation of reads into deBruijn graphs ==
+
+The Chrysalis 'QuantifyGraph' utility incorporates the component-mapped reads into the context of the deBruijn graph, and in doing so, weights the kmer edges by the read support.  Files generated include:
+
+  ex.  chrysalis/Component_bins/Cbin0/c2.graph.out :the de Bruijn graph with edge weights incorporating the mapped reads
+       chrysalis/Component_bins/Cbin0/c2.graph.reads :the read sequences and anchor points within the above graph
+
+The format of the '.graph.out' file is like so:
+
+ Component 2
+ 1       -1      0       CGGCGTGTGACGCAGTCAGGCCTC        0
+ 2       1       2       GGCGTGTGACGCAGTCAGGCCTCT        0
+ 3       2       3       GCGTGTGACGCAGTCAGGCCTCTG        0
+ 4       3       3       CGTGTGACGCAGTCAGGCCTCTGC        0
+ 5       4       3       GTGTGACGCAGTCAGGCCTCTGCG        0
+ 6       5       4       TGTGACGCAGTCAGGCCTCTGCGC        0
+ 7       6       4       GTGACGCAGTCAGGCCTCTGCGCG        0
+ 8       7       4       TGACGCAGTCAGGCCTCTGCGCGC        0
+ 9       8       4       GACGCAGTCAGGCCTCTGCGCGCT        0
+ 10      9       4       ACGCAGTCAGGCCTCTGCGCGCTG        0
+ 11      10      4       CGCAGTCAGGCCTCTGCGCGCTGC        0
+ 12      11      6       GCAGTCAGGCCTCTGCGCGCTGCG        0
+ ...
+
+
+
+The format of the '.graph.reads' file is like so:
+
+  Component 2
+  >61DFRAAXX100204:2:25:3750:2732/2       0       1833    51      1884            GGGAAGGCACTTTCCGGATGATCCCGTATCCCCTGGAGAAGGGACACCTATTTTATCCATACCCAATCTGTACAGA    +
+  >61DFRAAXX100204:2:25:7347:5444/2       0       202     51      253             GACTGCAGTCTCTGCTGCTGCTCGCAGACCTGCCCTGCGCTAGCTACCTAGCCCTGCCTCACTGCATCCCTCAAGA    +
+  >61DFRAAXX100204:2:25:8933:8122/2       0       2418    51      1183            CTTGGAGATAAACGAGTGTGCAACTGCGTACATTCTCTTGGCGGAAGAAGAAGCGACAACTATTGCTGAAGCAGAA    +
+  >61DFRAAXX100204:2:26:11187:19799/2     0       1324    51      1375            CTATATCAAAAGAAGGCTGGCGATGTGTGCCCGGAGACTTGGAAGGACCAGAGAAGCAGTGAAGATGATGAGAGAT    +
+  >61DFRAAXX100204:2:26:12653:14528/2     14      1432    51      1469            CTCCTAAGCATGTACAATATCCATGAGAACCTTCTAGAAGCTCTTCTGGAACTCCAAGCTTATGCTGATGTTCAGG    +
+  >61DFRAAXX100204:2:26:12686:3440/2      15      843     51      879             CAGAATGCAAAGTAAGGCGAAATCCACTGAATCTGTTTAGGGGTGCGGAATATAATCGGTACACTTGGGTCACAGG    +
+  >61DFRAAXX100204:2:26:16242:3695/2      14      279     51      316             GCATCCCTTAAGAACCGCGGCAGCCTTTCCTTGCCTGCTGGATTTTGAGAAGCAGCTCTTCGATTTGGGCTGGTGT    +
+  >61DFRAAXX100204:2:26:16448:13715/2     0       1753    51      1804            TGAAGCGATAGCATATGCATTCTTTCATCTTGCACACTGGAAGAGGGTGGAAGGGGCTTTGAATCTCTTGCATTGT    +
+  >61DFRAAXX100204:2:26:16861:10738/2     0       2865    51      622             CGACAACCTGAGCACAGTGAGCATGTTTTTGAACACGTTAACCCCAAAGTTCTACGTGGCCCTGACAGGCACTTCC    +
+  >61DFRAAXX100204:2:26:17369:11435/2     0       1005    51      1056            TGCAAAAAGCTTGGAGAGAAAGGAACCCTCAAGCCAGGATTTCTGCAGCTCATGAAGCCTTGGAGATAAACGAAAT    +
+  ...
+
+   with fields: read_accession, start_in_read, start_node_id, end_in_read, end_node_id, read_sequence, read_orientation_in_graph
+
+(examples shown for formatting information only; they don't match up to each other here. Explore the sample data for synchronized examples).
+
+[[Butterfly_reconstruction]]
+== Butterfly reconstruction of transcripts including alternatively spliced isoforms ==
+
+When Chrysalis completes, it creates a file called 'trinity_out_dir/chrysalis/butterfly_commands' that contains the butterfly commands that should be executed.
+
+Butterfly consumes the deBruijn '.graph..out' and read-map '.graph.reads' files for each corresponding Chrysalis component.  Butterfly traces the paths that reads and pairs of reads take within the graph and reports the most probable transcripts as a fasta file. 
+
+The resulting Butterfly assembly file for component 2 would exist as: 'c2.graph.allProbPaths.fasta'.  The format of the fasta file is like so:
+
+  >c2_g0_i1 len=2364 path=[0:0-587 588:588-1076 1146:1077-2363]
+  GAGCTCTTCAGGAGGGGGAATGTGCTTGTGGTTTTTGGTCTTGTGCATTTTGTGACAAAG
+  GAATTCCCTTTTGAATCGCGCTGTTCCCTTGAAACCCTGGAGCCTCTGGTTCAAGCAGCG
+  CAGTCAGTCTGTGCAGTGTCCCTGACGTCATCCGGCGTATGCATAAGCTCTGCTATTGTC
+  TTACCGCTAGAGCAGGGCTGAGGACTGCAGTCTCTGCTGCTGCTCGCAGACCTGCCCTGC
+  ...
+
+
+The accession of each fasta entry is bundled with information, and is broken down like so:
+   
+    >c2_g1_i1 len=2364 path=[0:0-587 588:588-1076 1146:1077-2363]
+   
+    c2: contig is derived from Chrysalis component # 2
+    g1: contig also corresponds to Butterfly 'gene' # 1
+    i1: 'isoform' # 1.  In the case where evidence exists for alternative splicing, multiple isoforms will be reported for the same corresponding 'gene'.
+    len:  length of the transcript contig
+
+    path: list of vertices in the compacted graph that represent the final transcript sequence and the range within the given assembled sequence that those nodes corresond to.  For example, node:0 spans from position 0-587, and then connects to node 588: which extends from position 588-1076 within the transcript, and so on. It's coincidental in this case that the node identifier matches up with the start position within the sequence; it's not always the case, as shown by the third node of this sequence path.
+

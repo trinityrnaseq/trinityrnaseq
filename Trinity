@@ -208,7 +208,7 @@ my $basic_usage = qq^
 #
 #  --seqType <string>      :type of reads: ( $allowed{seqType} )
 #
-#  --max_memory|M <string>      :suggested max memory to use by Trinity where limiting can be enabled. (jellyfish, sorting, etc)
+#  --max_memory <string>      :suggested max memory to use by Trinity where limiting can be enabled. (jellyfish, sorting, etc)
 #                            provied in Gb of RAM, ie.  '--max_memory 10G'
 #
 #  If paired reads:

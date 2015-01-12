@@ -70,8 +70,6 @@ my $path_reinforcement_distance;
 my $PE_path_reinforcement_distance = 75;
 my $SE_path_reinforcement_distance = 25;
 
-my $NO_RUN_BUTTERFLY_FLAG = 0;
-my $RERUN_BUTTERFLY_FLAG = 0;
 my $bfly_opts = "";
 my $bflyHeapSpaceMax = "4G";
 my $bflyHeapSpaceInit = "1G";
@@ -104,7 +102,6 @@ my $long_reads = "";
 
 ## ADVANCED OPTIONS:
 
-my $no_meryl_flag = 0;
 
 ## Chrysalis opts
 my $min_glue = 2;
@@ -113,10 +110,11 @@ my $glue_factor = 0.05;
 my $max_reads_per_graph = 200000;
 my $max_reads_per_loop = 10000000;
 my $min_pct_read_mapping = 0;
-my $NO_RUN_QUANTIFYGRAPH_FLAG = 0;
-my $NO_RUN_CHRYSALIS_FLAG = 0;
 my $chrysalis_output_dir = "chrysalis";
 my $component_directory;
+my $NO_RUN_CHRYSALIS_FLAG = 0;
+
+my $NO_DISTRIBUTED_TRINITY_EXEC = 0;
 
 my $help_flag;
 my $advanced_help_flag;
@@ -251,6 +249,8 @@ my $basic_usage = qq^
 #  --normalize_reads               :run in silico normalization of reads. Defaults to max. read coverage of $normalize_max_read_cov.
 #                                       see '--normalize_max_read_cov' under full usage info for tailored settings.
 #     
+#  --no_distributed_trinity_exec   :do not run Trinity phase 2 (assembly of partitioned reads), and stop after generating command list.
+#
 #
 #  --output <string>               :name of directory for output (will be
 #                                   created if it doesn't already exist)
@@ -290,16 +290,6 @@ my $full_usage = qq^
 #                                  a single graph (default: $max_reads_per_graph)
 #  --min_glue <int>               :min number of reads needed to glue two inchworm contigs
 #                                  together. (default: $min_glue) 
-#  --no_run_chrysalis             :stop Trinity after Inchworm and before
-#                                  running Chrysalis
-#  --no_run_quantifygraph         :stop Trinity just before running the
-#                                  parallel QuantifyGraph computes, to
-#                                  leverage a compute farm and massively
-#                                  parallel execution..
-#
-#  --chrysalis_output <string>    :name of directory for chrysalis output (will be
-#                                  created if it doesn't already exist)
-#                                  default( "$chrysalis_output_dir" )
 #
 #  --no_bowtie                    :dont run bowtie to use pair info in chrysalis clustering.
 #
@@ -366,12 +356,6 @@ my $full_usage = qq^
 #                                   number of CPUs; e.g., $CPU)
 #  --bflyCalculateCPU              :Calculate CPUs based on 80% of max_memory
 #                                   divided by maxbflyHeapSpaceMax
-#  --no_run_butterfly              :stops after the Chrysalis stage. You'll
-#                                   need to run the Butterfly computes
-#                                   separately, such as on a computing grid.
-#                  Then, concatenate all the Butterfly assemblies by running:
-#                  'find trinity_out_dir/ -name "\*allProbPaths.fasta" \
-#                   -exec cat {} + > trinity_out_dir/Trinity.fasta'
 #
 #  --bfly_jar <string>             : /path/to/Butterfly.jar, otherwise default
 #                                    Trinity-installed version is used. 
@@ -404,7 +388,6 @@ my $full_usage = qq^
 #
 # --genome_guided_min_reads_per_partition <int>   :default min of 10 reads per partition
 #
-# --genome_guided_just_prep            : process stops after prepping the reads for assembly (prior to submitting to a computing grid for parallel execution)
 #
 #################################
 # Grid-computing options: #######
@@ -609,8 +592,7 @@ my $iworm_opts = "";
     'bfly_jar=s' => \$BFLY_JAR,
     
     'path_reinforcement_distance=i' => \$path_reinforcement_distance,
-    'rerun_butterfly' => \$RERUN_BUTTERFLY_FLAG,
-
+    
     'no_path_merging' => \$NO_PATH_MERGING,
     'min_per_id_same_path=i' => \$MIN_PER_ID_SAME_PATH,
     'max_diffs_same_path=i' => \$MAX_DIFFS_SAME_PATH,
@@ -638,12 +620,11 @@ my $iworm_opts = "";
     'min_pcnt_read_iworm_kmers=i' => \$min_percent_read_iworm_kmers, 
     'max_reads_per_graph=i' => \$max_reads_per_graph,
     'max_reads_per_loop=i' => \$max_reads_per_loop,
-    'no_run_chrysalis' => \$NO_RUN_CHRYSALIS_FLAG,         
     'min_pct_read_mapping=i' => \$min_pct_read_mapping,
     'weldmer_size=i' => \$weldmer_size,
-    "chrysalis_output=s" => \$chrysalis_output_dir,
     "no_bowtie" => \$NO_BOWTIE,
     "bowtie_comp" => \$BOWTIE_COMP,
+    "no_run_chrysalis" => \$NO_RUN_CHRYSALIS_FLAG,
              
     # Grid computing options
     'grid_conf_file=s' => \$grid_conf_file,         
@@ -658,6 +639,7 @@ my $iworm_opts = "";
     'full_cleanup' => \$FULL_CLEANUP,
     'version' => \$show_version_flag,
     'monitoring' => \$run_with_collectl,
+    'no_distributed_trinity_exec' => \$NO_DISTRIBUTED_TRINITY_EXEC,
     
     # hidden (don't look here! ;) 
     'KMER_SIZE=i' => \$KMER_SIZE,
@@ -1687,37 +1669,51 @@ sub run_recursive_trinity {
     my $ofh = undef;
     
     my $read_filenames = "partitioned_reads.files.list";
-    open (my $ofh_read_filenames, ">$read_filenames") or die $!;
-
-    my $currdir = cwd();
-
-    open (my $fh, $reads_sorted_by_component_file) or die $!;
-    while (<$fh>) {
-	chomp;
-	my ($component_id, $read_name, $pct, $read_seq) = split(/\t/);
-	
-	if ($component_id != $prev_component_id) {
-	    
-	    $prev_component_id = $component_id;
-	    close $ofh if $ofh;
-	    my $base_dir = "read_partitions/Fb_" . (int($component_counter/$file_bins_per_dir)) . "/CBin_" . (int($component_counter/$target_files_per_dir));
-	    if (! -d $base_dir) {
-		&process_cmd("mkdir -p $base_dir");
-	    }
-	    my $readsfile = "$currdir/$base_dir/c$component_id.trinity.reads.fa";
-	    
-	    open ($ofh, ">$readsfile") or die "Error, cannot write to file $readsfile";
-	    print $ofh_read_filenames "$readsfile\n";
-	}
-	print $ofh "$read_name\n$read_seq\n";
+    my $read_filenames_ok = "$read_filenames.ok";
+    if (! -e $read_filenames_ok) {
+    
+        open (my $ofh_read_filenames, ">$read_filenames") or die $!;
+        
+        my $currdir = cwd();
+        
+        open (my $fh, $reads_sorted_by_component_file) or die $!;
+        while (<$fh>) {
+            chomp;
+            my ($component_id, $read_name, $pct, $read_seq) = split(/\t/);
+            
+            if ($component_id != $prev_component_id) {
+                
+                $prev_component_id = $component_id;
+                close $ofh if $ofh;
+                my $base_dir = "read_partitions/Fb_" . (int($component_counter/$file_bins_per_dir)) . "/CBin_" . (int($component_counter/$target_files_per_dir));
+                if (! -d $base_dir) {
+                    &process_cmd("mkdir -p $base_dir");
+                }
+                my $readsfile = "$currdir/$base_dir/c$component_id.trinity.reads.fa";
+                
+                open ($ofh, ">$readsfile") or die "Error, cannot write to file $readsfile";
+                print $ofh_read_filenames "$readsfile\n";
+            }
+            print $ofh "$read_name\n$read_seq\n";
+        }
+        close $ofh if $ofh;
+        close $ofh_read_filenames;
+        
+        &process_cmd("touch $read_filenames_ok");
     }
-    close $ofh if $ofh;
-    close $ofh_read_filenames;
+    
+    if (! -e "recursive_trinity.cmds.ok") {
+        &write_trinity_partitioned_cmds($read_filenames, "recursive_trinity.cmds");
+        &process_cmd("touch recursive_trinity.cmds.ok");
+        print STDERR "Done prepping partitioned cmds.";
+    }
 
-    
-    &write_trinity_partitioned_cmds($read_filenames, "recursive_trinity.cmds");
-    
-    print STDERR "Done prepping partitioned cmds.";
+    if ($NO_DISTRIBUTED_TRINITY_EXEC) {
+        print STDERR "\n\n###################################################################\n"
+                       . "##  Stopping here due to --no_distributed_trinity_exec in effect ##\n"
+                       . "###################################################################\n\n";
+        exit(0);
+    }
     
     &run_trinity_partitioned_cmds("recursive_trinity.cmds");
     
@@ -2566,14 +2562,18 @@ sub run_genome_guided_Trinity {
     &process_cmd($cmd) unless (-s "read_files.list" && -e "read_files.list.ok");
     &process_cmd("touch read_files.list.ok") unless (-e "read_files.list.ok"); # checkpoint
 
-    &write_trinity_partitioned_cmds("read_files.list", "trinity_GG.cmds");
-    
-    
-    if ($genome_guided_just_prep_flag) {
-        print STDERR "######  Just prepping data for genome-guided assembly. Stopping here due to --genome_guided_just_prep invocation. #####\n\n";
-        exit(0);
+    unless (-e "trinity_GG.cmds.ok") {
+        &write_trinity_partitioned_cmds("read_files.list", "trinity_GG.cmds");
+        &process_cmd("touch trinity_GG.cmds.ok");
     }
     
+    if ($NO_DISTRIBUTED_TRINITY_EXEC) {
+        print STDERR "\n\n###################################################################\n"
+                       . "##  Stopping here due to --no_distributed_trinity_exec in effect ##\n"
+                       . "###################################################################\n\n";
+        exit(0);
+    }
+
     &run_trinity_partitioned_cmds("trinity_GG.cmds");
     
         

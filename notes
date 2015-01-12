@@ -1,9 +1,7 @@
 
-svn checkout --username=bhaas svn+ssh://bhaas@svn.code.sf.net/p/trinityrnaseq/code/trunk trinityrnaseq-code
+git clone https://github.com/trinityrnaseq/trinityrnaseq.git
+
 
 autoreconf --install
 
-
-Read only:
-svn checkout svn://svn.code.sf.net/p/trinityrnaseq/code/trunk trinityrnaseq-code
 

@@ -55,7 +55,7 @@ all : ${EXECUTABLE}
 
 
 install : ${EXECUTABLE}
-	mv ${EXECUTABLE} ${BIN}
+	mv ${EXECUTABLE} ${BIN}/
 
 
 clean :

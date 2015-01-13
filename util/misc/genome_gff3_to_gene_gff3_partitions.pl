@@ -45,11 +45,6 @@ foreach my $asmbl_id (sort keys %$contig_to_gene_list_href) {
         my $gene_id_for_filename = $gene_id;
         $gene_id_for_filename =~ s/\W/_/g;
         
-        $gene_counter++;
-        my $bindir = "$outdir/bin_" . int($gene_counter/$gene_contigs_per_bin) . "/$gene_id_for_filename";
-        print STDERR "[$gene_counter] -processing $bindir\n";
-        &process_cmd("mkdir -p $bindir");
-        
         my $gene_obj_ref = $gene_obj_indexer_href->{$gene_id};
 		
         my ($gene_contig_lend, $gene_contig_rend) = sort {$a<=>$b} $gene_obj_ref->get_gene_span();
@@ -57,11 +52,6 @@ foreach my $asmbl_id (sort keys %$contig_to_gene_list_href) {
         $gene_contig_lend -= $flank;
         $gene_contig_rend += $flank;
 
-        my $contig_filename = "$bindir/gene.fa";
-        open (my $ofh, ">$contig_filename") or die $!;
-        my $gene_seq = substr($genome_seq, $gene_contig_lend-1, $gene_contig_rend - $gene_contig_lend + 1);
-        print $ofh ">$gene_id\n$gene_seq\n";
-        close $ofh;
 
         $gene_obj_ref->adjust_gene_coordinates(-1 * ($gene_contig_lend-1));
         
@@ -82,7 +72,20 @@ foreach my $asmbl_id (sort keys %$contig_to_gene_list_href) {
             my $gene_obj = shift @iso_objs;
             $gene_obj->add_isoform(@iso_objs);
             
+
+
             
+            $gene_counter++;
+            my $bindir = "$outdir/bin_" . int($gene_counter/$gene_contigs_per_bin) . "/$gene_id_for_filename";
+            print STDERR "[$gene_counter] -processing $bindir\n";
+            &process_cmd("mkdir -p $bindir");
+                        
+            my $contig_filename = "$bindir/gene.fa";
+            open (my $ofh, ">$contig_filename") or die $!;
+            my $gene_seq = substr($genome_seq, $gene_contig_lend-1, $gene_contig_rend - $gene_contig_lend + 1);
+            print $ofh ">$gene_id\n$gene_seq\n";
+            close $ofh;
+                        
             my $gff3_filename = "$bindir/gene.gff3";
             open ($ofh, ">$gff3_filename") or die $!;
             print $ofh $gene_obj->to_GFF3_format();

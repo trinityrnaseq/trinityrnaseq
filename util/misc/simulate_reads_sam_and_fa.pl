@@ -337,34 +337,26 @@ main: {
     ## Process transcriptome SAM files
     ## write to sam and bam formats.
     
-    my $cmd = "sort -T . -S 20G -k1,1 -k3,3 $trans_sam_outfile > $trans_sam_outfile.nameSorted.sam";
-    &process_cmd($cmd);
-    
-    ## now, sort by coordinate.
-    
-    
-
-    $cmd = "sort -T . -S 20G -k3,3 -k4,4n $trans_sam_outfile > $trans_sam_outfile.coordSorted.sam";
-    &process_cmd($cmd);
-    
-    
     ## prepare transcriptome bams
     my $cdna_fai = "$cdna_file.fai";
-    $cmd = "samtools faidx $cdna_file";
+    my $cmd = "samtools faidx $cdna_file";
     &process_cmd($cmd);
     
     
-    $cmd = "samtools view -bt $cdna_fai $trans_sam_outfile.nameSorted.sam > $trans_sam_outfile.nameSorted.bam 2>/dev/null";
-    &process_cmd($cmd);
+#    $cmd = "samtools view -bt $cdna_fai $trans_sam_outfile | samtools sort -n - $trans_sam_outfile.nameSorted";
+#    &process_cmd($cmd);
     
-    $cmd = "samtools view -bt $cdna_fai $trans_sam_outfile.coordSorted.sam > $trans_sam_outfile.coordSorted.bam";
+    $cmd = "samtools view -bt $cdna_fai $trans_sam_outfile | samtools sort - $trans_sam_outfile.coordSorted";
     &process_cmd($cmd);
+    unlink("$trans_sam_outfile");
     
+=strand_sep_trans
+
     if ($SS_lib_type) {
-        $cmd = "$FindBin::Bin/../../util/SAM_strand_separator.pl $trans_sam_outfile.coordSorted.sam $SS_lib_type";
+        $cmd = "$FindBin::Bin/../support_scripts/SAM_strand_separator.pl $trans_sam_outfile.coordSorted.bam $SS_lib_type";
         &process_cmd($cmd);
 
-        foreach my $sam_file ("$trans_sam_outfile.coordSorted.sam.+.sam", "$trans_sam_outfile.coordSorted.sam.-.sam") {
+        foreach my $sam_file ("$trans_sam_outfile.coordSorted.bam.+.sam", "$trans_sam_outfile.coordSorted.bam.-.sam") {
 
             if (-s $sam_file) {
                 # convert to bam
@@ -373,21 +365,20 @@ main: {
                 
                 my $cmd = "samtools view -bt $cdna_fai $sam_file > $bam_file";
                 &process_cmd($cmd);
-                
+                unlink($sam_file);
+
                 $cmd = "samtools index $bam_file";
                 &process_cmd($cmd);
             }
         }
     }
 
-    
+=cut
+
     ##############################
     ## Process genome file
     ## sort genome file
-    
-    $cmd = "sort -T . -S 20G -k3,3 -k4,4n $genome_sam_outfile > $genome_sam_outfile.coordSorted.sam";
-    &process_cmd($cmd);
-        
+            
     # prepare genome bams
     my $genome_fai = "$genome_file.fai";
     unless (-s $genome_fai) {
@@ -395,18 +386,22 @@ main: {
         &process_cmd($cmd);
     }
     
-    $cmd = "samtools view -bt $genome_fai $genome_sam_outfile.coordSorted.sam > $genome_sam_outfile.coordSorted.bam";
+    $cmd = "samtools view -bt $genome_fai $genome_sam_outfile | samtools sort - $genome_sam_outfile.coordSorted";
     &process_cmd($cmd);
     
+    unlink("$genome_sam_outfile");
+
     $cmd = "samtools index $genome_sam_outfile.coordSorted.bam";
     &process_cmd($cmd);
 
+    
+=strand_sep_genome
 
     if ($SS_lib_type) {
-        $cmd = "$FindBin::Bin/../../util/SAM_strand_separator.pl $genome_sam_outfile.coordSorted.sam $SS_lib_type";
+        $cmd = "$FindBin::Bin/../support_scripts/SAM_strand_separator.pl $genome_sam_outfile.coordSorted.bam $SS_lib_type";
         &process_cmd($cmd);
 
-        foreach my $sam_file ("$genome_sam_outfile.coordSorted.sam.+.sam", "$genome_sam_outfile.coordSorted.sam.-.sam") {
+        foreach my $sam_file ("$genome_sam_outfile.coordSorted.bam.+.sam", "$genome_sam_outfile.coordSorted.bam.-.sam") {
 
             if (-s $sam_file) {
                 
@@ -420,9 +415,14 @@ main: {
                 $cmd = "samtools index $bam_file";
                 &process_cmd($cmd);
             }
+            
+            unlink("$sam_file");
+            
         }
     }
     
+=cut
+
     exit(0);
 }
 

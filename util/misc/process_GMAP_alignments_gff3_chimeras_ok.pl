@@ -71,7 +71,7 @@ main: {
 	
 	unless (-d "$genomeBaseDir/$genomeDir") {
 		
-        my $cmd = "gmap_build -D $genomeBaseDir -d $genomeDir -k 13 $genome >&2";
+        my $cmd = "gmap_build -D $genomeBaseDir -d $genomeBaseDir/$genomeDir -k 13 $genome >&2";
 		&process_cmd($cmd);
 	}
 

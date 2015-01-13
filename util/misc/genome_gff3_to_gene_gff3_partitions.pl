@@ -10,6 +10,10 @@ use GFF3_utils;
 use Carp;
 use Nuc_translator;
 
+
+my $MIN_LENGTH = 1000;
+my $MIN_ISO_COUNT = 2;
+
 my $usage = "\n\nusage: $0 gff3_file genome_db [flank]\n\n";
 
 my $gff3_file = $ARGV[0] or die $usage;
@@ -62,18 +66,30 @@ foreach my $asmbl_id (sort keys %$contig_to_gene_list_href) {
         $gene_obj_ref->adjust_gene_coordinates(-1 * ($gene_contig_lend-1));
         
         # update gene identifiers.
+        my @iso_objs;
         foreach my $iso_obj ($gene_obj_ref, $gene_obj_ref->get_additional_isoforms()) {
             $iso_obj->{asmbl_id} = $gene_id;
+            my $cdna_len = $iso_obj->get_cDNA_length();
+            if ($cdna_len >= $MIN_LENGTH) {
+                push (@iso_objs, $iso_obj);
+            }
         }
         
+        if (scalar @iso_objs >= $MIN_ISO_COUNT) {
 
-        my $gff3_filename = "$bindir/gene.gff3";
-        open ($ofh, ">$gff3_filename") or die $!;
-        print $ofh $gene_obj_ref->to_GFF3_format();
-        close $ofh;
-        
+            $gene_obj_ref->delete_isoforms();
+            
+            my $gene_obj = shift @iso_objs;
+            $gene_obj->add_isoform(@iso_objs);
+            
+            
+            my $gff3_filename = "$bindir/gene.gff3";
+            open ($ofh, ">$gff3_filename") or die $!;
+            print $ofh $gene_obj->to_GFF3_format();
+            close $ofh;
+        }
 
-        #if ($gene_counter > 10) { last; }
+        if ($gene_counter > 10) { last; }
         
     }
 }

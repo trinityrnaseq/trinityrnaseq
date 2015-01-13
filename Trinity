@@ -2642,7 +2642,7 @@ sub write_trinity_partitioned_cmds {
         }
         
         # value specified options that aren't needed
-        if ($arg =~ /seqType|left|right|single|genome|SS_lib_type|GMAP|quality_trimming|output|normalize_max_read_cov|grid_conf|max_mem|grid/
+        if ($arg =~ /seqType|left|right|single|genome|SS_lib_type|GMAP|quality_trimming|output|normalize_max_read_cov|grid_conf|max_mem|grid|long_reads/
             ||
             # more precise identification of parameter
             $arg =~ /^(--CPU)$/

@@ -1,0 +1,3 @@
+## simulate reads:
+./sim_reads.pl fa_files.list  | tee sim.cmds
+

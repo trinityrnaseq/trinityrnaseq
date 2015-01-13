@@ -1,3 +1,22 @@
+## partition the genes
+~/GITHUB/trinityrnaseq/util/misc/genome_gff3_to_gene_gff3_partitions.pl  genes.gff3 genes.fa 500
+find gene_contigs/ -regex ".*gene.fa" | tee fa_files.list
+
 ## simulate reads:
-./sim_reads.pl fa_files.list  | tee sim.cmds
+sim_reads.pl fa_files.list  | tee sim.cmds
+
+
+# Trinity
+~/GITHUB/trinityrnaseq/util/misc/iso_reco_analysis/run_trinity_no_LR.pl fa_files.list  | tee trin.noFL.cmds
+
+~/GITHUB/trinityrnaseq/util/misc/iso_reco_analysis/run_trinity_WITH_LR.pl ./fa_files.list  | tee trin.withFL.cmds
+
+# gmap the Trinity reconstructed transcripts to the gene sequence
+find gene_contigs/ -regex ".*Trinity.fasta" > trin_fa.list
+~/GITHUB/trinityrnaseq/util/misc/iso_reco_analysis/gmap_to_ref.pl trin_fa.list  > gmap.cmds
+
+# cufflinks reconstruct
+find gene_contigs/ -regex ".*genome.sam.coordSorted.bam" | tee bams.list
+~/GITHUB/trinityrnaseq/util/misc/iso_reco_analysis/bam_to_cuff.pl  bams.list  | tee cuff.cmds
+
 

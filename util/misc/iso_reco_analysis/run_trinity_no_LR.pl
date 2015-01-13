@@ -15,7 +15,7 @@ while (<$fh>) {
     
     my $outdir = dirname($genome_file);
     
-    my $cmd = "$ENV{TRINITY_HOME}/Trinity --seqType fa --single $outdir/simul.reads.fa --CPU 1 --max_memory 5G --output $outdir/trinity_no_LR_outdir --full_cleanup";
+    my $cmd = "$ENV{TRINITY_HOME}/Trinity --seqType fa --single $outdir/simul.reads.fa --CPU 1 --max_memory 1G --output $outdir/trinity_no_LR_outdir --full_cleanup --trinity_complete";
     
     #&process_cmd($cmd);
     print "$cmd\n";

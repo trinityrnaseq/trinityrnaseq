@@ -24,7 +24,7 @@ while (<$fh>) {
     }
     
 
-    my $cmd = "$ENV{TRINITY_HOME}/Trinity --seqType fa --single $outdir/simul.reads.fa --CPU 1 --max_memory 5G --output $outdir/trinity_WITH_LR_outdir --full_cleanup --long_reads $outdir/simul.transcriptome.cdnas";
+    my $cmd = "$ENV{TRINITY_HOME}/Trinity --seqType fa --single $outdir/simul.reads.fa --CPU 1 --max_memory 1G --output $outdir/trinity_WITH_LR_outdir --full_cleanup --long_reads $outdir/simul.transcriptome.cdnas --trinity_complete";
     
     #&process_cmd($cmd);
     print "$cmd\n";

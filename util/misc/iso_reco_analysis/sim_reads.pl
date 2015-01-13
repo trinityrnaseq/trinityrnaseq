@@ -18,7 +18,7 @@ while (<$fh>) {
 
     my $outdir = dirname($gff3_file);
 
-    my $cmd = "/home/unix/bhaas/GITHUB/trinityrnaseq/util/misc/simulate_reads_sam_and_fa.pl --gff3 $gff3_file --genome $genome_file --frag_length 300 --read_length 76 --SS_lib_type F --out_prefix $outdir/simul";
+    my $cmd = "$ENV{TRINITY_HOME}/util/misc/simulate_reads_sam_and_fa.pl --gff3 $gff3_file --genome $genome_file --frag_length 300 --read_length 76 --SS_lib_type F --out_prefix $outdir/simul";
     
     #&process_cmd($cmd);
     print "$cmd\n";

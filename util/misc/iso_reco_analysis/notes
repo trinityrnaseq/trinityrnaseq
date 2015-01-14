@@ -19,4 +19,10 @@ find gene_contigs/ -regex ".*Trinity.fasta" > trin_fa.list
 find gene_contigs/ -regex ".*genome.sam.coordSorted.bam" | tee bams.list
 ~/GITHUB/trinityrnaseq/util/misc/iso_reco_analysis/bam_to_cuff.pl  bams.list  | tee cuff.cmds
 
+# convert gff3 files to bed
+find gene_contigs/ -regex ".*gene.gff3" | tee gene.gff3.list
+~/GITHUB/trinityrnaseq/util/misc/iso_reco_analysis/gene_gff3_to_bed_cmds.pl  gene.gff3.list  > gene.gff3.list.cmds
+
+# convert cuff gtf to bed:
+~/GITHUB/trinityrnaseq/util/misc/iso_reco_analysis/cuff_gtf_to_bed.pl  cuff.list  |tee cuff.list.cmds
 

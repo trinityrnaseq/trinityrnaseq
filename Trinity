@@ -281,7 +281,7 @@ my $full_usage = qq^
 #                                  Inchworm (default: $min_kmer_cov)
 #  --inchworm_cpu <int>           :number of CPUs to use for Inchworm, default is min(6, --CPU option)
 #
-#  --no_run_inchworm              :stop after running jellyfish, before inchworm.
+#  --no_run_inchworm              :stop after running jellyfish, before inchworm. (phase 1, read clustering only)
 #
 ###################################
 # Chrysalis-related options: ######
@@ -292,6 +292,8 @@ my $full_usage = qq^
 #                                  together. (default: $min_glue) 
 #
 #  --no_bowtie                    :dont run bowtie to use pair info in chrysalis clustering.
+#
+#  --no_run_chrysalis             :stop after running inchworm, before chrysalis. (phase 1, read clustering only)
 #
 #####################################
 ###  Butterfly-related options:  ####

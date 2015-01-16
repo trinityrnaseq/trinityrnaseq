@@ -26,3 +26,16 @@ find gene_contigs/ -regex ".*gene.gff3" | tee gene.gff3.list
 # convert cuff gtf to bed:
 ~/GITHUB/trinityrnaseq/util/misc/iso_reco_analysis/cuff_gtf_to_bed.pl  cuff.list  |tee cuff.list.cmds
 
+
+
+########################################
+# pull together all results for viewing.
+
+find bin_0/ -regex '.*gene.gff3.bed' -exec cat {} \; | sort -k1,1 -k2,2n > all_genes.gff3.bed
+
+find bin_0 -regex ".*trinity_WITH_LR_outdir.Trinity.fasta.gff3.bed" -exec cat {} \; | sort -k1,1 -k2,2n > trin.WITH_LR.bed
+
+find bin_0 -regex ".*trinity_no_LR_outdir.Trinity.fasta.gff3.bed" -exec cat {} \; | sort -k1,1 -k2,2n > trin.no_LR.bed
+
+find bin_0 -regex ".*transcripts.gtf.bed" -exec cat {} \; | sort -k1,1 -k2,2n > cuff_trans.bed
+

@@ -2,7 +2,7 @@
 TARGETS=jellyfish rsem transdecoder others
 
 
-JELLYFISH_CODE="jellyfish-2.1.3"
+JELLYFISH_CODE="jellyfish-2.1.4"
 RSEM_CODE="rsem-1.2.15"
 TRANSDECODER_CODE="TransDecoder_r20140704"
 

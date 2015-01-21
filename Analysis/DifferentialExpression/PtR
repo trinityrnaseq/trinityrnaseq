@@ -75,7 +75,10 @@ my $usage = <<__EOUSAGE__;
 #      --heatmap_colorscheme <string>  default is 'purple,black,yellow'
 #                                      a popular alternative is 'green,black,red'
 #
+#     # sample (column) labeling order
 #      --lexical_column_ordering        order samples by column name lexical order.
+#      --specified_column_ordering <string>  comma-delimited list of column names (must match matrix exactly!)
+#     # gene (row) labeling order
 #      --order_by_gene_factor           order the genes by their factor (given --gene_factors)
 #
 #  --gene_heatmaps <string>    generate heatmaps for just one or more specified genes
@@ -287,13 +290,14 @@ my $count_hist_max_expr;
 my $count_hist_convert_percentages;
 
 my $lexical_column_ordering;
+my $specified_column_ordering;
+
 my $order_by_gene_factor;
 
 my $per_gene_plot_flag;
 my $per_gene_plot_width = 2.5;
 my $per_gene_plots_per_row = 1;
 my $per_gene_plots_per_col = 2;
-
 
 my $NO_REUSE = 0;
 
@@ -330,6 +334,8 @@ my $NO_REUSE = 0;
     "heatmap_scale_limits=s" => \$heatmap_scale_limits,
     "heatmap_colorscheme=s" => \$heatmap_colorscheme,
     "lexical_column_ordering" => \$lexical_column_ordering,
+    "specified_column_ordering=s" => \$specified_column_ordering,
+    
     "order_by_gene_factor" => \$order_by_gene_factor,
     
     'gene_heatmaps=s' => \$gene_heatmaps,
@@ -464,6 +470,16 @@ if ($sample_dist !~ /^(euclidean|sample_cor|maximum|manhattan|canberra|binary|mi
     
     die "Error, sample_dist must be set to euclidean|sample_cor|maximum|manhattan|canberra|binary|minkowski ";
 }
+
+if ($specified_column_ordering) {
+    ## reformat according to R syntax for a set.
+    my @columns = split(/,/, $specified_column_ordering);
+    foreach my $ele (@columns) {
+        $ele = "\'$ele\'";
+    }
+    $specified_column_ordering = "c(" . join(",", @columns) . ")";
+}
+
 
 
 my $HEATMAP_COLORS;
@@ -1334,12 +1350,18 @@ main: {
         
         my $dendrogram = 'both';
         my $Colv = "as.dendrogram(hc_samples)";
-        if ($lexical_column_ordering || $sample_clust eq 'none') {
+        if ($lexical_column_ordering || $specified_column_ordering || $sample_clust eq 'none') {
             $dendrogram = 'row';
             $Colv = "F";
+            
             if ($lexical_column_ordering) {
                 $Rscript .= "heatmap_data = heatmap_data[,order(colnames(heatmap_data))]\n";
             }
+            elsif ($specified_column_ordering) {
+                $Rscript .= "heatmap_data = heatmap_data[,$specified_column_ordering]\n";
+                
+            }
+            
         }
         my $Rowv = "as.dendrogram(hc_genes)";
         if ($gene_clust eq 'none' || ($gene_factors_file && $order_by_gene_factor)) {

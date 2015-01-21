@@ -78,6 +78,8 @@ my $usage = <<__EOUSAGE__;
 #     # sample (column) labeling order
 #      --lexical_column_ordering        order samples by column name lexical order.
 #      --specified_column_ordering <string>  comma-delimited list of column names (must match matrix exactly!)
+#      --order_columns_by_samples_file  order the columns in the heatmap according to replicate name ordering in the samples file.
+#
 #     # gene (row) labeling order
 #      --order_by_gene_factor           order the genes by their factor (given --gene_factors)
 #
@@ -291,6 +293,7 @@ my $count_hist_convert_percentages;
 
 my $lexical_column_ordering;
 my $specified_column_ordering;
+my $order_columns_by_samples_file = 0;
 
 my $order_by_gene_factor;
 
@@ -335,6 +338,7 @@ my $NO_REUSE = 0;
     "heatmap_colorscheme=s" => \$heatmap_colorscheme,
     "lexical_column_ordering" => \$lexical_column_ordering,
     "specified_column_ordering=s" => \$specified_column_ordering,
+    "order_columns_by_samples_file" => \$order_columns_by_samples_file,
     
     "order_by_gene_factor" => \$order_by_gene_factor,
     
@@ -543,6 +547,13 @@ main: {
         #$Rscript .= "sample_types = as.factor(unique(samples_data[,1]))\n";
         $Rscript .= "sample_types = as.character(unique(samples_data[,1]))\n";
         
+        $Rscript .= "rep_names = as.character(samples_data[,2])\n";
+        
+        if ($order_columns_by_samples_file) {
+            $specified_column_ordering = "rep_names";
+        }
+        
+
         # restrict data to those entries in the samples file
         $Rscript .= "data = data[, colnames(data) \%in% samples_data[,2], drop=F ]\n";
         

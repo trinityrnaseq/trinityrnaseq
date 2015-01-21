@@ -23,7 +23,7 @@ my $usage = <<__EOUSAGE__;
 #
 #  --output <float>       prefix for output file (default: "diffExpr.P\${Pvalue}_C\${C})
 #
-
+#
 #
 #
 # Misc:
@@ -34,6 +34,8 @@ my $usage = <<__EOUSAGE__;
 #                                         This is useful when you have massive numbers of DE features but still want to make
 #                                         useful heatmaps and other plots with more manageable numbers of data points.
 #
+#  --order_columns_by_samples_file        instead of clustering samples or replicates hierarchically based on gene expression patterns,
+#                                         order columns according to order in the --samples file.
 #
 #  --max_genes_clust <int>                default: 10000  (if more than that, heatmaps are not generated, since too time consuming)
 #
@@ -43,6 +45,7 @@ my $usage = <<__EOUSAGE__;
 #
 #
 ##############################################################
+
 
 
 __EOUSAGE__
@@ -65,12 +68,14 @@ my $samples_file;
 
 my $include_heatmaps_for_pairwise_comparisons = 0;
 
-
+my $order_columns_by_samples_file = 0;
 
 ####
 my $examine_GO_enrichment_flag;
 my $GO_annots_file;
 my $gene_lengths_file;
+
+
 
 &GetOptions (  'h' => \$help_flag,
                
@@ -91,6 +96,8 @@ my $gene_lengths_file;
                  
                'samples=s' => \$samples_file,
              
+               "order_columns_by_samples_file" => \$order_columns_by_samples_file,
+
                );
 
 
@@ -110,6 +117,7 @@ if ($examine_GO_enrichment_flag && ! ($GO_annots_file && $gene_lengths_file)) {
 unless ($output_prefix) {
     $output_prefix = "diffExpr.P${p_value}_C${log2_fold_change}";
 }
+
 
 
 main: {
@@ -228,6 +236,11 @@ sub cluster_diff_expressed_transcripts {
     
     if ($samples_file) {
         $cmd .= " -s $samples_file";
+                
+        if ($order_columns_by_samples_file) {
+            $cmd .= " --order_columns_by_samples_file ";
+        }
+
     }
     
     eval {
@@ -454,7 +467,13 @@ sub write_matrix_generate_heatmap {
     
     if ($samples_file) {
         $cmd .= " -s $samples_file ";
+        
+        if ($order_columns_by_samples_file) {
+            $cmd .= " --order_columns_by_samples_file ";
+        }
+        
     }
+    
     
 
     &process_cmd($cmd);

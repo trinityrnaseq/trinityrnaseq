@@ -12,7 +12,7 @@ use Time::localtime;
 use Cwd;
 use Carp;
 use COMMON;
-use Getopt::Long qw(:config no_ignore_case pass_through); 
+use Getopt::Long qw(:config posix_default no_ignore_case pass_through); 
 use LWP::Simple;
 use Pipeliner;
 use Fasta_reader;
@@ -119,6 +119,9 @@ my $NO_DISTRIBUTED_TRINITY_EXEC = 0;
 my $help_flag;
 my $advanced_help_flag;
 my $SHOW_CITATION_FLAG = 0;
+
+my $VERSION = "Trinity_v2.0.0"; 
+my $show_version_flag = 0;
 
 ## Kmer methods
 my $kmer_method = "";
@@ -636,7 +639,7 @@ my $iworm_opts = "";
     'no_fastool' => \$NO_FASTOOL,
     'no_cleanup' => \$NO_CLEANUP,
     'full_cleanup' => \$FULL_CLEANUP,
-
+    'version' => \$show_version_flag,
     'monitoring' => \$run_with_collectl,
     'no_distributed_trinity_exec' => \$NO_DISTRIBUTED_TRINITY_EXEC,
     
@@ -686,6 +689,10 @@ if ($help_flag) {
     die "$usage\n";
 }
 
+if ($show_version_flag) {
+    print "Trinity version: $VERSION\n";
+    exit(1);
+}
 
 if ($NO_CLEANUP && $FULL_CLEANUP) {
     die "cannot set --no_cleanup and --full_cleanup as they contradict";
@@ -1066,10 +1073,7 @@ main: {
             
         }
         else {
-            print "\n\n";
-            print "####################################\n";
-            print "## No butterfly assemblies to report.\n";
-            print "####################################\n\n\n";
+            print "# No butterfly assemblies to report.\n";
         }
         
         if ($MKDIR_OUTDIR_FLAG && basename($output_directory) =~ /trinity/i) { # ensure outdirectory as trinity in the name, just to be sure we dont delete something non-trinity related!!!

@@ -25,8 +25,7 @@ jellyfish:
 
 
 rsem:
-	@echo "UNAME:" $(UNAME_S)
-	#tar -zxvf ${RSEM_CODE}.tar.gz && ln -sf ${RSEM_CODE} tmp.rsem
+	tar -zxvf ${RSEM_CODE}.tar.gz && ln -sf ${RSEM_CODE} tmp.rsem
 	cd ./tmp.rsem && $(MAKE) LIBCURSES="${RSEM_LIBCURSES}"
 	mv tmp.rsem rsem
 

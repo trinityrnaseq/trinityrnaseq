@@ -92,6 +92,7 @@ main: {
     
     print $ofh "load(\"$R_data_file\")\n";
     
+    print $ofh "data = heatmap_data\n";
     
     my $core_filename;
     my $outdir;

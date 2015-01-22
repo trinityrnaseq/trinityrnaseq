@@ -16,7 +16,7 @@ jellyfish:
 
 rsem:
 	tar -zxvf ${RSEM_CODE}.tar.gz && ln -sf ${RSEM_CODE} tmp.rsem
-	cd ./tmp.rsem && $(MAKE) # LIBCURSES="-lcurses -ltinfo"
+	cd ./tmp.rsem && $(MAKE) LIBCURSES="-lcurses -ltinfo"
 	mv tmp.rsem rsem
 
 transdecoder:

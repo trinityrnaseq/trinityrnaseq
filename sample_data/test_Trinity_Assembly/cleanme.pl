@@ -49,6 +49,10 @@ my %keep = map { + $_ => 1 } @files_to_keep;
 `rm -rf ./trin_SE_outdir` if (-d "trin_SE_outdir");
 `rm -rf ./trin_test_no_qtrim`;
 
+`rm -rf ./trinity_test_no_qtrim` if (-d "trinity_test_no_qtrim");
+`rm -rf ./trinity_w_jaccard` if (-d "trinity_w_jaccard");
+
+
 foreach my $file (<*>) {
 	
 	if (! $keep{$file}) {

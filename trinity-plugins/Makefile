@@ -6,6 +6,12 @@ JELLYFISH_CODE="jellyfish-2.1.4"
 RSEM_CODE="rsem-1.2.19"
 TRANSDECODER_CODE="TransDecoder_r20140704"
 
+RSEM_LIBCURSES="-lcurses"
+
+ifeq (`uname`, "Linux")
+	RSEM_LIBCURSES += -ltinfo 
+endif
+
 all: ${TARGETS}
 	@echo "\n\n** Done building plugins **\n\n"
 
@@ -16,7 +22,7 @@ jellyfish:
 
 rsem:
 	tar -zxvf ${RSEM_CODE}.tar.gz && ln -sf ${RSEM_CODE} tmp.rsem
-	cd ./tmp.rsem && $(MAKE) LIBCURSES="-lcurses -ltinfo"
+	cd ./tmp.rsem && $(MAKE) LIBCURSES=${RSEM_LIBCURSES}
 	mv tmp.rsem rsem
 
 transdecoder:

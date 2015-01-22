@@ -394,7 +394,7 @@ main: {
                 
                 &process_cmd("touch $rsem_prefix.rsem.prepped.started");
                 
-                my $cmd = "rsem-prepare-reference --no-polyA "; #--no-bowtie"; # update for RSEM-2.15
+                my $cmd = "rsem-prepare-reference "; #--no-bowtie"; # update for RSEM-2.15
                 
                 if ($gene_trans_map_file) {
                     $cmd .= " --transcript-to-gene-map $gene_trans_map_file";

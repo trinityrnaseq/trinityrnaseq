@@ -120,9 +120,6 @@ my $help_flag;
 my $advanced_help_flag;
 my $SHOW_CITATION_FLAG = 0;
 
-my $VERSION = "BLEEDING_EDGE"; 
-my $show_version_flag = 0;
-
 ## Kmer methods
 my $kmer_method = "";
 
@@ -639,7 +636,7 @@ my $iworm_opts = "";
     'no_fastool' => \$NO_FASTOOL,
     'no_cleanup' => \$NO_CLEANUP,
     'full_cleanup' => \$FULL_CLEANUP,
-    'version' => \$show_version_flag,
+
     'monitoring' => \$run_with_collectl,
     'no_distributed_trinity_exec' => \$NO_DISTRIBUTED_TRINITY_EXEC,
     
@@ -689,10 +686,6 @@ if ($help_flag) {
     die "$usage\n";
 }
 
-if ($show_version_flag) {
-    print "Trinity version: $VERSION\n";
-    exit(1);
-}
 
 if ($NO_CLEANUP && $FULL_CLEANUP) {
     die "cannot set --no_cleanup and --full_cleanup as they contradict";

@@ -6,9 +6,11 @@ JELLYFISH_CODE="jellyfish-2.1.4"
 RSEM_CODE="rsem-1.2.19"
 TRANSDECODER_CODE="TransDecoder_r20140704"
 
-RSEM_LIBCURSES="-lcurses"
+RSEM_LIBCURSES=-lcurses
 
-ifeq (`uname`, "Linux")
+UNAME_S := $(shell uname -s)
+
+ifeq ($(UNAME_S),Linux)
 	RSEM_LIBCURSES += -ltinfo 
 endif
 
@@ -20,9 +22,12 @@ jellyfish:
 	cd ./tmp.jellyfish/ && ./configure CC=gcc CXX=g++ --enable-static --disable-shared --prefix=`pwd` && $(MAKE) LDFLAGS="-lpthread -all-static" AM_CPPFLAGS="-Wall -Wnon-virtual-dtor -I"`pwd`"/include"
 	mv tmp.jellyfish jellyfish
 
+
+
 rsem:
-	tar -zxvf ${RSEM_CODE}.tar.gz && ln -sf ${RSEM_CODE} tmp.rsem
-	cd ./tmp.rsem && $(MAKE) LIBCURSES=${RSEM_LIBCURSES}
+	@echo "UNAME:" $(UNAME_S)
+	#tar -zxvf ${RSEM_CODE}.tar.gz && ln -sf ${RSEM_CODE} tmp.rsem
+	cd ./tmp.rsem && $(MAKE) LIBCURSES="${RSEM_LIBCURSES}"
 	mv tmp.rsem rsem
 
 transdecoder:

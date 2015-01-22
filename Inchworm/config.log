@@ -30,19 +30,12 @@ Kernel configured for up to 8 processors.
 Processor type: i486 (Intel 80486)
 Processors active: 0 1 2 3 4 5 6 7
 Primary memory available: 16.00 gigabytes
-Default processor set: 188 tasks, 963 threads, 8 processors
-Load average: 2.19, Mach factor: 5.80
+Default processor set: 242 tasks, 1278 threads, 8 processors
+Load average: 1.50, Mach factor: 6.49
 /bin/machine           = unknown
 /usr/bin/oslevel       = unknown
 /bin/universe          = unknown
 
-PATH: /opt/local/bin
-PATH: /opt/local/sbin
-PATH: /usr/local/bin
-PATH: /Users/bhaas/SVN/PASA/misc_utilities
-PATH: /Users/bhaas/utilities
-PATH: /Users/bhaas/BIN
-PATH: /usr/local/mysql/bin
 PATH: /opt/local/bin
 PATH: /opt/local/sbin
 PATH: /opt/local/bin
@@ -64,10 +57,6 @@ PATH: /usr/sbin
 PATH: /sbin
 PATH: /usr/local/bin
 PATH: /opt/X11/bin
-PATH: /Users/bhaas/BioIfx/Bowtie/current
-PATH: /Users/bhaas/BioIfx/TopHat/current
-PATH: /Users/bhaas/BioIfx/GMAP_09282007/bin
-PATH: /usr/local/Cellar/sbt/0.12.0/bin
 PATH: /Users/bhaas/BioIfx/Bowtie/current
 PATH: /Users/bhaas/BioIfx/TopHat/current
 PATH: /Users/bhaas/BioIfx/GMAP_09282007/bin
@@ -186,6 +175,7 @@ on wme18-ed2
 config.status:841: creating Makefile
 config.status:841: creating src/Makefile
 config.status:841: creating config.h
+config.status:1022: config.h is unchanged
 config.status:1070: executing depfiles commands
 
 ## ---------------- ##

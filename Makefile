@@ -13,10 +13,9 @@ else
  override TRINITY_COMPILER=gnu
 endif
 
-TARGETS=inchworm_target chrysalis_target plugins
 
-all: ${TARGETS}
-	sh ./util/support_scripts/install_tests.sh
+all: inchworm_target chrysalis_target trinity_essentials
+	sh ./util/support_scripts/trinity_install_tests.sh
 
 inchworm_target:
 	@echo Using $(TRINITY_COMPILER) compiler for Inchworm and Chrysalis
@@ -26,12 +25,20 @@ inchworm_target:
 chrysalis_target:
 	cd Chrysalis && $(MAKE) UNSUPPORTED=yes $(CHRYSALIS_MAKE_FLAGS)
 
+
+trinity_essentials:
+	cd trinity-plugins && $(MAKE) trinity_essentials
+
+
 plugins:
-	cd trinity-plugins && $(MAKE) 
+	cd trinity-plugins && $(MAKE) plugins
+
 
 test:
-	sh ./util/support_scripts/install_tests.sh
-
+	@echo Checking for Trinity essentials (built from 'make all'):
+	sh ./util/support_scripts/trinity_install_tests.sh
+	@echo Checking for plugins (built from 'make plugins'):
+	sh ./util/support_scripts/plugin_install_tests.sh
 
 clean:
 	cd Inchworm && make clean

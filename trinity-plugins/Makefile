@@ -1,6 +1,4 @@
 
-TARGETS=jellyfish rsem transdecoder others
-
 
 JELLYFISH_CODE="jellyfish-2.1.4"
 RSEM_CODE="rsem-1.2.19"
@@ -14,14 +12,34 @@ ifeq ($(UNAME_S),Linux)
 	RSEM_LIBCURSES += -ltinfo 
 endif
 
-all: ${TARGETS}
-	@echo "\n\n** Done building plugins **\n\n"
+
+#######################
+### Required by Trinity
+#######################
+
+trinity_essentials: jellyfish fastool parafly
+
 
 jellyfish:
 	tar -zxvf ${JELLYFISH_CODE}.tar.gz && ln -sf ${JELLYFISH_CODE} tmp.jellyfish
 	cd ./tmp.jellyfish/ && ./configure CC=gcc CXX=g++ --enable-static --disable-shared --prefix=`pwd` && $(MAKE) LDFLAGS="-lpthread -all-static" AM_CPPFLAGS="-Wall -Wnon-virtual-dtor -I"`pwd`"/include"
 	mv tmp.jellyfish jellyfish
 
+fastool:
+	cd fastool && $(MAKE)
+
+
+parafly:
+	cd parafly && ./configure --prefix=`pwd` && $(MAKE) install
+
+
+
+##################################
+### Needed for downstream analyses
+##################################
+
+plugins: transdecoder slclust collectl rsem
+	@echo "\n\n** Done building plugins **\n\n"
 
 
 rsem:
@@ -34,10 +52,10 @@ transdecoder:
 	cd ./tmp.transdecoder && ${MAKE} simple
 	mv ./tmp.transdecoder transdecoder
 
-others:
-	cd fastool && $(MAKE)
-	cd parafly && ./configure --prefix=`pwd` && $(MAKE) install
+slclust:
 	cd slclust && $(MAKE) install
+
+collectl:
 	cd collectl && ./build_collectl.sh
 
 clean:

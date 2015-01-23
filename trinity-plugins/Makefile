@@ -17,7 +17,7 @@ endif
 ### Required by Trinity
 #######################
 
-trinity_essentials: jellyfish fastool parafly
+trinity_essentials: jellyfish fastool_target parafly_target
 
 
 jellyfish:
@@ -25,11 +25,11 @@ jellyfish:
 	cd ./tmp.jellyfish/ && ./configure CC=gcc CXX=g++ --enable-static --disable-shared --prefix=`pwd` && $(MAKE) LDFLAGS="-lpthread -all-static" AM_CPPFLAGS="-Wall -Wnon-virtual-dtor -I"`pwd`"/include"
 	mv tmp.jellyfish jellyfish
 
-fastool:
+fastool_target:
 	cd fastool && $(MAKE)
 
 
-parafly:
+parafly_target:
 	cd parafly && ./configure --prefix=`pwd` && $(MAKE) install
 
 
@@ -38,7 +38,7 @@ parafly:
 ### Needed for downstream analyses
 ##################################
 
-plugins: transdecoder slclust collectl rsem
+plugins: transdecoder slclust_target collectl_target rsem
 	@echo "\n\n** Done building plugins **\n\n"
 
 
@@ -52,10 +52,10 @@ transdecoder:
 	cd ./tmp.transdecoder && ${MAKE} simple
 	mv ./tmp.transdecoder transdecoder
 
-slclust:
+slclust_target:
 	cd slclust && $(MAKE) install
 
-collectl:
+collectl_target:
 	cd collectl && ./build_collectl.sh
 
 clean:

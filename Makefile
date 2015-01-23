@@ -32,7 +32,7 @@ trinity_essentials:
 
 plugins:
 	cd trinity-plugins && $(MAKE) plugins
-
+	sh ./util/support_scripts/plugin_install_tests.sh
 
 test:
 	@echo

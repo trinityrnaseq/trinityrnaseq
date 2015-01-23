@@ -1,10 +1,7 @@
 #!/bin/bash
 
-echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-echo ""
-echo 'Performing Unit Tests of Build'
-echo ' '
-echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+echo "## Checking plugin installations:"
+echo
 
 if [ -e "trinity-plugins/slclust/bin/slclust" ]
 then

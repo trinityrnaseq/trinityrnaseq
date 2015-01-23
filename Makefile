@@ -35,9 +35,11 @@ plugins:
 
 
 test:
-	@echo Checking for Trinity essentials (built from 'make all'):
+	@echo
+	@echo "Checking for Trinity essentials (built from 'make all'):"
 	sh ./util/support_scripts/trinity_install_tests.sh
-	@echo Checking for plugins (built from 'make plugins'):
+	@echo
+	@echo "Checking for plugins (built from 'make plugins'):"
 	sh ./util/support_scripts/plugin_install_tests.sh
 
 clean:

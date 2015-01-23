@@ -1,4 +1,8 @@
+## Trinity v2.0.2 release:
 
+    -Makefile: split into
+        -'make all' : build the trinity essentials
+        -'make plugins' : build rsem and other utilities needed for downstream apps.
 
     -Trinity workflow redefined to coallesce the de novo and genome-guided assembly strategies:
     -  phase 1:  attempt to partition the reads according to genes.
@@ -25,7 +29,7 @@
 
     -the 'Chrysalis' parts of execution are now fully migrated into the Trinity wrapper.
 
-
+    -analyze_diff_expr: different options for ordering samples or replicates in the heatmap (useful for time series)
 
 ## Trinity release 2014-07-17
 

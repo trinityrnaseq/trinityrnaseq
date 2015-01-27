@@ -49,15 +49,15 @@ clean:
 	cd sample_data/ && make clean
 
 
-testTrinity:
+test_trinity:
 	cd sample_data/test_Trinity_Assembly && make test
 	cd sample_data/test_GenomeGuidedTrinity && make test
 
-testall:
+test_all:
 	cd sample_data/ && make test
 	cd sample_data/test_Trinity_Assembly && make test_full
 
-testclean:
+test_clean:
 	cd sample_data/ && make clean
 
 ###################################################################

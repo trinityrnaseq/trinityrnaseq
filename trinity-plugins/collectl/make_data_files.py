@@ -71,21 +71,21 @@ def prettyprocess(line):
     s = line.split()[29:]
     if not s:
         return None
-    if s[0] in ("-bash", 'sh', '/bin/bash', 'bash'):  
+    if s[0] in ("-bash", 'sh', '/bin/bash', 'bash', 'ln', '/bin/pwd', 'mkdir', 'date', 'touch', '/usr/bin/env'):  
         return None
 
     exes = ['fastool', 'ParaFly','Butterfly','ReadsToTranscripts', 'jellyfish',
-             'inchworm', 'FastaToDeBruijn', 'QuantifyGraph', 'GraphFromFasta'
-             , 'bowtie-build', 'bowtie', 'Chrysalis', 'cat', 'sort', 'cp', 'wc', 'rm']
+             'inchworm', 'FastaToDeBruijn', 'QuantifyGraph', 'GraphFromFasta', 'CreateIwormFastaBundle',
+             'bowtie-build', 'bowtie', 'Chrysalis', 'cat', 'sort', 'cp', 'wc', 'rm', 'find']
     perl_scripts = ['scaffold_iworm_contigs', 'Trinity', 'collectl', 'print_butterfly_assemblies',
-              'partition_chrysalis_graphs_n_reads', 'fasta_filter_by_min_length']
+              'partition_chrysalis_graphs_n_reads', 'fasta_filter_by_min_length', 'partitioned_trinity_aggregator']
 
     for k in exes:
         if s[0].endswith(k):
             return k
 
     if s[0] == 'samtools':
-        return 'samtools_' + s[1]
+        return ('samtools_' + s[1]) if len(s) > 1 else 'samtools'
 
     if s[0] == '/bin/sort':
         return 'sort'
@@ -93,11 +93,18 @@ def prettyprocess(line):
     if s[0] == 'java':
         if 'Butterfly.jar' in " ".join(s):
             return 'Butterfly'
+        if 'ExitTester.jar' in " ".join(s):
+            return 'ExitTester'
+        if '-version' in " ".join(s):
+            return 'java_version'
+
+        return 'java'
 
     if s[0] == 'perl':
         for k in perl_scripts:
             if k in s[1]:
                 return k
+        return 'perl'
 
     if s[0] == '/usr/bin/perl' and 'collectl' in s[2]:
         return 'collectl'

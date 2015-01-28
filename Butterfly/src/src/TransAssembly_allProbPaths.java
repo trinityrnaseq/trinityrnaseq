@@ -1917,7 +1917,7 @@ public class TransAssembly_allProbPaths {
 		
 		
 		// do a DFS-based graph reconstruction starting from a root node.
-		
+		SeqVertex.set_graph(seqvertex_graph);
 		
 		
 		HashSet<Path> visited = new HashSet<Path>();
@@ -1976,6 +1976,16 @@ public class TransAssembly_allProbPaths {
 			while (count_zip_up_merged_in_round > 0) {
 
 				zip_round++;
+				
+				if (graph_contains_loops(seqvertex_graph)) {
+					throw new RuntimeException("Error, detected cycles in seqvertex_graph, so not a DAG as expected!");
+				}
+
+				init_replacement_vertices(seqvertex_graph);
+				
+				// ensure DAG 
+				topo_sorted_vertices = TopologicalSort.topoSortSeqVerticesDAG(seqvertex_graph);
+
 
 				count_zip_up_merged_in_round = zipper_collapse_DAG_zip_up(seqvertex_graph);
 				sum_merged += count_zip_up_merged_in_round;
@@ -1999,6 +2009,16 @@ public class TransAssembly_allProbPaths {
 			while (count_zip_down_merged_in_round > 0) {
 
 				zip_round++;
+				
+				if (graph_contains_loops(seqvertex_graph)) {
+					throw new RuntimeException("Error, detected cycles in seqvertex_graph, so not a DAG as expected!");
+				}
+
+				init_replacement_vertices(seqvertex_graph);
+				
+				// ensure DAG 
+				topo_sorted_vertices = TopologicalSort.topoSortSeqVerticesDAG(seqvertex_graph);
+				
 
 				count_zip_down_merged_in_round = zipper_collapse_DAG_zip_down(seqvertex_graph);
 
@@ -2022,7 +2042,7 @@ public class TransAssembly_allProbPaths {
 
 			
 
-		// doubly test. :)
+		//  test again. :)
 		if (graph_contains_loops(seqvertex_graph)) {
 			throw new RuntimeException("Error, detected cycles in seqvertex_graph, so not a DAG as expected!");
 		}
@@ -2084,6 +2104,19 @@ public class TransAssembly_allProbPaths {
 	}
 
 	
+	private static void init_replacement_vertices(
+			DirectedSparseGraph<SeqVertex, SimpleEdge> seqvertex_graph) {
+		
+		
+		for (SeqVertex v : seqvertex_graph.getVertices()) {
+			v.is_replacement_vertex = false;
+		}
+		
+		return;
+		
+	}
+
+
 	private static int zipper_collapse_DAG_zip_up(
 			DirectedSparseGraph<SeqVertex, SimpleEdge> seqvertex_graph) {
 
@@ -2103,6 +2136,8 @@ public class TransAssembly_allProbPaths {
 		Collections.reverse(topo_sorted_vertices);
 		
 		for (SeqVertex v : topo_sorted_vertices) {
+			
+			if (v.is_replacement_vertex) { continue; }
 			
 			if (! seqvertex_graph.containsVertex(v)) { continue; }
 			
@@ -2143,8 +2178,11 @@ public class TransAssembly_allProbPaths {
 
 		for (SeqVertex v : topo_sorted_vertices) {
 
+			if (v.is_replacement_vertex) { continue; }
+			
 			if (! seqvertex_graph.containsVertex(v)) { continue; }
 
+			
 
 			count_total_zip_merged += zip_down(seqvertex_graph, v);
 
@@ -2166,16 +2204,20 @@ public class TransAssembly_allProbPaths {
 			DirectedSparseGraph<SeqVertex, SimpleEdge> seqvertex_graph,
 			SeqVertex v) {
 		
+		
+		
 		List<SeqVertex> pred_list = new ArrayList<SeqVertex>(seqvertex_graph.getPredecessors(v));
 		
 		if (pred_list.size() <= 1) { return (0); } // must have multiple parents
 		
-		
+		debugMes("## zip_up()", 15);
 		
 		// get list of parent nodes having the same original ID
 		HashMap<Integer,HashSet<SeqVertex>> pred_orig_id_to_vertex_list = new HashMap<Integer,HashSet<SeqVertex>>();
 		
 		for (SeqVertex pred : pred_list) {
+			
+			if (pred.is_replacement_vertex) { return(0); } // delay to next round.
 			
 			if (! seqvertex_graph.containsVertex(pred)) { continue; }
 			
@@ -2210,16 +2252,22 @@ public class TransAssembly_allProbPaths {
 			DirectedSparseGraph<SeqVertex, SimpleEdge> seqvertex_graph,
 			SeqVertex v) {
 		
+		
+		
 		List<SeqVertex> child_list = new ArrayList<SeqVertex>(seqvertex_graph.getSuccessors(v));
 		
 		if (child_list.size() <= 1) { return (0); } // must have multiple parents
 		
+		
+		debugMes("##zip_down()", 15);
 		
 		
 		// get list of children nodes having the same original ID
 		HashMap<Integer,HashSet<SeqVertex>> child_orig_id_to_vertex_list = new HashMap<Integer,HashSet<SeqVertex>>();
 		
 		for (SeqVertex child : child_list) {
+			
+			if (child.is_replacement_vertex) { return(0); } // delay to next round
 			
 			if (! seqvertex_graph.containsVertex(child) ) { continue; }
 			
@@ -2354,12 +2402,16 @@ public class TransAssembly_allProbPaths {
 		
 		Integer replacement_vertex_depth = (dir.equals("min")) ? min_val(target_depths) : max_val(target_depths);
 		
+		String zipDir = (dir.equals("min")) ? "Up" : "Down";
+		
 		replacement_vertex_obj.setDepth(replacement_vertex_depth);
 		replacement_vertex_obj.setNodeDepth(replacement_vertex_depth);
 		
+		replacement_vertex_obj.is_replacement_vertex = true;
+		
 		replacement_vertex_obj.__tmp_compressed_vertices.addAll(merged_vertex_ids);
 		
-		debugMes("ZipMerging nodes: " + pred_same_orig_id_set + " to " + replacement_vertex_obj, 15);
+		debugMes(zipDir + "ZipMerging nodes: " + pred_same_orig_id_set + " to " + replacement_vertex_obj, 15);
 		
 		
 		int count_merged = pred_same_orig_id_set.size();

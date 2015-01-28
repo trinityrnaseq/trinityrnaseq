@@ -32,6 +32,7 @@ public class SeqVertex {
 	public static HashMap<Integer, ArrayList<SeqVertex>> origIDnodeTracker = new HashMap<Integer,ArrayList<SeqVertex>>();
 	
 	public Vector<Integer> __tmp_compressed_vertices;
+	public boolean is_replacement_vertex;
 	
 	//constructors
 	/*

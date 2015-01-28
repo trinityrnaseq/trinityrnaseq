@@ -756,6 +756,12 @@ if ($SS_lib_type) {
 unless ($genome_guided_bam ||  (@left_files && @right_files) || @single_files ) {
     die "Error, need either options 'left' and 'right' or option 'single' or 'genome_guided_bam'\n";
 }
+unless ($genome_guided_bam) {
+    unless ($seqType) {
+        die "Error, need --seqType specified\n";
+    }
+}
+
 
 if (@left_files) {
     @left_files = split(",", join(",", @left_files));

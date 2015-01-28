@@ -17,7 +17,14 @@ endif
 ### Required by Trinity
 #######################
 
-trinity_essentials: jellyfish fastool_target parafly_target
+FASTOOL_CODE=fstrozzi-Fastool-7c3e034f05
+PARAFLY_CODE=parafly-r2013-01-21
+TRIMMOMATIC_CODE=Trimmomatic-0.32
+
+trinity_essentials: jellyfish fastool_target parafly_target trimmomatic_target
+
+trimmomatic_target:
+	ln -sf ${TRIMMOMATIC_CODE} trimmomatic
 
 
 jellyfish:
@@ -26,31 +33,32 @@ jellyfish:
 	mv tmp.jellyfish jellyfish
 
 fastool_target:
-	cd fastool && $(MAKE)
+	cd ${FASTOOL_CODE} && $(MAKE)
+	ln -sf ${FASTOOL_CODE} fastool
 
 
 parafly_target:
-	cd parafly && ./configure --prefix=`pwd` && $(MAKE) install
-
+	cd ${PARAFLY_CODE} && sh ./configure --prefix=`pwd` && $(MAKE) install
+	ln -sf ${PARAFLY_CODE} parafly
 
 
 ##################################
 ### Needed for downstream analyses
 ##################################
 
-plugins: transdecoder slclust_target collectl_target rsem
+plugins: transdecoder_target slclust_target collectl_target rsem
 	@echo "\n\n** Done building plugins **\n\n"
 
 
 rsem:
-	tar -zxvf ${RSEM_CODE}.tar.gz && ln -sf ${RSEM_CODE} tmp.rsem
-	cd ./tmp.rsem && $(MAKE) LIBCURSES="${RSEM_LIBCURSES}"
-	mv tmp.rsem rsem
+	tar -zxvf ${RSEM_CODE}.tar.gz
+	cd ${RSEM_CODE} && $(MAKE) LIBCURSES="${RSEM_LIBCURSES}"
+	ln -sf ${RSEM_CODE} rsem
 
-transdecoder:
-	tar -zxvf ${TRANSDECODER_CODE}.tar.gz && ln -sf ${TRANSDECODER_CODE} tmp.transdecoder
-	cd ./tmp.transdecoder && ${MAKE} simple
-	mv ./tmp.transdecoder transdecoder
+transdecoder_target:
+	tar -zxvf ${TRANSDECODER_CODE}.tar.gz 
+	cd ${TRANSDECODER_CODE} && ${MAKE} simple
+	ln -sf ${TRANSDECODER_CODE} transdecoder
 
 slclust_target:
 	cd slclust && $(MAKE) install
@@ -59,11 +67,14 @@ collectl_target:
 	cd collectl && ./build_collectl.sh
 
 clean:
-	rm -rf ./${JELLYFISH_CODE} ./jellyfish
-	rm -rf ./${RSEM_CODE} ./rsem
-	rm -rf ./${TRANSDECODER_CODE} ./transdecoder
-	cd fastool && $(MAKE) clean
+	rm -rf ./${JELLYFISH_CODE} ./jellyfish # has tar.gz
+	rm -rf ./${RSEM_CODE} ./rsem # has tar.gz
+	rm -rf ./${TRANSDECODER_CODE} ./transdecoder  # has tar.gz
+	cd ${FASTOOL_CODE} && $(MAKE) clean
+	rm -f ./fastool # rm symlink
 	cd parafly && $(MAKE) clean
+	rm -f ./parafly # rm symlink
+	rm -f ./trimmomatic # rm symlink
 	cd slclust && $(MAKE) clean
 	cd collectl && rm -rf bin doc man
 	@echo "\n\n** Done cleaning plugins area **"

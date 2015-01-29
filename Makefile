@@ -20,7 +20,7 @@ all: inchworm_target chrysalis_target trinity_essentials
 inchworm_target:
 	@echo Using $(TRINITY_COMPILER) compiler for Inchworm and Chrysalis
 	cd Inchworm && (test -e configure || autoreconf) \
-                && ./configure --prefix=`pwd` $(INCHWORM_CONFIGURE_FLAGS) && $(MAKE) install
+                && sh ./configure --prefix=`pwd` $(INCHWORM_CONFIGURE_FLAGS) && $(MAKE) install
 
 chrysalis_target:
 	cd Chrysalis && $(MAKE) UNSUPPORTED=yes $(CHRYSALIS_MAKE_FLAGS)
@@ -49,15 +49,15 @@ clean:
 	cd sample_data/ && make clean
 
 
-testTrinity:
+test_trinity:
 	cd sample_data/test_Trinity_Assembly && make test
 	cd sample_data/test_GenomeGuidedTrinity && make test
 
-testall:
+test_all:
 	cd sample_data/ && make test
 	cd sample_data/test_Trinity_Assembly && make test_full
 
-testclean:
+test_clean:
 	cd sample_data/ && make clean
 
 ###################################################################

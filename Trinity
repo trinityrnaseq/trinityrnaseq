@@ -120,7 +120,7 @@ my $help_flag;
 my $advanced_help_flag;
 my $SHOW_CITATION_FLAG = 0;
 
-my $VERSION = "Trinity_v2.0.1"; 
+my $VERSION = "Trinity_v2.0.2"; 
 my $show_version_flag = 0;
 
 ## Kmer methods
@@ -465,8 +465,7 @@ my $advanced_usage =  <<_ADVANCEDUSAGE_;
 #  Other:
 #  --monitoring                    :use collectl to monitor all steps of Trinity
 #  
-#  --compdir|component_directory   : use a temporary or local directory for Components_bin
-#
+#  --bypass_java_version_check     : skip check for required java version 1.7
 #
 
 
@@ -539,7 +538,7 @@ my @ORIG_ARGS = @ARGV;
 my $CHRYSALIS_DEBUG_WELD_ALL = 0;
 my $iworm_opts = "";
 
-
+my $bypass_java_version_check = 0;
 
 &GetOptions( 
     
@@ -646,7 +645,7 @@ my $iworm_opts = "";
     # hidden (don't look here! ;) 
     'KMER_SIZE=i' => \$KMER_SIZE,
     'jelly_s=i' => \$JELLY_S,
-    'compdir|component_directory=s'  => \$component_directory,
+    
     'NO_PARALLEL_IWORM' => \$NO_PARALLEL_IWORM,
     'chrysalis_debug_weld_all' => \$CHRYSALIS_DEBUG_WELD_ALL,
              
@@ -664,6 +663,7 @@ my $iworm_opts = "";
     "grid_node_CPU=i" => \$grid_node_CPU,
     "grid_node_max_memory=s" => \$grid_node_max_memory,
     
+    "bypass_java_version_check" => \$bypass_java_version_check,
     
 
              );
@@ -756,6 +756,12 @@ if ($SS_lib_type) {
 unless ($genome_guided_bam ||  (@left_files && @right_files) || @single_files ) {
     die "Error, need either options 'left' and 'right' or option 'single' or 'genome_guided_bam'\n";
 }
+unless ($genome_guided_bam) {
+    unless ($seqType) {
+        die "Error, need --seqType specified\n";
+    }
+}
+
 
 if (@left_files) {
     @left_files = split(",", join(",", @left_files));
@@ -786,13 +792,19 @@ else {
 
 
 ## Check Java version:
-unless ($NO_RUN_INCHWORM_FLAG || $NO_RUN_CHRYSALIS_FLAG) {
+unless ($NO_RUN_INCHWORM_FLAG || $NO_RUN_CHRYSALIS_FLAG || $bypass_java_version_check) {
   my $java_version = `java -Xmx64m -version 2>&1 `;
-  unless ($java_version =~ /(java|openjdk) version \"1\.(\d)\./) {
-      my $version_id = $1;
-      if ($version_id < 7) {
+  if ($java_version =~ /(java|openjdk) version \"1\.(\d)\./) {
+      my $version_id = $2;
+      if ($version_id != 7) {
           die "Error, Trinity requires access to Java version 1.7.  Currently installed version is: $java_version";
       }
+  }
+  else {
+      print STDERR "\n\n\n********************************************************************\n"
+                       . "** Warning, Trinity cannot determine which version of Java is being used.  Version 1.7 is required. \n\nAttempting to continue in 30 seconds\n"
+                       . "********************************************************************\n\n\n";
+      sleep(30);
   }
 }
 
@@ -1523,7 +1535,7 @@ sub run_chrysalis {
     
     my $partitioning_checkpoint_file = "$chrysalis_output_dir/file_partitioning.ok";
 
-    my $cmd = "$UTILDIR/support_scripts/partition_chrysalis_graphs_n_reads.pl --deBruijns $chrysalis_output_dir/bundled_iworm_contigs.fasta.deBruijn --componentReads $chrysalis_output_dir/readsToComponents.out.sort -N 1000 -L $min_contig_length --compdir $component_directory ";
+    my $cmd = "$UTILDIR/support_scripts/partition_chrysalis_graphs_n_reads.pl --deBruijns $chrysalis_output_dir/bundled_iworm_contigs.fasta.deBruijn --componentReads $chrysalis_output_dir/readsToComponents.out.sort -N 1000 -L $min_contig_length ";
 
     &process_cmd($cmd) unless (-e $partitioning_checkpoint_file);
     

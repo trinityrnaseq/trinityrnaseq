@@ -29,6 +29,25 @@ use HTC::GridRunner;
 
 open (STDERR, ">&STDOUT");  ## capturing stderr and stdout in a single stdout stream
 
+#directory defnintions
+my $ROOTDIR = "$FindBin::RealBin";
+my $UTILDIR = "$ROOTDIR/util";
+my $MISCDIR = "$UTILDIR/misc";
+my $INCHWORM_DIR = "$ROOTDIR/Inchworm/bin/";
+my $CHRYSALIS_DIR = "$ROOTDIR/Chrysalis";
+my $BUTTERFLY_DIR = "$ROOTDIR/Butterfly";
+my $JELLYFISH_DIR = "$ROOTDIR/trinity-plugins/jellyfish";
+my $FASTOOL_DIR = "$ROOTDIR/trinity-plugins/fastool";
+my $COLLECTL_DIR = "$ROOTDIR/trinity-plugins/collectl/bin";
+my $COREUTILS_DIR = "$ROOTDIR/trinity-plugins/coreutils/bin";
+my $PARAFLY = "$ROOTDIR/trinity-plugins/parafly/bin/ParaFly";
+my $TRIMMOMATIC = "$ROOTDIR/trinity-plugins/Trimmomatic/trimmomatic.jar";
+my $TRIMMOMATIC_DIR = "$ROOTDIR/trinity-plugins/Trimmomatic";
+
+#&version_check();
+
+
+
 # Site specific setup
 
 my $KMER_SIZE = 25;
@@ -173,7 +192,7 @@ my $NO_PARALLEL_IWORM = 0;
 
 ## Quality trimming params
 my $RUN_TRIMMOMATIC_FLAG = 0;
-my $trimmomatic_quality_trim_params = "LEADING:5 TRAILING:5 MINLEN:36";
+my $trimmomatic_quality_trim_params = "ILLUMINACLIP:$TRIMMOMATIC_DIR/adapters/TruSeq3-PE.fa:2:30:10 SLIDINGWINDOW:4:5 LEADING:5 TRAILING:5 MINLEN:25";
 
 ## Normalize reads
 my $NORMALIZE_READS_FLAG = 0;
@@ -474,20 +493,6 @@ _ADVANCEDUSAGE_
  ;
 
 
-my $ROOTDIR = "$FindBin::RealBin";
-my $UTILDIR = "$ROOTDIR/util";
-my $MISCDIR = "$UTILDIR/misc";
-my $INCHWORM_DIR = "$ROOTDIR/Inchworm/bin/";
-my $CHRYSALIS_DIR = "$ROOTDIR/Chrysalis";
-my $BUTTERFLY_DIR = "$ROOTDIR/Butterfly";
-my $JELLYFISH_DIR = "$ROOTDIR/trinity-plugins/jellyfish";
-my $FASTOOL_DIR = "$ROOTDIR/trinity-plugins/fastool";
-my $COLLECTL_DIR = "$ROOTDIR/trinity-plugins/collectl/bin";
-my $COREUTILS_DIR = "$ROOTDIR/trinity-plugins/coreutils/bin";
-my $PARAFLY = "$ROOTDIR/trinity-plugins/parafly/bin/ParaFly";
-my $TRIMMOMATIC = "$ROOTDIR/trinity-plugins/Trimmomatic/trimmomatic.jar";
-
-#&version_check();
 
 my $usage = $basic_usage . $usage_synopsis;
 

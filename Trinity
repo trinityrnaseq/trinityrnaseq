@@ -1763,11 +1763,11 @@ sub run_inchworm {
 
     
     #####################################################
-    ## Using Jellyfish kmer method
+    ## Using Jellyfish kmer method (if in initial read partitioning phase (1) )
     #####################################################
 
-    if (! $FORCE_INCHWORM_KMER_METHOD) {
-
+    if (! ($FORCE_INCHWORM_KMER_METHOD || $TRINITY_COMPLETE_FLAG) ) {
+        
         my $jelly_kmer_fa_file = "jellyfish.kmers.fa";
         my $jelly_finished_checkpoint_file = "jellyfish.$min_kmer_cov.finished";
         unless (-e $jelly_finished_checkpoint_file) {
@@ -1845,7 +1845,7 @@ sub run_inchworm {
     else {
         
         ######################################################
-        ## Using Inchworm kmer method (original, slow method)
+        ## Using Inchworm kmer method (original, slow w/ large data)
         ######################################################
                 
         $inchworm_cmd = "$INCHWORM_DIR/inchworm --reads $reads --run_inchworm -K $KMER_SIZE -L $MIN_IWORM_LEN --monitor 1 ";
@@ -1854,7 +1854,6 @@ sub run_inchworm {
         }
     }
     
-
     ## finish constructing the inchworm command to execute
     
     unless ($strand_specific_flag) {

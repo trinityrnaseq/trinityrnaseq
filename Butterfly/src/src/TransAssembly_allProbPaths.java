@@ -1977,6 +1977,8 @@ public class TransAssembly_allProbPaths {
 
 				zip_round++;
 				
+				debugMes("\n\n## Round: " + zip_round + " Zipping up.", 10);
+				
 				if (graph_contains_loops(seqvertex_graph)) {
 					throw new RuntimeException("Error, detected cycles in seqvertex_graph, so not a DAG as expected!");
 				}
@@ -2009,6 +2011,7 @@ public class TransAssembly_allProbPaths {
 			while (count_zip_down_merged_in_round > 0) {
 
 				zip_round++;
+				debugMes("\n\n## Round: " + zip_round + " Zipping down.", 10);
 				
 				if (graph_contains_loops(seqvertex_graph)) {
 					throw new RuntimeException("Error, detected cycles in seqvertex_graph, so not a DAG as expected!");
@@ -2408,6 +2411,14 @@ public class TransAssembly_allProbPaths {
 		replacement_vertex_obj.setNodeDepth(replacement_vertex_depth);
 		
 		replacement_vertex_obj.is_replacement_vertex = true;
+		
+		// fix local environment for this round
+		for (SeqVertex p : parent_vertices) {
+			p.is_replacement_vertex = true;
+		}
+		for (SeqVertex c : child_vertices) {
+			c.is_replacement_vertex = true;
+		}
 		
 		replacement_vertex_obj.__tmp_compressed_vertices.addAll(merged_vertex_ids);
 		

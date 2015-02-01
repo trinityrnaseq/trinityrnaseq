@@ -3,8 +3,10 @@
 
 
   -Trinity is by default less verbose.  For a more verbose run, use the new --verbose flag.
-
-
+  -Matt MacManes incorporated his optimized trimmomatic settings from his earlier published study (PMID:  .... include ref ... ).
+  -less verbose during a run, easier to monitor progress.
+  -butterfly bugfixes for edge cases dealing with overlap graph -> seq vertex graph retaining it as a DAG.
+  -use Jellyfish for only phase 1 of Trinity, with inchworm doing its own kmer counting in phase 2 (faster this way).
 
 
 

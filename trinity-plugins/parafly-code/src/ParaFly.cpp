@@ -129,9 +129,11 @@ int main(int argc, char* argv[]) {
         }
         getline(in,line);
     }
+
+    if (VERBOSE_LEVEL) {
+        cerr << "Number of Commands: " <<  NumberofCommands << endl;
+    }
     
-    cerr << "Number of  Commands: " <<  NumberofCommands << endl;
-           
     //Parrell Execution of Individual Commands 
     vector<string> failedCommands;
     int num_failed_commands = 0;
@@ -229,7 +231,9 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
     else {
-        cout << endl << endl << "All commands completed successfully. :-)" << endl << endl;
+        if (VERBOSE_LEVEL) {
+            cout << endl << endl << "All commands completed successfully. :-)" << endl << endl;
+        }
         exit(0); // used to be return(0), but sometimes in OMP land this would not exit 0....?!?!
     }
     

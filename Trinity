@@ -1077,7 +1077,7 @@ main: {
     if ($@) {
         print STDERR "$@\n" if $SEE;
         if ($@ !~ /^NON_FATAL_EXCEPTION/) {
-            die "Trinity run failed. Must investigate error above.";
+            die "Trinity run failed. Must investigate error above.\n";
         }
     }
     
@@ -1366,7 +1366,7 @@ sub run_Trinity {
             }
         }
         else {
-            my $cmd = "$PARAFLY -c $butterfly_cmds -shuffle -CPU $bflyCPU -failed_cmds failed_butterfly_commands.$$.txt -v ";  # shuffle them since the first ones are usually the longest-running ones.
+            my $cmd = "$PARAFLY -c $butterfly_cmds -shuffle -CPU $bflyCPU -failed_cmds failed_butterfly_commands.$$.txt ";  # shuffle them since the first ones are usually the longest-running ones.
             &process_cmd($cmd);
         }
         $pm_butterfly_end = `date +%s`;
@@ -2688,10 +2688,7 @@ sub run_trinity_partitioned_cmds {
         
     }
     else {
-        my $cmd = "$PARAFLY -c $cmds_file -CPU $CPU ";
-        if ($SEE) {
-            $cmd .= " -v ";
-        }
+        my $cmd = "$PARAFLY -c $cmds_file -CPU $CPU -v ";
         &process_cmd($cmd);
     }
 

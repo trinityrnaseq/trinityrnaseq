@@ -24,7 +24,7 @@ BEGIN {
 
 }
 
-use HTC::GridRunner;
+use HPC::GridRunner;
 
 
 open (STDERR, ">&STDOUT");  ## capturing stderr and stdout in a single stdout stream
@@ -45,7 +45,6 @@ my $TRIMMOMATIC = "$ROOTDIR/trinity-plugins/Trimmomatic/trimmomatic.jar";
 my $TRIMMOMATIC_DIR = "$ROOTDIR/trinity-plugins/Trimmomatic";
 
 #&version_check();
-
 
 
 # Site specific setup
@@ -926,6 +925,13 @@ unless (basename($output_directory) =~ /trinity/i) {
 }
 
 
+if ($grid_conf_file) {
+    # Prep for HPC parafly use.
+    $ENV{PATH} = dirname($PARAFLY) . ":$ENV{PATH}";
+    &HPC::GridRunner::use_parafly();
+}
+
+
 main: {
     $ENV{OMP_NUM_THREADS} = $CPU;
     
@@ -1368,7 +1374,7 @@ sub run_Trinity {
         if ($grid_conf_file) {
             my @bfly_cmds = `cat $butterfly_cmds`;
             chomp @bfly_cmds;
-            my $grid_runner = new HTC::GridRunner($grid_conf_file, "chrysalis/butterfly_on_grid.cacheSuccess");
+            my $grid_runner = new HPC::GridRunner($grid_conf_file, "chrysalis/butterfly_on_grid.cacheSuccess");
             my $ret = $grid_runner->run_on_grid(@bfly_cmds);
             if ($ret) {
                 die "Error, not all butterfly commands could complete successfully... cannot continue.";
@@ -1709,7 +1715,7 @@ sub run_chrysalis {
             my @quantify_graph_cmds = `cat $quantify_graph_cmds`;
             chomp @quantify_graph_cmds;
             
-            my $grid_runner = new HTC::GridRunner($grid_conf_file, "chrysalis/chrysalis_quantify_graph_on_grid.cacheSuccess");
+            my $grid_runner = new HPC::GridRunner($grid_conf_file, "chrysalis/chrysalis_quantify_graph_on_grid.cacheSuccess");
             my $ret = $grid_runner->run_on_grid(@quantify_graph_cmds);
             if ($ret) {
                 die "Error, not all Chrysalis quantify_graph commands completed successfully. Cannot continue.";
@@ -2700,7 +2706,7 @@ sub run_trinity_partitioned_cmds {
         my @cmds = `cat $cmds_file`;
         chomp @cmds;
         
-        my $grid_runner = new HTC::GridRunner($grid_conf_file, "$cmds_file.htc_cache_success");
+        my $grid_runner = new HPC::GridRunner($grid_conf_file, "$cmds_file.htc_cache_success");
         my $ret = $grid_runner->run_on_grid(@cmds);
         if ($ret) {
             die "Error, not all $cmds_file commands completed successfully.  Cannot continue.";

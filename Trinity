@@ -1004,12 +1004,15 @@ main: {
     collectl_start() unless ($FULL_CLEANUP);
     &perfmon_start() unless ($FULL_CLEANUP);
     
-    print STDERR "\n\n";
-    print STDERR "----------------------------------------------------------------------------------\n"
-               . "-------------- Trinity Phase 1: Clustering of RNA-Seq Reads  ---------------------\n"
-               . "----------------------------------------------------------------------------------\n\n";
-    
+    unless ($TRINITY_COMPLETE_FLAG) {
+        print STDERR "\n\n";
+        print STDERR "----------------------------------------------------------------------------------\n"
+            . "-------------- Trinity Phase 1: Clustering of RNA-Seq Reads  ---------------------\n"
+            . "----------------------------------------------------------------------------------\n\n";
+        
+    }
 
+    
     ##########################
     ##  Run Quality Trimming
     ##########################
@@ -1380,6 +1383,7 @@ sub run_Trinity {
         ## capture results:
         # my $cmd = 'find ./chrysalis -name "*allProbPaths.fasta" -exec cat {} + > Trinity.fasta.tmp';
         # no longer scan the file system... we know which files should exist
+        print STDERR "\n\n** Harvesting all assembled transcripts into a single multi-fasta file...\n" unless ($TRINITY_COMPLETE_FLAG);
         my $cmd = "$UTILDIR/support_scripts/print_butterfly_assemblies.pl $chrysalis_output_dir/component_base_listing.txt > Trinity.fasta.tmp";
         &process_cmd($cmd);
         
@@ -1788,6 +1792,8 @@ sub run_recursive_trinity {
     }
     
     &run_trinity_partitioned_cmds("recursive_trinity.cmds");
+    
+    print STDERR "\n\n** Harvesting all assembled transcripts into a single multi-fasta file...\n\n" unless ($TRINITY_COMPLETE_FLAG);
     
     my $cmd = "find read_partitions/  -name '*inity.fasta'  | $UTILDIR/support_scripts/partitioned_trinity_aggregator.pl TR > Trinity.fasta.tmp";
     &process_cmd($cmd);

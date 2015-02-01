@@ -1,3 +1,16 @@
+
+# for next release
+
+
+  -Trinity is by default less verbose.  For a more verbose run, use the new --verbose flag.
+
+
+
+
+
+
+
+
 ## Trinity v2.0.2 release:
 
     -Makefile: split into

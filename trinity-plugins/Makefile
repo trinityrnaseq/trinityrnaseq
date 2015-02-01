@@ -18,7 +18,7 @@ endif
 #######################
 
 FASTOOL_CODE=fstrozzi-Fastool-7c3e034f05
-PARAFLY_CODE=parafly-r2013-01-21
+PARAFLY_CODE=parafly-code
 TRIMMOMATIC_CODE=Trimmomatic-0.32
 
 trinity_essentials: jellyfish fastool_target parafly_target trimmomatic_target

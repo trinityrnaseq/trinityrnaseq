@@ -51,7 +51,7 @@ unless ($deBruijns_file && $componentReads_file && $num_graphs_per_partition && 
 
 main: {
 
-    print "Partitioning chrysalis graphs and reads\n";
+    print STDERR "Partitioning chrysalis graphs and reads\n";
     my $outdir_base = dirname($deBruijns_file);
     my $components_directory = $outdir_base . '/Component_bins';
 

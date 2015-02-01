@@ -105,7 +105,7 @@ int main(int argc,char** argv)
     vecDNAVector dna;
 
     if(max_mem_reads > 0){
-        cout << "Setting maximum number of reads to load in memory to " << max_mem_reads << endl;
+        cerr << "Setting maximum number of reads to load in memory to " << max_mem_reads << endl;
     } else {
         max_mem_reads = 2147483647; // max int
     }

@@ -4,9 +4,16 @@ use strict;
 use warnings;
 use Carp;
 
+my $VERBOSE = 0;
+
 ####
 sub new {
     my $packagename = shift;
+    my %params = @_;
+    
+    if ($params{-verbose}) {
+        $VERBOSE = 1;
+    }
     
     my $self = { cmd_objs => [],
     };
@@ -41,10 +48,10 @@ sub run {
         my $checkpoint_file = $cmd_obj->get_checkpoint_file();
 
         if (-e $checkpoint_file) {
-            print STDERR "-skipping cmd: $cmdstr, checkpoint exists.\n";
+            print STDERR "--Skipping cmd: $cmdstr, checkpoint exists.\n" if $VERBOSE;
         }
         else {
-            print STDERR "-running cmd: $cmdstr\n";
+            print STDERR "Running cmd: $cmdstr\n" if $VERBOSE;
             my $ret = system($cmdstr);
             if ($ret) {
                 confess "Error, cmd: $cmdstr died with ret $ret";

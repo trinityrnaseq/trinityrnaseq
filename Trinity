@@ -426,8 +426,8 @@ my $full_usage = qq^
 #
     ^;
 
-my $usage_synopsis = qq^
-
+my $usage_synopsis = qq^#
+#
 ###############################################################################
 #
 #  *Note, a typical Trinity command might be:
@@ -1003,6 +1003,12 @@ main: {
     
     collectl_start() unless ($FULL_CLEANUP);
     &perfmon_start() unless ($FULL_CLEANUP);
+    
+    print STDERR "\n\n";
+    print STDERR "----------------------------------------------------------------------------------\n"
+               . "-------------- Trinity Phase 1: Clustering of RNA-Seq Reads  ---------------------\n"
+               . "----------------------------------------------------------------------------------\n\n";
+    
 
     ##########################
     ##  Run Quality Trimming
@@ -1949,7 +1955,7 @@ sub run_inchworm {
     print STDERR "----------------------------------------------\n"
                . "--------------- Inchworm ---------------------\n"
                . "-- (Linear contig construction from k-mers) --\n"
-               . "----------------------------------------------\n\n" if ($SEE || ! $TRINITY_COMPLETE_FLAG);
+               . "----------------------------------------------\n\n" if (! $TRINITY_COMPLETE_FLAG);
 
     unless ($SEE) {
         $inchworm_cmd .= " 2>/dev/null";
@@ -2482,7 +2488,7 @@ sub run_trimmomatic_SE {
 
         print STDERR "###############################################################################\n";
         print STDERR "#### Trimmomatic  process was previously completed. Skipping it and using existing qual-trimmed file: $trimmed_fq\n";
-        print STDERR "###############################################################################\n" if $SEE;
+        print STDERR "###############################################################################\n";
 
         return($trimmed_fq);
     }
@@ -2559,7 +2565,7 @@ sub normalize {
                . "------------ In silico Read Normalization ---------------------\n"
                . "-- (Removing Excess Reads Beyond $max_read_coverage Coverage --\n"
                . "-- $normalize_outdir --\n"
-               . "---------------------------------------------------------------\n\n" if $SEE;
+               . "---------------------------------------------------------------\n\n";
     
     
 
@@ -2675,7 +2681,15 @@ sub run_genome_guided_Trinity {
 sub run_trinity_partitioned_cmds {
     my ($cmds_file) = @_;
     
-    ## execute the commands:
+    
+    print STDERR "\n\n";
+    print STDERR "--------------------------------------------------------------------------------\n"
+               . "------------ Trinity Phase 2: Assembling Clusters of Reads ---------------------\n"
+               . "--------------------------------------------------------------------------------\n\n";
+    
+
+
+    ## Execute the commands:
     if ($grid_conf_file) {
         my @cmds = `cat $cmds_file`;
         chomp @cmds;

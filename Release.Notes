@@ -7,6 +7,7 @@
   -less verbose during a run, easier to monitor progress.
   -butterfly bugfixes for edge cases dealing with overlap graph -> seq vertex graph retaining it as a DAG.
   -use Jellyfish for only phase 1 of Trinity, with inchworm doing its own kmer counting in phase 2 (faster this way).
+  -moved the HTC code over to the HPC GridRunner codebase and synched.
 
 
 

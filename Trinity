@@ -548,6 +548,9 @@ my $bypass_java_version_check = 0;
 
 my $SEE = 0;
 
+my $ANANAS_DIR = "";
+
+
 &GetOptions( 
     
     'h|help' => \$help_flag,
@@ -676,7 +679,9 @@ my $SEE = 0;
     "bypass_java_version_check" => \$bypass_java_version_check,
     
 
-             );
+    "ananas_dir=s" => \$ANANAS_DIR,
+    
+    );
 
 
 
@@ -1784,6 +1789,14 @@ sub run_recursive_trinity {
         &process_cmd("touch $read_filenames_ok");
     }
     
+    
+    if ($ANANAS_DIR) {
+        &run_ANANAS($read_filenames, "read_partitions");
+        exit(0);
+    }
+    
+
+
     if (! -e "recursive_trinity.cmds.ok") {
         &write_trinity_partitioned_cmds($read_filenames, "recursive_trinity.cmds");
         &process_cmd("touch recursive_trinity.cmds.ok");
@@ -1797,7 +1810,7 @@ sub run_recursive_trinity {
         exit(0);
     }
     
-    &run_trinity_partitioned_cmds("recursive_trinity.cmds");
+    &run_partitioned_cmds("recursive_trinity.cmds");
     
     print STDERR "\n\n** Harvesting all assembled transcripts into a single multi-fasta file...\n\n" unless ($TRINITY_COMPLETE_FLAG);
     
@@ -2663,6 +2676,14 @@ sub run_genome_guided_Trinity {
     &process_cmd($cmd) unless (-s "read_files.list" && -e "read_files.list.ok");
     &process_cmd("touch read_files.list.ok") unless (-e "read_files.list.ok"); # checkpoint
 
+
+    if ($ANANAS_DIR) {
+        &run_ANANAS("read_files.list", "Dir_\*");
+        exit(0);
+    }
+    
+
+
     unless (-e "trinity_GG.cmds.ok") {
         &write_trinity_partitioned_cmds("read_files.list", "trinity_GG.cmds");
         &process_cmd("touch trinity_GG.cmds.ok");
@@ -2675,7 +2696,7 @@ sub run_genome_guided_Trinity {
         exit(0);
     }
 
-    &run_trinity_partitioned_cmds("trinity_GG.cmds");
+    &run_partitioned_cmds("trinity_GG.cmds");
     
         
     ## pull together the final outputs:
@@ -2690,7 +2711,7 @@ sub run_genome_guided_Trinity {
 }
 
 ####
-sub run_trinity_partitioned_cmds {
+sub run_partitioned_cmds {
     my ($cmds_file) = @_;
     
     
@@ -2700,6 +2721,9 @@ sub run_trinity_partitioned_cmds {
                . "--------------------------------------------------------------------------------\n\n";
     
 
+    if ($ANANAS_DIR) {
+        print STDERR " ************ Using Ananas Assembler ***************** \n\n";
+    }
 
     ## Execute the commands:
     if ($grid_conf_file) {
@@ -2830,4 +2854,66 @@ sub version_check {
     else {
         print "Version check failed";
     }
+}
+
+
+####
+sub run_ANANAS {
+    my ($read_filenames, $base_out_dir) = @_;
+    
+    ## Create Ananas command set
+    my $ananas_cmds_file = "ananas.cmds";
+    my $ananas_cmds_checkpoint = "$ananas_cmds_file.ok";
+    
+    my $ananas_SS = "";
+    my $ananas_dir = "na";
+    if ($SS_lib_type) {
+        $ananas_SS = " -strand 1 ";
+        if ($PAIRED_MODE) {
+            $ananas_dir = "ff";
+        }
+    }
+    elsif ($PAIRED_MODE) {
+        $ananas_dir = "fr";
+    }
+    
+    unless (-e $ananas_cmds_checkpoint) {
+        open (my $fh, $read_filenames) or die "Error, cannot open file $read_filenames";
+        open (my $ofh, ">$ananas_cmds_file") or die "Error, cannot write to $ananas_cmds_file";
+        while (<$fh>) {
+            chomp;
+            my $reads_file = $_;
+
+            my $ananas_cmd = "$ANANAS_DIR/Ananas -i $reads_file -o $reads_file.out_dir -dir $ananas_dir $ananas_SS";
+            print $ofh "$ananas_cmd\n";
+        }
+        close $fh;
+        close $ofh;
+
+        &process_cmd("touch $ananas_cmds_checkpoint");
+    }
+    
+    if ($NO_DISTRIBUTED_TRINITY_EXEC) {
+        print STDERR "\n\n###################################################################\n"
+                       . "##  Stopping here due to --no_distributed_trinity_exec in effect ##\n"
+                       . "###################################################################\n\n";
+        exit(0);
+    }
+    
+
+    &run_partitioned_cmds($ananas_cmds_file);
+
+ 
+    ## capture all outputs into a single output file.
+    
+    my $cmd = "find $base_out_dir -name \"*final.fa\" | $UTILDIR/support_scripts/partitioned_trinity_aggregator.pl ANANAS > Ananas.fasta.tmp";
+    &process_cmd($cmd);
+
+    rename("Ananas.fasta.tmp", "Ananas.fasta");
+
+    print STDERR "Done.  See Ananas.fasta \n\n";
+    
+   
+
+    exit(0);
 }

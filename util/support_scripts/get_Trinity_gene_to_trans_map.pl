@@ -13,7 +13,7 @@ while (<>) {
 
             print "$gene\t$trans\n";
         }
-        elsif ($acc =~ /^(comp\d+_c\d+)/) {
+        elsif ($acc =~ /^(.*comp\d+_c\d+)/) {
             my $gene = $1;
             my $trans = $acc;
             print "$gene\t$trans\n";

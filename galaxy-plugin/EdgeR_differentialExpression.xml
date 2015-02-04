@@ -1,0 +1,47 @@
+<tool id="EdgeR_differentialExpression" name="EdgeR_differentialExpression" version="0.0.1">
+
+    <description>Identify Differentially Expressed Transcripts Using EdgeR</description>
+    <requirements>
+        <requirement type="package">trinity</requirement>
+    </requirements>
+    <command interpreter="python">
+
+ 		trinityToolWrapper.py Analysis/DifferentialExpression/run_DE_analysis.pl 
+			--matrix $counts_matrix 
+			--method edgeR
+			--output edgeR_results
+			--dispersion $dispersion
+
+		> stdout.txt
+
+
+    </command>
+    <inputs>
+		
+		<param type="data" format="txt" name="counts_matrix" label="Matrix of RNA-Seq fragment counts for transcripts per condition" />
+		<param type="data" format="fasta" name="transcripts_fasta_file" label="Transcripts fasta file corresponding to matrix" />
+		<param type="float" name="dispersion" value="0.1" min="0" label="dispersion value" help="Dispersion value to be used in the negative binomial" />
+	
+    </inputs>
+    <outputs>
+        
+        <data format="txt" name="diff_expressed_edgeR_results"  label="${tool.name} on ${on_string}: differentially expressed transcripts per pair of conditions"  from_work_dir="edgeR_results/all_diff_expression_results.txt" />
+
+        <data format="txt" name="matrix_FPKM" label="${tool.name} on ${on_string}: matrix.TMM_normalized.FPKM" from_work_dir="edgeR_results/matrix.TMM_normalized.FPKM" />
+
+		<data format="txt" name="TMM_info" label="${tool.name} on ${on_string}: TMM library size estimates" from_work_dir="edgeR_results/TMM_info.txt" />
+	
+	</outputs>
+    <tests>
+
+		<test>
+			<param name="myname" value="This is just a simple test" />
+
+        </test>
+	
+
+    </tests>
+    <help>
+         help info here.
+    </help>
+</tool>

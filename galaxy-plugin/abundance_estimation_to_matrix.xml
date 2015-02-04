@@ -1,0 +1,42 @@
+<tool id="abundance_estimation_to_matrix" name="abundance_estimation_to_matrix" version="0.0.1">
+
+    <description>Join RSEM estimates from multiple samples into a single matrix</description>
+    <requirements>
+        <requirement type="package">trinity</requirement>
+    </requirements>
+    <command interpreter="python">
+
+        abundance_estimation_to_matrix_wrapper.py 
+		#for $q in $RSEM_samples
+			${q.file} "${q.column_label}"
+		#end for
+
+    </command>
+    <inputs>
+
+       <repeat name="RSEM_samples" title="RSEM abundance estimates for samples">
+              <param name="file" label="Add file" type="data" format="text"/>
+              <param name="column_label" label="column label" type="text" />
+       </repeat>
+
+    </inputs>
+    <outputs>
+        <data format="text" name="counts_matrix" label="${tool.name} on ${on_string}: Counts Matrix" from_work_dir="matrix.counts.matrix"/>
+	</outputs>
+    <tests>
+
+
+		<test>
+			<param name="target" value="trinity/Trinity.fasta" />
+			<param name="aligner" value="bowtie" />
+			<param name="paired_or_single" value="single" />
+			<param name="library_type" value="None" />
+			<param name="input" value="trinity/reads.left.fq" />
+        </test>
+	
+
+    </tests>
+    <help>
+        .. _Trinity: http://trinityrnaseq.sourceforge.net
+    </help>
+</tool>

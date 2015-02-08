@@ -25,6 +25,7 @@ my $usage = <<__EOUSAGE__;
 #  -G <string>                 GTF file for incorporating reference splice site info.
 #  --CPU <int>                 number of threads (default: 2)
 #  --out_prefix <string>       output prefix (default: gsnap)
+#  --no_sarray                 skip the sarray in the gmap-build 
 #
 #######################################################################
 
@@ -44,7 +45,7 @@ my $help_flag;
 my $num_top_hits = 1;
 my $out_prefix = "gsnap";
 my $gtf_file;
-
+my $no_sarray = "";
 
 &GetOptions( 'h' => \$help_flag,
              'genome=s' => \$genome,
@@ -54,13 +55,17 @@ my $gtf_file;
              'N=i' => \$num_top_hits,
              'out_prefix=s' => \$out_prefix,
              'G=s' => \$gtf_file,
-             );
+             'no_sarray' => \$no_sarray,
+    );
 
 
 unless ($genome && $reads) {
     die $usage;
 }
 
+if ($no_sarray) {
+    $no_sarray = "--no-sarray";
+}
 
 main: {
 	
@@ -73,7 +78,9 @@ main: {
 	
 	unless (-d "$genomeBaseDir/$genomeDir") {
 		
-        my $cmd = "gmap_build -D $genomeBaseDir -d $genomeDir -k 13 $genome >&2";
+        
+
+        my $cmd = "gmap_build -D $genomeBaseDir -d $genomeDir -k 13 $no_sarray $genome >&2";
 		&process_cmd($cmd);
 	}
 
@@ -88,6 +95,7 @@ main: {
             &process_cmd($cmd);
 
             $cmd = "iit_store -o $splice_file.iit < $splice_file";
+            &process_cmd($cmd);
         }
     
         $splice_param = "--use-splicing=$splice_file.iit";
@@ -96,9 +104,15 @@ main: {
 
     ## run GMAP
     
-    my $cmd = "gsnap -D $genomeBaseDir -d $genomeDir -A sam -N 1 -w $max_intron -n $num_top_hits -t $CPU $reads $splice_param | samtools view -bS - | samtools sort -@ $CPU - $out_prefix.cSorted";
+    my $gsnap_use_sarray = ($no_sarray) ? "--use-sarray=0" : "";
+
+    my $cmd = "set -o pipefail && gsnap -D $genomeBaseDir -d $genomeDir -A sam -N 1 -w $max_intron $gsnap_use_sarray -n $num_top_hits -t $CPU $reads $splice_param | samtools view -bS - | samtools sort -@ $CPU - $out_prefix.cSorted";
     &process_cmd($cmd);
-    
+
+    if (-s "$out_prefix.cSorted.bam") {
+        $cmd = "samtools index $out_prefix.cSorted.bam";
+        &process_cmd($cmd);
+    }
     
 	exit(0);
 }

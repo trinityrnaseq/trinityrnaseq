@@ -80,7 +80,7 @@ main: {
 		
         
 
-        my $cmd = "gmap_build -D $genomeBaseDir -d $genomeDir -k 13 $no_sarray $genome >&2";
+        my $cmd = "gmap_build -D $genomeBaseDir -d $genomeDir -T $genomeBaseDir -k 13 $no_sarray $genome >&2";
 		&process_cmd($cmd);
 	}
 

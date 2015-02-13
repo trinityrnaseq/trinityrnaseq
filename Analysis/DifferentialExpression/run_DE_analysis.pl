@@ -92,6 +92,8 @@ my $contrasts_file;
 
 my $reference_sample;
 
+my $make_tar_gz_file = 0;
+
 my ($DESEQ_method, $DESEQ_sharingMode, $DESEQ_fitType);
 
 
@@ -111,6 +113,7 @@ my ($DESEQ_method, $DESEQ_sharingMode, $DESEQ_fitType);
               'DESEQ_sharingMode=s' => \$DESEQ_sharingMode,
               'DESEQ_fitType=s' => \$DESEQ_fitType,
 
+              'tar_gz_outdir' => \$make_tar_gz_file,
 
     );
 
@@ -263,7 +266,13 @@ main: {
 
         }
     }
-        
+
+    if ($make_tar_gz_file) {
+        chdir $workdir or die "Error, cannot cd to $workdir";
+        my $cmd = "tar -zcvf $output_dir.tar.gz $output_dir";
+        &process_cmd($cmd);
+    }
+            
 
     exit(0);
 }

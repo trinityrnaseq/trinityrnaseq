@@ -16,7 +16,7 @@ fi
 #######################################################
 
 ## use jellyfish
-../../Trinity --seqType fq --max_memory 2G --left reads.left.fq --right reads.right.fq --SS_lib_type RF --CPU 4 --normalize_reads --output __test_trin_w_normalization
+../../Trinity --seqType fq --max_memory 2G --left reads.left.fq --right reads.right.fq --SS_lib_type RF --CPU 4 --normalize_reads --output __test_trinity_w_normalization
 
 ##### Done Running Trinity #####
 

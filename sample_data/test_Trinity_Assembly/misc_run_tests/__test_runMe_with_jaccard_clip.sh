@@ -1,6 +1,6 @@
 #!/bin/bash -ve
 
-../../Trinity.pl --seqType fq --left reads.left.fq.gz --right reads.right.fq.gz --SS_lib_type RF  --CPU 2 --jaccard_clip --JM 1G
+../../Trinity --seqType fq --left reads.left.fq.gz --right reads.right.fq.gz --SS_lib_type RF  --CPU 2 --jaccard_clip --max_memory 1G --output __test_trinity_w_jaccard
 
 
 

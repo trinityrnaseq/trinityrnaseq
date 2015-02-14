@@ -24,7 +24,7 @@ TRIMMOMATIC_CODE=Trimmomatic-0.32
 trinity_essentials: jellyfish fastool_target parafly_target trimmomatic_target
 
 trimmomatic_target:
-	ln -sf ${TRIMMOMATIC_CODE} trimmomatic
+	ln -sf ${TRIMMOMATIC_CODE} Trimmomatic
 
 
 jellyfish:
@@ -74,7 +74,7 @@ clean:
 	rm -f ./fastool # rm symlink
 	cd parafly && $(MAKE) clean
 	rm -f ./parafly # rm symlink
-	rm -f ./trimmomatic # rm symlink
+	rm -f ./Trimmomatic # rm symlink
 	cd slclust && $(MAKE) clean
 	cd collectl && rm -rf bin doc man
 	@echo "\n\n** Done cleaning plugins area **"

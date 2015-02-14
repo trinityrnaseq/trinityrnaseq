@@ -16,7 +16,7 @@ fi
 #######################################################
 
 ## use jellyfish
-../../Trinity.pl --seqType fq --JM 2G --left reads.left.fq --right reads.right.fq --SS_lib_type RF --CPU 4 --trimmomatic
+../../Trinity --seqType fq --max_memory 2G --left reads.left.fq --right reads.right.fq --SS_lib_type RF --CPU 4 --trimmomatic --output __test_trinity_with_trimmomatic
 
 ##### Done Running Trinity #####
 

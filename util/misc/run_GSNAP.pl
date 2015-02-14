@@ -80,7 +80,7 @@ main: {
 		
         
 
-        my $cmd = "gmap_build -D $genomeBaseDir -d $genomeDir -k 13 $no_sarray $genome >&2";
+        my $cmd = "gmap_build -D $genomeBaseDir -d $genomeDir -T $genomeBaseDir -k 13 $no_sarray $genome >&2";
 		&process_cmd($cmd);
 	}
 
@@ -101,12 +101,14 @@ main: {
         $splice_param = "--use-splicing=$splice_file.iit";
     }
     
-
+    
     ## run GMAP
     
     my $gsnap_use_sarray = ($no_sarray) ? "--use-sarray=0" : "";
 
-    my $cmd = "set -o pipefail && gsnap -D $genomeBaseDir -d $genomeDir -A sam -N 1 -w $max_intron $gsnap_use_sarray -n $num_top_hits -t $CPU $reads $splice_param | samtools view -bS - | samtools sort -@ $CPU - $out_prefix.cSorted";
+    $reads = &add_zcat_fifo($reads);
+
+    my $cmd = "bash -c \"set -o pipefail && gsnap -D $genomeBaseDir -d $genomeDir -A sam -N 1 -w $max_intron $gsnap_use_sarray -n $num_top_hits -t $CPU $reads $splice_param | samtools view -bS -F 4 - | samtools sort -@ $CPU - $out_prefix.cSorted \"";
     &process_cmd($cmd);
 
     if (-s "$out_prefix.cSorted.bam") {
@@ -116,6 +118,29 @@ main: {
     
 	exit(0);
 }
+
+
+####
+sub add_zcat_fifo {
+    my ($reads) = @_;
+
+    my @adj_reads_list;
+
+    foreach my $reads_file (split(/\s+/, $reads) ) {
+        if ($reads_file =~ /\.gz$/) {
+            $reads_file = "<(zcat $reads_file)";
+        }
+        push (@adj_reads_list, $reads_file);
+    }
+    
+    my $adj_reads = join(" ", @adj_reads_list);
+
+    return($adj_reads);
+}
+                            
+    
+
+
 
 ####
 sub process_cmd {

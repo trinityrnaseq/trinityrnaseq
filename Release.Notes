@@ -1,5 +1,13 @@
 
-## pre-release v2.0.3
+# Release v2.0.4
+
+    -Trimmomatic symlink set w/ capital T
+    -additional testing built in
+    -use parallel samtools always (not just w/ v1.1, silly!)
+
+
+
+## Release v2.0.3
 
 
   -Trinity is by default less verbose.  For a more verbose run, use the new --verbose flag.

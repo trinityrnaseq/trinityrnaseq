@@ -13,7 +13,6 @@ use Cwd;
 use Carp;
 use COMMON;
 use Getopt::Long qw(:config posix_default no_ignore_case pass_through); 
-use LWP::Simple;
 use Pipeliner;
 use Fasta_reader;
 
@@ -294,6 +293,8 @@ my $full_usage = qq^
 #
 #  --no_cleanup                    :retain all intermediate input files.
 #
+#  --no_version_check              :dont run a network check to determine if software updates are available.
+#
 ####################################################
 # Inchworm and K-mer counting-related options: #####
 #
@@ -550,6 +551,8 @@ my $SEE = 0;
 
 my $ANANAS_DIR = "";
 
+my $NO_VERSION_CHECK = 0;
+
 
 &GetOptions( 
     
@@ -559,6 +562,8 @@ my $ANANAS_DIR = "";
             
     'verbose' => \$SEE,
  
+    'no_version_check' => \$NO_VERSION_CHECK,
+    
     ## general opts
     "seqType=s" => \$seqType,
     "left=s{,}" => \@left_files,
@@ -705,7 +710,8 @@ if ($help_flag) {
 }
 
 if ($show_version_flag) {
-    print "Trinity version: $VERSION\n";
+    &version_check();
+    
     exit(1);
 }
 
@@ -823,6 +829,11 @@ unless ($NO_RUN_INCHWORM_FLAG || $NO_RUN_CHRYSALIS_FLAG || $bypass_java_version_
   }
 }
 
+
+unless ($NO_VERSION_CHECK || $TRINITY_COMPLETE_FLAG) {
+    &version_check();
+}
+
 # Give the variable with memory size and a user-oriented name
 
 sub bfly_check {
@@ -933,7 +944,6 @@ if ($grid_conf_file) {
 
 main: {
     $ENV{OMP_NUM_THREADS} = $CPU;
-    
 
     unless ($NO_RUN_INCHWORM_FLAG || $NO_RUN_CHRYSALIS_FLAG) {
         print STDERR "-since butterfly will eventually be run, lets test for proper execution of java\n" if $SEE;
@@ -2839,15 +2849,43 @@ sub add_fifo_for_gzip {
 }
 
 sub version_check {
-    my $content = get("http://rt-trinity.uits.indiana.edu/flask/version/" . $VERSION . "?timestamp=" . time);
-    if (defined $content) {
-        if ($content ne 'yes') {
-            print "Trinity version " . $content . " is available";
-        }
+    
+    print "Trinity version: $VERSION\n";
+    
+    my $url = "http://rt-trinity.uits.indiana.edu/flask/version/" . $VERSION . "?timestamp=" . time;
+    my $content = `curl --connect-timeout 10 -s "$url"`;
+    
+    ## get release info from here:
+    ## https://api.github.com/repos/trinityrnaseq/trinityrnaseq/releases
+
+    $url = "https://api.github.com/repos/trinityrnaseq/trinityrnaseq/releases";
+    $content = `curl --connect-timeout 10 -s "$url"`;
+    
+    if ($?) {
+        
+        print STDERR "-ERROR: couldn't run the network check to confirm latest Trinity software version.\n\n";
     }
     else {
-        print "Version check failed";
+        
+        if ($content =~ /\"tag_name\": \"([^\"]+)\"/) {
+            my $latest_version_tag = $1;
+            if ($VERSION eq '__TRINITY_VERSION_TAG__') {
+                print STDERR "-using Trinity devel version. Note, latest production release is: $latest_version_tag\n\n";
+            }
+            elsif ($latest_version_tag ne $VERSION) {
+                print "** NOTE: Latest version of Trinity is $latest_version_tag, and can be obtained at:\n"
+                    . "\thttps://github.com/trinityrnaseq/trinityrnaseq/releases\n\n";
+            }
+            else {
+                print STDERR "-currently using the latest production release of Trinity.\n\n";
+            }
+        }
+        else {
+            print STDERR "-ERROR: couldn't parse latest version tag info from github: $content\n\n";
+        }
     }
+    
+    return;
 }
 
 

@@ -138,7 +138,7 @@ my $help_flag;
 my $advanced_help_flag;
 my $SHOW_CITATION_FLAG = 0;
 
-my $VERSION = "Trinity_v2.0.2"; 
+my $VERSION = "__TRINITY_VERSION_TAG__"; 
 my $show_version_flag = 0;
 
 ## Kmer methods

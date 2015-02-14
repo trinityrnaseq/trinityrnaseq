@@ -50,7 +50,9 @@ clean:
 
 
 test_trinity:
-	cd sample_data/test_Trinity_Assembly && make test
+	cd sample_data/test_Trinity_Assembly && make test_trinity
+
+test_gg_trinity:
 	cd sample_data/test_GenomeGuidedTrinity && make test
 
 test_all:

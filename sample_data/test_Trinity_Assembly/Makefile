@@ -1,4 +1,8 @@
 
+test_trinity:
+	./runMe.sh
+
+
 test:
 	./runMe.sh
 	./misc_run_tests/__test_runMe_include_normalization.sh

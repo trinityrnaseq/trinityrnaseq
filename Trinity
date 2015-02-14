@@ -17,6 +17,9 @@ use Pipeliner;
 use Fasta_reader;
 
 
+my $VERSION = "__TRINITY_VERSION_TAG__"; 
+
+
 BEGIN {
 
     $ENV{TRINITY_HOME} = "$FindBin::Bin";
@@ -42,8 +45,6 @@ my $COREUTILS_DIR = "$ROOTDIR/trinity-plugins/coreutils/bin";
 my $PARAFLY = "$ROOTDIR/trinity-plugins/parafly/bin/ParaFly";
 my $TRIMMOMATIC = "$ROOTDIR/trinity-plugins/Trimmomatic/trimmomatic.jar";
 my $TRIMMOMATIC_DIR = "$ROOTDIR/trinity-plugins/Trimmomatic";
-
-#&version_check();
 
 
 # Site specific setup
@@ -137,7 +138,6 @@ my $help_flag;
 my $advanced_help_flag;
 my $SHOW_CITATION_FLAG = 0;
 
-my $VERSION = "__TRINITY_VERSION_TAG__"; 
 my $show_version_flag = 0;
 
 ## Kmer methods

@@ -5,9 +5,9 @@ AC_PROG_CXX
 #AC_OPENMP # requires autoconf >= 2.62
 AC_SUBST([AM_CXXFLAGS], [-m64])
 case $CXX in
-  g++*) AC_SUBST([AM_CXXFLAGS],["-pedantic -fopenmp -Wall -Wextra -Wno-long-long -Wno-deprecated $AM_CXXFLAGS"]);;
-  sunCC*) AC_SUBST([AM_CXXFLAGS], ["-library=stlport4 -xopenmp -xvpara -fast $AM_CXXFLAGS"]) ;;
-  icpc*) AC_SUBST([AM_CXXFLAGS], ["-Wall -openmp $AM_CXXFLAGS"]) ;;
+  g++*) AC_SUBST([AM_CXXFLAGS],["-std=c++0x -pedantic -fopenmp -Wall -Wextra -Wno-deprecated $AM_CXXFLAGS"]);;
+  sunCC*) AC_SUBST([AM_CXXFLAGS], ["-std=c++0x -library=stlport4 -xopenmp -xvpara -fast $AM_CXXFLAGS"]) ;;
+  icpc*) AC_SUBST([AM_CXXFLAGS], ["-std=c++0x -Wall -openmp $AM_CXXFLAGS"]) ;;
 esac
 AC_SEARCH_LIBS([cos], [m])
 AC_CONFIG_HEADERS([config.h])

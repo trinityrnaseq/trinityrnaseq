@@ -278,7 +278,9 @@ public class PathExpressionComparator implements Comparator<Object> {
 			return(transcript_to_fractional_expr.get(path));
 		}
 		else {
-			System.err.println("WARNING: no expr value stored for path: " + path);
+			if (BFLY_GLOBALS.VERBOSE_LEVEL >= 10) {
+				System.err.println("WARNING: no expr value stored for path: " + path);
+			}
 			return(0f);
 		}
 	}

@@ -16,7 +16,7 @@ my $prefix;
 
 my @sra_files = @ARGV;
 
-unless ($prefix) {
+unless (@ARGV) {
     die $usage;
 }
 
@@ -42,25 +42,29 @@ foreach my $sra_file (@sra_files) {
     
 }
 
-my @final_cmds;
-my @tmp_files;
-for my $end ("1", "2") {
-
-    my $cmd = "cat";
-    foreach my $core_name (@core_names) {
+if ($prefix) {
+    
+    my @final_cmds;
+    my @tmp_files;
+    for my $end ("1", "2") {
         
-        my $file = "$core_name" . "_$end.fastq";
-        $cmd .= " $file ";
-        push (@tmp_files, $file);
+        my $cmd = "cat";
+        foreach my $core_name (@core_names) {
+            
+            my $file = "$core_name" . "_$end.fastq";
+            $cmd .= " $file ";
+            push (@tmp_files, $file);
+        }
+        $cmd .= ">$prefix" . "_$end.fastq";
+        &process_cmd($cmd);
     }
-    $cmd .= ">$prefix" . "_$end.fastq";
-    &process_cmd($cmd);
+    
+    ## remove tmp files:
+    foreach my $file (@tmp_files) {
+        unlink($file);
+    }
 }
 
-## remove tmp files:
-foreach my $file (@tmp_files) {
-    unlink($file);
-}
 
 exit(0);
 

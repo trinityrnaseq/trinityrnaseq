@@ -87,7 +87,7 @@ main: {
     
     $reads = &add_zcat_fifo_and_add_hisat_params($reads);
 
-    my $cmd = "$HISAT_HOME/hisat -x $hisat_index -q $reads $splice_incl -p $CPU  | samtools view -@ $CPU -F 4 -Sb - | samtools sort -@ $CPU -no - - > $out_prefix.cSorted.bam";
+    my $cmd = "$HISAT_HOME/hisat -x $hisat_index -q $reads $splice_incl -p $CPU  | samtools view -@ $CPU -F 4 -Sb - | samtools sort -@ $CPU -o - - > $out_prefix.cSorted.bam";
     
     &process_cmd($cmd);
 

@@ -21,7 +21,7 @@ my $usage = <<__EOUSAGE__;
 #
 #  Optional:
 #  -N <int>                    number of top hits (default: 1)
-#  -I <int>                    max intron length (default: 500000)
+#  -I <int>                    max intron length (default: 1000000)
 #  -G <string>                 GTF file for incorporating reference splice site info.
 #  --CPU <int>                 number of threads (default: 2)
 #  --out_prefix <string>       output prefix (default: gsnap)
@@ -37,7 +37,7 @@ __EOUSAGE__
 
 my ($genome, $reads);
 
-my $max_intron = 500000;
+my $max_intron = 1000000;
 my $CPU = 2;
 
 my $help_flag;

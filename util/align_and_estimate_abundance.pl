@@ -21,6 +21,14 @@ my %aligner_params = ( 'bowtie_RSEM' => '--all --best --strata -m 300 --chunkmbs
                        
                        'bowtie2_eXpress' => '--end-to-end',
                        
+                       
+
+                       'bowtie_none' => '--all --best --strata -m 300 --chunkmbs 512',
+                       
+                       'bowtie2_none' => '--no-mixed --no-discordant --gbar 1000 --end-to-end', 
+                       
+                       
+
     );
 
 my $rsem_add_opts = "";
@@ -255,7 +263,7 @@ elsif ($aln_method !~ /bowtie2?/) {
     die "Error, --aln_method must be either 'bowtie' or 'bowtie2' ";
 }
 
-unless ($est_method =~ /^(RSEM|eXpress)$/) {
+unless ($est_method =~ /^(RSEM|eXpress|none)$/) {
     die "Error, --est_method  'RSEM' or 'eXpress' only, and capitalization matters. :) \n";
 }
 
@@ -490,31 +498,44 @@ main: {
     elsif ($est_method eq "RSEM") {
         &run_RSEM($bam_file, $rsem_prefix, $output_prefix);
     }
+    elsif ($est_method eq "none") {
+        print STDERR "Not running abundance estimation, stopping now after alignment.\n";
+    }
     else {
         die "Error, --est_method $est_method is not supported";
     }
     
     if ($coordsort_bam_flag) {
         
-        my $sorted_bam_file = $bam_file;
-        $sorted_bam_file =~ s/bam$/csorted/;
-        if (! -e "$sorted_bam_file.bam.ok") {
-            ## sort the bam file
-            
-            my $cmd = "samtools sort $bam_file $sorted_bam_file";
-            &process_cmd($cmd);
-            $cmd = "samtools index $sorted_bam_file.bam";
-            &process_cmd($cmd);
-            
-            &process_cmd("touch $sorted_bam_file.bam.ok");
-        }
+        &sort_bam_file($bam_file);
+        
     }
-    
-
     
     exit(0);
     
 }
+
+
+
+####
+sub sort_bam_file {
+    my ($bam_file) = @_;
+    my $sorted_bam_file = $bam_file;
+    $sorted_bam_file =~ s/bam$/csorted/;
+    if (! -e "$sorted_bam_file.bam.ok") {
+        ## sort the bam file
+        
+        my $cmd = "samtools sort $bam_file $sorted_bam_file";
+        &process_cmd($cmd);
+        $cmd = "samtools index $sorted_bam_file.bam";
+        &process_cmd($cmd);
+        
+        &process_cmd("touch $sorted_bam_file.bam.ok");
+    }
+
+    return;
+}
+
 
 
 ####

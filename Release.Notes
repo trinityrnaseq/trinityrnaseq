@@ -1,4 +1,9 @@
 
+# Release v2.0.5
+  -bugfix to properly fan out read files (they were inadvertently ending up in a single directory)
+
+
+
 # Release v2.0.4
 
     -Trimmomatic symlink set w/ capital T

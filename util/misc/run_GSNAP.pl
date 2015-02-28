@@ -26,6 +26,7 @@ my $usage = <<__EOUSAGE__;
 #  --CPU <int>                 number of threads (default: 2)
 #  --out_prefix <string>       output prefix (default: gsnap)
 #  --no_sarray                 skip the sarray in the gmap-build 
+#  --proper_pairs_only         require proper pairing of reads
 #
 #######################################################################
 
@@ -46,6 +47,7 @@ my $num_top_hits = 1;
 my $out_prefix = "gsnap";
 my $gtf_file;
 my $no_sarray = "";
+my $proper_pairs_only_flag = 0;
 
 &GetOptions( 'h' => \$help_flag,
              'genome=s' => \$genome,
@@ -56,6 +58,7 @@ my $no_sarray = "";
              'out_prefix=s' => \$out_prefix,
              'G=s' => \$gtf_file,
              'no_sarray' => \$no_sarray,
+             'proper_pairs_only' => \$proper_pairs_only_flag,
     );
 
 
@@ -108,7 +111,12 @@ main: {
 
     $reads = &add_zcat_fifo($reads);
 
-    my $cmd = "bash -c \"set -o pipefail && gsnap -D $genomeBaseDir -d $genomeDir -A sam -N 1 -w $max_intron $gsnap_use_sarray -n $num_top_hits -t $CPU $reads $splice_param | samtools view -bS -F 4 - | samtools sort -@ $CPU - $out_prefix.cSorted \"";
+    my $require_proper_pairs = "";
+    if ($proper_pairs_only_flag) {
+        $require_proper_pairs = " -f 2 ";
+    }
+
+    my $cmd = "bash -c \"set -o pipefail && gsnap -D $genomeBaseDir -d $genomeDir -A sam -N 1 -w $max_intron $gsnap_use_sarray -n $num_top_hits -t $CPU $reads $splice_param | samtools view -bS -F 4 $require_proper_pairs - | samtools sort -@ $CPU - $out_prefix.cSorted \"";
     &process_cmd($cmd);
 
     if (-s "$out_prefix.cSorted.bam") {

@@ -96,7 +96,7 @@ main: {
         $top_hits_count = " -k $num_top_hits ";
     }
     
-    my $cmd = "bash -c \"set -o pipefail && $HISAT_HOME/hisat -x $hisat_index -q $reads $splice_incl -p $CPU $top_hits_count | samtools view -@ $CPU -F 4 -Sb - | samtools sort -@ $CPU -o - - > $out_prefix.cSorted.bam \"";
+    my $cmd = "bash -c \"set -o pipefail && $HISAT_HOME/hisat -x $hisat_index -q $reads $splice_incl -p $CPU $top_hits_count @ARGV | samtools view -@ $CPU -F 4 -Sb - | samtools sort -@ $CPU -o - - > $out_prefix.cSorted.bam \"";
     
     &process_cmd($cmd);
 

@@ -227,11 +227,11 @@ my $basic_usage = qq^
 #                            provied in Gb of RAM, ie.  '--max_memory 10G'
 #
 #  If paired reads:
-#      --left  <string>    :left reads, one or more (separated by space)
-#      --right <string>    :right reads, one or more (separated by space)
+#      --left  <string>    :left reads, one or more file names (separated by commas, no spaces)
+#      --right <string>    :right reads, one or more file names (separated by commas, no spaces)
 #
 #  Or, if unpaired reads:
-#      --single <string>   :single reads, one or more (note, if single file contains pairs, can use flag: --run_as_paired )
+#      --single <string>   :single reads, one or more file names, comma-delimited (note, if single file contains pairs, can use flag: --run_as_paired )
 #
 ####################################
 ##  Misc:  #########################

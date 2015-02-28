@@ -1751,9 +1751,9 @@ sub run_chrysalis {
 sub run_recursive_trinity {
     my ($reads_sorted_by_component_file) = @_;
 
-    my $target_files_per_dir = 100;
-    my $file_bins_per_dir = 10000;
-
+    my $target_files_per_dir = 100; # new Fb_\d/CBin_\d every (#components/100)
+    my $file_bins_per_dir = 10000; # new Fb_\d dir every (#components/10k)
+    
     my $component_counter = 0;
     
     my $prev_component_id = -1;
@@ -1786,6 +1786,9 @@ sub run_recursive_trinity {
                 print $ofh_read_filenames "$readsfile\n";
             }
             print $ofh "$read_name\n$read_seq\n";
+        
+            $component_counter++;
+            
         }
         close $ofh if $ofh;
         close $ofh_read_filenames;
@@ -1799,8 +1802,7 @@ sub run_recursive_trinity {
         exit(0);
     }
     
-
-
+        
     if (! -e "recursive_trinity.cmds.ok") {
         &write_trinity_partitioned_cmds($read_filenames, "recursive_trinity.cmds");
         &process_cmd("touch recursive_trinity.cmds.ok");

@@ -17,7 +17,7 @@ use Pipeliner;
 use Fasta_reader;
 
 
-my $VERSION = "v2.0.4"; 
+my $VERSION = "__TRINITY_VERSION_TAG__"; 
 
 
 BEGIN {
@@ -1752,7 +1752,7 @@ sub run_recursive_trinity {
     my ($reads_sorted_by_component_file) = @_;
 
     my $target_files_per_dir = 100; # new Fb_\d/CBin_\d every (#components/100)
-    my $file_bins_per_dir = 10000; # new Fb_\d dir every (#components/10k)
+    my $file_bins_per_dir = 100*100; # new Fb_\d dir every (#components/(100*100))
     
     my $component_counter = 0;
     

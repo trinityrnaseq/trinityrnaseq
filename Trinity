@@ -1752,7 +1752,7 @@ sub run_recursive_trinity {
     my ($reads_sorted_by_component_file) = @_;
 
     my $target_files_per_dir = 100; # new Fb_\d/CBin_\d every (#components/100)
-    my $file_bins_per_dir = 100*100; # new Fb_\d dir every (#components/(100*100))
+    my $file_bins_per_dir = 1000 * $target_files_per_dir; # new Fb_\d dir 
     
     my $component_counter = 0;
     
@@ -1782,13 +1782,13 @@ sub run_recursive_trinity {
                 }
                 my $readsfile = "$currdir/$base_dir/c$component_id.trinity.reads.fa";
                 
+                $component_counter++;
+                                
                 open ($ofh, ">$readsfile") or die "Error, cannot write to file $readsfile";
                 print $ofh_read_filenames "$readsfile\n";
             }
             print $ofh "$read_name\n$read_seq\n";
         
-            $component_counter++;
-            
         }
         close $ofh if $ofh;
         close $ofh_read_filenames;

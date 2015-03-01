@@ -8,6 +8,9 @@ my $usage = "usage: $0 token < trinity_fasta_files_listing\n\n";
 
 my $token = $ARGV[0] or die $usage;
 
+
+my $counter = 0;
+
 while (<STDIN>) {
     my $filename = $_;
     chomp $filename;
@@ -16,16 +19,11 @@ while (<STDIN>) {
         next;
     }
     if (-s $filename) {
-        
-        # ie. read_partitions/Fb_0/CBin_161/c16167.trinity.reads.fa
-        
-        $filename =~ m|c(\d+)\.trinity\.reads| or die "Error, cannot parse Trinity component value from filename: $filename";
-        my $component = $1;
-        
+        $counter++;
         open (my $fh, $filename) or die "Error, cannot open file $filename";
         while (<$fh>) {
             if (/>/) {
-                s/>/>$token$component\|/;
+                s/>/>$token$counter\|/;
             }
             print;
         }

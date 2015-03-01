@@ -2706,7 +2706,7 @@ sub run_genome_guided_Trinity {
     
         
     ## pull together the final outputs:
-    $cmd = "find Dir_*  -name '*inity.fasta'  | $UTILDIR/support_scripts/partitioned_trinity_aggregator.pl GG > Trinity-GG.fasta.tmp";
+    $cmd = "find Dir_*  -name '*inity.fasta'  | $UTILDIR/support_scripts/GG_partitioned_trinity_aggregator.pl GG > Trinity-GG.fasta.tmp";
     &process_cmd($cmd);
 
     rename("Trinity-GG.fasta.tmp", "Trinity-GG.fasta"); # now that it's done.

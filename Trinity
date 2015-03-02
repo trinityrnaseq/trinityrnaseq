@@ -17,7 +17,7 @@ use Pipeliner;
 use Fasta_reader;
 
 
-my $VERSION = "v2.0.5"; 
+my $VERSION = "v2.0.6"; 
 
 
 BEGIN {

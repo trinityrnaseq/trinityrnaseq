@@ -1146,7 +1146,8 @@ main: {
             print "###################################################################\n\n\n" unless $TRINITY_COMPLETE_FLAG;
         }
         else {
-            die "ERROR, no butterfly assemblies reported.";
+            
+            die "ERROR, no butterfly assemblies reported." unless $TRINITY_COMPLETE_FLAG;
         }
         
     }

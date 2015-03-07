@@ -284,7 +284,7 @@ sub parse_result_files_find_diffExp {
     
     foreach my $result_file (@$result_files_aref) {
         
-        $result_file =~ /\.([^\.]+)_vs_([^\.]+)\./ or die "Error, cannot extract condition names from $result_file";
+        $result_file =~ /matrix\.(\S+)_vs_(\S+)\.[^\.]+\.DE_results$/ or die "Error, cannot extract condition names from $result_file";
         my ($condA, $condB) = ($1, $2);
         
         my $pairwise_samples_file = "$result_file.samples";

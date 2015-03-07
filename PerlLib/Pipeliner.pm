@@ -70,17 +70,18 @@ sub run {
             
             my $ret = system($cmdstr);
             if ($ret) {
+                
+                if (-e $tmp_stderr) {
+                    system("cat $tmp_stderr");
+                    unlink($tmp_stderr);
+                }
+                                
                 confess "Error, cmd: $cmdstr died with ret $ret";
             }
             else {
                 `touch $checkpoint_file`;
                 if ($?) {
                     
-                    if (-e $tmp_stderr) {
-                        system("cat $tmp_stderr");
-                        unlink($tmp_stderr);
-                    }
-
                     confess "Error creating checkpoint file: $checkpoint_file";
                 }
             }

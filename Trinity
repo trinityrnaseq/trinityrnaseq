@@ -2121,7 +2121,7 @@ sub test_java_failure_capture {
     }
     
 
-    my $cmd = "java -Xmx64m -jar $UTILDIR/support_scripts/ExitTester.jar 0";
+    my $cmd = "java -Xmx64m -XX:ParallelGCThreads=$bflyGCThreads -jar $UTILDIR/support_scripts/ExitTester.jar 0";
     eval {
         &process_cmd($cmd);
     };
@@ -2133,7 +2133,7 @@ sub test_java_failure_capture {
         
     }
     
-    $cmd = "java -Xmx64m -jar $UTILDIR/support_scripts/ExitTester.jar 1";
+    $cmd = "java -Xmx64m -XX:ParallelGCThreads=$bflyGCThreads -jar $UTILDIR/support_scripts/ExitTester.jar 1";
     eval {
         &process_cmd($cmd);
     };

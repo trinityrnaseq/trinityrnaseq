@@ -104,16 +104,16 @@ main: {
 
     my $cmd = "bash -c \"set -o pipefail && $HISAT_HOME/hisat -x $hisat_index -q $reads $splice_incl -p $CPU $top_hits_count @ARGV | gzip -c > $out_prefix.sam.gz\" ";
     
-    $pipeliner->add_commands( new Command($cmd, ".$out_prefix.sam.gz.ok") );
+    $pipeliner->add_commands( new Command($cmd, "$out_prefix.sam.gz.ok") );
     push (@tmpfiles, "$out_prefix.sam.gz");
     
     $cmd = "bash -c \"set -o pipefail && gunzip -c $out_prefix.sam.gz | samtools view -@ $CPU -F 4 -Sb - > $out_prefix.bam \"";
-    $pipeliner->add_commands( new Command($cmd, ".$out_prefix.bam.ok") );
+    $pipeliner->add_commands( new Command($cmd, "$out_prefix.bam.ok") );
     push (@tmpfiles, "$out_prefix.bam");
     
 
     $cmd = "samtools sort -@ $CPU $out_prefix.bam $out_prefix.cSorted";
-    $pipeliner->add_commands( new Command($cmd, ".$out_prefix.cSorted.bam.ok") );
+    $pipeliner->add_commands( new Command($cmd, "$out_prefix.cSorted.bam.ok") );
     
 
     $pipeliner->run();

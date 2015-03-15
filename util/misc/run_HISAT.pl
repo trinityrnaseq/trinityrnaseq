@@ -4,6 +4,8 @@ use strict;
 use warnings;
 
 use FindBin;
+use lib("$FindBin::Bin/../../PerlLib");
+use Pipeliner;
 use File::Basename;
 use Cwd;
 
@@ -96,14 +98,33 @@ main: {
         $top_hits_count = " -k $num_top_hits ";
     }
     
-    my $cmd = "bash -c \"set -o pipefail && $HISAT_HOME/hisat -x $hisat_index -q $reads $splice_incl -p $CPU $top_hits_count @ARGV | samtools view -@ $CPU -F 4 -Sb - | samtools sort -@ $CPU -o - - > $out_prefix.cSorted.bam \"";
+    my @tmpfiles;
     
-    &process_cmd($cmd);
+    my $pipeliner = new Pipeliner(-verbose => 1);
+
+    my $cmd = "bash -c \"set -o pipefail && $HISAT_HOME/hisat -x $hisat_index -q $reads $splice_incl -p $CPU $top_hits_count @ARGV | gzip -c > $out_prefix.sam.gz\" ";
+    
+    $pipeliner->add_commands( new Command($cmd, ".$out_prefix.sam.gz.ok") );
+    push (@tmpfiles, "$out_prefix.sam.gz");
+    
+    $cmd = "bash -c \"set -o pipefail && gunzip -c $out_prefix.sam.gz | samtools view -@ $CPU -F 4 -Sb - > $out_prefix.bam \"";
+    $pipeliner->add_commands( new Command($cmd, ".$out_prefix.bam.ok") );
+    push (@tmpfiles, "$out_prefix.bam");
+    
+
+    $cmd = "samtools sort -@ $CPU $out_prefix.bam $out_prefix.cSorted";
+    $pipeliner->add_commands( new Command($cmd, ".$out_prefix.cSorted.bam.ok") );
+    
+
+    $pipeliner->run();
+    
 
     if (-s "$out_prefix.cSorted.bam") {
         $cmd = "samtools index $out_prefix.cSorted.bam";
         &process_cmd($cmd);
     }
+    
+    unlink(@tmpfiles);
     
 	exit(0);
 }

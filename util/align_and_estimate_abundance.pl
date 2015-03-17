@@ -13,22 +13,44 @@ my $RSEM_DIR = "$FindBin::Bin/../trinity-plugins/rsem";
 $ENV{PATH} = "$RSEM_DIR:$ENV{PATH}"; # be sure to use the included rsem package over other ones installed.
 
 
-my %aligner_params = ( 'bowtie_RSEM' => '--all --best --strata -m 300 --chunkmbs 512',
-                                              
-                       'bowtie2_RSEM' => '--no-mixed --no-discordant --gbar 1000 --end-to-end',
-                       
-                       'bowtie_eXpress' => '--all --best --strata -m 300 --chunkmbs 512',
-                       
-                       'bowtie2_eXpress' => '--end-to-end',
-                       
-                       
+my %aligner_params = ( 
 
-                       'bowtie_none' => '--all --best --strata -m 300 --chunkmbs 512',
-                       
-                       'bowtie2_none' => '--no-mixed --no-discordant --gbar 1000 --end-to-end', 
-                       
-                       
-
+    
+    ############
+    ## Bowtie-1
+    ############
+    
+    
+    'bowtie_RSEM' => '--all --best --strata -m 300 --chunkmbs 512',
+    # params used by RSEM itself:
+    #  -a -m 200
+    
+    
+    'bowtie_eXpress' => '--all --best --strata -m 300 --chunkmbs 512',
+    # bowtie -aS -X 800 --offrate 1  (requires: bowtie-build --offrate 1)
+    
+    
+    #############
+    ## Bowtie-2
+    #############
+    
+    'bowtie2_RSEM' => '--no-mixed --no-discordant --gbar 1000 --end-to-end -k 200 ',
+    
+    ## params used by RSEM itself:
+    #   --dpad 0 --gbar 99999999 --mp 1,1 --np 1 --score-min L,0,-0.1 -I 1 -X 1000 --no-mixed --no-discordant -k 200
+    
+        
+    'bowtie2_eXpress' => '--no-mixed --no-discordant --gbar 1000 --end-to-end -k 200 ',
+    
+    
+    # recommended eXpress params: http://bio.math.berkeley.edu/eXpress/faq.html
+    # -a -X 600 --rdg 6,5 --rfg 6,5 --score-min L,-.6,-.4 --no-discordant --no-mixed
+    
+        
+    'bowtie_none' => '--all --best --strata -m 300 --chunkmbs 512',
+    
+    'bowtie2_none' => '--no-mixed --no-discordant --gbar 1000 --end-to-end -k 200 ', 
+        
     );
 
 my $rsem_add_opts = "";

@@ -34,7 +34,7 @@ class TestTrinity(unittest.TestCase):
         handle = open("trinity_out_dir/Trinity.fasta", "rU")
         seq_count = len([x for x in SeqIO.parse(handle, "fasta")])
         handle.close()
-        self.assertTrue(75 <= seq_count <= 90, msg='Found %s sequences' % seq_count)
+        self.assertTrue(75 <= seq_count <= 100, msg='Found %s sequences' % seq_count)
 
     def test_sample_data_trimmed_and_normalized(self):
         self.trinity(
@@ -87,7 +87,7 @@ class TestTrinity(unittest.TestCase):
         self.trinity("Trinity %s --seqType fq --single reads.left.fq --SS_lib_type F --no_distributed_trinity_exec" % MEM_FLAG)
         self.assertTrue(os.path.isfile("trinity_out_dir/inchworm.K25.L25.fa.finished"),
                             msg="Inchworm did not appear to run with no_distributed_trinity_exec flag")
-        self.assertTrue(os.path.isfile("trinity_out_dir/jellyfish.1.finished"),
+        self.assertTrue(os.path.isfile("trinity_out_dir/jellyfish.kmers.fa.histo"),
                             msg="Jellyfish did not appear to run with no_distributed_trinity_exec flag")
         self.assertFalse(os.path.isfile("trinity_out_dir/Trinity.fasta"),
                             msg="Trinity.fasta created with no_distributed_trinity_exec")
@@ -113,9 +113,8 @@ class TestTrinity(unittest.TestCase):
             subprocess.check_output(["Trinity", "--version"])
             self.fail("Version returned 0 errorcode!")
         except subprocess.CalledProcessError as e:
-            #self.assertEqual('Trinity version: BLEEDING_EDGE\n', e.output)
-            #self.assertEqual('Trinity version: trinityrnaseq_r20140717\n', e.output)
-            self.assertEqual('Trinity version: Trinity_v2.0.2\n', e.output)
+            self.assertTrue('Trinity version: __TRINITY_VERSION_TAG__' in e.output)
+            self.assertTrue('using Trinity devel version. Note, latest production release is: v2.0.6' in e.output)
 
 
     def test_show_full_usage_info(self):

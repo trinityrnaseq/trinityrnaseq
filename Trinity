@@ -2375,12 +2375,9 @@ sub collectl_stop {
 	kill("INT", $collectl_pid);
 	kill("TERM", $collectl_pid);
 	waitpid($collectl_pid,0);
-        chdir($collectl_output_directory) or return;
-        system("python $COLLECTL_DIR/make_data_files.py");
-        system("python $COLLECTL_DIR/timetable.py");
-        $collectl_titlename = "${VERSION} ${CPU} @{left_files}@{single_files}";
-        system("python $COLLECTL_DIR/plot.py \"$collectl_titlename\" ${CPU}");
-    }
+	chdir($collectl_output_directory) or return;
+	system("$COLLECTL_DIR/collectl2html ${VERSION}");
+	}
 }
 
 ####

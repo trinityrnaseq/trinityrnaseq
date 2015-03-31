@@ -29,6 +29,7 @@ cp timetable.py          $BINDIR
 cd ${INSTALLDIR}
 cp collectl.pl           $BINDIR/collectl
 cp collectl.conf         $BINDIR
+cp collectl2html         $BINDIR
 cp -r man1               $MANDIR
 
 cp docs/*                $DOCDIR

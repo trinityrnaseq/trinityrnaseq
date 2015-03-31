@@ -1,0 +1,287 @@
+#!/usr/bin/env python
+
+from collections import namedtuple, defaultdict
+from datetime import datetime
+import json
+import os
+import sqlite3
+from string import Template
+from subprocess import call, Popen, PIPE
+import sys
+import time
+
+lineinfo = namedtuple('lineinfo', 'timestamp, pid, proc, cpu_pct, vmem, read, write')
+
+def wait_for_collectl(filename):
+    finished = call(["gzip", "-tf", filename])
+    count = 0
+    while finished != 0 and count < 300:
+        print "collectl has not yet finished"
+        time.sleep(1)
+        finished = call(["gzip", "-tf", filename])
+        count += 1
+
+def open_collectl(filename):
+    bindir = os.path.dirname(sys.argv[0])
+    args = [bindir+os.sep+"collectl", "-P", "-p", filename, "-sZ"]
+    #args = ["perl", "c:\\Apps\\collectl-3.7.3\\collectl.pl", "-P", "-p", filename, "-sZ"]
+    p = Popen(args, stdout=PIPE)
+    p.stdout.readline()
+    while True:
+        retcode = p.poll() #returns None while subprocess is running
+        line = p.stdout.readline()
+        yield line
+        if(retcode is not None):
+            break
+
+def pretty_process(s):
+    if not s:
+        return None
+    if s[0] in ("-bash", 'sh', '/bin/bash', 'bash', 'ln', '/bin/pwd', 'mkdir', 'date', 'touch', '/usr/bin/env'):
+        return None
+
+    exes = ['fastool', 'ParaFly', 'Butterfly', 'ReadsToTranscripts', 'jellyfish',
+            'inchworm', 'FastaToDeBruijn', 'QuantifyGraph', 'GraphFromFasta', 'CreateIwormFastaBundle',
+            'bowtie-build', 'bowtie', 'Chrysalis', 'cat', 'sort', 'cp', 'wc', 'rm', 'find', 'gzip']
+    perl_scripts = ['scaffold_iworm_contigs', 'Trinity', 'collectl', 'print_butterfly_assemblies',
+                    'partition_chrysalis_graphs_n_reads', 'fasta_filter_by_min_length',
+                    'partitioned_trinity_aggregator']
+
+    for k in exes:
+        if s[0].endswith(k):
+            return k
+
+    if s[0] == 'samtools':
+        return ('samtools_' + s[1]) if len(s) > 1 else 'samtools'
+
+    if s[0] == '/bin/sort':
+        return 'sort'
+
+    if s[0] == 'java':
+        if 'Butterfly.jar' in " ".join(s):
+            return 'Butterfly'
+        if 'ExitTester.jar' in " ".join(s):
+            return 'ExitTester'
+        if 'trimmomatic.jar' in " ".join(s):
+            return 'Trimmomatic'
+        if '-version' in " ".join(s):
+            return 'java_version'
+
+        return 'java'
+
+    if s[0] == 'perl':
+        for k in perl_scripts:
+            if k in s[1]:
+                return k
+        return 'perl'
+
+    if s[0] == '/usr/bin/perl' and 'collectl' in s[2]:
+        return 'collectl'
+
+    return os.path.basename(s[0]) + '_unknown'
+
+
+def data2line(arr):
+    if len(arr) < 21:
+        return lineinfo(None, None, None, None, None, None, None)
+
+    timestamp = datetime.strptime(arr[0] + ' ' + arr[1], '%Y%m%d %H:%M:%S')
+    pid = int(arr[2])
+    proc = pretty_process(arr[29:])
+    cpu_pct = float(arr[18])
+    vmem = int(arr[8])
+    read = int(arr[20])
+    write = int(arr[21])
+    return lineinfo(timestamp, pid, proc, cpu_pct, vmem, read, write)
+
+
+def process_input(f):
+    d1 = list(line.split() for line in f)
+    lines = (data2line(d) for d in d1)
+    return (line for line in lines if line.proc)
+
+
+def write_db(conn, lines):
+    conn.execute('''CREATE TABLE IF NOT EXISTS lines
+                 (timestamp DATETIME, pid INTEGER, process string, cpu_percent REAL, vmem REAL, read INTEGER, write INTEGER)''')
+    conn.executemany('''INSERT INTO lines (timestamp, pid, process, cpu_percent, vmem, read, write)
+                      VALUES( ?, ?, ?, ?, ?, ?, ?)''', lines)
+    normalize_timestamp(conn)
+    conn.commit()
+    return conn
+
+
+def normalize_timestamp(conn):
+    c = conn.cursor()
+    c.execute('SELECT min(timestamp)  as "ts [timestamp]" FROM lines')
+    ts = c.fetchone()[0]
+    nm = ts.hour * 3600 + ts.minute * 60 + ts.second
+    conn.execute("update lines set timestamp = datetime(timestamp, '-%s seconds')" % nm)
+
+
+def milliseconds(time_delta):
+    return (time_delta.microseconds + (time_delta.seconds + time_delta.days * 24 * 3600) * 10 ** 6) / 10 ** 3
+
+
+def reduce_point_count(d):
+    for k in d.keys():
+        if len(d[k]) > 800:
+            s = sorted(d[k], key=lambda m: -m['y'])
+            d[k] = sorted(s[0:800], key=lambda m: m['x'])
+
+
+def get_dataset(cursor, dataset):
+    cursor.execute('SELECT min(timestamp) as "ts [timestamp]" FROM lines')
+    ts = cursor.fetchone()[0]
+
+    cursor.execute('SELECT process FROM lines GROUP BY process ORDER BY min(timestamp)')
+    process_list = [r[0] for r in cursor.fetchall()]
+
+    cursor.execute(
+        'select process, timestamp as "ts [timestamp]", %s from lines group by timestamp, process order by timestamp' % dataset)
+    d = defaultdict(list)
+    timestamp_list = cursor.fetchall()
+    for c in timestamp_list:
+        if c[2] > 0:
+            d[c[0]].append(dict(x=milliseconds(c[1] - ts), y=c[2]))
+
+    reduce_point_count(d)
+
+    return [dict(name=key,
+                 data=d[key]) for key in process_list]
+
+
+def get_cpu(cursor):
+    return get_dataset(cursor, 'sum(cpu_percent/100)')
+
+
+def get_io(cursor):
+    return get_dataset(cursor, 'sum(read+write)')
+
+
+def get_mem(cursor):
+    return get_dataset(cursor, 'sum(vmem*1024)')
+
+
+def get_database():
+    conn = sqlite3.connect(':memory:', detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
+    conn.execute('''CREATE TABLE IF NOT EXISTS lines
+                 (timestamp DATETIME, pid INTEGER, process string, cpu_percent REAL, vmem REAL, read INTEGER, write INTEGER)''')
+
+    return conn
+
+
+def get_html(s1, s2, s3, v):
+    x = Template(html_template)
+    return x.substitute(cpu_series=json.dumps(s1), io_series=json.dumps(s2), mem_series=json.dumps(s3), version=v)
+
+
+def main(outname, version):
+    collectl_filename = next(file for file in os.listdir(".") if file.endswith(".gz"))
+    wait_for_collectl(collectl_filename)
+
+    db = get_database()
+
+    p = open_collectl(collectl_filename)
+    result = process_input(p)
+    write_db(db, result)
+    cpu = get_cpu(db.cursor())
+    io = get_io(db.cursor())
+    mem = get_mem(db.cursor())
+    result = get_html(cpu, io, mem, version)
+
+    with open(outname, 'w') as f:
+        f.write(result)
+
+
+html_template = """<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>Trinity File I/O</title>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+        <script src="http://code.highcharts.com/highcharts.js"></script>
+<script type="text/javascript">
+$$(function () {
+    $$('#cpu_chart').highcharts({
+            chart: { type: 'line', zoomType: 'xy' },
+            title: { text: 'Trinity CPU Usage by process' },
+			plotOptions: { series: { marker: { enabled: false } } },
+            xAxis: {
+                type: 'datetime',
+                dateTimeLabelFormats: { month: '%e. %b', year: '%b' },
+                title: { text: 'Wall Time' },
+				showFirstLabel: false },
+            yAxis: [{ title: { text: 'Active CPUs' }, min: 0 }],
+            tooltip: { headerFormat: '<b>{series.name}</b><br>', pointFormat: '{point.x:%H:%M:%S}: {point.y:.2f} cpu' },
+            series:
+$cpu_series
+        });
+
+    $$('#io_chart').highcharts({
+            chart: { type: 'line', zoomType: 'xy' },
+            title: { text: 'Trinity IO by process' },
+			plotOptions: { series: { marker: { enabled: false } } },
+            xAxis: {
+                type: 'datetime',
+                dateTimeLabelFormats: { month: '%e. %b', year: '%b' },
+                title: { text: 'Wall Time' },
+				showFirstLabel: false },
+            yAxis: [{ title: { text: 'Reads + Writes' }, min: 0 }],
+            tooltip: { headerFormat: '<b>{series.name}</b><br>', pointFormat: '{point.x:%H:%M:%S}: {point.y:.2f} io' },
+            series:
+$io_series
+        });
+
+    $$('#mem_chart').highcharts({
+            chart: { type: 'line', zoomType: 'xy' },
+            title: { text: 'Trinity memory usage by process' },
+			plotOptions: { series: { marker: { enabled: false } } },
+            xAxis: {
+                type: 'datetime',
+                dateTimeLabelFormats: { month: '%e. %b', year: '%b' },
+                title: { text: 'Wall Time' },
+				showFirstLabel: false },
+            yAxis: [{ title: { text: 'Max Memory' }, min: 0 }],
+            tooltip: { headerFormat: '<b>{series.name}</b><br>', pointFormat: '{point.x:%H:%M:%S}: {point.y:.2f}' },
+            series:
+$mem_series
+        });
+    });
+		</script>
+	</head>
+<body>
+	<h1>Machine</h1>
+	<h2>Dataset</h2>
+	<h3>Trinity $version</h3>
+	Command line: cmdline
+<script type='text/javascript'>
+Highcharts.theme = {
+    colors: ['#058DC7', '#50B432', '#ED561B', '#DDDF00', '#24CBE5', '#64E572', '#FF9655', '#FFF263', '#6AF9C4'],
+    chart: {
+        backgroundColor: {
+            linearGradient: [0, 0, 500, 500],
+            stops: [ [0, 'rgb(255, 255, 255)'], [1, 'rgb(240, 240, 255)'] ]
+        },
+    },
+    title: { style: { color: '#000', font: 'bold 16px "Trebuchet MS", Verdana, sans-serif' } },
+    subtitle: { style: { color: '#666666', font: 'bold 12px "Trebuchet MS", Verdana, sans-serif' } },
+    legend: {
+        itemStyle: { font: '9pt Trebuchet MS, Verdana, sans-serif', color: 'black' },
+        itemHoverStyle:{ color: 'gray' }
+    }
+};
+Highcharts.setOptions(Highcharts.theme);</script>
+<div id="cpu_chart" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+<br />
+<div id="io_chart" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+<br />
+<div id="mem_chart" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+	</body>
+</html>"""
+
+if __name__ == '__main__':
+    version = sys.argv[1]
+    main('collectl.html', version)
+
+

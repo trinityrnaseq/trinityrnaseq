@@ -163,6 +163,18 @@ def get_mem(cursor):
     return get_dataset(cursor, 'sum(vmem*1024)')
 
 
+def write_component_timing(cursor):
+    cursor.execute("""SELECT process,
+min(timestamp) as "s [timestamp]",
+max(timestamp) as "e [timestamp]"
+FROM lines
+group by process""")
+    with open('runtime.csv', 'w') as f:
+        f.write("application runtime[s]\n")
+        for r in cursor.fetchall():
+            f.write("%s %s\n" % (r[0], r[2]-r[1]))
+
+
 def get_database():
     conn = sqlite3.connect(':memory:', detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
     conn.execute('''CREATE TABLE IF NOT EXISTS lines
@@ -185,9 +197,11 @@ def main(outname, version):
     p = open_collectl(collectl_filename)
     result = process_input(p)
     write_db(db, result)
-    cpu = get_cpu(db.cursor())
-    io = get_io(db.cursor())
-    mem = get_mem(db.cursor())
+    db_cursor = db.cursor()
+    cpu = get_cpu(db_cursor)
+    io = get_io(db_cursor)
+    mem = get_mem(db_cursor)
+    write_component_timing(db_cursor)
     result = get_html(cpu, io, mem, version)
 
     with open(outname, 'w') as f:
@@ -283,5 +297,4 @@ Highcharts.setOptions(Highcharts.theme);</script>
 if __name__ == '__main__':
     version = sys.argv[1]
     main('collectl.html', version)
-
 

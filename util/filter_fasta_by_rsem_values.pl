@@ -11,9 +11,9 @@ USAGE: filter_fasta_by_rsem_values.pl
             --rsem_output=/path/to/RSEM.isoforms.results[,...]
             --fasta=/path/to/Trinity.fasta
             --output=/path/to/output.fasta
-          [ --tpm_cutoff=10000
-            --fpkm_cutoff=1200
-            --isopct_cutoff=1.00
+          [ --tpm_cutoff=1.0
+            --fpkm_cutoff=0.5
+            --isopct_cutoff=0.05
           ]
 
 =head1 OPTIONS

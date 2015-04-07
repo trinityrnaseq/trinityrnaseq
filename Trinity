@@ -2779,13 +2779,16 @@ sub version_check {
     print "Trinity version: $VERSION\n";
     
     my $url = "http://rt-trinity.uits.indiana.edu/flask/version/" . $VERSION . "?timestamp=" . time;
-    my $content = `curl --connect-timeout 10 -s "$url"`;
+    #print STDERR "curl --connect-timeout 10 -s \"$url\"";
+    my $content = `curl -m 5 --connect-timeout 5 -s "$url"`;
+    
+    
     
     ## get release info from here:
     ## https://api.github.com/repos/trinityrnaseq/trinityrnaseq/releases
 
     $url = "https://api.github.com/repos/trinityrnaseq/trinityrnaseq/releases";
-    $content = `curl --connect-timeout 10 -s "$url"`;
+    $content = `curl -m 5 --connect-timeout 5 -s "$url"`;
     
     if ($?) {
         

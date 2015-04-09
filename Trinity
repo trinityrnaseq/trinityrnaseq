@@ -49,10 +49,10 @@ my $SAMBAMBA_BIN = '';
 
 # Check architecture and assign sambamba
 my $sys_arch = `uname -a 2>&1`;
-if ($sys_arch =~ m/darwin/i) {
+if ($sys_arch =~ m/darwin.*?x86_64/i) {
     $SAMBAMBA_BIN = "$UTILDIR/darwin_sambamba";
 }
-elsif ($sys_arch =~ m/linux/i) {
+elsif ($sys_arch =~ m/linux.*?x86_64/i) {
     $SAMBAMBA_BIN = "$UTILDIR/linux_sambamba";
 }
 
@@ -2878,7 +2878,7 @@ sub version_check {
     ## https://api.github.com/repos/trinityrnaseq/trinityrnaseq/releases
 
     $url = "https://api.github.com/repos/trinityrnaseq/trinityrnaseq/releases";
-    $content = `curl --connect-timeout 10 ---max-time 10 -s "$url" 2&>1`;
+    $content = `curl --connect-timeout 10 --max-time 10 -s "$url" 2&>1`;
     
     if (!$content || $?) {
         

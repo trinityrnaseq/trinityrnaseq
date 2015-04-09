@@ -45,7 +45,16 @@ my $COREUTILS_DIR = "$ROOTDIR/trinity-plugins/coreutils/bin";
 my $PARAFLY = "$ROOTDIR/trinity-plugins/parafly/bin/ParaFly";
 my $TRIMMOMATIC = "$ROOTDIR/trinity-plugins/Trimmomatic/trimmomatic.jar";
 my $TRIMMOMATIC_DIR = "$ROOTDIR/trinity-plugins/Trimmomatic";
+my $SAMBAMBA_BIN = '';
 
+# Check architecture and assign sambamba
+my $sys_arch = `uname -a 2>&1`;
+if ($sys_arch =~ m/darwin/i) {
+    $SAMBAMBA_BIN = "$UTILDIR/darwin_sambamba";
+}
+elsif ($sys_arch =~ m/linux/i) {
+    $SAMBAMBA_BIN = "$UTILDIR/linux_sambamba";
+}
 
 # Site specific setup
 
@@ -1441,8 +1450,16 @@ sub run_chrysalis {
             $pipeliner->add_commands( new Command($cmd, "$iworm_min100_fa_file.bowtie_build.ok"));
 
             my $bowtie_sam_file = "$chrysalis_output_dir/iworm.bowtie.nameSorted.bam";
-            $cmd = "bash -c \" set -o pipefail; bowtie -a -m 20 --best --strata --threads $CPU  --chunkmbs 512 -q -S -f $iworm_min100_fa_file $bowtie_reads_fa  | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort $PARALLEL_SAMTOOLS_SORT_TOKEN -no - - > $bowtie_sam_file\" ";
-            
+
+	    # Only run sambamba if system is able to detect arch. Using --max_memory and --CPU.
+	    if ($SAMBAMBA_BIN ne '' &&
+		-e $SAMBAMBA_BIN &&
+		-s $SAMBAMBA_BIN) {
+		$cmd = "bash -c \" set -o pipefail; bowtie -a -m 20 --best --strata --threads $CPU --chunkmbs 512 -q -S -f $iworm_min100_fa_file $bowtie_reads_fa | $SAMBAMBA_BIN view -t $CPU -F 'not(unmapped)' -S -f bam /dev/stdin | $SAMBAMBA_BIN sort -m $max_memory -t $CPU -n -o $bowtie_sam_file /dev/stdin\" ";
+	    }
+	    else {
+		$cmd = "bash -c \" set -o pipefail; bowtie -a -m 20 --best --strata --threads $CPU  --chunkmbs 512 -q -S -f $iworm_min100_fa_file $bowtie_reads_fa  | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort $PARALLEL_SAMTOOLS_SORT_TOKEN -no - - > $bowtie_sam_file\" ";
+            }
             unless ($SEE) {
                 $cmd .= " 2>/dev/null";
             }
@@ -2591,7 +2608,7 @@ sub run_normalization {
 ####
 sub normalize {
     my ($normalize_outdir, $max_read_coverage, @read_files) = @_;
-
+    
     print STDERR "---------------------------------------------------------------\n"
                . "------------ In silico Read Normalization ---------------------\n"
                . "-- (Removing Excess Reads Beyond $max_read_coverage Coverage --\n"
@@ -2855,15 +2872,15 @@ sub version_check {
     print "Trinity version: $VERSION\n";
     
     my $url = "http://rt-trinity.uits.indiana.edu/flask/version/" . $VERSION . "?timestamp=" . time;
-    my $content = `curl --connect-timeout 10 -s "$url"`;
+    my $content = `curl --connect-timeout 10 --max-time 10 -s "$url" 2&>1`;
     
     ## get release info from here:
     ## https://api.github.com/repos/trinityrnaseq/trinityrnaseq/releases
 
     $url = "https://api.github.com/repos/trinityrnaseq/trinityrnaseq/releases";
-    $content = `curl --connect-timeout 10 -s "$url"`;
+    $content = `curl --connect-timeout 10 ---max-time 10 -s "$url" 2&>1`;
     
-    if ($?) {
+    if (!$content || $?) {
         
         print STDERR "-ERROR: couldn't run the network check to confirm latest Trinity software version.\n\n";
     }

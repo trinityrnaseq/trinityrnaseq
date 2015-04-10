@@ -151,6 +151,8 @@ my $usage = <<__EOUSAGE__;
 #
 #  --CPM                    convert to counts per million (uses sum of totals before filtering)
 #
+#  --binary                 all values > 0 are set to 1.  All values < 0 are set to zero.
+#
 #  --log2
 #
 #  --center_rows            subtract row mean from each data point. (only used under '--heatmap' )
@@ -284,6 +286,8 @@ my $gene_grep;
 
 
 my $ZSCALE_ROWS = 0;
+my $MAKE_BINARY_FLAG = 0;
+
 my $gene_factors_file;
 
 my $var_vs_count_hist_plot;
@@ -366,6 +370,8 @@ my $NO_REUSE = 0;
     'top_rows=i' => \$top_rows,
     'min_colSums=i' => \$min_colSums,
     'min_rowSums=i' => \$min_rowSums,
+
+    'binary' => \$MAKE_BINARY_FLAG,
     
     'gene_grep=s' => \$gene_grep,
     
@@ -771,6 +777,11 @@ main: {
         $Rscript .= "data = log2(data+1)\n";
         $output_prefix .= ".log2";
         $Rscript .= "write.table(data, file=\"$output_prefix.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
+    }
+
+    if ($MAKE_BINARY_FLAG) {
+        $output_prefix .= ".binary";
+        $Rscript .= "data[data<0] = 0; data[data>0] = 1;\n";
     }
     
 

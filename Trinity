@@ -508,8 +508,6 @@ foreach (@ARGV) {
 };
 
 
-my $sort_exec = &COMMON::get_sort_exec($CPU);
-
 my $NO_FASTOOL = 0;
 my $NO_CLEANUP = 0;
 my $FULL_CLEANUP = 0;
@@ -694,6 +692,8 @@ if ($SHOW_CITATION_FLAG) {
     &show_lit_citation();
     exit(0);
 }
+
+my $sort_exec = &COMMON::get_sort_exec($CPU);
 
 
 if ($full_usage_info_flag) {

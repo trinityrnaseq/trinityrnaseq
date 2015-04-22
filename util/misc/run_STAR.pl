@@ -87,11 +87,6 @@ main: {
         
     ## run STAR
     
-    my $top_hits_count = "";
-    if ($num_top_hits > 1) {
-        $top_hits_count = " -k $num_top_hits ";
-    }
-    
     my @tmpfiles;
     
     my $pipeliner = new Pipeliner(-verbose => 1);

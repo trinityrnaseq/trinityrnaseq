@@ -92,10 +92,9 @@ main: {
     
     my $pipeliner = new Pipeliner(-verbose => 1);
 
-    my $cmd = "$star_prog --runThreadN $CPU --genomeDir $star_index --outSAMtype BAM SortedByCoordinate --readFilesIn $reads 
-";
+    my $cmd = "$star_prog --runThreadN $CPU --genomeDir $star_index --outSAMtype BAM SortedByCoordinate --readFilesIn $reads ";
     if ($reads =~ /\.gz$/) {
-        $cmd .= " --readFilesCommand 'gzip -c' ";
+        $cmd .= " --readFilesCommand 'gunzip -c' ";
     }
 
     $pipeliner->add_commands( new Command($cmd, "star_align.ok") );

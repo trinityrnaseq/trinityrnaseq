@@ -3,6 +3,7 @@ package Pipeliner;
 use strict;
 use warnings;
 use Carp;
+use Cwd;
 
 ################################
 ## Verbose levels:
@@ -11,6 +12,28 @@ use Carp;
 my $VERBOSE = 0;
 ################################
 
+
+####################
+## Static methods:
+####################
+
+####
+sub ensure_full_path {
+    my ($path) = @_;
+
+    unless ($path =~ m|^/|) {
+        $path = cwd() . "/$path";
+    }
+
+    return($path);
+}
+
+
+
+
+################
+## Obj methods:
+################
 
 ####
 sub new {

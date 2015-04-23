@@ -76,6 +76,7 @@ main: {
         
         
         my $cmd = "$star_prog --runThreadN $CPU --runMode genomeGenerate --genomeDir $star_index "
+            . " --twopassMode Basic "
             . " --genomeFastaFiles $genome --sjdbOverhang 100 ";
         if ($gtf_file) {
             $cmd .= " --sjdbGTFfile $gtf_file ";

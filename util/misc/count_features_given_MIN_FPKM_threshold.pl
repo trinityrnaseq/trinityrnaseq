@@ -39,6 +39,6 @@ while (@fpkms) {
     $num_features++;
 }
 
-print "$min_fpkm_thresh\t$num_features\n";
+print "" . (-1*$min_fpkm_thresh) . "\t$num_features\n";
 
 exit(0);

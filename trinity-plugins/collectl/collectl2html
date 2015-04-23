@@ -82,17 +82,17 @@ def pretty_process(s):
 
 
 def data2line(arr):
-    if len(arr) < 21:
+    try:
+        timestamp = datetime.strptime(arr[0] + ' ' + arr[1], '%Y%m%d %H:%M:%S')
+        pid = int(arr[2])
+        proc = pretty_process(arr[29:])
+        cpu_pct = float(arr[18])
+        vmem = int(arr[8])
+        read = int(arr[20])
+        write = int(arr[21])
+        return lineinfo(timestamp, pid, proc, cpu_pct, vmem, read, write)
+    except (ValueError, IndexError):
         return lineinfo(None, None, None, None, None, None, None)
-
-    timestamp = datetime.strptime(arr[0] + ' ' + arr[1], '%Y%m%d %H:%M:%S')
-    pid = int(arr[2])
-    proc = pretty_process(arr[29:])
-    cpu_pct = float(arr[18])
-    vmem = int(arr[8])
-    read = int(arr[20])
-    write = int(arr[21])
-    return lineinfo(timestamp, pid, proc, cpu_pct, vmem, read, write)
 
 
 def process_input(f):

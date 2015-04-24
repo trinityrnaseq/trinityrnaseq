@@ -25,6 +25,7 @@ my $usage = <<__EOUSAGE__;
 #  -G <string>                 GTF file for incorporating reference splice site info.
 #  --CPU <int>                 number of threads (default: 2)
 #  --out_prefix <string>       output prefix (default: star)
+#  --out_dir <string>          output directory (default: current working directory)
 #
 #######################################################################
 
@@ -42,6 +43,7 @@ my $help_flag;
 
 my $out_prefix = "star";
 my $gtf_file;
+my $out_dir;
 
 &GetOptions( 'h' => \$help_flag,
              'genome=s' => \$genome,
@@ -49,11 +51,15 @@ my $gtf_file;
              'CPU=i' => \$CPU,
              'out_prefix=s' => \$out_prefix,
              'G=s' => \$gtf_file,
-
+             'out_dir=s' => \$out_dir,
     );
 
 
 unless ($genome && $reads) {
+    die $usage;
+}
+
+if ($help_flag) {
     die $usage;
 }
 
@@ -67,8 +73,28 @@ unless ($star_prog =~ /\w/) {
 
 main: {
 	
+    ## ensure all full paths
+    $genome = &Pipeliner::ensure_full_path($genome);
+    $gtf_file = &Pipeliner::ensure_full_path($gtf_file) if $gtf_file;
+
+    my @read_files = split(/\s+/, $reads);
+    foreach my $read_file (@read_files) {
+        if ($read_file) {
+            $read_file = &Pipeliner::ensure_full_path($read_file);
+        }
+    }
+    $reads = join(" ", @read_files);
+    
+    if ($out_dir) {
+        unless (-d $out_dir) {
+            mkdir $out_dir or die "Error, cannot mkdir $out_dir";
+        }
+        chdir $out_dir or die "Error, cannot cd to $out_dir";
+    }
+    
+
     my $star_index = "$genome.star.idx";
-    if (! -s "$star_index/genomeParameters.txt") {
+    if (! -e "$star_index/build.ok") {
         ## build star index
         unless (-d $star_index) {
             mkdir($star_index) or die "Error, cannot mkdir $star_index";
@@ -83,6 +109,9 @@ main: {
         }
         
         &process_cmd($cmd);
+        
+        &process_cmd("touch $star_index/build.ok");
+        
     }
 
         

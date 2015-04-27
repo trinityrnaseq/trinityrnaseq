@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use Carp;
-use Getopt::Long qw(:config no_ignore_case bundling);
+use Getopt::Long qw(:config no_ignore_case bundling pass_through);
 use FindBin;
 use Data::Dumper;
 

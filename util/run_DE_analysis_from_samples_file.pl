@@ -68,6 +68,10 @@ unless ($read_samples_descr_file && $DE_method) {
     die $usage;
 }
 
+unless ($read_samples_descr_file =~ /^\//) {
+    $read_samples_descr_file = cwd() . "/$read_samples_descr_file";
+}
+
 
 {
     ## Check for required software

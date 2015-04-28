@@ -152,7 +152,20 @@ unless (-s "trinity_out_dir/Trinity.fasta") {
         
     }
     
-    my @trinity_params = qw ( --seqType --max_memory --CPU --SS_lib_type --monitoring --no_reduce );
+    my @trinity_params = qw ( 
+--seqType 
+--max_memory 
+--CPU 
+--SS_lib_type 
+--monitoring 
+--trimmomatic 
+--normalize_reads 
+--jaccard_clip
+--full_cleanup
+--quality_trimming_params
+--grid_conf
+
+ );
     
     my %trin_params = map { + $_ => 1 } @trinity_params;
 

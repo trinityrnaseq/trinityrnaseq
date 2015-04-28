@@ -549,7 +549,10 @@ main: {
     
     if ($samples_file) {
 
-        $Rscript .= "samples_data = read.table(\"$samples_file\", header=F, check.names=F, comment.char = '-')\n";
+        $Rscript .= "samples_data = read.table(\"$samples_file\", header=F, check.names=F, fill=T)\n";
+        $Rscript .= "samples_data = samples_data[samples_data[,2] != '',]\n"; # require the rep column to be filled, also enable compatibility with full-trinity-edgeR-pipe samples file
+        
+
         #$Rscript .= "sample_types = as.factor(unique(samples_data[,1]))\n";
         $Rscript .= "sample_types = as.character(unique(samples_data[,1]))\n";
         

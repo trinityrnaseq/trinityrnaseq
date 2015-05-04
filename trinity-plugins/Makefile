@@ -2,7 +2,6 @@
 
 JELLYFISH_CODE="jellyfish-2.1.4"
 RSEM_CODE="rsem-1.2.19"
-TRANSDECODER_CODE="TransDecoder_r20140704"
 
 RSEM_LIBCURSES=-lcurses
 
@@ -46,7 +45,7 @@ parafly_target:
 ### Needed for downstream analyses
 ##################################
 
-plugins: transdecoder_target slclust_target collectl_target rsem
+plugins: slclust_target collectl_target rsem
 	@echo "\n\n** Done building plugins **\n\n"
 
 
@@ -55,10 +54,12 @@ rsem:
 	cd ${RSEM_CODE} && $(MAKE) LIBCURSES="${RSEM_LIBCURSES}"
 	ln -sf ${RSEM_CODE} rsem
 
-transdecoder_target:
-	tar -zxvf ${TRANSDECODER_CODE}.tar.gz 
-	cd ${TRANSDECODER_CODE} && ${MAKE} simple
-	ln -sf ${TRANSDECODER_CODE} transdecoder
+
+# no longer bundling transdecoder
+#transdecoder_target:
+#	tar -zxvf ${TRANSDECODER_CODE}.tar.gz 
+#	cd ${TRANSDECODER_CODE} && ${MAKE} simple
+#	ln -sf ${TRANSDECODER_CODE} transdecoder
 
 slclust_target:
 	cd slclust && $(MAKE) install

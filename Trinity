@@ -1438,8 +1438,9 @@ sub run_chrysalis {
             $pipeliner->add_commands( new Command($cmd, "$bowtie_sam_file.ok"));
             
             ## generate the scaffold info
+            $ENV{'LD_LIBRARY_PATH'} .= ":$ROOTDIR/trinity-plugins/htslib-1.2.1";
             my $iworm_scaffolds_file = "$chrysalis_output_dir/iworm_scaffolds.txt";
-            $cmd = "$UTILDIR/support_scripts/scaffold_iworm_contigs.pl $bowtie_sam_file $inchworm_file > $iworm_scaffolds_file"; # important, must use original inchworm file because positions are indexed for later use by GraphFromFasta
+            $cmd = "$ROOTDIR/trinity-plugins/scaffold_iworm_contigs/scaffold_iworm_contigs $bowtie_sam_file $inchworm_file > $iworm_scaffolds_file"; # important, must use original inchworm file because positions are indexed for later use by GraphFromFasta
             
             $pipeliner->add_commands( new Command($cmd, "$iworm_scaffolds_file.ok"));
             

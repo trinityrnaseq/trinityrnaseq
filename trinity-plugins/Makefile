@@ -20,7 +20,7 @@ FASTOOL_CODE=fstrozzi-Fastool-7c3e034f05
 PARAFLY_CODE=parafly-code
 TRIMMOMATIC_CODE=Trimmomatic-0.32
 
-trinity_essentials: jellyfish fastool_target parafly_target trimmomatic_target
+trinity_essentials: jellyfish scaffold_iworm_contigs fastool_target parafly_target trimmomatic_target
 
 trimmomatic_target:
 	ln -sf ${TRIMMOMATIC_CODE} Trimmomatic
@@ -30,6 +30,13 @@ jellyfish:
 	tar -zxvf ${JELLYFISH_CODE}.tar.gz && ln -sf ${JELLYFISH_CODE} tmp.jellyfish
 	cd ./tmp.jellyfish/ && ./configure CC=gcc CXX=g++ --enable-static --disable-shared --prefix=`pwd` && $(MAKE) LDFLAGS="-lpthread -all-static" AM_CPPFLAGS="-Wall -Wnon-virtual-dtor -I"`pwd`"/include"
 	mv tmp.jellyfish jellyfish
+
+htslib:
+	tar xjvf htslib-1.2.1.tar.bz2
+	cd htslib-1.2.1 && ./configure && $(MAKE)
+
+scaffold_iworm_contigs: htslib
+	cd scaffold_iworm_contigs && $(MAKE)
 
 fastool_target:
 	cd ${FASTOOL_CODE} && $(MAKE)

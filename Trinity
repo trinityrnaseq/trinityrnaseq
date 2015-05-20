@@ -813,7 +813,7 @@ else {
 
 
 ## Check Java version:
-unless ($NO_RUN_INCHWORM_FLAG || $NO_RUN_CHRYSALIS_FLAG || $bypass_java_version_check) {
+unless ($NO_RUN_INCHWORM_FLAG || $NO_RUN_CHRYSALIS_FLAG || $bypass_java_version_check || $TRINITY_COMPLETE_FLAG) {
   my $java_version = `java -Xmx64m -version 2>&1 `;
   if ($java_version =~ /(java|openjdk) version \"1\.(\d)\./) {
       my $version_id = $2;

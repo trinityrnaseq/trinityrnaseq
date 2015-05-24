@@ -21,3 +21,9 @@ git push
 git checkout branch
 # continue working...
 
+#############################
+
+Release info:
+
+curl https://api.github.com/repos/trinityrnaseq/trinityrnaseq/releases
+

@@ -103,7 +103,7 @@ class TestTrinity(unittest.TestCase):
         shutil.rmtree('trinity_test', True)
 
     def test_scaffold_iworm_contigs(self):
-        exe = "../src/util/support_scripts/scaffold_iworm_contigs.pl"
+        exe = "../src/trinity-plugins/scaffold_iworm_contigs/scaffold_iworm_contigs"
         bamfile = "iworm.bowtie.nameSorted.bam"
         ifile = "inchworm.K25.L25.fa"
         f = subprocess.check_output([exe, bamfile, ifile]).split('\n')

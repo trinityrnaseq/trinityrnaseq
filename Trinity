@@ -945,7 +945,7 @@ if ($grid_conf_file) {
 main: {
     $ENV{OMP_NUM_THREADS} = $CPU;
 
-    unless ($NO_RUN_INCHWORM_FLAG || $NO_RUN_CHRYSALIS_FLAG) {
+    unless ($NO_RUN_INCHWORM_FLAG || $NO_RUN_CHRYSALIS_FLAG || $TRINITY_COMPLETE_FLAG)  {
         print STDERR "-since butterfly will eventually be run, lets test for proper execution of java\n" if $VERBOSE;
         &test_java_failure_capture();
     }

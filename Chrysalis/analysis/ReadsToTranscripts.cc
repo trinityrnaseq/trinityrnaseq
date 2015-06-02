@@ -202,6 +202,8 @@ int main(int argc,char** argv)
         } else {
             // reached EOF
             cerr << "finished reading reads" << endl;
+            //MW: If nothing was read leave do loop right away
+            break;
         }
         
         componentReadMap.clear();

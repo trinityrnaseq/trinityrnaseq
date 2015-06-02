@@ -126,7 +126,7 @@ my $min_glue = 2;
 my $min_iso_ratio = 0.05;
 my $glue_factor = 0.05;
 my $max_reads_per_graph = 200000;
-my $max_reads_per_loop = 10000000;
+my $max_reads_per_loop = 50000000; //MW: Set default to 50M, still fits into main memory
 my $min_pct_read_mapping = 0;
 my $chrysalis_output_dir = "chrysalis";
 my $component_directory;

@@ -123,6 +123,9 @@ main: {
     
     # make another heatmap:
     print $ofh "partition_colors = rainbow(length(unique(gene_partition_assignments)), start=0.4, end=0.95)\n";
+    print $ofh "gene_colors_dframe = data.frame(clusters=gene_partition_assignments, colors=partition_colors[gene_partition_assignments])\n";
+    print $ofh "write.table(gene_colors_dframe, file=\"$core_filename.gene_cluster_colors.dat\", quote=F, sep='\t')\n";
+    
     print $ofh "gene_colors = as.matrix(partition_colors[gene_partition_assignments])\n";
     print $ofh "pdf(\"$core_filename.heatmap.pdf\")\n";
 

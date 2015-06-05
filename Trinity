@@ -126,7 +126,7 @@ my $min_glue = 2;
 my $min_iso_ratio = 0.05;
 my $glue_factor = 0.05;
 my $max_reads_per_graph = 200000;
-my $max_reads_per_loop = 10000000;
+my $max_reads_per_loop = 50000000; #MW: Set default to 50M, still fits into main memory
 my $min_pct_read_mapping = 0;
 my $chrysalis_output_dir = "chrysalis";
 my $component_directory;
@@ -813,7 +813,7 @@ else {
 
 
 ## Check Java version:
-unless ($NO_RUN_INCHWORM_FLAG || $NO_RUN_CHRYSALIS_FLAG || $bypass_java_version_check) {
+unless ($NO_RUN_INCHWORM_FLAG || $NO_RUN_CHRYSALIS_FLAG || $bypass_java_version_check || $TRINITY_COMPLETE_FLAG) {
   my $java_version = `java -Xmx64m -version 2>&1 `;
   if ($java_version =~ /(java|openjdk) version \"1\.(\d)\./) {
       my $version_id = $2;
@@ -945,7 +945,7 @@ if ($grid_conf_file) {
 main: {
     $ENV{OMP_NUM_THREADS} = $CPU;
 
-    unless ($NO_RUN_INCHWORM_FLAG || $NO_RUN_CHRYSALIS_FLAG) {
+    unless ($NO_RUN_INCHWORM_FLAG || $NO_RUN_CHRYSALIS_FLAG || $TRINITY_COMPLETE_FLAG)  {
         print STDERR "-since butterfly will eventually be run, lets test for proper execution of java\n" if $VERBOSE;
         &test_java_failure_capture();
     }
@@ -1438,8 +1438,9 @@ sub run_chrysalis {
             $pipeliner->add_commands( new Command($cmd, "$bowtie_sam_file.ok"));
             
             ## generate the scaffold info
+            $ENV{'LD_LIBRARY_PATH'} .= ":$ROOTDIR/trinity-plugins/htslib-1.2.1";
             my $iworm_scaffolds_file = "$chrysalis_output_dir/iworm_scaffolds.txt";
-            $cmd = "$UTILDIR/support_scripts/scaffold_iworm_contigs.pl $bowtie_sam_file $inchworm_file > $iworm_scaffolds_file"; # important, must use original inchworm file because positions are indexed for later use by GraphFromFasta
+            $cmd = "$ROOTDIR/trinity-plugins/scaffold_iworm_contigs/scaffold_iworm_contigs $bowtie_sam_file $inchworm_file > $iworm_scaffolds_file"; # important, must use original inchworm file because positions are indexed for later use by GraphFromFasta
             
             $pipeliner->add_commands( new Command($cmd, "$iworm_scaffolds_file.ok"));
             

@@ -2,7 +2,6 @@
 
 JELLYFISH_CODE="jellyfish-2.1.4"
 RSEM_CODE="rsem-1.2.19"
-TRANSDECODER_CODE="TransDecoder_r20140704"
 
 RSEM_LIBCURSES=-lcurses
 
@@ -21,7 +20,7 @@ FASTOOL_CODE=fstrozzi-Fastool-7c3e034f05
 PARAFLY_CODE=parafly-code
 TRIMMOMATIC_CODE=Trimmomatic-0.32
 
-trinity_essentials: jellyfish fastool_target parafly_target trimmomatic_target
+trinity_essentials: jellyfish scaffold_iworm_contigs fastool_target parafly_target trimmomatic_target
 
 trimmomatic_target:
 	ln -sf ${TRIMMOMATIC_CODE} Trimmomatic
@@ -31,6 +30,13 @@ jellyfish:
 	tar -zxvf ${JELLYFISH_CODE}.tar.gz && ln -sf ${JELLYFISH_CODE} tmp.jellyfish
 	cd ./tmp.jellyfish/ && ./configure CC=gcc CXX=g++ --enable-static --disable-shared --prefix=`pwd` && $(MAKE) LDFLAGS="-lpthread -all-static" AM_CPPFLAGS="-Wall -Wnon-virtual-dtor -I"`pwd`"/include"
 	mv tmp.jellyfish jellyfish
+
+htslib:
+	tar xjvf htslib-1.2.1.tar.bz2
+	cd htslib-1.2.1 && ./configure && $(MAKE)
+
+scaffold_iworm_contigs: htslib
+	cd scaffold_iworm_contigs && $(MAKE)
 
 fastool_target:
 	cd ${FASTOOL_CODE} && $(MAKE)
@@ -46,7 +52,7 @@ parafly_target:
 ### Needed for downstream analyses
 ##################################
 
-plugins: transdecoder_target slclust_target collectl_target rsem
+plugins: slclust_target collectl_target rsem
 	@echo "\n\n** Done building plugins **\n\n"
 
 
@@ -55,10 +61,12 @@ rsem:
 	cd ${RSEM_CODE} && $(MAKE) LIBCURSES="${RSEM_LIBCURSES}"
 	ln -sf ${RSEM_CODE} rsem
 
-transdecoder_target:
-	tar -zxvf ${TRANSDECODER_CODE}.tar.gz 
-	cd ${TRANSDECODER_CODE} && ${MAKE} simple
-	ln -sf ${TRANSDECODER_CODE} transdecoder
+
+# no longer bundling transdecoder
+#transdecoder_target:
+#	tar -zxvf ${TRANSDECODER_CODE}.tar.gz 
+#	cd ${TRANSDECODER_CODE} && ${MAKE} simple
+#	ln -sf ${TRANSDECODER_CODE} transdecoder
 
 slclust_target:
 	cd slclust && $(MAKE) install

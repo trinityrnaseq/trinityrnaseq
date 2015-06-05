@@ -619,15 +619,14 @@ sub run_GLM {
     
 
     my $output_prefix = basename($matrix_file);
-
-             
+                 
     my $Rscript_name = "$output_prefix.GLM.Rscript";
     
     ## write R-script to run edgeR
     open (my $ofh, ">$Rscript_name") or die "Error, cannot write to $Rscript_name";
     
     print $ofh "library(edgeR)\n";
-
+    
     print $ofh "\n";
     
     print $ofh "design_matrix = read.table(\"$samples_file\", header=T, row.names=1)\n";

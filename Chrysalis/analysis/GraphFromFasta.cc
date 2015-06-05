@@ -153,6 +153,8 @@ bool is_simple_repeat(const DNAVector& kmer) {
     int best_right_pos = 0;
     float max_repetitive_ratio = 0;
 
+    stringstream left_kmer;
+    stringstream right_kmer;
 
     int mid_kmer_length = kmer.isize()/2;
     
@@ -169,8 +171,8 @@ bool is_simple_repeat(const DNAVector& kmer) {
             int bases_compared = 0;
             int bases_common = 0;
      
-            stringstream left_kmer;
-            stringstream right_kmer;
+            left_kmer.clear();
+            right_kmer.clear();
             
 
             while (internal_kmer_pos <= j + mid_kmer_length - 1) {

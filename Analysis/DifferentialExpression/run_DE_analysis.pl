@@ -54,7 +54,7 @@ my $usage = <<__EOUSAGE__;
 #  ## EdgeR-related parameters
 #  ## (no biological replicates)
 #
-#  --dispersion <float>            edgeR dispersion value set to 0 for poisson (sometimes breaks...)
+#  --dispersion <float>            edgeR dispersion value. Set to 0 for poisson (sometimes breaks...)
 #  
 #  see edgeR user manual for suggestions
 #  http://www.bioconductor.org/packages/release/bioc/html/edgeR.html

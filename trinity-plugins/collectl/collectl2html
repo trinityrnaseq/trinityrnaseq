@@ -9,6 +9,7 @@ from string import Template
 from subprocess import call, Popen, PIPE
 import sys
 import time
+import math
 
 lineinfo = namedtuple('lineinfo', 'timestamp, pid, proc, cpu_pct, vmem, read, write')
 
@@ -37,10 +38,10 @@ def open_collectl(filename):
 def pretty_process(s):
     if not s:
         return None
-    if s[0] in ("-bash", 'sh', '/bin/bash', 'bash', 'ln', '/bin/pwd', 'mkdir', 'date', 'touch', '/usr/bin/env'):
+    if s[0] in ("-bash", 'sh', '/bin/bash', 'bash', 'ln', '/bin/pwd', 'mkdir', 'date', 'touch', '/usr/bin/env', 'mv'):
         return None
 
-    exes = ['fastool', 'ParaFly', 'Butterfly', 'ReadsToTranscripts', 'jellyfish',
+    exes = ['fastool', 'ParaFly', 'Butterfly', 'ReadsToTranscripts', 'jellyfish', 'scaffold_iworm_contigs',
             'inchworm', 'FastaToDeBruijn', 'QuantifyGraph', 'GraphFromFasta', 'CreateIwormFastaBundle',
             'bowtie-build', 'bowtie', 'Chrysalis', 'cat', 'sort', 'cp', 'wc', 'rm', 'find', 'gzip']
     perl_scripts = ['scaffold_iworm_contigs', 'Trinity', 'collectl', 'print_butterfly_assemblies',
@@ -122,12 +123,36 @@ def normalize_timestamp(conn):
 def milliseconds(time_delta):
     return (time_delta.microseconds + (time_delta.seconds + time_delta.days * 24 * 3600) * 10 ** 6) / 10 ** 3
 
+def angle(p1, p2):
+    angle = math.atan((p1['y'] - p2['y']) / (p1['x'] - p2['x']))
+    return angle
+
+def reduce_array_size(points, max):
+    five_minutes = 5 * 60 * 1000
+    inserts = []
+    deltas = []
+    for i in range(1, len(points)-1):
+        d1 = angle(points[i-1], points[i])
+        d2 = angle(points[i], points[i+1])
+        deltax = points[i]['x'] - points[i-1]['x']
+        deltay = abs(d1) + abs(d2)
+        deltas.append((deltay,points[i]))
+        if deltax > five_minutes:
+            inserts.append(points[i-1]['x'] + 100)
+
+    if len(points) > max:
+        smallest = sorted(deltas, key=lambda d: d[0])[:len(points)-max]
+        for d in smallest:
+            points.remove(d[1])
+
+    points.extend(dict(x=p, y=None) for p in inserts)
+
+    return sorted(points, key=lambda m: m['x'])
+
 
 def reduce_point_count(d):
     for k in d.keys():
-        if len(d[k]) > 800:
-            s = sorted(d[k], key=lambda m: -m['y'])
-            d[k] = sorted(s[0:800], key=lambda m: m['x'])
+        d[k] = reduce_array_size(d[k], 800)
 
 
 def get_dataset(cursor, dataset):

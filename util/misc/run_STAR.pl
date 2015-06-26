@@ -121,7 +121,17 @@ main: {
     
     my $pipeliner = new Pipeliner(-verbose => 1);
 
-    my $cmd = "$star_prog --runThreadN $CPU --genomeDir $star_index --outSAMtype BAM SortedByCoordinate --readFilesIn $reads ";
+    my $cmd = "$star_prog "
+        . " --runThreadN $CPU "
+        . " --genomeDir $star_index "
+        . " --outSAMtype BAM SortedByCoordinate "
+        . " --readFilesIn $reads "
+        . " --chimJunctionOverhangMin 12 "
+        . " --chimSegmentMin 12 "
+        . " --outSAMstrandField intronMotif "
+        . " --twopassMode Basic "
+        . " --alignSJDBoverhangMin 10 ";
+    
     if ($reads =~ /\.gz$/) {
         $cmd .= " --readFilesCommand 'gunzip -c' ";
     }

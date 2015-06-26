@@ -43,8 +43,13 @@ unless ($inputFile) {
 }
 
 
-
-open (my $fh, $inputFile) or die "Error, cannot open $inputFile";
+my $fh;
+if ($inputFile =~ /\.gz$/) {
+    open ($fh, "gunzip -c $inputFile | ") or die $!;
+}
+else {
+    open ($fh, $inputFile) or die "Error, cannot open $inputFile";
+}
 
 my $counter = 0;
 my $num_clean = 0;
@@ -81,6 +86,12 @@ while ($line) {
 		chomp $qual_header if $qual_header;
 		chomp $qual_line if $qual_line;
 		
+
+        my @header_pts = split(/\s+/, $header);
+        if (scalar @header_pts > 1) {
+            $header = shift @header_pts;
+        }
+        
 		if ($header && $seq && $qual_header && $qual_line && 
 			$qual_header =~ /^\+/ && length($seq) == length($qual_line)) {
 			

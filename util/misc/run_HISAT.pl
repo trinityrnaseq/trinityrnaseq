@@ -76,10 +76,12 @@ main: {
         &process_cmd($cmd);
     }
 
-    my $gtf_splice = "$gtf_file.hisat.splice";
+    
     my $splice_incl = "";
     
     if ($gtf_file) {
+        
+        my $gtf_splice = "$gtf_file.hisat.splice";
 
         unless (-s $gtf_splice) {
             my $cmd = "$HISAT_HOME/extract_splice_sites.py $gtf_file > $gtf_file.hisat.splice";

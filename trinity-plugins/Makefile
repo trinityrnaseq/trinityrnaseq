@@ -75,9 +75,8 @@ collectl_target:
 	cd collectl && ./build_collectl.sh
 
 clean:
-	rm -rf ./${JELLYFISH_CODE} ./jellyfish # has tar.gz
-	rm -rf ./${RSEM_CODE} ./rsem # has tar.gz
-	rm -rf ./${TRANSDECODER_CODE} ./transdecoder  # has tar.gz
+	rm -rf ${JELLYFISH_CODE} ./jellyfish # has tar.gz
+	rm -rf ${RSEM_CODE} ./rsem # has tar.gz
 	cd ${FASTOOL_CODE} && $(MAKE) clean
 	rm -f ./fastool # rm symlink
 	cd parafly && $(MAKE) clean

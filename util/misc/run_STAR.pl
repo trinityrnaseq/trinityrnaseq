@@ -130,7 +130,8 @@ main: {
         . " --chimSegmentMin 12 "
         . " --outSAMstrandField intronMotif "
         . " --twopassMode Basic "
-        . " --alignSJDBoverhangMin 10 ";
+        . " --alignSJDBoverhangMin 10 "
+        . " --limitBAMsortRAM 6129566262 ";
     
     if ($reads =~ /\.gz$/) {
         $cmd .= " --readFilesCommand 'gunzip -c' ";

@@ -6,7 +6,7 @@
     </requirements>
     <command interpreter="python">
 
- 		EdgeR_differentialExpression_wrapper.py 
+ 		EdgeR_differentialExpression_wrapper.py Analysis/DifferentialExpression/run_DE_analysis.pl 
 			$counts_matrix 
 			$dispersion
 			

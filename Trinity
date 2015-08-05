@@ -1355,15 +1355,14 @@ sub run_Trinity {
     my $butterfly_cmds = &run_chrysalis($inchworm_file, $inchworm_target_fa,
                                         $min_contig_length, $group_pairs_distance, $SS_lib_type, 
                                         $trinity_target_fa, $bowtie_reads_fa);
+    $pm_chrysalis_end = `date +%s`;
     
+
     if ($butterfly_cmds eq "RECURSIVE_TRINITY_COMPLETE") {
         ## stop here.  all done!   ## FIXME: this is very bad coding style!!! yes, I know.
         return;
     }
     
-
-    $pm_chrysalis_end = `date +%s`;
-
     print STDERR "Butterfly_cmds: $butterfly_cmds\n" if $VERBOSE;
     
     if ($butterfly_cmds && -s $butterfly_cmds) {

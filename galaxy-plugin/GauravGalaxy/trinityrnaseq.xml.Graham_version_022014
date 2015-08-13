@@ -5,13 +5,13 @@
     <requirements>
         <requirement type="package">trinity</requirement>
     </requirements>
-    <command interpreter="python">
-        trinityToolWrapper.py Trinity --max_memory $JM --CPU $CPU
+    <command>
+        Trinity.pl --JM $JM --CPU $CPU
         
         ## Inputs.
         #if str($inputs.paired_or_single) == "paired":
             --left $inputs.left_input --right $inputs.right_input
-    		#if  $inputs.left_input.ext == 'fa':
+            #if  $inputs.left_input.ext == 'fa':
                 --seqType fa
             #else:
                 --seqType fq
@@ -34,15 +34,15 @@
 
         ## Additional parameters.
         #if str($additional_params.use_additional) == "yes":
-			--min_kmer_cov $inputs.min_kmer_cov --max_reads_per_graph $inputs.max_reads_per_graph --bflyHeapSpaceMax $input.bflyHeapSpaceMax
-			#if $inputs.bfly_opts != 'None':
-				--bfly_opts " $inputs.bfly_opts "
+			--min_kmer_cov $additional_params.min_kmer_cov --max_reads_per_graph $additional_params.max_reads_per_graph --bflyHeapSpaceMax $additional_params.bflyHeapSpaceMax
+			#if $additional_params.bfly_opts != 'None':
+				--bfly_opts " $additional_params.bfly_opts "
 			#end if
         #end if
 	
                 
         ## direct to output
-        > $trinity_log 
+        > $trinity_log 2>&amp;1
  
     </command>
     <inputs>

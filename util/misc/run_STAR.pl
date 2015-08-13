@@ -44,6 +44,7 @@ my $help_flag;
 my $out_prefix = "star";
 my $gtf_file;
 my $out_dir;
+my $ADV = 0;
 
 &GetOptions( 'h' => \$help_flag,
              'genome=s' => \$genome,
@@ -52,6 +53,8 @@ my $out_dir;
              'out_prefix=s' => \$out_prefix,
              'G=s' => \$gtf_file,
              'out_dir=s' => \$out_dir,
+             'ADV' => \$ADV,
+
     );
 
 
@@ -103,9 +106,12 @@ main: {
         
         my $cmd = "$star_prog --runThreadN $CPU --runMode genomeGenerate --genomeDir $star_index "
             . " --twopassMode Basic "
-            . " --genomeFastaFiles $genome --sjdbOverhang 100 --limitGenomeGenerateRAM 40419136213 ";
+            . " --genomeFastaFiles $genome "
+            . " --limitGenomeGenerateRAM 40419136213 ";
         if ($gtf_file) {
-            $cmd .= " --sjdbGTFfile $gtf_file ";
+            $cmd .= " --sjdbGTFfile $gtf_file "
+                . " --sjdbOverhang 100 ";
+            
         }
         
         &process_cmd($cmd);
@@ -128,10 +134,14 @@ main: {
         . " --readFilesIn $reads "
         . " --chimJunctionOverhangMin 12 "
         . " --chimSegmentMin 12 "
-        . " --outSAMstrandField intronMotif "
         . " --twopassMode Basic "
         . " --alignSJDBoverhangMin 10 "
+        . " --chimSegmentReadGapMax parameter 3 "
         . " --limitBAMsortRAM 6129566262 ";
+    
+    #if ($ADV) {
+        $cmd .= " --alignSJstitchMismatchNmax 5 -1 5 5 ";  #which allows for up to 5 mismatches for non-canonical GC/AG, and AT/AC junctions, and any number of mismatches for canonical junctions (the default values 0 -1 0 0 replicate the old behavior (from AlexD)
+    #}
     
     if ($reads =~ /\.gz$/) {
         $cmd .= " --readFilesCommand 'gunzip -c' ";

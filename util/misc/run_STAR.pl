@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use lib("$FindBin::Bin/../../PerlLib");
+use lib("$FindBin::RealBin/../../PerlLib");
 use Pipeliner;
 use File::Basename;
 use Cwd;
@@ -137,7 +137,7 @@ main: {
         . " --twopassMode Basic "
         . " --alignSJDBoverhangMin 10 "
         . " --chimSegmentReadGapMax parameter 3 "
-        . " --limitBAMsortRAM 6129566262 ";
+        . " --limitBAMsortRAM 20000000000";
     
     #if ($ADV) {
         $cmd .= " --alignSJstitchMismatchNmax 5 -1 5 5 ";  #which allows for up to 5 mismatches for non-canonical GC/AG, and AT/AC junctions, and any number of mismatches for canonical junctions (the default values 0 -1 0 0 replicate the old behavior (from AlexD)

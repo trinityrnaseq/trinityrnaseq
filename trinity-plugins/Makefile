@@ -2,6 +2,7 @@
 
 JELLYFISH_CODE="jellyfish-2.1.4"
 RSEM_CODE="rsem-1.2.19"
+HTSLIB_CODE="htslib.github.Aug182015.tar.gz"
 
 RSEM_LIBCURSES=-lcurses
 
@@ -20,7 +21,7 @@ FASTOOL_CODE=fstrozzi-Fastool-7c3e034f05
 PARAFLY_CODE=parafly-code
 TRIMMOMATIC_CODE=Trimmomatic-0.32
 
-trinity_essentials: jellyfish scaffold_iworm_contigs fastool_target parafly_target trimmomatic_target
+trinity_essentials: jellyfish scaffold_iworm_contigs_target fastool_target parafly_target trimmomatic_target
 
 trimmomatic_target:
 	ln -sf ${TRIMMOMATIC_CODE} Trimmomatic
@@ -31,11 +32,12 @@ jellyfish:
 	cd ./tmp.jellyfish/ && ./configure CC=gcc CXX=g++ --enable-static --disable-shared --prefix=`pwd` && $(MAKE) LDFLAGS="-lpthread -all-static" AM_CPPFLAGS="-Wall -Wnon-virtual-dtor -I"`pwd`"/include"
 	mv tmp.jellyfish jellyfish
 
-htslib:
-	tar xjvf htslib-1.2.1.tar.bz2
-	cd htslib-1.2.1 && ./configure && $(MAKE)
+htslib_target:
+#	tar xjvf htslib-1.2.1.tar.bz2
+#	cd htslib-1.2.1 && ./configure && $(MAKE)
+	tar xvf ${HTSLIB_CODE} && cd htslib && $(MAKE)
 
-scaffold_iworm_contigs: htslib
+scaffold_iworm_contigs_target: htslib_target
 	cd scaffold_iworm_contigs && $(MAKE)
 
 fastool_target:
@@ -79,6 +81,8 @@ clean:
 	rm -rf ${RSEM_CODE} ./rsem # has tar.gz
 	cd ${FASTOOL_CODE} && $(MAKE) clean
 	rm -f ./fastool # rm symlink
+	rm -rf ./htslib
+	cd scaffold_iworm_contigs && $(MAKE) clean
 	cd parafly && $(MAKE) clean
 	rm -f ./parafly # rm symlink
 	rm -f ./Trimmomatic # rm symlink

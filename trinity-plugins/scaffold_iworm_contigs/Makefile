@@ -1,5 +1,5 @@
 CXX    = g++
-prefix = ../htslib-1.2.1
+prefix = ../htslib
 
 ScaffoldIwormContigs:
 	$(CXX) -I$(prefix) -L$(prefix) ScaffoldIwormContigs.cpp error_checker.cpp -lhts -lz -o scaffold_iworm_contigs

@@ -15,11 +15,11 @@ void NonRedKmerTable::SetUp(const vecDNAVector & templ, bool noNs)
   
   // cerr << "vecDNAVector length: " << templ.isize() << endl;
   
-  int l = 0;
+  long l = 0;
   for (i=0; i<templ.isize(); i++)
     l += templ[i].isize()-m_k+1;
   
-  // cerr << "Allocating: " << l << endl;
+  cerr << "Allocating: " << l << endl;
   m_data.resize(l);
 
   l = 0;

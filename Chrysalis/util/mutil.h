@@ -1201,7 +1201,7 @@ public:
     MDLLEXPORT virtual bool IsEnd();
 
     MDLLEXPORT virtual bool WriteLine(const CMString & line);
-    virtual IMWriteStream * CloneAndOpen(const CMString &name) {return NULL;}
+    virtual IMWriteStream * CloneAndOpen(const CMString &) {return NULL;}
 
     virtual long BytesProcessed() {return m_bytesProcessed;}
 
@@ -1238,7 +1238,7 @@ public:
     MDLLEXPORT virtual bool Close();
     MDLLEXPORT virtual bool IsOpen();
     MDLLEXPORT virtual bool IsEnd();
-    virtual IMReadStream * CloneAndOpen(const CMString &name) {return NULL;}
+    virtual IMReadStream * CloneAndOpen(const CMString &) {return NULL;}
     virtual long BytesProcessed() {return m_bytesProcessed;}
 
 protected:
@@ -1274,7 +1274,7 @@ public:
     MDLLEXPORT virtual bool Close();
     MDLLEXPORT virtual bool IsOpen();
     MDLLEXPORT virtual bool IsEnd();
-    virtual IMWriteStream * CloneAndOpen(const CMString &name) {return NULL;}
+    virtual IMWriteStream * CloneAndOpen(const CMString &) {return NULL;}
     virtual long BytesProcessed() {return m_bytesProcessed;}
 
 protected:

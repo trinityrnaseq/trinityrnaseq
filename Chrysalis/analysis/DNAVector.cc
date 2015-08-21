@@ -620,16 +620,16 @@ int vecDNAVector::NameIndex(const string & name) const {
 	  return mIter->second;
 }
 
-const string & vecDNAVector::Name(int i) const {
+const string & vecDNAVector::Name(size_t i) const {
 	return m_names[i];
 }
 
-const char * vecDNAVector::NameClean(int i) const {
+const char * vecDNAVector::NameClean(size_t i) const {
   const char * p = m_names[i].c_str();
   return &p[1];
 }
 
-void vecDNAVector::SetName(int i, const string & s) {
+void vecDNAVector::SetName(size_t i, const string & s) {
 	m_name2index.erase(m_names[i]);
 	invalidateReferences(m_names[i]);
 	m_name2index[s] = i;
@@ -651,7 +651,7 @@ void vecDNAVector::push_back(const DNAVector & v, const string & name) {
   m_name2index.insert(make_pair(name, m_names.size()-1));
 }
 
-void vecDNAVector::erase(int index) {
+void vecDNAVector::erase(size_t index) {
 	  m_name2index.erase(m_names[index]);
 	  invalidateReferences(m_names[index]);
 	  m_names.erase(m_names.begin() + index);
@@ -669,14 +669,14 @@ bool vecDNAVector::erase(const string &name) {
 	return false;
 }
 
-void vecDNAVector::fast_erase(int index) {
+void vecDNAVector::fast_erase(size_t index) {
 	  m_name2index.erase(m_names[index]);
 	  invalidateReferences(m_names[index]);
 	  swap(m_names[m_names.size()-1], m_names[index]);
 	  swap(m_data[m_data.size()-1], m_data[index]);
 	  m_names.pop_back();
 	  m_data.pop_back();
-	  if(index < m_names.isize())
+	  if(index < m_names.size())
 		  m_name2index[m_names[index]] = index;
 }
 

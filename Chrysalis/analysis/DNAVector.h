@@ -429,10 +429,10 @@ class vecDNAVector
   void clear();
 
   int NameIndex(const string & name) const;
-  const string & Name(int i) const;
-  const char * NameClean(int i) const;
+  const string & Name(size_t i) const;
+  const char * NameClean(size_t i) const;
 
-  void SetName(int i, const string & s);
+  void SetName(size_t i, const string & s);
 
   void push_back(const DNAVector & v);
   void push_back(const DNAVector & v, const string & name);
@@ -445,7 +445,7 @@ class vecDNAVector
    * If you do not care about the element order and n is large,
    * fast_erase would be a better choice.
    */
-  void erase(int index);
+  void erase(size_t index);
 
   /* erase
    * -------------
@@ -463,7 +463,7 @@ class vecDNAVector
    * Erases the DNAVector at the index 'index'; as a side effect
    * the last element in the vecDNAVector is moved to the vacated index.
    */
-  void fast_erase(int index);
+  void fast_erase(size_t index);
 
   /* fast_erase
    * -------------

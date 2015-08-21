@@ -11,12 +11,12 @@ bool Regular(char c) {
 // Restricts all k-mers to what's in here.
 void NonRedKmerTable::SetUp(const vecDNAVector & templ, bool noNs)
 {
-  int i, j;
+  size_t i, j;
   
   // cerr << "vecDNAVector length: " << templ.isize() << endl;
   
   long l = 0;
-  for (i=0; i<templ.isize(); i++)
+  for (i=0; i<templ.size(); i++)
     l += templ[i].isize()-m_k+1;
   
   cerr << "Allocating: " << l << endl;
@@ -27,7 +27,7 @@ void NonRedKmerTable::SetUp(const vecDNAVector & templ, bool noNs)
   if (noNs)
   {
 
-    for (i=0; i<templ.isize(); i++) {
+    for (i=0; i<templ.size(); i++) {
       const DNAVector & d = templ[i];
 
       // first check if sequence contains any irregular chars
@@ -74,7 +74,7 @@ void NonRedKmerTable::SetUp(const vecDNAVector & templ, bool noNs)
   else
   {
 
-    for (i=0; i<templ.isize(); i++) {
+    for (i=0; i<templ.size(); i++) {
       const DNAVector & d = templ[i];
       for (j=0; j<=d.isize()-m_k; j++) {
         d.Substring(m_data[l], j, m_k);
@@ -96,13 +96,13 @@ void NonRedKmerTable::SetUp(const vecDNAVector & templ, bool noNs)
 
 void NonRedKmerTable::AddData(const vecDNAVector & data)
 {
-  int i, j;
+  size_t i, j;
 
-  cerr << "NonRedKmerTable::AddData() - adding Reads: " << data.isize() << endl;
-  for (i=0; i<data.isize(); i++) {
+  cerr << "NonRedKmerTable::AddData() - adding Reads: " << data.size() << endl;
+  for (i=0; i<data.size(); i++) {
     
     if (i % 1000 == 0) {
-      cerr << 100.*(double)i/(double)data.isize() << " %" << endl;
+      cerr << 100.*(double)i/(double)data.size() << " %" << endl;
     }
     const DNAVector & d = data[i];
     for (j=0; j<= d.isize()-m_k; j++) {

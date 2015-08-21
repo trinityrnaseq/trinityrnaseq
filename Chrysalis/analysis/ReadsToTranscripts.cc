@@ -144,7 +144,7 @@ int main(int argc,char** argv)
 
     cerr << "Assigning kmers to Iworm bundles ... ";
     #pragma omp parallel for schedule(guided,100)
-    for (int i=0; i< dna.isize(); i++) {
+    for (size_t i=0; i< dna.size(); i++) {
         const DNAVector & d = dna[i];
         string bundle_acc = dna.Name(i);
         string component_no_string = bundle_acc.substr(3); // remove >s_ prefix

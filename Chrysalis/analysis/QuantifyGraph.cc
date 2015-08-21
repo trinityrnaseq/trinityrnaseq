@@ -267,7 +267,7 @@ int main(int argc,char** argv)
     FILE * pReads = fopen(reads.c_str(), "w");  // output reads in context of graph
     
     svec<IDS> ids;
-    ids.reserve(seq.isize());
+    ids.reserve(seq.size());
     
     //string last;
     //int lastNode = -1;

@@ -473,9 +473,7 @@ class vecDNAVector
   bool fast_erase(const string &name);
 
 
-  int size() const;
-  int isize() const;
-  long long lsize() const;
+  size_t size() const;
   
   long long totalBases() const;
 

@@ -30,28 +30,28 @@ class NonRedKmerTable
     return (i >= 0);
   }
 
-  void SetCount(const DNAVector & d, int pos, int count) {
+  void SetCount(const DNAVector & d, size_t pos, int count) {
     int i = Index(d, pos);
     if (i < 0)
       return;
     m_counts[i] = count;
   }
 
-  int GetCount(const DNAVector & d, int pos) {
+  int GetCount(const DNAVector & d, size_t pos) {
     int i = Index(d, pos);;
     if (i < 0)
       return 0;
     return m_counts[i];
   }
 
-  int GetCountReal(const DNAVector & d, int pos) {
+  int GetCountReal(const DNAVector & d, size_t pos) {
     int i = Index(d, pos);;
     if (i < 0)
       return -1;
     return m_counts[i];
   }
 
-  int GetCountReal(const string & seq, int pos) {
+  int GetCountReal(const string & seq, size_t pos) {
     string s = seq.substr(pos, m_k);
     int i = BinSearch(m_data, s);
     if (i < 0)
@@ -60,12 +60,12 @@ class NonRedKmerTable
   }
 
   void SetAllCounts(int c) {
-    for (int i=0; i<m_counts.isize(); i++)
+    for (size_t i=0; i<m_counts.size(); i++)
       m_counts[i] = c;
   }
   
  private:
-  int Index(const DNAVector & d, int pos) {
+  int Index(const DNAVector & d, size_t pos) {
     string s; 
     d.Substring(s, pos, m_k);
     

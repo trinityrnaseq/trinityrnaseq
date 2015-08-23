@@ -32,7 +32,7 @@ void NonRedKmerTable::SetUp(const vecDNAVector & templ, bool noNs)
 
       // first check if sequence contains any irregular chars
       bool bGood = true;
-      for (int x=0; x<d.isize(); x++) {
+      for (int x=0; x<d.size(); x++) {
         if (!Regular(d[x])) {
           bGood = false;
           break;
@@ -43,7 +43,7 @@ void NonRedKmerTable::SetUp(const vecDNAVector & templ, bool noNs)
       {
 
         // good! do not check for irregular chars in each kmer
-        for (j=0; j<=d.isize()-m_k; j++) {
+        for (j=0; j<=d.size()-m_k; j++) {
           d.Substring(m_data[l], j, m_k);
           l++;
         }
@@ -53,7 +53,7 @@ void NonRedKmerTable::SetUp(const vecDNAVector & templ, bool noNs)
       {
 
         // bad! we need to check for irregular chars in each kmer
-        for (j=0; j<=d.isize()-m_k; j++) {
+        for (j=0; j<=d.size()-m_k; j++) {
           d.Substring(m_data[l], j, m_k);
           bGood = true;
           for (int x=0; x<m_k; x++) {
@@ -76,7 +76,7 @@ void NonRedKmerTable::SetUp(const vecDNAVector & templ, bool noNs)
 
     for (i=0; i<templ.size(); i++) {
       const DNAVector & d = templ[i];
-      for (j=0; j<=d.isize()-m_k; j++) {
+      for (j=0; j<=d.size()-m_k; j++) {
         d.Substring(m_data[l], j, m_k);
         l++;
       }
@@ -84,12 +84,13 @@ void NonRedKmerTable::SetUp(const vecDNAVector & templ, bool noNs)
 
   }
 
-  // cerr << "Resizing: " << l << endl;
+  cerr << "Resizing: " << l << endl;
   m_data.resize(l);
 
+  cerr << "Sorting";
   UniqueSort(m_data);
-  m_counts.resize(m_data.isize(), 0);
-  // cerr << "Done." << endl;
+  m_counts.resize(m_data.size(), 0);
+  cerr << "Done." << endl;
   
  
 }

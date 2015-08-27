@@ -13,7 +13,7 @@ import time
 # Copy the .gz files in sample_data/test_Trinity_Assembly to current directory
 # Run using nosetests
 MEM_FLAG = "--max_memory 2G"
-TEMP_FILES = ['both.fa', 'inchworm.K25.L25.fa', 'jellyfish.kmers.fa', 'scaffolding_entries.sam']
+TEMP_FILES = ['both.fa', 'inchworm.K25.L25.fa', 'jellyfish.kmers.fa']
 
 
 class TestTrinity(unittest.TestCase):
@@ -103,6 +103,7 @@ class TestTrinity(unittest.TestCase):
         shutil.rmtree('trinity_test', True)
 
     def test_scaffold_iworm_contigs(self):
+	os.environ['LD_LIBRARY_PATH'] = os.environ['LD_LIBRARY_PATH'] + ':../src/trinity-plugins/htslib'
         exe = "../src/trinity-plugins/scaffold_iworm_contigs/scaffold_iworm_contigs"
         bamfile = "iworm.bowtie.nameSorted.bam"
         ifile = "inchworm.K25.L25.fa"

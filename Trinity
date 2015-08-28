@@ -1278,7 +1278,7 @@ sub run_Trinity {
             # adjust the inchworm target, tack on the longer reads.
             
             $inchworm_target_fa .= ".wLongReads.fa";
-            $count_of_reads += `grep -c '^>' $long_reads | wc -l`; #AP we don't know if these will be one single line
+            $count_of_reads += `grep -c '^>' $long_reads`; #AP we don't know if these will be one single line
             if (!-e  "$inchworm_target_fa.ok"){
             &process_cmd("cat $long_reads | sed 's/>/>LR\\\$\\\|/' > $inchworm_target_fa"); #  
                 

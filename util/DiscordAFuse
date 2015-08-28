@@ -5,9 +5,9 @@ import os, re, sys
 import sciedpiper.ParentScript as ParentScript
 
 
-UTILDIR = os.sep.join([os.path.dirname(__file__), "util/support_scripts/discordAFuse_util"])
+UTILDIR = os.path.abspath(os.sep.join([os.path.dirname(__file__), "support_scripts/discordAFuse_util"]))
 
-TRINITY_HOME = os.path.dirname(__file__) + "/.."
+TRINITY_HOME = os.path.abspath(os.path.dirname(__file__) + "/..")
 
 
 '''

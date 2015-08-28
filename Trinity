@@ -1430,7 +1430,7 @@ sub run_chrysalis {
         if($long_reads){
             $cmd = "bowtie2-build -o 3 $iworm_min100_fa_file $iworm_min100_fa_file"; #-o 3 / defaut is 5, less use more ram but is faster when mapping the reads
         }
-        else{ #keeping this because I don't know
+        else{ #keeping this because some may wish
             $cmd = "bowtie-build -q $iworm_min100_fa_file $iworm_min100_fa_file";
         }	
 

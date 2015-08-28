@@ -1,0 +1,262 @@
+#!/usr/bin/env python
+
+import sciedpiper.Command as Command
+import os, re, sys
+import sciedpiper.ParentScript as ParentScript
+
+
+UTILDIR = os.sep.join([os.path.dirname(__file__), "util/support_scripts/discordAFuse_util"])
+
+TRINITY_HOME = os.path.dirname(__file__) + "/.."
+
+
+'''
+if not os.environ.has_key('STAR_FUSION_DIR'):
+    print >> sys.stderr, "Error, need STAR_FUSION_DIR env var set to STAR-Fusion installation directory"
+    sys.exit(3)
+'''
+
+
+MAX_PCT_ALIGNED_OK = 80        
+
+
+class DiscordAFuse( ParentScript.ParentScript ):
+    
+    def func_update_arguments(self, arg_raw ):
+        """
+        Updates to the arg parser, command line options
+        
+        * arg_raw : Arguments ( not yet parsed )
+                  : Arguments
+        * return  : Updated Arguments
+                  : Arguments
+        """
+
+        arg_raw.prog = "DiscordAFuse"
+        arg_raw.description = "extracts genome-aligned discordant and unmapped reads, de novo assembles them, and then identifies evidence for potential fusions."
+
+        arg_raw.add_argument("--aligned_bam", dest="aligned_bam_filename", required=True, help="aligned bam file from your favorite rna-seq alignment tool")
+        arg_raw.add_argument("--genome_fa", dest="genome_fasta_filename", required=True, help="genome sequence in fasta format")
+        arg_raw.add_argument("--cdna_fa", dest="cdna_fasta_filename", required=True, help="cdna fasta file")
+        arg_raw.add_argument("--left_fq", dest="left_fq_filename", required=True, help="left fastq file")
+        arg_raw.add_argument("--right_fq", dest="right_fq_filename", required=True, help="right fastq file")
+        arg_raw.add_argument("--out_dir", dest="out_dirname", required=True, help="output directory")
+        arg_raw.add_argument("--out_prefix", dest="out_prefix", required=True, help="output filename prefix")
+        arg_raw.add_argument("--denovo_assembler", dest="denovo_assembler", required=True, help="de novo assembly method: Trinity|Oases")
+
+
+        arg_raw.add_argument("--prep_for_IGV", dest="prep_for_IGV", required=False, action="store_true", default=False, help="generate bam, bed, etc., for use with IGV")
+        arg_raw.add_argument("--write_intermediate_results", dest="write_intermediate_results", required=False, action="store_true", default=False, help="generate bam, bed, etc., for intermediate aligner outputs")
+        
+
+    def func_make_commands( self, args_parsed, cur_pipeline ):
+        
+        """
+        Allows:
+        - the creation of commands in the child object.
+        - the creation of directories.
+        - checking that files exist.
+        
+        To know the variables available from command line look in the ParentScript in func_create_arguments.
+        """
+
+        args = args_parsed
+        
+        aligned_bam_filename = ensure_full_path(args.aligned_bam_filename)
+        left_fq_filename = ensure_full_path(args.left_fq_filename)
+        right_fq_filename = ensure_full_path(args.right_fq_filename)
+        cdna_fasta_filename = ensure_full_path(args.cdna_fasta_filename)
+        genome_fasta_filename = ensure_full_path(args.genome_fasta_filename)
+
+        denovo_assembler = args.denovo_assembler
+
+        if not re.search("(trinity|oases)", denovo_assembler, re.I):
+            raise Exception("Error, assembler: " + denovo_assembler + " is not recognized. Only 'Trinity' and 'Oases' are currently supported.")
+        
+        
+        out_dirname = ensure_full_path(args_parsed.out_dirname)
+        
+        workdir = args_parsed.out_dirname + "/discardafuse_workdir"
+        
+        cur_pipeline.func_mkdirs( [ out_dirname, workdir ] )
+        
+        cur_pipeline.func_check_files_exist( [ aligned_bam_filename, left_fq_filename, right_fq_filename,
+                                               cdna_fasta_filename, genome_fasta_filename ] )
+
+
+        # relocate to the output directory
+        os.chdir(out_dirname)
+        
+
+        ## Extract the discordant and unmapped reads into fastq files
+        
+        lcmd_commands = []
+
+        cmdstr = str( os.sep.join([UTILDIR, "retrieve_discordant_and_unmapped_reads.py"]) + " " + aligned_bam_filename +
+                                  " " + left_fq_filename + " " + right_fq_filename )
+
+        discordant_left_fq_filename = os.path.basename(left_fq_filename) + ".extracted.fq"
+        discordant_right_fq_filename = os.path.basename(right_fq_filename) + ".extracted.fq"
+
+        
+        lcmd_commands.append(Command.Command( str_cur_command = cmdstr,
+                                              lstr_cur_dependencies = [ aligned_bam_filename, left_fq_filename, right_fq_filename ],
+                                              lstr_cur_products = [discordant_left_fq_filename, discordant_right_fq_filename] ) )
+
+        ## De novo assemble the extracted reads
+
+        assembled_transcripts_filename = None
+
+        if re.match("trinity", denovo_assembler, re.I):
+
+            cmdstr = str(TRINITY_HOME + "/Trinity --seqType fq --max_memory 10G " +
+                         " --left " + discordant_left_fq_filename +
+                         " --right " + discordant_right_fq_filename +
+                         " --CPU 4 --full_cleanup --output trinity_out_dir " +
+                         " --min_contig_length 100")
+            
+            assembled_transcripts_filename = "trinity_out_dir.Trinity.fasta"
+
+            lcmd_commands.append(Command.Command( str_cur_command = cmdstr,
+                                                  lstr_cur_dependencies = [discordant_left_fq_filename, discordant_right_fq_filename],
+                                                  lstr_cur_products = [assembled_transcripts_filename ] ) )
+            
+
+
+        else:
+            # oases
+            # //TODO
+
+            pass
+        
+
+
+        # map to genome
+
+        trans_alignment_gff3 = "denovo_asm.gmap.gff3"
+        
+        cmdstr = str(TRINITY_HOME + "/util/misc/process_GMAP_alignments_gff3_chimeras_ok.pl  " +
+                     " --genome " + genome_fasta_filename +
+                     " --transcripts " + assembled_transcripts_filename + 
+                     " --no_chimera > " + trans_alignment_gff3)
+
+        lcmd_commands.append(Command.Command( str_cur_command = cmdstr,
+                                              lstr_cur_dependencies = [genome_fasta_filename, assembled_transcripts_filename],
+                                              lstr_cur_products = [trans_alignment_gff3] ) )
+
+
+        # compute percent length aligned
+
+        pct_alignment_stats_file = trans_alignment_gff3 + ".align_stats"
+        
+        cmdstr = str(TRINITY_HOME + "/util/misc/gmap_gff3_to_percent_length_stats.pl " +
+                     trans_alignment_gff3 + " " + assembled_transcripts_filename +
+                     " > " + pct_alignment_stats_file)
+
+        lcmd_commands.append(Command.Command( str_cur_command = cmdstr,
+                                              lstr_cur_dependencies = [trans_alignment_gff3, assembled_transcripts_filename],
+                                              lstr_cur_products = [pct_alignment_stats_file] ) )
+
+        
+        
+
+        # filter those that map just fine
+
+        candidate_transcripts_file = pct_alignment_stats_file + ".max_" + `MAX_PCT_ALIGNED_OK` + ".trans.fasta"
+        
+        cmdstr = str(UTILDIR + "/get_partially_or_unmapped_transcripts.py " + pct_alignment_stats_file +
+                     " " + `MAX_PCT_ALIGNED_OK` + " " + assembled_transcripts_filename +
+                     " > " + candidate_transcripts_file)
+
+        lcmd_commands.append(Command.Command( str_cur_command = cmdstr,
+                                              lstr_cur_dependencies = [pct_alignment_stats_file, assembled_transcripts_filename],
+                                              lstr_cur_products = [candidate_transcripts_file] ) )
+        
+        
+        # map to transcriptome the ones that dont align fine to the genome
+        trans_chimera_align_file = candidate_transcripts_file + ".trans_gmap_chimallowed.gff3"
+        
+        cmdstr = str(TRINITY_HOME + "/util/misc/process_GMAP_alignments_gff3_chimeras_ok.pl  " +
+                     " --genome " + cdna_fasta_filename +
+                     " --transcripts " + candidate_transcripts_file + 
+                     " > " + trans_chimera_align_file)
+
+        lcmd_commands.append(Command.Command( str_cur_command = cmdstr,
+                                              lstr_cur_dependencies = [cdna_fasta_filename, candidate_transcripts_file],
+                                              lstr_cur_products = [trans_chimera_align_file] ) )
+        
+        
+
+        # retrieve chimeric gene pairs:
+        trans_chimera_pairs_file = trans_chimera_align_file + ".fusions.dat"
+
+        cmdstr = str(UTILDIR + "/identify_candidate_fusions_from_denovo_aligns.cdna_targets.py " +
+                     trans_chimera_align_file + " " + cdna_fasta_filename +
+                     " > " + trans_chimera_pairs_file)
+
+        lcmd_commands.append(Command.Command( str_cur_command = cmdstr,
+                                              lstr_cur_dependencies = [cdna_fasta_filename, trans_chimera_align_file],
+                                              lstr_cur_products = [trans_chimera_pairs_file] ) )
+        
+
+
+
+        # not including minigenome search for now, sensitivity may be lacking - but will explore it further later on.
+        '''
+        include_minigenome = False
+        if include_minigenome:
+        
+            # align to the mini genome
+            trans_align_minigenome_file = candidate_transcripts_file + ".minigenome_gmap_chimallowed.gff3"
+
+            mini_genome = "/seq/regev_genome_portal/RESOURCES/FUSION_ANNOTATOR_LIB/geneContigs.miniNNN.fa"
+
+            cmdstr = str(TRINITY_HOME + "/util/misc/process_GMAP_alignments_gff3_chimeras_ok.pl  " +
+                         " --genome " + mini_genome +
+                         " --transcripts " + candidate_transcripts_file + 
+                         " > " + trans_align_minigenome_file)
+
+            lcmd_commands.append(Command.Command( str_cur_command = cmdstr,
+                                                  lstr_cur_dependencies = [mini_genome, candidate_transcripts_file],
+                                                  lstr_cur_products = [trans_align_minigenome_file] ) )
+
+
+
+            # identify candidate fusion transcripts
+
+            minigenome_chimera_pairs_file = trans_align_minigenome_file + ".gene_pairs"
+
+            cmdstr = str(UTILDIR + "/identify_candidate_fusions_from_denovo_aligns.minigenome.py " +
+                         trans_align_minigenome_file + 
+                         " > " + minigenome_chimera_pairs_file)
+
+            lcmd_commands.append(Command.Command( str_cur_command = cmdstr,
+                                                  lstr_cur_dependencies = [trans_align_minigenome_file],
+                                                  lstr_cur_products = [minigenome_chimera_pairs_file] ) )
+
+        '''
+
+        # filter the predictions
+        
+        
+
+
+        return lcmd_commands
+
+
+
+
+def ensure_full_path(file_or_dir):
+
+    if file_or_dir[0] != '/' :
+        file_or_dir = os.getcwd() + "/" + file_or_dir
+
+    return(file_or_dir)
+
+                          
+    
+if __name__ == "__main__":
+
+    # Needed to run, calls the script
+    DiscordAFuse().func_run_pipeline()
+

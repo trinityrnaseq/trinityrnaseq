@@ -11,12 +11,12 @@ bool Regular(char c) {
 // Restricts all k-mers to what's in here.
 void NonRedKmerTable::SetUp(const vecDNAVector & templ, bool noNs)
 {
-  int i, j;
+  size_t i, j;
   
   // cerr << "vecDNAVector length: " << templ.isize() << endl;
   
   long l = 0;
-  for (i=0; i<templ.isize(); i++)
+  for (i=0; i<templ.size(); i++)
     l += templ[i].isize()-m_k+1;
   
   cerr << "Allocating: " << l << endl;
@@ -27,12 +27,12 @@ void NonRedKmerTable::SetUp(const vecDNAVector & templ, bool noNs)
   if (noNs)
   {
 
-    for (i=0; i<templ.isize(); i++) {
+    for (i=0; i<templ.size(); i++) {
       const DNAVector & d = templ[i];
 
       // first check if sequence contains any irregular chars
       bool bGood = true;
-      for (int x=0; x<d.isize(); x++) {
+      for (int x=0; x<d.size(); x++) {
         if (!Regular(d[x])) {
           bGood = false;
           break;
@@ -43,7 +43,7 @@ void NonRedKmerTable::SetUp(const vecDNAVector & templ, bool noNs)
       {
 
         // good! do not check for irregular chars in each kmer
-        for (j=0; j<=d.isize()-m_k; j++) {
+        for (j=0; j<=d.size()-m_k; j++) {
           d.Substring(m_data[l], j, m_k);
           l++;
         }
@@ -53,7 +53,7 @@ void NonRedKmerTable::SetUp(const vecDNAVector & templ, bool noNs)
       {
 
         // bad! we need to check for irregular chars in each kmer
-        for (j=0; j<=d.isize()-m_k; j++) {
+        for (j=0; j<=d.size()-m_k; j++) {
           d.Substring(m_data[l], j, m_k);
           bGood = true;
           for (int x=0; x<m_k; x++) {
@@ -74,9 +74,9 @@ void NonRedKmerTable::SetUp(const vecDNAVector & templ, bool noNs)
   else
   {
 
-    for (i=0; i<templ.isize(); i++) {
+    for (i=0; i<templ.size(); i++) {
       const DNAVector & d = templ[i];
-      for (j=0; j<=d.isize()-m_k; j++) {
+      for (j=0; j<=d.size()-m_k; j++) {
         d.Substring(m_data[l], j, m_k);
         l++;
       }
@@ -84,25 +84,26 @@ void NonRedKmerTable::SetUp(const vecDNAVector & templ, bool noNs)
 
   }
 
-  // cerr << "Resizing: " << l << endl;
+  cerr << "Resizing: " << l << endl;
   m_data.resize(l);
 
+  cerr << "Sorting";
   UniqueSort(m_data);
-  m_counts.resize(m_data.isize(), 0);
-  // cerr << "Done." << endl;
+  m_counts.resize(m_data.size(), 0);
+  cerr << "Done." << endl;
   
  
 }
 
 void NonRedKmerTable::AddData(const vecDNAVector & data)
 {
-  int i, j;
+  size_t i, j;
 
-  cerr << "NonRedKmerTable::AddData() - adding Reads: " << data.isize() << endl;
-  for (i=0; i<data.isize(); i++) {
+  cerr << "NonRedKmerTable::AddData() - adding Reads: " << data.size() << endl;
+  for (i=0; i<data.size(); i++) {
     
     if (i % 1000 == 0) {
-      cerr << 100.*(double)i/(double)data.isize() << " %" << endl;
+      cerr << 100.*(double)i/(double)data.size() << " %" << endl;
     }
     const DNAVector & d = data[i];
     for (j=0; j<= d.isize()-m_k; j++) {

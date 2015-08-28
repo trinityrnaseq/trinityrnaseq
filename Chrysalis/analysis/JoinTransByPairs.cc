@@ -274,12 +274,12 @@ int main(int argc,char** argv)
   int extra = 100;
 
   svec<int> contigs;
-  contigs.resize(seq.isize(), -1);
+  contigs.resize(seq.size(), -1);
 
   svec<ReadPlaces> places;
 
   if (!bCont) {
-    places.resize(dna.isize());
+    places.resize(dna.size());
   } else {
     cout << "Reading placements..." << endl;
     ReadThePlaces(places, placementFile);
@@ -290,7 +290,7 @@ int main(int argc,char** argv)
 
 
   cout << "Assigning contigs to reads." << endl;
-  for (i=0; i<dna.isize(); i++) {
+  for (i=0; i<dna.size(); i++) {
     const DNAVector & one = dna[i];
     double all = 0.;
     broken = 0;
@@ -338,7 +338,7 @@ int main(int argc,char** argv)
   //if (!bCont)
   //WriteThePlaces(places, placementFile);
   
-  for (i=0; i<dna.isize(); i++) {
+  for (i=0; i<dna.size(); i++) {
 
     DNAVector & d = dna[i];
     if (d.isize() == 0)
@@ -347,7 +347,7 @@ int main(int argc,char** argv)
       continue;
 
     svec<int> possible;
-    possible.resize(dna.isize(), 0);
+    possible.resize(dna.size(), 0);
 
     //cout << "Checking contig " << i << endl;
     ReadPlaces & pl = places[i];

@@ -90,7 +90,7 @@ public:
     void exclude (int i) {
         //FIXME:  there must be a more efficient way to do this.
         svec<int> new_mvec;
-        for (int j = 0; j < m_index.size(); j++) {
+        for (size_t j = 0; j < m_index.size(); j++) {
             int val = m_index[j];
             if (val != i) {
                 new_mvec.push_back(val);
@@ -666,7 +666,7 @@ bool sort_pool_sizes_ascendingly(const Pool& a, const Pool& b) {
 }
 
 
-svec<Pool> bubble_up_cluster_growth(map<int,Pool>& pool, map<int,bool>& ignore) {
+svec<Pool> bubble_up_cluster_growth(map<int,Pool>& pool, map<int,bool>& ) {
     
     vector<Pool> pool_vec;
     for (map<int,Pool>::iterator it = pool.begin(); it != pool.end(); it++) {
@@ -684,7 +684,7 @@ svec<Pool> bubble_up_cluster_growth(map<int,Pool>& pool, map<int,bool>& ignore) 
     map<int,Pool> pool_idx_to_containment;
     map<int,int>  pool_idx_to_vec_idx;
     // init 
-    for (int i = 0; i < pool_vec.size(); i++) {
+    for (size_t i = 0; i < pool_vec.size(); i++) {
         int id = pool_vec[i].get_id();
         Pool tmp(id);
         pool_idx_to_containment[id] = tmp;
@@ -705,7 +705,7 @@ svec<Pool> bubble_up_cluster_growth(map<int,Pool>& pool, map<int,bool>& ignore) 
             cerr << "bubbling up graph, round: " << bubble_round << endl;
         }
         
-        for (int i = 0; i < pool_vec.size(); i++) {
+        for (size_t i = 0; i < pool_vec.size(); i++) {
             
             
             
@@ -812,7 +812,7 @@ svec<Pool> bubble_up_cluster_growth(map<int,Pool>& pool, map<int,bool>& ignore) 
 
     
     svec<Pool> bubbled_up_pools;
-    for (int i = 0; i < pool_vec.size(); i++) {
+    for (size_t i = 0; i < pool_vec.size(); i++) {
                 
         Pool& p = pool_vec[i];
         int id = p.get_id();
@@ -857,7 +857,7 @@ svec<Pool> sl_cluster_pools(map<int,Pool>& pool, map<int,bool>& ignore) {
     // init entries to loweset pool index they're found in.
     map<int,int> mapped;
     
-    for (int i = 0; i < pool_vec.size(); i++) {
+    for (size_t i = 0; i < pool_vec.size(); i++) {
         
         Pool p = pool_vec[i];
         
@@ -1134,7 +1134,7 @@ void add_unclustered_iworm_contigs (svec<Pool>& clustered_pools, vecDNAVector& d
     
 
     // add in the missing entries
-    for (int i = 0; i < dna.size(); i++) {
+    for (size_t i = 0; i < dna.size(); i++) {
         if (found.find(i) == found.end()) {
             Pool p;
             p.add(i);
@@ -1332,9 +1332,9 @@ int main(int argc,char** argv)
     //Welder weld(k, kk); // decides if read support exists to weld two inchworm contigs together into the same component.
     
 
-    int schedule_chunksize = dna.isize() / real_num_threads / 100;
+    int schedule_chunksize = dna.size() / real_num_threads / 100;
     if(schedule_chunksize<1) schedule_chunksize=1;
-    cerr << "-setting omp for schedule chunksize to " << schedule_chunksize << " for " << dna.isize() << " iworm contigs" << endl;
+    cerr << "-setting omp for schedule chunksize to " << schedule_chunksize << " for " << dna.size() << " iworm contigs" << endl;
     
     int counter = 0;
     
@@ -1349,7 +1349,7 @@ int main(int argc,char** argv)
         
         Pool p;
         
-        for (int i = 0; i < dna.size(); i++) {
+        for (size_t i = 0; i < dna.size(); i++) {
             p.add(i);
         }
         
@@ -1364,15 +1364,15 @@ int main(int argc,char** argv)
             iworm_counter = 0;
             
 #pragma omp parallel for schedule(dynamic, schedule_chunksize) private(j)
-            for (i=0; i<dna.isize(); i++) {
+            for (i=0; i<dna.size(); i++) {
                 DNAVector & d = dna[i]; // inchworm contig [i]
                 
 #pragma omp atomic
                 iworm_counter++;
                 
-                if (iworm_counter % 1000 == 0 || iworm_counter == dna.isize()-1) {
+                if (iworm_counter % 1000 == 0 || iworm_counter == dna.size()-1) {
 #pragma omp critical
-                    cerr << "\rProcessed: " << iworm_counter/(double)dna.isize()*100 << " % of iworm contigs.    ";
+                    cerr << "\rProcessed: " << iworm_counter/(double)dna.size()*100 << " % of iworm contigs.    ";
                 }
                 
                 for (j=0; j<=d.isize()-k; j++) {
@@ -1487,7 +1487,7 @@ int main(int argc,char** argv)
         iworm_counter = 0; // reset
         
 #pragma omp parallel for schedule(dynamic, schedule_chunksize) private(j)
-        for (i=0; i<dna.isize(); i++) {
+        for (i=0; i<dna.size(); i++) {
             
         
 #pragma omp atomic
@@ -1495,7 +1495,7 @@ int main(int argc,char** argv)
             
             if (i % 100 == 0) {
 #pragma omp critical
-                cerr << "\r[" << (iworm_counter/(float)dna.isize()*100) << "% done]                ";
+                cerr << "\r[" << (iworm_counter/(float)dna.size()*100) << "% done]                ";
             }
             
             
@@ -1762,7 +1762,7 @@ int main(int argc,char** argv)
         p.sortvec();
     
         int sum_iworm_length = 0;
-        for (unsigned int j = 0; j < p.size(); j++) {
+        for (size_t j = 0; j < p.size(); j++) {
             int z = p.get(j);
             sum_iworm_length += dna[z].isize();
         }
@@ -1775,7 +1775,7 @@ int main(int argc,char** argv)
         pool_info << "#POOL_INFO\t" << component_count << ":" << "\t";
 
         cout << "COMPONENT " << component_count << "\t" << p.size() << endl;
-        for (unsigned int j = 0; j < p.size(); j++) {
+        for (size_t j = 0; j < p.size(); j++) {
             int z = p.get(j);
             
             pool_info << z << " ";

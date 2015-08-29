@@ -54,8 +54,9 @@ my $usage = <<__EOUSAGE__;
 #  ## EdgeR-related parameters
 #  ## (no biological replicates)
 #
-#  --dispersion <float>            edgeR dispersion value (default: 0.1)   set to 0 for poisson (sometimes breaks...)
-#
+#  --dispersion <float>            edgeR dispersion value. Set to 0 for poisson (sometimes breaks...)
+#  
+#  see edgeR user manual for suggestions
 #  http://www.bioconductor.org/packages/release/bioc/html/edgeR.html
 #
 ###############################################################################################
@@ -87,7 +88,7 @@ my $samples_file;
 my $min_rowSum_counts = 2;
 my $help_flag;
 my $output_dir;
-my $dispersion = 0.1;
+my $dispersion;
 my $contrasts_file;
 
 my $reference_sample;
@@ -392,6 +393,9 @@ sub run_edgeR_sample_pair {
         print $ofh "exp_study = estimateTagwiseDisp(exp_study)\n";
         print $ofh "et = exactTest(exp_study, pair=c(\"$sample_A\", \"$sample_B\"))\n";
     }
+    elsif (!$dispersion) {
+	die "Error, cannot calculate dispersions due to lack of replicates. Specify a dispersion parameter --dispersion <float>. See help for details\n";
+    }
     else {
         print $ofh "et = exactTest(exp_study, pair=c(\"$sample_A\", \"$sample_B\"), dispersion=$dispersion)\n";
     }
@@ -445,7 +449,7 @@ sub run_DESeq_sample_pair {
     }
     
 
-    ## write R-script to run edgeR
+    ## write R-script to run DESeq
     open (my $ofh, ">$Rscript_name") or die "Error, cannot write to $Rscript_name";
     
     print $ofh "library(DESeq)\n";
@@ -543,7 +547,7 @@ sub run_DESeq2_sample_pair {
     }
     
 
-    ## write R-script to run edgeR
+    ## write R-script to run DESeq2
     open (my $ofh, ">$Rscript_name") or die "Error, cannot write to $Rscript_name";
     
     print $ofh "library(DESeq2)\n";

@@ -1278,13 +1278,15 @@ sub run_Trinity {
             # adjust the inchworm target, tack on the longer reads.
             
             $inchworm_target_fa .= ".wLongReads.fa";
-            $count_of_reads += `grep -c '^>' $long_reads | wc -l`; #AP we don't know if these will be one single line
-            
-            &process_cmd("cat $long_reads | sed 's/>/>LR\\\$\\\|/' > $inchworm_target_fa");
-
-            ## merge the long reads with the short reads into a new target file.
-            &process_cmd("cat $trinity_target_fa >> $inchworm_target_fa");
-            
+            $count_of_reads += `grep -c '^>' $long_reads`; #AP we don't know if these will be one single line
+            if (!-e  "$inchworm_target_fa.ok"){
+            &process_cmd("cat $long_reads | sed 's/>/>LR\\\$\\\|/' > $inchworm_target_fa"); #  
+                
+            ## merge the long reads with the short reads into target file.
+            &process_cmd("cat $inchworm_target_fa >> $trinity_target_fa "); #TODO: if it dies while doing this then truncate both.fa (truncate -s size both.fa) to its original size and redo;
+            &process_cmd("touch $inchworm_target_fa.ok");
+        }
+            &process_cmd("ln -fs $trinity_target_fa $inchworm_target_fa "); #just to keep the filename .wLongReads.fa and to avoid unnecessary duplication of reads.
         }
             
         open (my $ofh, ">$inchworm_target_fa.read_count") or die $!;
@@ -1425,13 +1427,23 @@ sub run_chrysalis {
         $pipeliner->run();
         
         $pipeliner = new Pipeliner(-verbose => $VERBOSE);
-        $cmd = "bowtie-build -q $iworm_min100_fa_file $iworm_min100_fa_file";
+        if($long_reads){
+            $cmd = "bowtie2-build -o 3 $iworm_min100_fa_file $iworm_min100_fa_file"; #-o 3 / defaut is 5, less use more ram but is faster when mapping the reads
+        }
+        else{ #keeping this because some may wish
+            $cmd = "bowtie-build -q $iworm_min100_fa_file $iworm_min100_fa_file";
+        }	
 
         if (-s "$iworm_min100_fa_file") {
             $pipeliner->add_commands( new Command($cmd, "$iworm_min100_fa_file.bowtie_build.ok"));
 
             my $bowtie_sam_file = "$chrysalis_output_dir/iworm.bowtie.nameSorted.bam";
-            $cmd = "bash -c \" set -o pipefail; bowtie -a -m 20 --best --strata --threads $CPU  --chunkmbs 512 -q -S -f $iworm_min100_fa_file $bowtie_reads_fa  | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort $PARALLEL_SAMTOOLS_SORT_TOKEN -no - - > $bowtie_sam_file\" ";
+            if ($long_reads){
+            	$cmd = "bash -c \" set -o pipefail;bowtie2 --local -a --threads $CPU -f $iworm_min100_fa_file $bowtie_reads_fa  | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort $PARALLEL_SAMTOOLS_SORT_TOKEN -no - - > $bowtie_sam_file\" ";  
+            }
+            else{
+            	$cmd = "bash -c \" set -o pipefail; bowtie -a -m 20 --best --strata --threads $CPU  --chunkmbs 512 -q -S -f $iworm_min100_fa_file $bowtie_reads_fa  | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort $PARALLEL_SAMTOOLS_SORT_TOKEN -no - - > $bowtie_sam_file\" ";
+            }
             
             
             $pipeliner->add_commands( new Command($cmd, "$bowtie_sam_file.ok"));

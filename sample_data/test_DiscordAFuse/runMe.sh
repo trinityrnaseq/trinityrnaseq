@@ -1,1 +1,0 @@
-../../util/DiscordAFuse --aligned_bam Aligned.sortedByCoord.out.bam --left_fq reads_1.fq.gz --right_fq reads_2.fq.gz --out_dir daf_outdir --out_prefix daf --denovo_assembler Trinity --genome_fa /seq/regev_genome_portal/RESOURCES/FUSION_ANNOTATOR_LIB/Hg19.fa --cdna_fa /seq/regev_genome_portal/RESOURCES/FUSION_ANNOTATOR_LIB/gencode.v19.annotation.gtf.exons.cdna

@@ -53,8 +53,8 @@ main: {
                 my $fusion_name = join("--", $left_gene->{gene_name}, $right_gene->{gene_name});
 
                 print join("\t", $fusion_name, $trans_id,
-                           $left_gene->{gene_name}, $left_gene->{trans_lend}, $left_gene->{trans_rend}, $left_gene->{gene_orient},
-                           $right_gene->{gene_name}, $right_gene->{trans_lend}, $right_gene->{trans_rend}, $right_gene->{gene_orient}) . "\n";
+                           $left_gene->{gene_name}, $left_gene->{trans_lend}, $left_gene->{trans_rend}, $left_gene->{gene_orient}, $left_gene->{per_id} . "\%ID",
+                           $right_gene->{gene_name}, $right_gene->{trans_lend}, $right_gene->{trans_rend}, $right_gene->{gene_orient}, $right_gene->{per_id} . "\%ID") . "\n";
 
             }
             
@@ -112,23 +112,35 @@ sub insufficient_overlap_existing_tier {
 
     foreach my $tier_entry (@$tiered_aref) {
         
+        my $tier_gene_name = $tier_entry->{gene_name};
         my $tier_lend = $tier_entry->{trans_lend};
         my $tier_rend = $tier_entry->{trans_rend};
         my $tier_seg_len = $tier_rend - $tier_lend + 1;
 
+
+        my $hit_gene_name = $hit->{gene_name};
         my $hit_lend = $hit->{trans_lend};
         my $hit_rend = $hit->{trans_rend};
         my $hit_len = $hit_rend - $hit_lend + 1;
+
+
+        #print "TESTING $tier_gene_name vs. $hit_gene_name : ($tier_lend-$tier_rend) vs. ($hit_lend, $hit_rend)\n";
+
         
         if (&coordsets_overlap([$tier_lend, $tier_rend], [$hit_lend, $hit_rend])) {
 
             my $smaller_len = ($tier_seg_len < $hit_len) ? $tier_seg_len : $hit_len;
 
             my $pct_overlap = &nucs_in_common($tier_lend, $tier_rend, $hit_lend, $hit_rend) / $smaller_len * 100;
+            
+            #print "($tier_lend-$tier_rend) vs. ($hit_lend, $hit_rend)\tPCT_Overlap: $pct_overlap\n";
 
             if ($pct_overlap > $MAX_ALLOWED_PCT_OVERLAP) {
                 return(0);
             }
+        }
+        else {
+            #print "($tier_lend-$tier_rend) vs. ($hit_lend, $hit_rend)\tNO_overlap\n";
         }
 
     }

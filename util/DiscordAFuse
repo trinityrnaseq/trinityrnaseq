@@ -76,9 +76,10 @@ class DiscordAFuse( ParentScript.ParentScript ):
         
         out_dirname = ensure_full_path(args_parsed.out_dirname)
         
-        workdir = args_parsed.out_dirname + "/discardafuse_workdir"
+        #workdir = args_parsed.out_dirname + "/discardafuse_workdir"
         
-        cur_pipeline.func_mkdirs( [ out_dirname, workdir ] )
+        #cur_pipeline.func_mkdirs( [ out_dirname, workdir ] )
+        cur_pipeline.func_mkdirs( [ out_dirname] )
         
         cur_pipeline.func_check_files_exist( [ aligned_bam_filename, left_fq_filename, right_fq_filename,
                                                cdna_fasta_filename, genome_fasta_filename ] )
@@ -172,7 +173,11 @@ class DiscordAFuse( ParentScript.ParentScript ):
                                               lstr_cur_dependencies = [pct_alignment_stats_file, assembled_transcripts_filename],
                                               lstr_cur_products = [candidate_transcripts_file] ) )
         
-        
+
+
+
+        # BLAT worked better for this
+        '''
         # map to transcriptome the ones that dont align fine to the genome
         trans_chimera_align_file = candidate_transcripts_file + ".trans_gmap_chimallowed.gff3"
         
@@ -198,7 +203,36 @@ class DiscordAFuse( ParentScript.ParentScript ):
                                               lstr_cur_dependencies = [cdna_fasta_filename, trans_chimera_align_file],
                                               lstr_cur_products = [trans_chimera_pairs_file] ) )
         
+        '''
+        
+        
+        # BLAT map to transcriptome the ones that dont align fine to the genome
+        trans_chimera_align_file = candidate_transcripts_file + ".trans_blat.gff3"
+        
+        cmdstr = str(TRINITY_HOME + "/util/misc/process_BLAT_alignments.pl  -g /seq/regev_genome_portal/RESOURCES/FUSION_ANNOTATOR_LIB/gencode.v19.annotation.gtf.exons.cdna -t trinity_out_dir.Trinity.fasta -N 100process_GMAP_alignments_gff3_chimeras_ok.pl  " +
+                     " -g " + cdna_fasta_filename +
+                     " -t " + candidate_transcripts_file + 
+                     " -N 100 -I 50 -o " + candidate_transcripts_file + ".trans_blat")
 
+        lcmd_commands.append(Command.Command( str_cur_command = cmdstr,
+                                              lstr_cur_dependencies = [cdna_fasta_filename, candidate_transcripts_file],
+                                              lstr_cur_products = [trans_chimera_align_file] ) )
+        
+        
+
+        # retrieve chimeric gene pairs:
+        trans_chimera_pairs_file = args_parsed.out_prefix + ".fusions.dat"
+        
+        cmdstr = str(UTILDIR + "/identify_candidate_fusions_from_denovo_aligns.cdna_targets.from_BLAT.pl " +
+                     trans_chimera_align_file + " " + cdna_fasta_filename +
+                     " > " + trans_chimera_pairs_file)
+
+        lcmd_commands.append(Command.Command( str_cur_command = cmdstr,
+                                              lstr_cur_dependencies = [cdna_fasta_filename, trans_chimera_align_file],
+                                              lstr_cur_products = [trans_chimera_pairs_file] ) )
+        
+
+        
 
 
         # not including minigenome search for now, sensitivity may be lacking - but will explore it further later on.

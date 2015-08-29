@@ -122,8 +122,8 @@ if ($est_method =~ /^rsem$/i) {
 }
 elsif ($est_method =~ /^express$/i) {
     $acc_field = 1;
-    $counts_field = 7;
-    $fpkm_field = 10;
+    $counts_field = 3;
+    $fpkm_field = 4;
 }
 else {
     die "Error, dont recognize --est_method $est_method ";
@@ -198,7 +198,10 @@ main: {
                 $count = "NA";
             }
             my $fpkm = $data{$acc}->{$file}->{fpkm};
-            unless (defined $fpkm) {
+            if (defined $fpkm) {
+                $fpkm = $fpkm/1;
+            }
+            else {
                 $fpkm = "NA";
             }
 

@@ -39,12 +39,18 @@ sub submit_job_to_grid {
     $cmd .= " -d .  -j oe -N $shell_script ";
 
     $cmd .= " $shell_script 2>&1 ";
-        
+    
+
+    print STDERR "CMD: $cmd\n";
 
     my $job_id_text = `$cmd`;
-    #print STDERR "\nSGE: $job_id_text\n";
+    
+    
+    
     
     my $ret = $?;
+    
+    print STDERR "\nPBS job (ret=$ret), text:: $job_id_text\n";
     
 
     if ($ret) {

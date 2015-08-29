@@ -2792,7 +2792,7 @@ sub version_check {
     
     my $url = "http://rt-trinity.uits.indiana.edu/flask/version/" . $VERSION . "?timestamp=" . time;
     #print STDERR "curl --connect-timeout 10 -s \"$url\"";
-    my $content = `curl -m 5 --connect-timeout 5 -s "$url"`;
+    my $content = `curl -m 5 --connect-timeout 5 --max-time 5 -s "$url" 2>&1`;
     
     
     
@@ -2800,9 +2800,9 @@ sub version_check {
     ## https://api.github.com/repos/trinityrnaseq/trinityrnaseq/releases
 
     $url = "https://api.github.com/repos/trinityrnaseq/trinityrnaseq/releases";
-    $content = `curl -m 5 --connect-timeout 5 -s "$url"`;
+    $content = `curl -m 5 --connect-timeout 5 --max-time 5 -s "$url" 2>&1 `;
     
-    if ($?) {
+    if ( (! $content) || $?) {
         
         print STDERR "-ERROR: couldn't run the network check to confirm latest Trinity software version.\n\n";
     }

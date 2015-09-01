@@ -1276,7 +1276,12 @@ sub run_Trinity {
         if ($long_reads) {
             
             # adjust the inchworm target, tack on the longer reads.
-            
+        open (LONG_READS,$long_reads);
+            if (<LONG_READS>!~/^>/){ #verify if it is fasta.
+        	print "The long reads file does not look like FASTA.\n";
+        	die;
+            } 
+        close (LONG_READS);
             $inchworm_target_fa .= ".wLongReads.fa";
             $count_of_reads += `grep -c '^>' $long_reads`; #AP we don't know if these will be one single line
             if (!-e  "$inchworm_target_fa.ok"){

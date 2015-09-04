@@ -1956,36 +1956,22 @@ sub prep_seqs {
     my ($initial_files_ref, $seqType, $file_prefix, $SS_lib_type) = @_;
     my @initial_files = @$initial_files_ref;
     return if -e "$file_prefix.fa";
-   	for (my $i=0;$i<scalar(@initial_files);$i++){
-        my $f = $initial_files[$i];
-        if ($f=~/\.gz$/){
-            my $new = $f;
-            $new=~s/\.gz$//;
-            unlink($new);
-            &process_cmd("gunzip -c $f > $new");
-            $initial_files[$i] = $new;
-        }elsif ($f=~/\.bz2$/){
-            my $new = $f;
-            $new=~s/\.bz2$//;
-            unlink($new);
-            &process_cmd("bunzip2 -dkc $f > $new");
-            $initial_files[$i] = $new;
-        }
-   	}
-   	
    	my $initial_file_str = join(" ",@initial_files);
     if ($seqType eq "fq") {
         # make fasta
-        foreach my $f (@initial_files){
-            my $perlcmd = "$UTILDIR/support_scripts/fastQ_to_fastA.pl -I $f ";
-            my $fastool_cmd = "$FASTOOL_DIR/fastool";
+	foreach my $f (@initial_files){
+		my $fastool_cmd = "cat $f | $FASTOOL_DIR/fastool";
+		if ($f=~/\.gz$/){
+		    $fastool_cmd = "gunzip -c $f | $FASTOOL_DIR/fastool";
+		}elsif ($f=~/\.bz2$/){
+		    $fastool_cmd = "bunzip2 -dkc $f | $FASTOOL_DIR/fastool";
+		}
+
             if ($SS_lib_type && $SS_lib_type eq "R") {
-                $perlcmd .= " --rev ";
-                $fastool_cmd .= " --rev ";
+                $fastool_cmd .= " --rev";
             }
-            $fastool_cmd .= " --illumina-trinity --to-fasta $f >> $file_prefix.fa 2> $f.readcount ";
-            $perlcmd .= " >> $file_prefix.fa 2> $f.readcount ";  
-            my $cmd = ($USE_FASTOOL) ? $fastool_cmd : $perlcmd;
+            $fastool_cmd .= " --illumina-trinity --to-fasta >> $file_prefix.fa 2> $f.readcount ";
+            my $cmd = $fastool_cmd;
             &process_cmd($cmd);
         }
     }
@@ -1993,14 +1979,31 @@ sub prep_seqs {
         if (scalar(@initial_files) == 1 && (!$SS_lib_type || $SS_lib_type ne "R")) {
             ## just symlink it here:
             my $cmd = "ln -s $initial_file_str $file_prefix.fa";
+	    if ($initial_file_str=~/\.gz$/){
+		    $cmd = "gunzip -c $initial_file_str >$file_prefix.fa";
+	    }elsif ($initial_file_str=~/\.bz2$/){
+		    $cmd = "bunzip2 -dkc $initial_file_str >$file_prefix.fa";
+	    }            
             &process_cmd($cmd);
         }elsif(scalar(@initial_files) > 1 && (!$SS_lib_type || $SS_lib_type ne "R")){
-        	my $cmd = "cat $initial_file_str > $file_prefix.fa";
-        	&process_cmd($cmd);
+            foreach my $f (@initial_files){
+                my $cmd = "cat $f >> $file_prefix.fa";
+		if ($f=~/\.gz$/){
+		    $cmd = "gunzip -c $f >> $file_prefix.fa";
+		}elsif ($f=~/\.bz2$/){
+		    $cmd = "bunzip2 -dkc $f >> $file_prefix.fa";
+		}
+                &process_cmd($cmd);
+          	}
         }else {
             #if ($SS_lib_type && $SS_lib_type eq "R") {
             foreach my $f (@initial_files){
                 my $cmd = "$UTILDIR/support_scripts/revcomp_fasta.pl $f >> $file_prefix.fa";
+		if ($f=~/\.gz$/){
+		    $cmd = "gunzip -c $f | $UTILDIR/support_scripts/revcomp_fasta.pl >> $file_prefix.fa";
+		}elsif ($f=~/\.bz2$/){
+		    $cmd = "bunzip2 -dkc $f | $UTILDIR/support_scripts/revcomp_fasta.pl >> $file_prefix.fa";
+		}
                 &process_cmd($cmd);
           	}
         }

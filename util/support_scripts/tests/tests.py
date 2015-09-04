@@ -124,6 +124,11 @@ class TestTrinity(unittest.TestCase):
         expected_order = list(reversed(sorted(actual_lengths)))
         self.assertEquals(expected_order, actual_lengths)
 
+    def test_Inchworm_handles_compressed_files(self):
+        self.trinity('Trinity %s --seqType fq --single reads.left.fq.gz --SS_lib_type F --no_run_chrysalis' % MEM_FLAG);
+        num_lines = sum(1 for line in open('trinity_out_dir/inchworm.K25.L25.fa'))
+        self.assertTrue(2900 <= num_lines <= 3100, msg='Found %s lines' % num_lines)
+
 ### information tests
     def test_cite(self):
         expected = '\n\n* Trinity:\nFull-length transcriptome assembly from RNA-Seq data without a reference genome.\nGrabherr MG, Haas BJ, Yassour M, Levin JZ, Thompson DA, Amit I, Adiconis X, Fan L,\nRaychowdhury R, Zeng Q, Chen Z, Mauceli E, Hacohen N, Gnirke A, Rhind N, di Palma F,\nBirren BW, Nusbaum C, Lindblad-Toh K, Friedman N, Regev A.\nNature Biotechnology 29, 644\xe2\x80\x93652 (2011)\nPaper: http://www.nature.com/nbt/journal/v29/n7/full/nbt.1883.html\nCode:  http://trinityrnaseq.sf.net\n\n\n'

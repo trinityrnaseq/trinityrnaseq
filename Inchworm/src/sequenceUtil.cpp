@@ -30,7 +30,7 @@ string currAccession;
 bool contains_non_gatc (string kmer) {
 
   for (unsigned int i = 0; i < kmer.size(); i++) {
-	char c = kmer[i];
+	unsigned char c = kmer[i];
 
 	if (_base_to_int[c] > 3)
 	  return(true);
@@ -52,7 +52,7 @@ bool contains_non_gatc (string kmer) {
 string read_sequence_from_file (string filename) {
   
   ifstream fileReader (filename.c_str());
-  if (fileReader == 0) { // couldn't open file
+  if (!fileReader) { // couldn't open file
 	throw(stacktrace() + "\n\nCould not open " + filename + "\n");
   }
   
@@ -256,7 +256,7 @@ kmer_int_type_t kmer_to_intval(string kmer) {
   kmer_int_type_t kmer_val = 0;
   
   for (unsigned int i = 0; i < kmer.length(); i++) {
-	char c = kmer[i];
+	unsigned char c = kmer[i];
 	int val = _base_to_int[c];
         /* ottmi: Don't need this here: the only possible source for non-gatc characters is
            the reads file and we already check in add_kmer() */
@@ -398,7 +398,7 @@ string replace_nonGATC_chars_with_A (string& str) {
     stringstream newStr;
 
     for (unsigned int i = 0; i < str.size(); i++) {
-        char c = str[i];
+        unsigned char c = str[i];
         
         if (_base_to_int[c] > 3)
             c = 'A';

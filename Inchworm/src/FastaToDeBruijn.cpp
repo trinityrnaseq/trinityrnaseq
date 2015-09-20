@@ -39,7 +39,7 @@ DeBruijnGraph constructDeBruijnGraph (vector<string> fasta_filenames, int kmer_l
 void createGraphPerRecord(vector<string> fasta_filenames, int kmer_length, bool sStrand, ArgProcessor args);
 
 
-string usage (ArgProcessor args) {
+string usage (ArgProcessor) {
     
     stringstream usage_info;
     
@@ -152,7 +152,7 @@ int fastaToDeBruijn (int argc, char* argv[]) {
 void createGraphPerRecord(vector<string> fasta_file_names, int kmer_length, bool sStrand, ArgProcessor args) {
     
     
-    for (int i = 0; i < fasta_file_names.size(); i++) {
+    for (size_t i = 0; i < fasta_file_names.size(); i++) {
         
         string fasta_filename = fasta_file_names[i];
         
@@ -194,7 +194,7 @@ void createGraphPerRecord(vector<string> fasta_file_names, int kmer_length, bool
             vector<string> seq_regions;
             string_util::tokenize(sequence, seq_regions, "X"); // inchworm bundles concatenated with 'X' delimiters by Chrysalis 
             
-            for (int s = 0; s < seq_regions.size(); s++) { 
+            for (size_t s = 0; s < seq_regions.size(); s++) { 
                 
                 string seq_region = seq_regions[s];
                 
@@ -249,7 +249,7 @@ DeBruijnGraph constructDeBruijnGraph (vector<string> fasta_file_names, int kmer_
 
     DeBruijnGraph g(kmer_length);
     
-    for (int i = 0; i < fasta_file_names.size(); i++) {
+    for (size_t i = 0; i < fasta_file_names.size(); i++) {
         
         string fasta_filename = fasta_file_names[i];
         
@@ -268,7 +268,7 @@ DeBruijnGraph constructDeBruijnGraph (vector<string> fasta_file_names, int kmer_
             vector<string> seq_regions;
             string_util::tokenize(sequence, seq_regions, "X"); // inchworm bundles concatenated with 'X' delimiters by Chrysalis 
             
-            for (int s = 0; s < seq_regions.size(); s++) { 
+            for (size_t s = 0; s < seq_regions.size(); s++) { 
                 
                 string seq_region = seq_regions[s];
                 

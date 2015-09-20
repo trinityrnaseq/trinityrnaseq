@@ -1381,13 +1381,22 @@ main: {
             
             if ($lexical_column_ordering) {
                 $Rscript .= "heatmap_data = heatmap_data[,order(colnames(heatmap_data))]\n";
+                if ($samples_file) {
+                    # sample annotations must continue to match column ordering of data matrix
+                    $Rscript .= "sampleAnnotations = sampleAnnotations[,order(colnames(heatmap_data))]\n";
+                }
             }
             elsif ($specified_column_ordering) {
                 $Rscript .= "heatmap_data = heatmap_data[,$specified_column_ordering]\n";
+                if ($samples_file) {
+                    # sample annotations must continue to match column ordering of data matrix
+                    $Rscript .= "sampleAnnotations = sampleAnnotations[,$specified_column_ordering]\n";
+                }
                 
             }
             
         }
+        
         my $Rowv = "as.dendrogram(hc_genes)";
         if ($gene_clust eq 'none' || ($gene_factors_file && $order_by_gene_factor)) {
             if ($Colv eq 'F') {

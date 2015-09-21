@@ -23,7 +23,7 @@ while (<STDIN>) {
         open (my $fh, $filename) or die "Error, cannot open file $filename";
         while (<$fh>) {
             if (/>/) {
-                s/>/>$token$counter\|/;
+                s/>/>{$token}${counter}\_/;
             }
             print;
         }

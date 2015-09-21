@@ -25,7 +25,7 @@ while (<STDIN>) {
         open (my $fh, $filename) or die "Error, cannot open file $filename";
         while (<$fh>) {
             if (/>/) {
-                s/>/>$token$component\|/;
+                s/>/>${token}${component}\_/;
             }
             print;
         }

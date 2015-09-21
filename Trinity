@@ -817,8 +817,8 @@ unless ($NO_RUN_INCHWORM_FLAG || $NO_RUN_CHRYSALIS_FLAG || $bypass_java_version_
   my $java_version = `java -Xmx64m -version 2>&1 `;
   if ($java_version =~ /(java|openjdk) version \"1\.(\d)\./) {
       my $version_id = $2;
-      if ($version_id != 7) {
-          die "Error, Trinity requires access to Java version 1.7.  Currently installed version is: $java_version";
+      if ($version_id < 7) {
+          die "Error, Trinity requires access to Java version 1.7 or higher.  Currently installed version is: $java_version";
       }
   }
   else {
@@ -1190,7 +1190,7 @@ sub run_Trinity {
         my $count_of_reads;
         if (@left_files && @right_files) {
 
-            unless (-s $trinity_target_fa && !-e "left.fa" && !-e "right.fa") {
+            unless (-s $trinity_target_fa && !-e "left.fa.ok" && !-e "right.fa.ok") {
                 
                 my ($left_SS_type, $right_SS_type);
                 if ($SS_lib_type) {
@@ -1199,23 +1199,21 @@ sub run_Trinity {
                 print("Converting input files. (in parallel)");
                 my $thr1;
                 my $thr2;
-                if (!(-s "left.fa")) {
+                if (!(-s "left.fa.ok")) {
                     $thr1 = threads->create('prep_seqs', \@left_files, $seqType, "left", $left_SS_type);
-                } else {
-                    $thr1 = threads->create(sub { print ("left file exists, nothing to do");});
                 }
-                if (!(-s "right.fa")) {
+                if (!(-s "right.fa.ok")) {
                     $thr2 = threads->create('prep_seqs', \@right_files, $seqType, "right", $right_SS_type);
-                } else {
-                    $thr2 = threads->create(sub { print ("right file exists, nothing to do");});
                 }
-                @left_files = @{$thr1->join()};
-                @right_files =@{$thr2->join()};
+                
+                $thr1->join();
+                $thr2->join();
                 
                 if ($thr1->error() || $thr2->error()) {
                     die "Error prepping sequences.";
                 }
-
+                &process_cmd("touch left.fa.ok right.fa.ok");
+                
                 print("Done converting input files.") if $VERBOSE;
                 ## Calculate input file sizes for performance monitoring
                 # this should be set as the created fasta otherwise results will differ for same data passed as .fq and .fa?
@@ -1226,15 +1224,18 @@ sub run_Trinity {
                 $pm_temp = $pm_temp / 1024 / 1024;
                 $pm_right_fa_size = sprintf('%.0f', $pm_temp);
                 
-                &process_cmd("cat left.fa right.fa > $trinity_target_fa") unless (-s $trinity_target_fa && (-s $trinity_target_fa == ((-s "left.fa") + (-s "right.fa"))));
+                &process_cmd("cat left.fa right.fa > $trinity_target_fa") unless (-e "$trinity_target_fa.ok" 
+                                                                                  && (-s $trinity_target_fa == ((-s "left.fa") + (-s "right.fa"))));
+
                 unless (-s $trinity_target_fa == ((-s "left.fa") + (-s "right.fa"))) {
                     die "$trinity_target_fa is smaller (".(-s $trinity_target_fa)." bytes) than the combined size of left.fa and right.fa (".((-s "left.fa") + (-s "right.fa"))." bytes)\n";
                 }
+                &process_cmd("touch $trinity_target_fa.ok") unless (-e "$trinity_target_fa.ok");
                 
                 # we keep if we have jaccard; delete later
                 unlink ("left.fa", "right.fa") unless $jaccard_clip; # no longer needed now that we have 'both.fa', which is needed by chryaslis
             }
-
+            
             foreach my $f ((@left_files,@right_files)){
                 if (-s $f.'.readcount'){
                     open (IN,$f.'.readcount');
@@ -1248,8 +1249,10 @@ sub run_Trinity {
             
         }
         elsif (@single_files) {
-            
-            @single_files = @{&prep_seqs(\@single_files, $seqType, "single", $SS_lib_type) unless (-s "single.fa")};
+            unless (-e "single.fa.ok") {
+                &prep_seqs(\@single_files, $seqType, "single", $SS_lib_type);
+                &process_cmd("touch single.fa.ok");
+            }
             ## Calculate input file sizes for performance monitoring
             my $pm_temp = -s "single.fa";
             $pm_temp = $pm_temp / 1024 / 1024;
@@ -1279,13 +1282,13 @@ sub run_Trinity {
             
             $inchworm_target_fa .= ".wLongReads.fa";
             $count_of_reads += `grep -c '^>' $long_reads`; #AP we don't know if these will be one single line
-            if (!-e  "$inchworm_target_fa.ok"){
-            &process_cmd("cat $long_reads | sed 's/>/>LR\\\$\\\|/' > $inchworm_target_fa"); #  
+            if (!-e  "$inchworm_target_fa.LR.ok"){
+                &process_cmd("cat $long_reads | sed 's/>/>LR\\\$\\\|/' > $inchworm_target_fa"); #  
                 
-            ## merge the long reads with the short reads into target file.
-            &process_cmd("cat $inchworm_target_fa >> $trinity_target_fa "); #TODO: if it dies while doing this then truncate both.fa (truncate -s size both.fa) to its original size and redo;
-            &process_cmd("touch $inchworm_target_fa.ok");
-        }
+                ## merge the long reads with the short reads into target file.
+                &process_cmd("cat $inchworm_target_fa >> $trinity_target_fa "); #TODO: if it dies while doing this then truncate both.fa (truncate -s size both.fa) to its original size and redo;
+                &process_cmd("touch $inchworm_target_fa.LR.ok");
+            }
             &process_cmd("ln -fs $trinity_target_fa $inchworm_target_fa "); #just to keep the filename .wLongReads.fa and to avoid unnecessary duplication of reads.
         }
             
@@ -1954,19 +1957,22 @@ sub run_inchworm {
 ####
 sub prep_seqs {
     my ($initial_files_ref, $seqType, $file_prefix, $SS_lib_type) = @_;
+ 
     my @initial_files = @$initial_files_ref;
+    
     return if -e "$file_prefix.fa";
-   	my $initial_file_str = join(" ",@initial_files);
+   	
+    my $initial_file_str = join(" ",@initial_files);
     if ($seqType eq "fq") {
         # make fasta
-	foreach my $f (@initial_files){
-		my $fastool_cmd = "cat $f | $FASTOOL_DIR/fastool";
-		if ($f=~/\.gz$/){
-		    $fastool_cmd = "gunzip -c $f | $FASTOOL_DIR/fastool";
-		}elsif ($f=~/\.bz2$/){
-		    $fastool_cmd = "bunzip2 -dkc $f | $FASTOOL_DIR/fastool";
-		}
-
+        foreach my $f (@initial_files){
+            my $fastool_cmd = "cat $f | $FASTOOL_DIR/fastool";
+            if ($f=~/\.gz$/){
+                $fastool_cmd = "gunzip -c $f | $FASTOOL_DIR/fastool";
+            }elsif ($f=~/\.bz2$/){
+                $fastool_cmd = "bunzip2 -dkc $f | $FASTOOL_DIR/fastool";
+            }
+            
             if ($SS_lib_type && $SS_lib_type eq "R") {
                 $fastool_cmd .= " --rev";
             }
@@ -1979,31 +1985,31 @@ sub prep_seqs {
         if (scalar(@initial_files) == 1 && (!$SS_lib_type || $SS_lib_type ne "R")) {
             ## just symlink it here:
             my $cmd = "ln -s $initial_file_str $file_prefix.fa";
-	    if ($initial_file_str=~/\.gz$/){
-		    $cmd = "gunzip -c $initial_file_str >$file_prefix.fa";
-	    }elsif ($initial_file_str=~/\.bz2$/){
-		    $cmd = "bunzip2 -dkc $initial_file_str >$file_prefix.fa";
-	    }            
+            if ($initial_file_str=~/\.gz$/){
+                $cmd = "gunzip -c $initial_file_str >$file_prefix.fa";
+            }elsif ($initial_file_str=~/\.bz2$/){
+                $cmd = "bunzip2 -dkc $initial_file_str >$file_prefix.fa";
+            }            
             &process_cmd($cmd);
         }elsif(scalar(@initial_files) > 1 && (!$SS_lib_type || $SS_lib_type ne "R")){
             foreach my $f (@initial_files){
                 my $cmd = "cat $f >> $file_prefix.fa";
-		if ($f=~/\.gz$/){
-		    $cmd = "gunzip -c $f >> $file_prefix.fa";
-		}elsif ($f=~/\.bz2$/){
-		    $cmd = "bunzip2 -dkc $f >> $file_prefix.fa";
-		}
+                if ($f=~/\.gz$/){
+                    $cmd = "gunzip -c $f >> $file_prefix.fa";
+                }elsif ($f=~/\.bz2$/){
+                    $cmd = "bunzip2 -dkc $f >> $file_prefix.fa";
+                }
                 &process_cmd($cmd);
           	}
         }else {
             #if ($SS_lib_type && $SS_lib_type eq "R") {
             foreach my $f (@initial_files){
                 my $cmd = "$UTILDIR/support_scripts/revcomp_fasta.pl $f >> $file_prefix.fa";
-		if ($f=~/\.gz$/){
-		    $cmd = "gunzip -c $f | $UTILDIR/support_scripts/revcomp_fasta.pl >> $file_prefix.fa";
-		}elsif ($f=~/\.bz2$/){
-		    $cmd = "bunzip2 -dkc $f | $UTILDIR/support_scripts/revcomp_fasta.pl >> $file_prefix.fa";
-		}
+                if ($f=~/\.gz$/){
+                    $cmd = "gunzip -c $f | $UTILDIR/support_scripts/revcomp_fasta.pl >> $file_prefix.fa";
+                }elsif ($f=~/\.bz2$/){
+                    $cmd = "bunzip2 -dkc $f | $UTILDIR/support_scripts/revcomp_fasta.pl >> $file_prefix.fa";
+                }
                 &process_cmd($cmd);
           	}
         }

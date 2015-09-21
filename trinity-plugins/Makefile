@@ -30,7 +30,7 @@ trimmomatic_target:
 samtools:
 	tar xvf samtools-0.1.19.tar.bz2
 	cd samtools-0.1.19 && $(MAKE)
-	mv samtools-0.1.19 samtools
+	mv samtools-0.1.19/samtools ./BIN/.
 
 jellyfish:
 	tar -zxvf ${JELLYFISH_CODE}.tar.gz && ln -sf ${JELLYFISH_CODE} tmp.jellyfish
@@ -85,7 +85,7 @@ clean:
 	rm -rf ${JELLYFISH_CODE} ./jellyfish # has tar.gz
 	rm -rf ${RSEM_CODE} ./rsem # has tar.gz
 	cd ${FASTOOL_CODE} && $(MAKE) clean
-	rm -rf ./samtools
+	rm -rf ./samtools-0.1.19
 	rm -f ./fastool # rm symlink
 	rm -rf ./htslib
 	cd scaffold_iworm_contigs && $(MAKE) clean

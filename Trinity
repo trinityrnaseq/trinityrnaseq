@@ -31,6 +31,9 @@ use HPC::GridRunner;
 
 open (STDERR, ">&STDOUT");  ## capturing stderr and stdout in a single stdout stream
 
+
+
+
 #directory defnintions
 my $ROOTDIR = "$FindBin::RealBin";
 my $UTILDIR = "$ROOTDIR/util";
@@ -41,10 +44,11 @@ my $BUTTERFLY_DIR = "$ROOTDIR/Butterfly";
 my $JELLYFISH_DIR = "$ROOTDIR/trinity-plugins/jellyfish";
 my $FASTOOL_DIR = "$ROOTDIR/trinity-plugins/fastool";
 my $COLLECTL_DIR = "$ROOTDIR/trinity-plugins/collectl/bin";
-my $COREUTILS_DIR = "$ROOTDIR/trinity-plugins/coreutils/bin";
 my $PARAFLY = "$ROOTDIR/trinity-plugins/parafly/bin/ParaFly";
 my $TRIMMOMATIC = "$ROOTDIR/trinity-plugins/Trimmomatic/trimmomatic.jar";
 my $TRIMMOMATIC_DIR = "$ROOTDIR/trinity-plugins/Trimmomatic";
+
+$ENV{PATH} = "$ROOTDIR/trinity-plugins/BIN:$ENV{PATH}";
 
 
 # Site specific setup

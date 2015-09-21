@@ -1,8 +1,9 @@
 
 # next release
 
-  including -XX:ParallelGCThreads=$bflyGCThreads in ExitTester.jar execution.
-
+  -including -XX:ParallelGCThreads=$bflyGCThreads in ExitTester.jar execution.
+  -incorporating samtools-0.1.19 as plugin
+  
 
 
 # Release v2.0.6

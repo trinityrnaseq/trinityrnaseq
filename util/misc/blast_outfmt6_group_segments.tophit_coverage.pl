@@ -31,7 +31,12 @@ main: {
         my $pct_target_len = $x[7];
         
         
-        if ( (! exists $query_to_top_hit{$query_id}) || ($Evalue < $query_to_top_hit{$query_id}->{Evalue}) ) {
+        if ( (! exists $query_to_top_hit{$query_id}) || ($Evalue < $query_to_top_hit{$query_id}->{Evalue})
+                                                         ||
+                                                         ($Evalue == $query_to_top_hit{$query_id}->{Evalue}
+                                                          &&
+                                                          $pct_target_len > $query_to_top_hit{$query_id}->{pct_target_len} )
+            )  {
             
             $query_to_top_hit{$query_id} = { query_id => $query_id,
                                              db_id => $db_id,
@@ -67,10 +72,11 @@ main: {
         
         my @hit_structs = @{$db_id_to_trans_hits{$db_id}};
         
-        @hit_structs = sort {$a->{Evalue} < $b->{Evalue}
+        @hit_structs = sort {$a->{Evalue} <=> $b->{Evalue}
                              ||
-                                 $a->{pct_target_len} > $b->{pct_target_len} } @hit_structs;
+                             $b->{pct_target_len} <=> $a->{pct_target_len} } @hit_structs;
         
+
         my $entry = shift @hit_structs; # take the lowest E-value w/ longest pct_target_len
 
         my $pct_cov = $entry->{pct_target_len};

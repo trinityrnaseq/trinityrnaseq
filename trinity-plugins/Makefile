@@ -21,11 +21,16 @@ FASTOOL_CODE=fstrozzi-Fastool-7c3e034f05
 PARAFLY_CODE=parafly-code
 TRIMMOMATIC_CODE=Trimmomatic-0.32
 
-trinity_essentials: jellyfish scaffold_iworm_contigs_target fastool_target parafly_target trimmomatic_target
+trinity_essentials: jellyfish scaffold_iworm_contigs_target fastool_target parafly_target trimmomatic_target samtools
 
 trimmomatic_target:
 	ln -sf ${TRIMMOMATIC_CODE} Trimmomatic
 
+
+samtools:
+	tar xvf samtools-0.1.19.tar.bz2
+	cd samtools-0.1.19 && $(MAKE)
+	mv samtools-0.1.19 samtools
 
 jellyfish:
 	tar -zxvf ${JELLYFISH_CODE}.tar.gz && ln -sf ${JELLYFISH_CODE} tmp.jellyfish
@@ -80,6 +85,7 @@ clean:
 	rm -rf ${JELLYFISH_CODE} ./jellyfish # has tar.gz
 	rm -rf ${RSEM_CODE} ./rsem # has tar.gz
 	cd ${FASTOOL_CODE} && $(MAKE) clean
+	rm -rf ./samtools
 	rm -f ./fastool # rm symlink
 	rm -rf ./htslib
 	cd scaffold_iworm_contigs && $(MAKE) clean

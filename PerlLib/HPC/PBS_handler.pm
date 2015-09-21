@@ -83,8 +83,11 @@ sub job_running_or_pending_on_grid {
 
     foreach my $line (split(/\n/, $response)) {
         my @x = split(/\s+/, $line);
-
-        if ($x[0] eq $job_id) {
+	my $lcl_job_id = $x[0];
+	if ($x[0] =~ /(\d+)(\.[0-9a-zA-Z])*/) {
+	    $lcl_job_id = $1;
+	}
+        if ($lcl_job_id eq $job_id) {
             my $state = $x[4];
             
             $self->{job_id_to_submission_time}->{$job_id} = time();

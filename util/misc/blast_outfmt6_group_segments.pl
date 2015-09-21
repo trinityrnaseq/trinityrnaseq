@@ -3,12 +3,12 @@
 use strict;
 use warnings;
 use FindBin;
-use lib "$FindBin::Bin/../../PerlLib");
+use lib "$FindBin::Bin/../../PerlLib";
 use Fasta_reader;
 use List::Util qw(min max);
 use Overlap_piler;
 
-my $usage = "\n\n\tusage: $0 blast.outfmt6 query_fasta target_fasta\n";
+my $usage = "\n\n\tusage: $0 blast.outfmt6 query_fasta target_fasta\n\n\n";
 
 my $blast_file = $ARGV[0] or die $usage;
 my $query_fasta = $ARGV[1] or die $usage;

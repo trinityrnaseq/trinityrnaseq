@@ -12,7 +12,7 @@ use Time::localtime;
 use Cwd;
 use Carp;
 use COMMON;
-use Getopt::Long qw(:config posix_default no_ignore_case pass_through); 
+use Getopt::Long qw(:config posix_default no_ignore_case pass_through gnu_compat); 
 use Pipeliner;
 use Fasta_reader;
 use List::Util qw(min max);
@@ -1791,7 +1791,7 @@ sub run_recursive_trinity {
     
     print STDERR "\n\n** Harvesting all assembled transcripts into a single multi-fasta file...\n\n" unless ($TRINITY_COMPLETE_FLAG);
     
-    my $cmd = "find read_partitions/  -name '*inity.fasta'  | $UTILDIR/support_scripts/partitioned_trinity_aggregator.pl TR > Trinity.fasta.tmp";
+    my $cmd = "find read_partitions/  -name '*inity.fasta'  | $UTILDIR/support_scripts/partitioned_trinity_aggregator.pl TRINITY_DN > Trinity.fasta.tmp";
     &process_cmd($cmd);
     
     return;
@@ -1917,7 +1917,7 @@ sub run_inchworm {
         $inchworm_cmd .= " --DS ";
     }
     
-    unless ($NO_CLEANUP) {
+    if ($NO_CLEANUP) {
         $inchworm_cmd .= " --keep_tmp_files ";
     }
     
@@ -2660,7 +2660,7 @@ sub run_genome_guided_Trinity {
     
         
     ## pull together the final outputs:
-    $cmd = "find Dir_*  -name '*inity.fasta'  | $UTILDIR/support_scripts/GG_partitioned_trinity_aggregator.pl GG > Trinity-GG.fasta.tmp";
+    $cmd = "find Dir_*  -name '*inity.fasta'  | $UTILDIR/support_scripts/GG_partitioned_trinity_aggregator.pl TRINITY_GG > Trinity-GG.fasta.tmp";
     &process_cmd($cmd);
 
     rename("Trinity-GG.fasta.tmp", "Trinity-GG.fasta"); # now that it's done.

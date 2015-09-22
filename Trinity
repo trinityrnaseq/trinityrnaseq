@@ -692,6 +692,110 @@ my $NO_VERSION_CHECK = 0;
 
 
 
+my @__ALL_TRINITY_PARAMS = qw( 
+h
+help
+advanced_help
+show_full_usage_info
+verbose
+no_version_check
+seqType
+left
+right
+single
+SS_lib_type
+long_reads
+output
+min_contig_length
+jaccard_clip
+cite
+CPU
+np
+mpiexec
+prep
+KMER_SIZE
+trimmomatic
+quality_trimming_params
+normalize_reads
+normalize_max_read_cov
+normalize_by_read_set
+group_pairs_distance
+bfly_opts
+bflyHeapSpaceMax
+bflyHeapSpaceInit
+bflyGCThreads
+bflyCPU
+bflyCalculateCPU
+bfly_jar
+path_reinforcement_distance
+no_path_merging
+min_per_id_same_path
+max_diffs_same_path
+max_internal_gap_same_path
+PasaFly
+CuffFly
+min_kmer_cov
+inchworm_cpu
+FORCE_INCHWORM_KMER_METHOD
+INCHWORM_CUSTOM_PARAMS
+no_run_inchworm
+iworm_opts
+max_memory
+M
+min_glue
+glue_factor
+min_iso_ratio
+min_pcnt_read_iworm_kmers
+max_reads_per_graph
+max_reads_per_loop
+min_pct_read_mapping
+weldmer_size
+no_bowtie
+bowtie_comp
+no_run_chrysalis
+grid_conf
+show_advanced_options
+run_as_paired
+no_fastool
+no_cleanup
+full_cleanup
+version
+monitoring
+no_distributed_trinity_exec
+KMER_SIZE
+jelly_s
+NO_PARALLEL_IWORM
+chrysalis_debug_weld_all
+genome_guided_bam
+genome_guided_max_intron
+genome_guided_min_coverage
+genome_guided_min_reads_per_partition
+genome_guided_just_prep
+trinity_complete
+grid_node_CPU
+grid_node_max_memory
+bypass_java_version_check
+ananas_dir
+
+);   
+
+my %ACCEPTABLE_OPTS = map { + $_ => 1} @__ALL_TRINITY_PARAMS;
+
+my $opts_not_recognized_flag = 0;
+for my $opt (@ARGV) {
+    if ($opt =~ /^-+(\S+)/) {
+        my $opt_part = $1;
+        unless ($ACCEPTABLE_OPTS{$opt_part}) {
+            print STDERR "ERROR, don't recognize parameter: $opt\n";
+            $opts_not_recognized_flag = 1;
+        }
+    }
+}
+if ($opts_not_recognized_flag) {
+    die "Please review usage info for accepted parameters.\n";
+}
+
+
 if ($SHOW_CITATION_FLAG) {
     &show_lit_citation();
     exit(0);

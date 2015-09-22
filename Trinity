@@ -1124,8 +1124,8 @@ main: {
     
     chdir ($output_directory) or die "Error, cannot cd to $output_directory";
     
-    collectl_start() unless ($TRINITY_COMPLETE || $FULL_CLEANUP);
-    &perfmon_start() unless ($TRINITY_COMPLETE || $FULL_CLEANUP);
+    collectl_start() unless ($TRINITY_COMPLETE_FLAG || $FULL_CLEANUP);
+    &perfmon_start() unless ($TRINITY_COMPLETE_FLAG || $FULL_CLEANUP);
     
     unless ($TRINITY_COMPLETE_FLAG) {
         print STDERR "\n\n";

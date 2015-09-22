@@ -2725,7 +2725,19 @@ sub files_exist {
 sub run_genome_guided_Trinity {
     ## partition the reads according to coverage piles:
     
-    my $cmd = "$UTILDIR/support_scripts/prep_rnaseq_alignments_for_genome_assisted_assembly.pl --coord_sorted_SAM $genome_guided_bam -I $genome_guided_max_intron --sort_buffer $max_memory --CPU $CPU ";
+    ## Be sure that the bam file is coordinate sorted.
+    ## Simply index it using samtools.  If it's not coord sorted, samtools will error
+    
+    my $cmd = "samtools index $genome_guided_bam";
+    eval {
+        &process_cmd($cmd);
+    };
+    if ($@) {
+        die "$@\n\nPlease be sure that your bam file: $genome_guided_bam is coordinate-sorted before running genome-guided Trinity.\n";
+    }
+    
+
+    $cmd = "$UTILDIR/support_scripts/prep_rnaseq_alignments_for_genome_assisted_assembly.pl --coord_sorted_SAM $genome_guided_bam -I $genome_guided_max_intron --sort_buffer $max_memory --CPU $CPU ";
     
     if ($SS_lib_type) {
         $cmd .= " --SS_lib_type $SS_lib_type ";

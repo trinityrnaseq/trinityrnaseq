@@ -2026,7 +2026,7 @@ sub run_inchworm {
     }
     
 
-    my $num_threads = ($inchworm_cpu) ? $inchworm_cpu : $CPU;
+    my $num_threads = $inchworm_cpu;
     $inchworm_cmd .= " --num_threads $num_threads ";
     
     if ($PARALLEL_IWORM_FLAG) {
@@ -2818,7 +2818,7 @@ sub write_trinity_partitioned_cmds {
     ## write Trinity assembly commands for partitions:
     ##################################################
 
-    my $cmd = "$UTILDIR/support_scripts/GG_write_trinity_cmds.pl --reads_list_file $reads_list_file --CPU $grid_node_CPU --max_memory $grid_node_max_memory ";
+    my $cmd = "$UTILDIR/support_scripts/write_partitioned_trinity_cmds.pl --reads_list_file $reads_list_file --CPU $grid_node_CPU --max_memory $grid_node_max_memory ";
     if ($run_as_paired_flag) {
         $cmd .= " --run_as_paired ";
     }
@@ -2839,7 +2839,7 @@ sub write_trinity_partitioned_cmds {
         }
         
         # value specified options that aren't needed
-        if ($arg =~ /seqType|left|right|single|genome|SS_lib_type|GMAP|quality_trimming|output|normalize_max_read_cov|grid_conf|max_mem|grid|long_reads/
+        if ($arg =~ /seqType|left|right|single|genome|SS_lib_type|quality_trimming|output|normalize_max_read_cov|grid_conf|max_mem|grid|long_reads|inchworm_cpu/
             ||
             # more precise identification of parameter
             $arg =~ /^(--CPU)$/

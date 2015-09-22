@@ -1124,8 +1124,8 @@ main: {
     
     chdir ($output_directory) or die "Error, cannot cd to $output_directory";
     
-    collectl_start() unless ($FULL_CLEANUP);
-    &perfmon_start() unless ($FULL_CLEANUP);
+    collectl_start() unless ($TRINITY_COMPLETE || $FULL_CLEANUP);
+    &perfmon_start() unless ($TRINITY_COMPLETE || $FULL_CLEANUP);
     
     unless ($TRINITY_COMPLETE_FLAG) {
         print STDERR "\n\n";
@@ -1260,7 +1260,7 @@ main: {
         
     }
     
-    &perfmon_end() unless ($FULL_CLEANUP);
+    &perfmon_end() unless ($TRINITY_COMPLETE_FLAG || $FULL_CLEANUP);
 
     exit(0);
 
@@ -2838,8 +2838,15 @@ sub write_trinity_partitioned_cmds {
         $cmd .= " --SS_lib_type F "; # all sequences already reoriented
     }
     
-    $cmd .= " --full_cleanup --seqType fa --trinity_complete";
-    
+    $cmd .= " --seqType fa --trinity_complete";
+ 
+    if ($NO_CLEANUP) {
+        $cmd .= " --no_cleanup ";
+    }
+    else {
+        $cmd .= " --full_cleanup ";
+    }
+   
     my @potential_args = @ORIG_ARGS;
 
     while (@potential_args) {

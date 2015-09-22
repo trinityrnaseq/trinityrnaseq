@@ -96,6 +96,20 @@ sub get_scaffold_position { # preferred
 }
 
 
+sub get_aligned_start_position {
+    my $self = shift;
+    my ($lend, $rend) = $self->get_genome_span();
+
+    my $strand = $self->get_query_strand();
+    if ($strand eq '+') {
+        return($lend);
+    }
+    else {
+        return($rend);
+    }
+}
+
+
 ####
 sub get_cigar_alignment {
 	my $self = shift;

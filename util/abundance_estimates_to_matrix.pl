@@ -13,12 +13,11 @@ my $usage = <<__EOUSAGE__;
 # Usage:  $0 --est_method <method>  sample1.results sample2.results ...
 # Required:
 #
-#  --est_method <string>           RSEM|eXpress  (needs to know what format to expect)
-#
+#  --est_method <string>           RSEM|eXpress|kallisto  (needs to know what format to expect)
 #
 # Options:
 #
-#  --cross_sample_fpkm_norm <string>    TMM|UpperQuartile|none   (default: TMM)
+#  --cross_sample_norm <string>         TMM|UpperQuartile|none   (default: TMM)
 #
 #  --name_sample_by_basedir             name sample column by dirname instead of filename
 #      --basedir_index <int>            default(-2)
@@ -35,7 +34,8 @@ __EOUSAGE__
 
 my $help_flag;
 my $est_method;
-my $cross_sample_fpkm_norm = "TMM";
+my $val_type;
+my $cross_sample_norm = "TMM";
 my $name_sample_by_basedir = 0;
 my $out_prefix = "matrix";
 my $basedir_index = -2;
@@ -43,10 +43,9 @@ my $basedir_index = -2;
 &GetOptions('help|h' => \$help_flag,
             'est_method=s' => \$est_method,
             
-            'cross_sample_fpkm_norm=s' => \$cross_sample_fpkm_norm,
+            'cross_sample_norm=s' => \$cross_sample_norm,
             'name_sample_by_basedir' => \$name_sample_by_basedir,
             'out_prefix=s' => \$out_prefix,
-            
             'basedir_index=i' => \$basedir_index,
             
             );
@@ -56,11 +55,11 @@ unless ($est_method && @ARGV) {
     die $usage;
 }
 
-unless ($est_method =~ /^(RSEM|eXpress)$/i) {
+unless ($est_method =~ /^(RSEM|eXpress|kallisto)$/i) {
     die "Error, dont recognize --est_method $est_method ";
 }
-unless ($cross_sample_fpkm_norm =~ /^(TMM|UpperQuartile|none)$/i) {
-    die "Error, dont recognize --cross_sample_fpkm_norm $cross_sample_fpkm_norm ";
+unless ($cross_sample_norm =~ /^(TMM|UpperQuartile|none)$/i) {
+    die "Error, dont recognize --cross_sample_norm $cross_sample_norm ";
 }
 
 my @files = @ARGV;
@@ -92,9 +91,8 @@ if (scalar @files == 1) {
 7       IsoPct
 
 
-## eXpress:
+## eXpress v1.5:
 
-0       bundle_id
 1       target_id
 2       length
 3       eff_length
@@ -108,22 +106,39 @@ if (scalar @files == 1) {
 11      fpkm_conf_low
 12      fpkm_conf_high
 13      solvable
+14      tpm
+
+
+## kallisto:
+0       target_id
+1       length
+2       eff_length
+3       est_counts
+4       tpm
 
 =cut
     
     ;
 
-my ($acc_field, $counts_field, $fpkm_field);
+my ($acc_field, $counts_field, $fpkm_field, $tpm_field);
 
 if ($est_method =~ /^rsem$/i) {
     $acc_field = 0;
-    $counts_field = 4;
-    $fpkm_field = 6;
+    $counts_field = "expected_count";
+    $fpkm_field = "FPKM";
+    $tpm_field = "TPM";
 }
-elsif ($est_method =~ /^express$/i) {
-    $acc_field = 1;
-    $counts_field = 3;
-    $fpkm_field = 4;
+elsif ($est_method =~ /^express$/i) {  # as of v1.5
+    $acc_field = "target_id";
+    $counts_field = "eff_counts";
+    $fpkm_field = "fpkm";
+    $tpm_field = "tpm";
+}
+elsif ($est_method =~ /^kallisto$/i) {
+    $acc_field = "target_id";
+    $counts_field = "est_counts";
+    $fpkm_field = "tpm";
+    $tpm_field = "tpm";
 }
 else {
     die "Error, dont recognize --est_method $est_method ";
@@ -136,17 +151,21 @@ main: {
     foreach my $file (@files) {
         print STDERR "-reading file: $file\n";
         open (my $fh, $file) or die "Error, cannot open file $file";
-        my $header = <$fh>; # ignore it
+        my $header = <$fh>; 
+        chomp $header;
+        my %fields = &parse_field_positions($header);
         while (<$fh>) {
             chomp;
             
             my @x = split(/\t/);
-            my $acc = $x[$acc_field];
-            my $count = $x[$counts_field];
-            my $fpkm = $x[$fpkm_field];
-            
+            my $acc = $x[ $fields{$acc_field} ];
+            my $count = $x[ $fields{$counts_field} ];
+            my $fpkm = $x[ $fields{$fpkm_field} ];
+            my $tpm = $x[ $fields{$tpm_field} ];
+
             $data{$acc}->{$file}->{count} = $count;
-            $data{$acc}->{$file}->{fpkm} = $fpkm;
+            $data{$acc}->{$file}->{FPKM} = $fpkm;
+            $data{$acc}->{$file}->{TPM} = $tpm;
         }
         close $fh;
     }
@@ -164,9 +183,9 @@ main: {
     print STDERR "\n\n* Outputting combined matrix.\n\n";
     
     my $counts_matrix_file = "$out_prefix.counts.matrix";
-    my $fpkm_matrix_file = "$out_prefix.not_cross_norm.fpkm.tmp";
+    my $TPM_matrix_file = "$out_prefix.TPM.not_cross_norm";
     open (my $ofh_counts, ">$counts_matrix_file") or die "Error, cannot write file $counts_matrix_file";
-    open (my $ofh_fpkm, ">$fpkm_matrix_file") or die "Error, cannot write file $fpkm_matrix_file";
+    open (my $ofh_TPM, ">$TPM_matrix_file") or die "Error, cannot write file $TPM_matrix_file";
 
     { # check to see if they're unique
         my %filename_map = map { + $_ => 1 } @filenames;
@@ -184,12 +203,12 @@ main: {
     
 
     print $ofh_counts join("\t", "", @filenames) . "\n";
-    print $ofh_fpkm join("\t", "", @filenames) . "\n";
+    print $ofh_TPM join("\t", "", @filenames) . "\n";
 
     foreach my $acc (keys %data) {
         
         print $ofh_counts "$acc";
-        print $ofh_fpkm "$acc";
+        print $ofh_TPM "$acc";
         
         foreach my $file (@files) {
 
@@ -197,34 +216,34 @@ main: {
             unless (defined $count) {
                 $count = "NA";
             }
-            my $fpkm = $data{$acc}->{$file}->{fpkm};
-            if (defined $fpkm) {
-                $fpkm = $fpkm/1;
+            my $tpm = $data{$acc}->{$file}->{TPM};
+            if (defined $tpm) {
+                $tpm = $tpm/1;
             }
             else {
-                $fpkm = "NA";
+                $tpm = "NA";
             }
 
             print $ofh_counts "\t$count";
-            print $ofh_fpkm "\t$fpkm";
+            print $ofh_TPM "\t$tpm";
         }
         
         print $ofh_counts "\n";
-        print $ofh_fpkm "\n";
+        print $ofh_TPM "\n";
 
     }
     close $ofh_counts;
-    close $ofh_fpkm;
+    close $ofh_TPM;
     
-    if ($cross_sample_fpkm_norm =~ /^TMM$/i) {
-        my $cmd = "$FindBin::Bin/support_scripts/run_TMM_scale_matrix.pl --matrix $fpkm_matrix_file > $out_prefix.$cross_sample_fpkm_norm.fpkm.matrix";
+    if ($cross_sample_norm =~ /^TMM$/i) {
+        my $cmd = "$FindBin::Bin/support_scripts/run_TMM_scale_matrix.pl --matrix $TPM_matrix_file > $out_prefix.$cross_sample_norm.EXPR.matrix";
         &process_cmd($cmd);
     }
-    elsif ($cross_sample_fpkm_norm =~ /^UpperQuartile$/) {
-        my $cmd = "$FindBin::Bin/support_scripts/run_UpperQuartileNormalization_matrix.pl --matrix $fpkm_matrix_file > $out_prefix.$cross_sample_fpkm_norm.fpkm.matrix";
+    elsif ($cross_sample_norm =~ /^UpperQuartile$/) {
+        my $cmd = "$FindBin::Bin/support_scripts/run_UpperQuartileNormalization_matrix.pl --matrix $TPM_matrix_file > $out_prefix.$cross_sample_norm.EXPR.matrix";
         &process_cmd($cmd);
     }
-    elsif ($cross_sample_fpkm_norm =~ /^none$/i) {
+    elsif ($cross_sample_norm =~ /^none$/i) {
         print STDERR "-not performing cross-sample normalization.\n";
     }
     
@@ -232,7 +251,7 @@ main: {
     
     exit(0);
 }
-    
+
 ####
 sub process_cmd {
     my ($cmd) = @_;
@@ -246,3 +265,17 @@ sub process_cmd {
     return;
 }
         
+
+####
+sub parse_field_positions {
+    my ($header) = @_;
+
+    my %field_pos;
+    my @fields = split(/\s+/, $header);
+    for (my $i = 0; $i < $#fields; $i++) {
+        $field_pos{$fields[$i]} = $i;
+        $field_pos{$i} = $i; # for fixed column assignment
+    }
+
+    return(%field_pos);
+}

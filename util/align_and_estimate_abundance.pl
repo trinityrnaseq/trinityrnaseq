@@ -466,6 +466,9 @@ main: {
         chdir $output_dir or die "Error, cannot cd to output directory $output_dir";
     
     }
+    else {
+        $output_dir = cwd(); # current directory
+    }
 
     my $prefix = $output_prefix;
     if ($prefix) {
@@ -515,7 +518,7 @@ main: {
     &process_cmd("touch $bam_file_ok") unless (-e $bam_file_ok);
     
     if ($est_method eq "eXpress") {
-        &run_eXpress($bam_file);
+        &run_eXpress($bam_file, $output_dir);
     }
     elsif ($est_method eq "RSEM") {
         &run_RSEM($bam_file, $rsem_prefix, $output_prefix);
@@ -562,7 +565,7 @@ sub sort_bam_file {
 
 ####
 sub run_eXpress {
-    my ($bam_file) = @_;
+    my ($bam_file, $output_dir) = @_;
     
     my $SS_opt = "";
     if ($SS_lib_type) {
@@ -581,13 +584,13 @@ sub run_eXpress {
     }
     
     ## run eXpress
-    my $express_cmd = "express $SS_opt $eXpress_add_opts $transcripts";
-        
+    my $express_cmd = "express $SS_opt $eXpress_add_opts -o $output_dir $transcripts";
+    
     my $cmd = "$express_cmd $bam_file";
     &process_cmd($cmd);
     
     if ($gene_trans_map_file) {
-        &make_eXpress_genes_file("results.xprs", $gene_trans_map_file);
+        &make_eXpress_genes_file("$output_dir/results.xprs", $gene_trans_map_file);
     }
     
     return;

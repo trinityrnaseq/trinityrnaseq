@@ -45,7 +45,7 @@ sleep 2
 ../../util/align_and_estimate_abundance.pl --transcripts trinity_out_dir/Trinity.fasta --seqType fq --left reads.left.fq --right reads.right.fq --SS_lib_type RF --est_method RSEM --aln_method bowtie --trinity_mode --prep_reference
 
 # try eXpress
-../../util/align_and_estimate_abundance.pl --transcripts trinity_out_dir/Trinity.fasta --seqType fq --left reads.left.fq --right reads.right.fq --SS_lib_type RF --est_method eXpress --aln_method bowtie2 --trinity_mode --prep_reference
+../../util/align_and_estimate_abundance.pl --transcripts trinity_out_dir/Trinity.fasta --seqType fq --left reads.left.fq --right reads.right.fq --SS_lib_type RF --est_method eXpress --aln_method bowtie2 --trinity_mode --prep_reference --output_dir eXpress
 
 
 #######################################

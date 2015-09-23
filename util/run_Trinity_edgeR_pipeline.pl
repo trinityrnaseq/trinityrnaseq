@@ -196,6 +196,7 @@ foreach my $condition (@conditions) {
             . " --seqType $seqType "
             . " --prep_reference "
             . " --output_prefix $replicate "
+            . " --output_dir . "
             . " --aln_method bowtie --est_method RSEM "
             . " --trinity_mode "
             

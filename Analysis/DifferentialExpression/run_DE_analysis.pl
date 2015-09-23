@@ -21,8 +21,10 @@ my $usage = <<__EOUSAGE__;
 #
 #  --matrix|m <string>               matrix of raw read counts (not normalized!)
 #
-#  --method <string>               edgeR|DESeq|DESeq2   (DESeq(2?) only supported here w/ bio replicates)
-#                                   
+#  --method <string>               edgeR|DESeq2|voom
+#                                     note: you should have biological replicates.
+#                                           edgeR will support having no bio replicates with
+#                                           a fixed dispersion setting. 
 #
 #  Optional:
 #
@@ -54,24 +56,19 @@ my $usage = <<__EOUSAGE__;
 #  ## EdgeR-related parameters
 #  ## (no biological replicates)
 #
-#  --dispersion <float>            edgeR dispersion value (default: 0.1)   set to 0 for poisson (sometimes breaks...)
-#
-#  http://www.bioconductor.org/packages/release/bioc/html/edgeR.html
+#  --dispersion <float>            edgeR dispersion value (Read edgeR manual to guide your value choice)
 #
 ###############################################################################################
 #
-#  ## DE-Seq related parameters
+#   Documentation and manuals for various DE methods.  Please read for more advanced and more
+#   fine-tuned DE analysis than provided by this helper script.
 #
-#  --DESEQ_method <string>         "pooled", "pooled-CR", "per-condition", "blind" 
-#  --DESEQ_sharingMode <string>    "maximum", "fit-only", "gene-est-only"   
-#  --DESEQ_fitType <string>        fitType = c("parametric", "local")
+#  edgeR:       http://www.bioconductor.org/packages/release/bioc/html/edgeR.html
+#  DESeq2:      http://bioconductor.org/packages/release/bioc/html/DESeq2.html    
+#  voom/limma:  http://bioconductor.org/packages/release/bioc/html/limma.html
 #
-#  ## (no biological replicates)
-#        note: FIXED as: method=blind, sharingMode=fit-only
-#       
-#  http://www.bioconductor.org/packages/release/bioc/html/DESeq.html
 #
-################################################################################################
+###############################################################################################
 
 
 
@@ -87,14 +84,12 @@ my $samples_file;
 my $min_rowSum_counts = 2;
 my $help_flag;
 my $output_dir;
-my $dispersion = 0.1;
+my $dispersion; # I've used 0.1 myself - but read the manual to guide your choice.
 my $contrasts_file;
 
 my $reference_sample;
 
 my $make_tar_gz_file = 0;
-
-my ($DESEQ_method, $DESEQ_sharingMode, $DESEQ_fitType);
 
 
 &GetOptions ( 'h' => \$help_flag,
@@ -108,11 +103,6 @@ my ($DESEQ_method, $DESEQ_sharingMode, $DESEQ_fitType);
               'reference_sample=s' => \$reference_sample,
               'contrasts=s' => \$contrasts_file,
               
-
-              'DESEQ_method=s' => \$DESEQ_method,
-              'DESEQ_sharingMode=s' => \$DESEQ_sharingMode,
-              'DESEQ_fitType=s' => \$DESEQ_fitType,
-
               'tar_gz_outdir' => \$make_tar_gz_file,
 
     );
@@ -257,9 +247,6 @@ main: {
                 &run_edgeR_sample_pair($matrix_file, \%samples, \%sample_name_to_column, $sample_a, $sample_b);
                 
             }
-            elsif ($method eq "DESeq") {
-                &run_DESeq_sample_pair($matrix_file, \%samples, \%sample_name_to_column, $sample_a, $sample_b);
-            }
             elsif ($method eq "DESeq2") {
                 &run_DESeq2_sample_pair($matrix_file, \%samples, \%sample_name_to_column, $sample_a, $sample_b);
             }
@@ -393,6 +380,9 @@ sub run_edgeR_sample_pair {
         print $ofh "et = exactTest(exp_study)\n";
     }
     else {
+        unless (defined $dispersion) {
+            confess "Error, must set --dispersion <float> when using edgeR w/o bio replicates";
+        }
         print $ofh "et = exactTest(exp_study, dispersion=$dispersion)\n";
     }
     print $ofh "tTags = topTags(et,n=NULL)\n";
@@ -424,98 +414,6 @@ sub run_edgeR_sample_pair {
     return;
 }
 
-sub run_DESeq_sample_pair {
-    my ($matrix_file, $samples_href, $sample_name_to_column_index_href, $sample_A, $sample_B) = @_;
-         
-    my $output_prefix = basename($matrix_file) . "." . join("_vs_", ($sample_A, $sample_B));
-        
-    my $Rscript_name = "$output_prefix.DESeq.Rscript";
-    
-    my @reps_A = @{$samples_href->{$sample_A}};
-    my @reps_B = @{$samples_href->{$sample_B}};
-
-    my $num_rep_A = scalar(@reps_A);
-    my $num_rep_B = scalar(@reps_B);
-    
-    
-    my @rep_column_indices;
-    foreach my $rep_name (@reps_A, @reps_B) {
-        my $column_index = $sample_name_to_column_index_href->{$rep_name} or die "Error, cannot determine column index for replicate name [$rep_name]" . Dumper($sample_name_to_column_index_href);
-        push (@rep_column_indices, $column_index);
-    }
-    
-
-    ## write R-script to run edgeR
-    open (my $ofh, ">$Rscript_name") or die "Error, cannot write to $Rscript_name";
-    
-    print $ofh "library(DESeq)\n";
-    print $ofh "\n";
-
-    print $ofh "data = read.table(\"$matrix_file\", header=T, row.names=1, com='')\n";
-    print $ofh "col_ordering = c(" . join(",", @rep_column_indices) . ")\n";
-    print $ofh "rnaseqMatrix = data[,col_ordering]\n";
-    print $ofh "rnaseqMatrix = round(rnaseqMatrix)\n";
-    print $ofh "rnaseqMatrix = rnaseqMatrix[rowSums(rnaseqMatrix)>=$min_rowSum_counts,]\n";
-    print $ofh "conditions = factor(c(rep(\"$sample_A\", $num_rep_A), rep(\"$sample_B\", $num_rep_B)))\n";
-    print $ofh "\n";
-    print $ofh "exp_study = newCountDataSet(rnaseqMatrix, conditions)\n";
-    print $ofh "exp_study = estimateSizeFactors(exp_study)\n";
-    #print $ofh "sizeFactors(exp_study)\n";
-    #print $ofh "exp_study = estimateVarianceFunctions(exp_study)\n";
-    
-    if ($num_rep_A == 1 && $num_rep_B == 1) {
-        
-        print STDERR "\n\n** Note, no replicates, setting method='blind', sharingMode='fit-only'\n\n";
-        
-        $DESEQ_method = "blind";
-        $DESEQ_sharingMode = "fit-only";
-        
-    }
-
-    # got bio replicates
-    my $est_disp_cmd = "exp_study = estimateDispersions(exp_study";
-    
-    if ($DESEQ_method) {
-        $est_disp_cmd .= ", method=\"$DESEQ_method\"";
-    }
-    
-    if ($DESEQ_sharingMode) {
-        $est_disp_cmd .= ", sharingMode=\"$DESEQ_sharingMode\"";
-    }
-    
-    if ($DESEQ_fitType) {
-        $est_disp_cmd .= ", fitType=\"$DESEQ_fitType\"";
-    }
-    
-    $est_disp_cmd .= ")\n";
-    
-    print $ofh $est_disp_cmd;
-    
-    
-    #print $ofh "str(fitInfo(exp_study))\n";
-    #print $ofh "plotDispEsts(exp_study)\n";
-    print $ofh "\n";
-    print $ofh "res = nbinomTest(exp_study, \"$sample_A\", \"$sample_B\")\n";
-    print $ofh "\n";
-## output results
-    print $ofh "write.table(res[order(res\$pval),], file=\'$output_prefix.DESeq.DE_results\', sep='\t', quote=FALSE, row.names=FALSE)\n";
-    
-    ## generate MA and Volcano plots
-    print $ofh "source(\"$FindBin::Bin/R/rnaseq_plot_funcs.R\")\n";
-    print $ofh "pdf(\"$output_prefix.DESeq.DE_results.MA_n_Volcano.pdf\")\n";
-    print $ofh "plot_MA_and_Volcano(log2(res\$baseMean+1), res\$log2FoldChange, res\$padj)\n";
-    print $ofh "dev.off()\n";
-
-    close $ofh;
-    
-
-
-    ## Run R-script
-    my $cmd = "R --vanilla -q < $Rscript_name";
-    &process_cmd($cmd);
-    
-    return;
-}
         
 sub run_DESeq2_sample_pair {
     my ($matrix_file, $samples_href, $sample_name_to_column_index_href, $sample_A, $sample_B) = @_;

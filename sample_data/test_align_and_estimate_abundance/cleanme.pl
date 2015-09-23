@@ -25,17 +25,16 @@ my %keep = map { + $_ => 1 } @files_to_keep;
 
 foreach my $file (<*>) {
 	
-	if (! $keep{$file}) {
+	if (-f $file && ! $keep{$file}) {
 		print STDERR "-removing file: $file\n";
 		unlink($file);
 	}
 }
 
 
-`rm -rf ./transdecoder.tmp.*`;
-
-`rm -rf ./eXpress_estimate`;
-`rm -rf ./rsem_estimate`;
+`rm -rf ./RSEM-*`;
+`rm -rf ./eXpress-*`;
+`rm -rf ./kallisto-*`;
 
 
 exit(0);

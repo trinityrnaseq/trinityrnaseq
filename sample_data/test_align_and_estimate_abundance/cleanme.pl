@@ -11,18 +11,11 @@ chdir $FindBin::Bin or die "error, cannot cd to $FindBin::Bin";
 
 
 
-my @files_to_keep = qw (cleanme.pl 
-
-                        reads.right.fq.gz
-                        reads.left.fq.gz
-
-                        run_eXpress.sh
-                        run_rsem.sh
-
-                        Trinity.fasta.gene_trans_map                        
-                        Trinity.fasta.gz
-
-                        Makefile
+my @files_to_keep = qw (
+cleanme.pl 
+Makefile
+align_and_estimate_tester.pl
+samples_n_reads_decribed.tx
 );
 
 

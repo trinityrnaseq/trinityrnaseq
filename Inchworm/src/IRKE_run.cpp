@@ -271,6 +271,7 @@ int run_IRKE(int argc, char* argv[]) {
 
 
         // multithreading settings:
+        omp_set_dynamic(false);
         if (args.isArgSet("--num_threads")) {
             IRKE_COMMON::NUM_THREADS = args.getIntVal("--num_threads");
             omp_set_num_threads(IRKE_COMMON::NUM_THREADS);

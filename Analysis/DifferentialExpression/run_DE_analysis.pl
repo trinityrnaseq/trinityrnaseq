@@ -132,8 +132,8 @@ if ($matrix_file =~ /fpkm/i) {
 }
 
 
-unless ($method =~ /^(edgeR|DESeq2?|GLM)$/) {
-    die "Error, do not recognize method: [$method], only edgeR or DESeq currently.";
+unless ($method =~ /^(edgeR|DESeq2|voom|GLM)$/) {
+    die "Error, do not recognize --method [$method]";
 }
 
 
@@ -250,7 +250,9 @@ main: {
             elsif ($method eq "DESeq2") {
                 &run_DESeq2_sample_pair($matrix_file, \%samples, \%sample_name_to_column, $sample_a, $sample_b);
             }
-
+            elsif ($method eq 'voom') {
+                &run_limma_voom_sample_pair($matrix_file, \%samples, \%sample_name_to_column, $sample_a, $sample_b);
+            }
         }
     }
 
@@ -413,7 +415,6 @@ sub run_edgeR_sample_pair {
 
     return;
 }
-
         
 sub run_DESeq2_sample_pair {
     my ($matrix_file, $samples_href, $sample_name_to_column_index_href, $sample_A, $sample_B) = @_;
@@ -491,6 +492,84 @@ sub run_DESeq2_sample_pair {
     my $cmd = "R --vanilla -q < $Rscript_name";
     &process_cmd($cmd);
     
+    return;
+}
+
+
+####
+sub run_limma_voom_sample_pair {
+    my ($matrix_file, $samples_href, $sample_name_to_column_index_href, $sample_A, $sample_B) = @_;
+    
+    my $output_prefix = basename($matrix_file) . "." . join("_vs_", ($sample_A, $sample_B));
+        
+    my $Rscript_name = "$output_prefix.$sample_A.vs.$sample_B.voom.Rscript";
+    
+    my @reps_A = @{$samples_href->{$sample_A}};
+    my @reps_B = @{$samples_href->{$sample_B}};
+
+    my $num_rep_A = scalar(@reps_A);
+    my $num_rep_B = scalar(@reps_B);
+    
+    unless ($num_rep_A > 1 && $num_rep_B > 1) {
+        die "Error, need multiple biological replicates for each sample in order to run voom";
+    }
+
+    my @rep_column_indices;
+    foreach my $rep_name (@reps_A, @reps_B) {
+        my $column_index = $sample_name_to_column_index_href->{$rep_name} or die "Error, cannot determine column index for replicate name [$rep_name]" . Dumper($sample_name_to_column_index_href);
+        push (@rep_column_indices, $column_index);
+    }
+        
+
+    ## write R-script to run edgeR
+    open (my $ofh, ">$Rscript_name") or die "Error, cannot write to $Rscript_name";
+    
+    print $ofh "library(edgeR)\n";
+    print $ofh "library(limma)\n";
+    
+    print $ofh "\n";
+    
+    print $ofh "data = read.table(\"$matrix_file\", header=T, row.names=1, com='')\n";
+    print $ofh "col_ordering = c(" . join(",", @rep_column_indices) . ")\n";
+    print $ofh "rnaseqMatrix = data[,col_ordering]\n";
+    print $ofh "rnaseqMatrix = round(rnaseqMatrix)\n";
+    print $ofh "rnaseqMatrix = rnaseqMatrix[rowSums(rnaseqMatrix)>=$min_rowSum_counts,]\n";
+    print $ofh "conditions = factor(c(rep(\"$sample_A\", $num_rep_A), rep(\"$sample_B\", $num_rep_B)))\n";
+    print $ofh "\n";
+    print $ofh "design = model.matrix(~conditions)\n";
+    print $ofh "x = DGEList(counts=rnaseqMatrix)\n";
+    print $ofh "y = voom(x,design,plot=F)\n";
+    print $ofh "fit = eBayes(lmFit(y,design))\n";
+    print $ofh "tTags = topTable(fit,coef=2,number=Inf)\n";
+    print $ofh "c = cpm(x)\n";
+    print $ofh "m = apply(c, 1, mean)\n";
+    print $ofh "tTags2 = cbind(tTags, logCPM=log2(m[rownames(tTags)]))\n";
+    print $ofh "DE_matrix = data.frame(logFC=tTags\$logFC, logCPM=tTags2\$logCPM, PValue=tTags\$'P.Value', FDR=tTags\$'adj.P.Val')\n";
+    print $ofh "rownames(DE_matrix) = rownames(tTags)\n";
+    print $ofh "write.table(DE_matrix, file=\'$output_prefix.voom.DE_results\', sep='\t', quote=F, row.names=T)\n";
+    
+    ## generate MA and Volcano plots
+    print $ofh "source(\"$FindBin::Bin/R/rnaseq_plot_funcs.R\")\n";
+    print $ofh "pdf(\"$output_prefix.voom.DE_results.MA_n_Volcano.pdf\")\n";
+    print $ofh "plot_MA_and_Volcano(tTags2\$logCPM, tTags\$logFC, tTags\$'adj.P.Val')\n";
+    print $ofh "dev.off()\n";
+    
+    close $ofh;
+
+    ## Run R-script
+    my $cmd = "R --vanilla -q < $Rscript_name";
+
+
+    eval {
+        &process_cmd($cmd);
+    };
+    if ($@) {
+        print STDERR "$@\n\n";
+        print STDERR "\n\nWARNING: This voom comparison failed...\n\n";
+        ## if this is due to data paucity, such as in small sample data sets, then ignore for now.
+    }
+    
+
     return;
 }
 

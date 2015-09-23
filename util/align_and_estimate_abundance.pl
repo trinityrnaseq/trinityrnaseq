@@ -749,7 +749,7 @@ sub add_zcat_gz {
         
         if ($file =~ /\.gz$/) {
 
-            $file = "<(zcat $file)";
+            $file = "<(gunzip -c $file)";  # used to be zcat
     
             
         }

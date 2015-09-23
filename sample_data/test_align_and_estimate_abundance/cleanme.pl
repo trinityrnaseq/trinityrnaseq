@@ -15,7 +15,7 @@ my @files_to_keep = qw (
 cleanme.pl 
 Makefile
 align_and_estimate_tester.pl
-samples_n_reads_decribed.tx
+samples.txt
 );
 
 

@@ -154,6 +154,7 @@ main: {
         my $header = <$fh>; 
         chomp $header;
         my %fields = &parse_field_positions($header);
+        #use Data::Dumper; print STDERR Dumper(\%fields);
         while (<$fh>) {
             chomp;
             
@@ -272,7 +273,7 @@ sub parse_field_positions {
 
     my %field_pos;
     my @fields = split(/\s+/, $header);
-    for (my $i = 0; $i < $#fields; $i++) {
+    for (my $i = 0; $i <= $#fields; $i++) {
         $field_pos{$fields[$i]} = $i;
         $field_pos{$i} = $i; # for fixed column assignment
     }

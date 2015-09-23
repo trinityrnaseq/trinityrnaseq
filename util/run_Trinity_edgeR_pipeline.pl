@@ -277,7 +277,7 @@ foreach my $target_type ("trans", "genes") {
     
     ## extract the diff. expressed transcripts.
     $cmd = "$BASEDIR/Analysis/DifferentialExpression/analyze_diff_expr.pl "
-        . " --matrix ../Trinity_${target_type}.TMM.fpkm.matrix --samples $read_samples_descr_file ";
+        . " --matrix ../Trinity_${target_type}.TMM.EXPR.matrix --samples $read_samples_descr_file ";
     
 
     if (exists $PARAMS{"-P"}) {

@@ -22,8 +22,8 @@ my @files_to_keep = qw (cleanme.pl
 my %keep = map { + $_ => 1 } @files_to_keep;
 
 `rm -rf edgeR_\*`;
-`find ./trinity_out_dir -type f -delete`;
-`rm -rf ./trinity_out_dir`;
+#`find ./trinity_out_dir -type f -delete`;
+#`rm -rf ./trinity_out_dir`;
 `rm -f rnaseq_reads/*fq`;
 `rm -rf collectl/`;
 `rm -rf *.stat/`;

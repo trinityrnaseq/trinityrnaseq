@@ -1,17 +1,7 @@
 
 
 JELLYFISH_CODE="jellyfish-2.1.4"
-RSEM_CODE="rsem-1.2.19"
 HTSLIB_CODE="htslib.github.Aug182015.tar.gz"
-
-RSEM_LIBCURSES=-lcurses
-
-UNAME_S := $(shell uname -s)
-
-ifeq ($(UNAME_S),Linux)
-	RSEM_LIBCURSES += -ltinfo 
-endif
-
 
 #######################
 ### Required by Trinity
@@ -59,21 +49,9 @@ parafly_target:
 ### Needed for downstream analyses
 ##################################
 
-plugins: slclust_target collectl_target rsem
+plugins: slclust_target collectl_target
 	@echo "\n\n** Done building plugins **\n\n"
 
-
-rsem:
-	tar -zxvf ${RSEM_CODE}.tar.gz
-	cd ${RSEM_CODE} && $(MAKE) LIBCURSES="${RSEM_LIBCURSES}"
-	ln -sf ${RSEM_CODE} rsem
-
-
-# no longer bundling transdecoder
-#transdecoder_target:
-#	tar -zxvf ${TRANSDECODER_CODE}.tar.gz 
-#	cd ${TRANSDECODER_CODE} && ${MAKE} simple
-#	ln -sf ${TRANSDECODER_CODE} transdecoder
 
 slclust_target:
 	cd slclust && $(MAKE) install
@@ -83,7 +61,6 @@ collectl_target:
 
 clean:
 	rm -rf ${JELLYFISH_CODE} ./jellyfish # has tar.gz
-	rm -rf ${RSEM_CODE} ./rsem # has tar.gz
 	cd ${FASTOOL_CODE} && $(MAKE) clean
 	rm -rf ./samtools-0.1.19
 	rm -f ./fastool # rm symlink

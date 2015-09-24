@@ -1,0 +1,2 @@
+rm -rf ./edgeR.*.dir
+

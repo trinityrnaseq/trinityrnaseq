@@ -1,0 +1,3 @@
+files	group	description	lib.size	norm.factors	eff.lib.size
+myc.dat	myc	myc sample	1868099.34	1.17712091264385	2198978.80001017
+cysts.dat	cysts	cysts sample	3135450.87	0.849530400198201	2663660.8323929

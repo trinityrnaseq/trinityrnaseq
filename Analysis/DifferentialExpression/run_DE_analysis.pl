@@ -12,6 +12,10 @@ use Fasta_reader;
 use Data::Dumper;
 
 
+my $ROTS_B = 500;
+my $ROTS_K = 5000;
+
+
 my $usage = <<__EOUSAGE__;
 
 
@@ -21,7 +25,7 @@ my $usage = <<__EOUSAGE__;
 #
 #  --matrix|m <string>               matrix of raw read counts (not normalized!)
 #
-#  --method <string>               edgeR|DESeq2|voom
+#  --method <string>               edgeR|DESeq2|voom|ROTS
 #                                     note: you should have biological replicates.
 #                                           edgeR will support having no bio replicates with
 #                                           a fixed dispersion setting. 
@@ -58,6 +62,11 @@ my $usage = <<__EOUSAGE__;
 #
 #  --dispersion <float>            edgeR dispersion value (Read edgeR manual to guide your value choice)
 #
+#  ## ROTS parameters
+#  --ROTS_B <int>                   : number of bootstraps and permutation resampling (default: $ROTS_B)
+#  --ROTS_K <int>                   : largest top genes size (default: $ROTS_K)
+#
+#
 ###############################################################################################
 #
 #   Documentation and manuals for various DE methods.  Please read for more advanced and more
@@ -66,7 +75,7 @@ my $usage = <<__EOUSAGE__;
 #  edgeR:       http://www.bioconductor.org/packages/release/bioc/html/edgeR.html
 #  DESeq2:      http://bioconductor.org/packages/release/bioc/html/DESeq2.html    
 #  voom/limma:  http://bioconductor.org/packages/release/bioc/html/limma.html
-#
+#  ROTS:        http://www.btk.fi/research/research-groups/elo/software/rots/
 #
 ###############################################################################################
 
@@ -105,6 +114,9 @@ my $make_tar_gz_file = 0;
               
               'tar_gz_outdir' => \$make_tar_gz_file,
 
+
+              'ROTS_B=i' => \$ROTS_B,
+              'ROTS_K=i' => \$ROTS_K,
     );
 
 
@@ -132,7 +144,7 @@ if ($matrix_file =~ /fpkm/i) {
 }
 
 
-unless ($method =~ /^(edgeR|DESeq2|voom|GLM)$/) {
+unless ($method =~ /^(edgeR|DESeq2|voom|ROTS|GLM)$/) {
     die "Error, do not recognize --method [$method]";
 }
 
@@ -252,6 +264,9 @@ main: {
             }
             elsif ($method eq 'voom') {
                 &run_limma_voom_sample_pair($matrix_file, \%samples, \%sample_name_to_column, $sample_a, $sample_b);
+            }
+            elsif ($method eq 'ROTS') {
+                &run_ROTS_sample_pair($matrix_file, \%samples, \%sample_name_to_column, $sample_a, $sample_b);
             }
         }
     }
@@ -540,13 +555,9 @@ sub run_limma_voom_sample_pair {
     print $ofh "## TMM normalize data\n";
     print $ofh "lib_sizes = colSums(rnaseqMatrix)\n";
     print $ofh "tmm_norm_factors = calcNormFactors(rnaseqMatrix, method='TMM')\n";
-    print $ofh "adj_TMM_lib_sizes = lib_sizes * tmm_norm_factors\n";
-    print $ofh "TMM_scaling_factors = adj_TMM_lib_sizes / mean(adj_TMM_lib_sizes)\n";
-    print $ofh "TMM_scaled_counts = t(t(rnaseqMatrix)/TMM_scaling_factors)\n";
-    print $ofh "write.table(TMM_scaled_counts, file=\"$output_prefix.TMM_scaled_counts\", quote=F, sep='\t')\n";
-    print $ofh "x = DGEList(counts=TMM_scaled_counts)\n";
+    print $ofh "x = DGEList(counts=rnaseqMatrix)\n";
     print $ofh "# voom transformation\n";
-    print $ofh "y = voom(x,design,plot=F)\n";
+    print $ofh "y = voom(x, design, lib.size=lib_sizes*tmm_norm_factors, plot=F)\n";
     print $ofh "fit = eBayes(lmFit(y,design))\n";
     print $ofh "tTags = topTable(fit,coef=2,number=Inf)\n";
     print $ofh "# output results, including average expression val for each feature\n";
@@ -576,6 +587,103 @@ sub run_limma_voom_sample_pair {
     if ($@) {
         print STDERR "$@\n\n";
         print STDERR "\n\nWARNING: This voom comparison failed...\n\n";
+        ## if this is due to data paucity, such as in small sample data sets, then ignore for now.
+    }
+    
+
+    return;
+}
+
+
+####
+sub run_ROTS_sample_pair {
+    my ($matrix_file, $samples_href, $sample_name_to_column_index_href, $sample_A, $sample_B) = @_;
+    
+    my $output_prefix = basename($matrix_file) . "." . join("_vs_", ($sample_A, $sample_B));
+        
+    my $Rscript_name = "$output_prefix.$sample_A.vs.$sample_B.ROTS.Rscript";
+    
+    my @reps_A = @{$samples_href->{$sample_A}};
+    my @reps_B = @{$samples_href->{$sample_B}};
+
+    my $num_rep_A = scalar(@reps_A);
+    my $num_rep_B = scalar(@reps_B);
+    
+    unless ($num_rep_A > 1 && $num_rep_B > 1) {
+        die "Error, need multiple biological replicates for each sample in order to run ROTS";
+    }
+
+    my @rep_column_indices;
+    foreach my $rep_name (@reps_A, @reps_B) {
+        my $column_index = $sample_name_to_column_index_href->{$rep_name} or die "Error, cannot determine column index for replicate name [$rep_name]" . Dumper($sample_name_to_column_index_href);
+        push (@rep_column_indices, $column_index);
+    }
+        
+
+    ## write R-script to run edgeR
+    open (my $ofh, ">$Rscript_name") or die "Error, cannot write to $Rscript_name";
+    
+    print $ofh "library(edgeR)\n";
+    print $ofh "library(limma)\n";
+    print $ofh "library(ROTS)\n";
+    
+    print $ofh "\n";
+    
+    print $ofh "data = read.table(\"$matrix_file\", header=T, row.names=1, com='')\n";
+    print $ofh "col_ordering = c(" . join(",", @rep_column_indices) . ")\n";
+    print $ofh "rnaseqMatrix = data[,col_ordering]\n";
+    print $ofh "rnaseqMatrix = round(rnaseqMatrix)\n";
+    print $ofh "rnaseqMatrix = rnaseqMatrix[rowSums(rnaseqMatrix)>=$min_rowSum_counts,]\n";
+    print $ofh "conditions = factor(c(rep(\"$sample_A\", $num_rep_A), rep(\"$sample_B\", $num_rep_B)))\n";
+    print $ofh "\n";
+    print $ofh "design = model.matrix(~conditions)\n";
+    print $ofh "## TMM normalize data\n";
+    print $ofh "lib_sizes = colSums(rnaseqMatrix)\n";
+    print $ofh "tmm_norm_factors = calcNormFactors(rnaseqMatrix, method='TMM')\n";
+    print $ofh "x = DGEList(counts=rnaseqMatrix)\n";
+    print $ofh "# voom transformation and ROTS (code derived from ROTS paper supp R code)\n";
+    print $ofh "voom.data = voom(x, design, lib.size=lib_sizes*tmm_norm_factors, plot=F)\n";
+    print $ofh "input_voom = voom.data\$E\n";
+    print $ofh "# run ROTS for DE analysis\n";
+    print $ofh "res_voom <- ROTS(data=input_voom,groups=conditions,B=$ROTS_B, K=$ROTS_K)\n";
+    print $ofh "results = summary(res_voom, fdr=0.1)\n";
+
+    print $ofh "# add logFC and logCPM to result table.\n";
+    print $ofh "c = cpm(x)\n";
+    print $ofh "m = apply(c, 1, mean)\n";
+    print $ofh "sampleA_cpm_matrix = c[,conditions \%in% \"$sample_A\"]\n";
+    print $ofh "mean_sampleA_cpm = apply(sampleA_cpm_matrix, 1, mean)\n";
+    print $ofh "sampleB_cpm_matrix = c[,conditions \%in% \"$sample_B\"]\n";
+    print $ofh "mean_sampleB_cpm = apply(sampleB_cpm_matrix, 1, mean)\n";
+    print $ofh "pseudocount_cpm = 1\n";
+    print $ofh "FC = (mean_sampleA_cpm + pseudocount_cpm) / (mean_sampleB_cpm + pseudocount_cpm)\n";
+    print $ofh "logFC = log2(FC)\n";
+    print $ofh "results = summary(res_voom, fdr=0.1)\n";
+    print $ofh "feature_order = rownames(results)\n";
+    print $ofh "final_table = data.frame(logCPM=log2(m+1)[feature_order], CPM_A=mean_sampleA_cpm[feature_order], CPM_B=mean_sampleB_cpm[feature_order], logFC=logFC[feature_order], results)\n";
+
+    print $ofh "write.table(final_table, file=\"$output_prefix.ROTS.DE_results\", quote=F, sep='\t')\n";
+        
+    ## generate MA and Volcano plots
+    print $ofh "# MA and volcano plots\n";
+    print $ofh "source(\"$FindBin::Bin/R/rnaseq_plot_funcs.R\")\n";
+    print $ofh "pdf(\"$output_prefix.voom.DE_results.MA_n_Volcano.pdf\")\n";
+    print $ofh "plot_MA_and_Volcano(final_table\$logCPM, final_table\$logFC, final_table\$FDR)\n";
+    print $ofh "dev.off()\n";
+    
+    
+    close $ofh;
+
+    ## Run R-script
+    my $cmd = "R --vanilla -q < $Rscript_name";
+
+
+    eval {
+        &process_cmd($cmd);
+    };
+    if ($@) {
+        print STDERR "$@\n\n";
+        print STDERR "\n\nWARNING: This ROTS comparison failed...\n\n";
         ## if this is due to data paucity, such as in small sample data sets, then ignore for now.
     }
     

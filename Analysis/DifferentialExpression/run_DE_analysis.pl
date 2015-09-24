@@ -537,10 +537,19 @@ sub run_limma_voom_sample_pair {
     print $ofh "conditions = factor(c(rep(\"$sample_A\", $num_rep_A), rep(\"$sample_B\", $num_rep_B)))\n";
     print $ofh "\n";
     print $ofh "design = model.matrix(~conditions)\n";
-    print $ofh "x = DGEList(counts=rnaseqMatrix)\n";
+    print $ofh "## TMM normalize data\n";
+    print $ofh "lib_sizes = colSums(rnaseqMatrix)\n";
+    print $ofh "tmm_norm_factors = calcNormFactors(rnaseqMatrix, method='TMM')\n";
+    print $ofh "adj_TMM_lib_sizes = lib_sizes * tmm_norm_factors\n";
+    print $ofh "TMM_scaling_factors = adj_TMM_lib_sizes / mean(adj_TMM_lib_sizes)\n";
+    print $ofh "TMM_scaled_counts = t(t(rnaseqMatrix)/TMM_scaling_factors)\n";
+    print $ofh "write.table(TMM_scaled_counts, file=\"$output_prefix.TMM_scaled_counts\", quote=F, sep='\t')\n";
+    print $ofh "x = DGEList(counts=TMM_scaled_counts)\n";
+    print $ofh "# voom transformation\n";
     print $ofh "y = voom(x,design,plot=F)\n";
     print $ofh "fit = eBayes(lmFit(y,design))\n";
     print $ofh "tTags = topTable(fit,coef=2,number=Inf)\n";
+    print $ofh "# output results, including average expression val for each feature\n";
     print $ofh "c = cpm(x)\n";
     print $ofh "m = apply(c, 1, mean)\n";
     print $ofh "tTags2 = cbind(tTags, logCPM=log2(m[rownames(tTags)]))\n";
@@ -549,6 +558,7 @@ sub run_limma_voom_sample_pair {
     print $ofh "write.table(DE_matrix, file=\'$output_prefix.voom.DE_results\', sep='\t', quote=F, row.names=T)\n";
     
     ## generate MA and Volcano plots
+    print $ofh "# MA and volcano plots\n";
     print $ofh "source(\"$FindBin::Bin/R/rnaseq_plot_funcs.R\")\n";
     print $ofh "pdf(\"$output_prefix.voom.DE_results.MA_n_Volcano.pdf\")\n";
     print $ofh "plot_MA_and_Volcano(tTags2\$logCPM, tTags\$logFC, tTags\$'adj.P.Val')\n";

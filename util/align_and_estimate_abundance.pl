@@ -210,7 +210,7 @@ my $trinity_mode;
 my $include_rsem_bam;
 my $coordsort_bam_flag = 0;
 
-&GetOptions ( 'h' => \$help_flag,
+&GetOptions ( 'help|h' => \$help_flag,
               'transcripts=s' => \$transcripts,
               'name_sorted_bam=s' => \$bam_file,
               'debug' => \$DEBUG_flag,
@@ -271,6 +271,9 @@ if ($help_flag) {
 }
 if ($show_full_usage_info) {
     die "$usage\n\n$advanced_usage_info\n\n";
+}
+unless ($est_method) {
+    die $usage;
 }
 
 my @EST_METHODS = qw(RSEM eXpress kallisto);

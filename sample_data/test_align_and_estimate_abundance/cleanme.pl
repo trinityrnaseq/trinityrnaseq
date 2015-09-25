@@ -16,6 +16,7 @@ cleanme.pl
 Makefile
 align_and_estimate_tester.pl
 samples.txt
+plot_paired_comparisons.Rscript
 );
 
 

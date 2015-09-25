@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-my $usage = "usage: $0 fpkm.matrix\n\n";
+my $usage = "usage: $0 tpm.matrix\n\n";
 
 
 my $matrix_file = $ARGV[0] or die $usage;
@@ -11,42 +11,42 @@ my $matrix_file = $ARGV[0] or die $usage;
 open (my $fh, $matrix_file) or die $!;
 my $header = <$fh>;
 
-my @fpkms;
+my @tpms;
 while (<$fh>) {
     chomp;
     my @x = split(/\t/);
     shift @x; # gene accession
-    my $max_fpkm = shift @x;
+    my $max_tpm = shift @x;
     while (@x) {
-        my $fpkm = shift @x;
-        if ($fpkm > $max_fpkm) {
-            $max_fpkm = $fpkm;
+        my $tpm = shift @x;
+        if ($tpm > $max_tpm) {
+            $max_tpm = $tpm;
         }
     }
-    push (@fpkms, $max_fpkm);
+    push (@tpms, $max_tpm);
 }
 
-@fpkms = reverse sort {$a<=>$b} @fpkms;
+@tpms = reverse sort {$a<=>$b} @tpms;
 
-my $min_fpkm_thresh = int($fpkms[0] + 0.5);
+my $min_tpm_thresh = int($tpms[0] + 0.5);
 my $num_features = 1;
 
-print "neg_min_fpkm\tnum_features\n";
+print "neg_min_tpm\tnum_features\n";
 
-shift @fpkms;
-while (@fpkms) {
+shift @tpms;
+while (@tpms) {
 
-    my $fpkm = shift @fpkms;
-    $fpkm = int($fpkm+0.5);
+    my $tpm = shift @tpms;
+    $tpm = int($tpm+0.5);
 
-    if ($fpkm < $min_fpkm_thresh) {
-        print "" . (-1*$min_fpkm_thresh) . "\t$num_features\n";
-        $min_fpkm_thresh = $fpkm;
+    if ($tpm < $min_tpm_thresh) {
+        print "" . (-1*$min_tpm_thresh) . "\t$num_features\n";
+        $min_tpm_thresh = $tpm;
 
     }
     $num_features++;
 }
 
-print "$min_fpkm_thresh\t$num_features\n";
+print "$min_tpm_thresh\t$num_features\n";
 
 exit(0);

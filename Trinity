@@ -17,7 +17,7 @@ use Pipeliner;
 use Fasta_reader;
 use List::Util qw(min max);
 
-my $VERSION = "v2.0.6"; 
+my $VERSION = "__TRINITY_VERSION_TAG__"; 
 
 
 BEGIN {

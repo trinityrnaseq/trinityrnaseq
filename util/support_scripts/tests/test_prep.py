@@ -105,6 +105,7 @@ class TestTrinity(unittest.TestCase):
             cmdline = tpl % (files, seqtype)
         if reverse:
           cmdline += " --SS_lib_type " + ('RF' if morefiles else 'R')
+        print cmdline
         with open("coverage.log", 'a') as file_out:
             subprocess.call(cmdline,shell=True, stdout=file_out)
 

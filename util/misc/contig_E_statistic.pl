@@ -3,47 +3,51 @@
 use strict;
 use warnings;
 
-my $usage = "usage: $0 TMM.fpkm.matrix trans_lengths\n\n";
+use FindBin;
+use lib ("$FindBin::Bin/../../PerlLib");
+use Fasta_reader;
+
+my $usage = "usage: $0 EXPR.matrix Trinity.fasta\n\n";
 
 
 my $matrix_file = $ARGV[0] or die $usage;
-my $trans_lengths_file = $ARGV[1] or die $usage;
+my $fasta_file = $ARGV[1] or die $usage;
 
 my %trans_lengths;
 {
-    open (my $fh, $trans_lengths_file) or die $!;
-    while (<$fh>) {
-        chomp;
-        my ($trans_acc, $seq_len) = split(/\s+/);
-        $trans_lengths{$trans_acc} = $seq_len;
+    my $fasta_reader = new Fasta_reader($fasta_file);
+    while (my $seq_obj = $fasta_reader->next()) {
+        
+        my $acc = $seq_obj->get_accession();
+        my $sequence = $seq_obj->get_sequence();
+        
+        my $seq_len = length($sequence);
+
+        $trans_lengths{$acc} = $seq_len;
     }
-    close $fh;
 }
-
-
-
 
 open (my $fh, $matrix_file) or die $!;
 my $header = <$fh>;
 
 my @trans;
 
-my $sum_fpkm = 0;
+my $sum_expr = 0;
 
 while (<$fh>) {
     chomp;
     my @x = split(/\t/);
     my $acc = shift @x; # gene accession
-    my $max_fpkm = 0;
-    my $trans_sum_fpkm = 0;
+    my $max_expr = 0;
+    my $trans_sum_expr = 0;
     while (@x) {
-        my $fpkm = shift @x;
+        my $expr = shift @x;
         
-        $trans_sum_fpkm += $fpkm;
-        $sum_fpkm += $fpkm;    
+        $trans_sum_expr += $expr;
+        $sum_expr += $expr;    
 
-        if ($fpkm > $max_fpkm) {
-            $max_fpkm = $fpkm;
+        if ($expr > $max_expr) {
+            $max_expr = $expr;
         }
     }
     
@@ -51,13 +55,13 @@ while (<$fh>) {
     
     push (@trans, { acc => $acc,
                     len => $seq_len,
-                    sum_fpkm => $trans_sum_fpkm,
-                    max_fpkm => $max_fpkm,
+                    sum_expr => $trans_sum_expr,
+                    max_expr => $max_expr,
                 });
     
 }
 
-@trans = reverse sort { $a->{sum_fpkm} <=> $b->{sum_fpkm}
+@trans = reverse sort { $a->{sum_expr} <=> $b->{sum_expr}
                         ||
                             $a->{len} <=> $b->{len} } @trans;
 
@@ -65,9 +69,9 @@ while (<$fh>) {
 ## write output table
 {
     open (my $ofh, ">$matrix_file.E-inputs") or die $!;
-    print $ofh join("\t", "#acc", "length", "max_fpkm_over_samples", "sum_fpkm_over_samples") . "\n";
+    print $ofh join("\t", "#acc", "length", "max_expr_over_samples", "sum_expr_over_samples") . "\n";
     foreach my $t (@trans) {
-        print $ofh join("\t", $t->{acc}, $t->{len}, $t->{max_fpkm}, $t->{sum_fpkm}) . "\n";
+        print $ofh join("\t", $t->{acc}, $t->{len}, $t->{max_expr}, $t->{sum_expr}) . "\n";
     }
     close $ofh;
 }
@@ -77,7 +81,7 @@ my %Estats_wanted = map { $_ => 1 } (1..100);
 
 
 
-print "#E\tmin_fpkm\tE-N50\tnum_transcripts\n";
+print "#E\tmin_expr\tE-N50\tnum_transcripts\n";
 
 my $sum = 0;
 my @captured;
@@ -86,31 +90,31 @@ while (@trans) {
     my $t = shift @trans;
     push (@captured, $t);
 
-    $sum += $t->{sum_fpkm};
+    $sum += $t->{sum_expr};
 
-    my $pct = int($sum/$sum_fpkm * 100);
+    my $pct = int($sum/$sum_expr * 100);
     
     if ($Estats_wanted{$pct}) {
         
-        my $min_max_fpkm = &get_min_max(@captured);
+        my $min_max_expr = &get_min_max(@captured);
         
         delete($Estats_wanted{$pct});
 
         my $N50 = &calc_N50(@captured);
         my $num_trans = scalar(@captured);
         
-        print "E$pct\t$min_max_fpkm\t$N50\t$num_trans\n";
+        print "E$pct\t$min_max_expr\t$N50\t$num_trans\n";
     }
 }
 
 # ensure that we do E100
 if (%Estats_wanted) {
 
-    my $min_max_fpkm = &get_min_max(@captured);
+    my $min_max_expr = &get_min_max(@captured);
     my $N50 = &calc_N50(@captured);
     my $num_trans = scalar(@captured);
     
-    print "E100\t$min_max_fpkm\t$N50\t$num_trans\n";
+    print "E100\t$min_max_expr\t$N50\t$num_trans\n";
 }
 
 
@@ -121,10 +125,10 @@ exit(0);
 sub get_min_max {
     my @entries = @_;
     
-    my $min = $entries[0]->{max_fpkm};
+    my $min = $entries[0]->{max_expr};
     foreach my $entry (@entries) {
-        if ($entry->{max_fpkm} < $min) {
-            $min = $entry->{max_fpkm};
+        if ($entry->{max_expr} < $min) {
+            $min = $entry->{max_expr};
         }
     }
 

@@ -184,7 +184,9 @@ main: {
         $output_dir = "$method.$$.dir";
     }
     
-    mkdir($output_dir) or die "Error, cannot mkdir $output_dir";
+    unless (-d $output_dir) {
+        mkdir($output_dir) or die "Error, cannot mkdir $output_dir";
+    }
     chdir $output_dir or die "Error, cannot cd to $output_dir";
     
 

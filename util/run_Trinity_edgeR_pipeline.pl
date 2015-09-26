@@ -268,7 +268,8 @@ foreach my $target_type ("trans", "genes") {
         . " --matrix Trinity_${target_type}.counts.matrix "
         . " --method edgeR "
         . " --samples_file $read_samples_descr_file "
-        . " --output $edgeR_dir ";
+        . " --output $edgeR_dir "
+        . " --dispersion 0.1 "; # fixed dispersion only used when no bio reps exist 
     
     &process_cmd($cmd, "Running edgeR for $target_type") unless (-d $edgeR_dir);
 

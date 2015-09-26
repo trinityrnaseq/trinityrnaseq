@@ -13,7 +13,7 @@ my $usage = <<__EOUSAGE__;
 #
 # Required:
 #
-#  --matrix <string>       matrix.normalized.FPKM
+#  --matrix <string>       TMM.EXPR.matrix
 #
 # Optional:
 #
@@ -150,7 +150,7 @@ main: {
     my $matrix_header;
     
     {
-        # not counts, but FPKM values! 
+        # not counts, but TPM values! 
         open (my $fh, $matrix_file) or die "Error, cannot read file $matrix_file";
         $matrix_header = <$fh>;
         chomp $matrix_header;

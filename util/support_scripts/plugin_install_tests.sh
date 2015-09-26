@@ -15,10 +15,3 @@ then
 else
 	echo "collectl Installation appears to have FAILED"
 fi
-if [ -e "trinity-plugins/rsem/rsem-calculate-expression" ]
-then
-    echo "rsem:                    has been Installed Properly"
-else
-    echo "rsem:    Installation appears to have FAILED"
-fi
-

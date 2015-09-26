@@ -23,5 +23,8 @@ clean:
 	rm -rf ./DESeq2_outdir
 	rm -rf ./voom_outdir
 	rm -rf ./ROTS_outdir
+	rm -f ./Trinity_trans.counts.matrix.*
+	rm -f ./Trinity_trans.TMM.EXPR.matrix.*
+	rm -f ./*.pdf
 
 

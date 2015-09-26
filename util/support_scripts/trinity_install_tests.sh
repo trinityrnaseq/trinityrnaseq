@@ -59,3 +59,9 @@ else
 	echo "parafly Installation appears to have FAILED"
 fi
 
+if [ -e "trinity-plugins/BIN/samtools" ]
+then
+    echo "samtools-0.1.19          has been Installed Properly"
+else
+    echo "samtools-0.1.19 Installation appears to have FAILED"
+fi

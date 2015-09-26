@@ -1,4 +1,3 @@
-1;2c
 
 JELLYFISH_CODE="jellyfish-2.1.4"
 HTSLIB_CODE="htslib.github.Aug182015.tar.gz"

@@ -719,6 +719,11 @@ main: {
 
         $Rscript .= "dev.off()\n";
     }
+
+
+    #################
+    ## Filtering data
+    #################
     
 
     if ($min_expressed_genes && $min_gene_expr_val) {
@@ -768,6 +773,13 @@ main: {
     }
     
 
+    $Rscript .= "initial_matrix = data # store before doing various data transformations\n";
+    
+
+    #############################################
+    ##  Now doing data transformations as needed:
+    #############################################
+    
     if ($CPM) {
 
         $Rscript .= "cs = colSums(data)\n";
@@ -1641,15 +1653,12 @@ sub add_sample_QC_analysis_R {
     
     
     $Rscript .= "        d = data[,samples_want]\n"
+              . "        initial_matrix_samples_want = initial_matrix[,samples_want]\n"
               . "        op <- par(mar = c(10,10,10,10))\n";
      
-    if ($LOG2) {
-        $Rscript .= "        barplot(colSums(2^(d-1)), las=2, main=paste(\"Sum of Frags for replicates of:\", sample_name), ylab='', cex.names=0.7)\n";
-    }
-    else {
-        
-        $Rscript .= "        barplot(colSums(d), las=2, main=paste(\"Sum of Frags for replicates of:\", sample_name), ylab='', cex.names=0.7)\n"
-    }
+           
+    $Rscript .= "        barplot(colSums(initial_matrix_samples_want), las=2, main=paste(\"Sum of Frags for replicates of:\", sample_name), ylab='', cex.names=0.7)\n";
+    
     
     $Rscript  .= "        par(op)\n"
                 . "        pairs3(d, pch='.', CustomColorFun=Scatter_color_fun, main=paste('Replicate Scatter:', sample_name)) # scatter plots\n"

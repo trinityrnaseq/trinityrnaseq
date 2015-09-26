@@ -1,4 +1,4 @@
-
+1;2c
 
 JELLYFISH_CODE="jellyfish-2.1.4"
 HTSLIB_CODE="htslib.github.Aug182015.tar.gz"
@@ -19,7 +19,7 @@ trimmomatic_target:
 
 samtools:
 	tar xvf samtools-0.1.19.tar.bz2
-	cd samtools-0.1.19 && $(MAKE)
+	cd samtools-0.1.19 && $(MAKE) LIBPATH=-ltinfo
 	mv samtools-0.1.19/samtools ./BIN/.
 
 jellyfish:

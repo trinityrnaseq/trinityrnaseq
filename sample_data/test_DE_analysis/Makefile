@@ -1,6 +1,6 @@
 
 
-test: test_edgeR test_DESeq2 test_voom test_ROTS
+test: test_edgeR test_DESeq2 test_voom #test_ROTS
 
 test_edgeR:
 	../../Analysis/DifferentialExpression/run_DE_analysis.pl  -m Trinity_trans.counts.matrix --method edgeR -s samples.txt -o edgeR_outdir

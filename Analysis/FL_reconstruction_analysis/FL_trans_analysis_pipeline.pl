@@ -36,6 +36,7 @@ my $usage = <<__EOUSAGE__;
 #  --allow_non_unique_mappings    a single query transcript counts towards all transcripts encapsulated  
 #
 #  --reuse                   no prompting to reuse any existing blat output files, just use them.
+#  --no_reuse                no prompting, and do NOT reuse any existing files.
 #
 #  --out_prefix              prefix for output files generated.
 #
@@ -54,7 +55,7 @@ my $query;
 my $forward_orient = 0;
 my $include_tiers = 0;
 my $reuse_flag = 0;
-
+my $no_reuse_flag = 0;
 
 
 my $allow_non_unique_mappings = 0;
@@ -72,6 +73,7 @@ my $out_prefix;
               'min_per_length=f' => \$min_per_length,
 	      
               'reuse' => \$reuse_flag,
+              'no_reuse' => \$no_reuse_flag,
               
               'out_prefix=s' => \$out_prefix,
               );
@@ -119,7 +121,11 @@ main: {
     if ($reuse_flag) {
         $cmd .= " --reuse ";
     }
+    elsif ($no_reuse_flag) {
+        $cmd .= " --no_reuse ";
+    }
     
+
     $cmd .= " --out_prefix $out_prefix ";
     
     $cmd .= " > $out_prefix.pslx.maps";

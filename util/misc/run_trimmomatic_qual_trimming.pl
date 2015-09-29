@@ -22,10 +22,7 @@ my $usage = <<__EOUSAGE__;
 #
 #  --CPU <int>         default: 4
 #
-#  --LEADING <int>     default: 15
-#  --TRAILING <int>    default: 15
-#
-#  --MINLEN <int>      default: 36
+#  --trim_params <string>    "SLIDINGWINDOW:4:5 LEADING:5 TRAILING:5 MINLEN:25"
 #
 ###############################################################
 
@@ -40,19 +37,16 @@ my $right;
 my $single;
 
 my $threads = 4;
-my $LEADING = 15;
-my $TRAILING = 15;
-my $MINLEN = 36;
+my $trim_params = "SLIDINGWINDOW:4:5 LEADING:5 TRAILING:5 MINLEN:25";
 
 &GetOptions( 'left=s' => \$left,
              'right=s' => \$right,
              'single=s' => \$single,
              
              'CPU=i' => \$threads,
-
-             'LEADING=i' => \$LEADING,
-             'TRAILING=i' => \$TRAILING,
-             'MINLEN=i' => \$MINLEN,
+             
+             'trim_params=s' => \$trim_params,
+             
              );
 
 
@@ -78,18 +72,18 @@ main: {
 
     if ($left && $right) {
     
-        $cmd = "java -jar $FindBin::Bin/../trinity-plugins/Trimmomatic/trimmomatic.jar PE -threads $threads -phred33 "
+        $cmd = "java -jar $FindBin::Bin/../../trinity-plugins/Trimmomatic/trimmomatic.jar PE -threads $threads -phred33 "
             . " $left $right "
             . " $left.P.qtrim.fq $left.U.qtrim.fq "
             . " $right.P.qtrim.fq $right.U.qtrim.fq "
-            . " LEADING:$LEADING TRAILING:$TRAILING MINLEN:$MINLEN ";
+            . " $trim_params ";
     }
     else {
         
-        $cmd = "java -jar $FindBin::Bin/../trinity-plugins/Trimmomatic/trimmomatic.jar SE -threads $threads -phred33 "
+        $cmd = "java -jar $FindBin::Bin/../../trinity-plugins/Trimmomatic/trimmomatic.jar SE -threads $threads -phred33 "
             . " $single "
             . " $single.qtrim.fq "
-            . " LEADING:$LEADING TRAILING:$TRAILING MINLEN:$MINLEN ";
+            . " $trim_params ";
         
     }
 

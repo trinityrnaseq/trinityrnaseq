@@ -46,7 +46,7 @@ void Extend(KmerSequence & seq, svec<int> & counts, DNAVector & sub, bool rc, bo
   //deep++;
   //cout << "Deep=" << deep << endl;
 
-  int i, j;
+  size_t i, j;
   
   vecDNAVector ex;
   Right(ex, sub, k);
@@ -72,7 +72,7 @@ void Extend(KmerSequence & seq, svec<int> & counts, DNAVector & sub, bool rc, bo
   }
 
 
-  for (i=0; i<ex.isize(); i++) {
+  for (i=0; i<ex.size(); i++) {
     int nFW = 0;
     int nRC = 0;
     long long iFW = -1;
@@ -154,7 +154,7 @@ int main(int argc,char** argv)
   bool bStrand = P.GetBoolValueFor(strandCmmd);
 
 
-  int i, j;
+  size_t i, j;
   //vecbasevector contigBases;
  
   vecDNAVector seq;
@@ -210,7 +210,7 @@ int main(int argc,char** argv)
 
   FILE * pOut = fopen(oString.c_str(), "w");
   int cc = 0;
-  for (i=0; i<seq.lsize(); i++) {
+  for (i=0; i<seq.size(); i++) {
     DNAVector d = seq[i];
     
     for (j=0; j<=d.lsize()-k; j++) {

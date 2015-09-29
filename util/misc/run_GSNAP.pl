@@ -116,7 +116,7 @@ main: {
         $require_proper_pairs = " -f 2 ";
     }
 
-    my $cmd = "bash -c \"set -o pipefail && gsnap -D $genomeBaseDir -d $genomeDir -A sam -N 1 -w $max_intron $gsnap_use_sarray -n $num_top_hits -t $CPU $reads $splice_param | samtools view -bS -F 4 $require_proper_pairs - | samtools sort -@ $CPU - $out_prefix.cSorted \"";
+    my $cmd = "bash -c \"set -o pipefail && gsnap -D $genomeBaseDir -d $genomeDir -A sam -N 1 -w $max_intron $gsnap_use_sarray -n $num_top_hits -t $CPU $reads $splice_param @ARGV | samtools view -bS -F 4 $require_proper_pairs - | samtools sort -@ $CPU - $out_prefix.cSorted \"";
     &process_cmd($cmd);
 
     if (-s "$out_prefix.cSorted.bam") {

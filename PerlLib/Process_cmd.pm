@@ -3,10 +3,11 @@ package Process_cmd;
 use strict;
 use warnings;
 use Carp;
+use Cwd;
 
 require Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT = qw(process_cmd);
+our @EXPORT = qw(process_cmd ensure_full_path);
 
 
 sub process_cmd {
@@ -21,6 +22,18 @@ sub process_cmd {
 
 	return;
 }
+
+
+sub ensure_full_path {
+    my ($path) = @_;
+
+    unless ($path =~ m|^/|) {
+        $path = cwd() . "/$path";
+    }
+
+    return($path);
+}
+
 
 
 1; #EOM

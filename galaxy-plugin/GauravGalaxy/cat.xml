@@ -1,0 +1,41 @@
+<tool id="catbash" name="Concatenate datasets">
+    <description>tail-to-head</description>
+    <command interpreter="python">
+        bash_command_executer.py cat
+        $input1
+        #for $q in $queries
+            ${q.input2}
+        #end for
+        > $out_file1 
+    </command>
+    <inputs>
+        <param name="input1" type="data" label="Concatenate Dataset"/>
+        <repeat name="queries" title="Dataset">
+            <param name="input2" type="data" label="Select" />
+        </repeat>
+    </inputs>
+    <outputs>
+        <data name="out_file1" format="input" metadata_source="input1"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="input1" value="1.bed"/>
+            <param name="input2" value="2.bed"/>
+            <output name="out_file1" file="cat_wrapper_out1.bed"/>
+        </test>
+        <!--TODO: if possible, enhance the underlying test code to handle this test
+            the problem is multiple params with the same name "input2"
+        <test>
+            <param name="input1" value="1.bed"/>
+            <param name="input2" value="2.bed"/>
+            <param name="input2" value="3.bed"/>
+            <output name="out_file1" file="cat_wrapper_out2.bed"/>
+        </test>
+        -->
+    </tests>
+    <help>
+
+    no help
+
+    </help>
+</tool>

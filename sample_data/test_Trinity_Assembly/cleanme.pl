@@ -53,7 +53,10 @@ my %keep = map { + $_ => 1 } @files_to_keep;
 `rm -rf ./trinity_w_jaccard` if (-d "trinity_w_jaccard");
 
 `rm -rf ./__test_trinity*`;
+`rm -rf ./trinity_trim_and_norm_outdir`;
 
+`rm -rf ./RSEM_outdir`;
+`rm -rf ./eXpress_outdir`;
 
 foreach my $file (<*>) {
 	

@@ -1,6 +1,8 @@
 
 First, execute 'runMe.sh' to run the Trinity assembly example.
 
-Then, execute  'run_abundance_estimation_procedure.sh' to compute abundance estimations based on mapped read pairs.
+To test abundance estimation as well, execute 'runMe.sh 1'
+
+
 
 

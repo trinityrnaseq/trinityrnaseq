@@ -72,6 +72,7 @@ sub run_TMM {
     print $ofh "library(edgeR)\n\n";
     
     print $ofh "rnaseqMatrix = read.table(\"$counts_matrix_file\", header=T, row.names=1, com='', check.names=F)\n";
+    print $ofh "rnaseqMatrix = as.matrix(rnaseqMatrix)\n";
     print $ofh "rnaseqMatrix = round(rnaseqMatrix)\n";
     print $ofh "exp_study = DGEList(counts=rnaseqMatrix, group=factor(colnames(rnaseqMatrix)))\n";
     print $ofh "exp_study = calcNormFactors(exp_study)\n";

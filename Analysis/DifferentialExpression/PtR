@@ -151,6 +151,8 @@ my $usage = <<__EOUSAGE__;
 #
 #  --CPM                    convert to counts per million (uses sum of totals before filtering)
 #
+#  --binary                 all values > 0 are set to 1.  All values < 0 are set to zero.
+#
 #  --log2
 #
 #  --center_rows            subtract row mean from each data point. (only used under '--heatmap' )
@@ -284,6 +286,8 @@ my $gene_grep;
 
 
 my $ZSCALE_ROWS = 0;
+my $MAKE_BINARY_FLAG = 0;
+
 my $gene_factors_file;
 
 my $var_vs_count_hist_plot;
@@ -366,6 +370,8 @@ my $NO_REUSE = 0;
     'top_rows=i' => \$top_rows,
     'min_colSums=i' => \$min_colSums,
     'min_rowSums=i' => \$min_rowSums,
+
+    'binary' => \$MAKE_BINARY_FLAG,
     
     'gene_grep=s' => \$gene_grep,
     
@@ -543,7 +549,10 @@ main: {
     
     if ($samples_file) {
 
-        $Rscript .= "samples_data = read.table(\"$samples_file\", header=F, check.names=F)\n";
+        $Rscript .= "samples_data = read.table(\"$samples_file\", header=F, check.names=F, fill=T)\n";
+        $Rscript .= "samples_data = samples_data[samples_data[,2] != '',]\n"; # require the rep column to be filled, also enable compatibility with full-trinity-edgeR-pipe samples file
+        
+
         #$Rscript .= "sample_types = as.factor(unique(samples_data[,1]))\n";
         $Rscript .= "sample_types = as.character(unique(samples_data[,1]))\n";
         
@@ -710,6 +719,11 @@ main: {
 
         $Rscript .= "dev.off()\n";
     }
+
+
+    #################
+    ## Filtering data
+    #################
     
 
     if ($min_expressed_genes && $min_gene_expr_val) {
@@ -759,6 +773,13 @@ main: {
     }
     
 
+    $Rscript .= "initial_matrix = data # store before doing various data transformations\n";
+    
+
+    #############################################
+    ##  Now doing data transformations as needed:
+    #############################################
+    
     if ($CPM) {
 
         $Rscript .= "cs = colSums(data)\n";
@@ -771,6 +792,11 @@ main: {
         $Rscript .= "data = log2(data+1)\n";
         $output_prefix .= ".log2";
         $Rscript .= "write.table(data, file=\"$output_prefix.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
+    }
+
+    if ($MAKE_BINARY_FLAG) {
+        $output_prefix .= ".binary";
+        $Rscript .= "data[data<0] = 0; data[data>0] = 1;\n";
     }
     
 
@@ -1367,13 +1393,22 @@ main: {
             
             if ($lexical_column_ordering) {
                 $Rscript .= "heatmap_data = heatmap_data[,order(colnames(heatmap_data))]\n";
+                if ($samples_file) {
+                    # sample annotations must continue to match column ordering of data matrix
+                    $Rscript .= "sampleAnnotations = sampleAnnotations[,order(colnames(heatmap_data))]\n";
+                }
             }
             elsif ($specified_column_ordering) {
                 $Rscript .= "heatmap_data = heatmap_data[,$specified_column_ordering]\n";
+                if ($samples_file) {
+                    # sample annotations must continue to match column ordering of data matrix
+                    $Rscript .= "sampleAnnotations = sampleAnnotations[,$specified_column_ordering]\n";
+                }
                 
             }
             
         }
+        
         my $Rowv = "as.dendrogram(hc_genes)";
         if ($gene_clust eq 'none' || ($gene_factors_file && $order_by_gene_factor)) {
             if ($Colv eq 'F') {
@@ -1618,15 +1653,12 @@ sub add_sample_QC_analysis_R {
     
     
     $Rscript .= "        d = data[,samples_want]\n"
+              . "        initial_matrix_samples_want = initial_matrix[,samples_want]\n"
               . "        op <- par(mar = c(10,10,10,10))\n";
      
-    if ($LOG2) {
-        $Rscript .= "        barplot(colSums(2^(d-1)), las=2, main=paste(\"Sum of Frags for replicates of:\", sample_name), ylab='', cex.names=0.7)\n";
-    }
-    else {
-        
-        $Rscript .= "        barplot(colSums(d), las=2, main=paste(\"Sum of Frags for replicates of:\", sample_name), ylab='', cex.names=0.7)\n"
-    }
+           
+    $Rscript .= "        barplot(colSums(initial_matrix_samples_want), las=2, main=paste(\"Sum of Frags for replicates of:\", sample_name), ylab='', cex.names=0.7)\n";
+    
     
     $Rscript  .= "        par(op)\n"
                 . "        pairs3(d, pch='.', CustomColorFun=Scatter_color_fun, main=paste('Replicate Scatter:', sample_name)) # scatter plots\n"

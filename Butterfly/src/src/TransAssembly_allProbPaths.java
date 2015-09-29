@@ -11231,11 +11231,18 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 	 */
 	private static int getSeqPathLength(
 			DirectedSparseGraph<SeqVertex, SimpleEdge> graph, List<Integer> path) {
+		
+		/*
 		int len = 0;
 		for (Integer vid : path)
 			if (vid>=0)
 				len +=getSeqVertex(graph, vid).getNameKmerAdj().length();	
 		return len;
+		*/
+		
+		String pathSeq = getPathSeq(graph, path);
+		return(pathSeq.length());
+		
 	}
 
 	/**

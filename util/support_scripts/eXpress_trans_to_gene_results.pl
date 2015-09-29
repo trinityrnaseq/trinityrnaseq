@@ -52,7 +52,8 @@ main: {
         my $length = $x[ $field_index{length} ];
         my $eff_length = $x[ $field_index{eff_length} ];
         my $eff_counts = $x[ $field_index{eff_counts} ];
-        
+        my $tpm = $x[ $field_index{tpm} ];
+    
         my $gene = $trans_to_gene_info{$trans_id} or die "Error, cannot find gene identifier for transcript [$trans_id] ";
         
         push (@{$gene_data{$gene}}, { trans_id => $trans_id, 
@@ -60,7 +61,8 @@ main: {
                                       length => $length,
                                       eff_length => $eff_length,
                                       eff_counts => $eff_counts,
-                                  });
+                                      tpm => $tpm,
+              });
         
 
     }
@@ -77,7 +79,8 @@ main: {
         my @trans_ids;
         my $sum_counts = 0;
         my $sum_fpkm = 0;
-        
+        my $sum_tpm = 0;
+
         my $counts_per_len_sum = 0;
         my $counts_per_eff_len_sum = 0;
         
@@ -85,16 +88,17 @@ main: {
         my $sum_eff_lengths = 0;
         
         my $num_trans = scalar(@trans_structs);
-
-
+        
         foreach my $struct (@trans_structs) {
             
             #print Dumper($struct);
 
             my $trans_id = $struct->{trans_id};
             my $fpkm = $struct->{fpkm};
+            my $tpm = $struct->{tpm};
             my $length = $struct->{length};
             
+
             my $eff_length = $struct->{eff_length};
             my $eff_counts = $struct->{eff_counts};
             
@@ -115,6 +119,8 @@ main: {
             
             $sum_counts += $eff_counts;
             $sum_fpkm += $fpkm;
+
+            $sum_tpm += $tpm;
         }
         
         my $gene_length = $sum_lengths / $num_trans;
@@ -136,7 +142,7 @@ main: {
                           length => sprintf("%.2f", $gene_length),
                           eff_length => sprintf("%.2f", $gene_eff_length),
                           eff_counts => sprintf("%.2f", $sum_counts),
-                          
+                          tpm => $sum_tpm,
                           );
         
         my @vals;

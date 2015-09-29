@@ -83,26 +83,26 @@ void UniqueSort(svec<T>& v)
   v.resize(k);
 }
 
+template<class Iter, class T>
+Iter binary_find(Iter begin, Iter end, T val)
+{
+    // Finds the lower bound in at most log(last - first) + 1 comparisons
+    Iter i = std::lower_bound(begin, end, val);
+
+    if (i != end && !(val < *i))
+        return i; // found
+    else
+        return end; // not found
+}
+
 template<class T> 
 long long BinSearch(svec<T> & v, const T & item) 
 {
-  typename svec<T>::iterator iter;    
-  typename svec<T>::iterator begin = v.begin();
-  typename svec<T>::iterator end = v.end();
-  iter = lower_bound(begin, end, item);
-  long long pos = distance(begin, iter);
-  
-  if (pos < 0)
+  typename svec<T>::iterator iter = binary_find(v.begin(), v.end(), item);
+  if (iter == v.end())
     return -1;
 
-  if (pos == v.isize())
-    return -1;
-  
-  if (v[pos] < item || item < v[pos])
-    return -1;
-
-  return pos;
-
+  return iter - v.begin();
 }
 
 template<class T> 

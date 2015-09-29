@@ -15,13 +15,12 @@ main: {
     {
         open (my $fh, $blastx_file) or die $!;
         while (<$fh>) {
-            if (/^comp/) {
-                /^(comp\d+_c\d+)(_seq\d+)/ or die "Error, cannot parse trinity accession";
+            if (/^(.*|c\d+)_/) {
+                
                 my $comp_id = $1;
-                my $trans_id = $2;
-                $trans_id = $comp_id . $trans_id;
-
+                
                 my @x = split(/\t/);
+                my $trans_id = $x[0];
                 my $hit = $x[1];
                 $blastx_top_hit{$comp_id} = $hit;
                 $blastx_top_hit{$trans_id} = $hit;
@@ -30,7 +29,7 @@ main: {
         close $fh;
     }
 
-
+    
     open (my $fh, $trinity_matrix) or die "Error, cannot open file $trinity_matrix";
     while (<$fh>) {
         chomp;

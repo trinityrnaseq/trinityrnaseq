@@ -2,6 +2,28 @@
 git clone https://github.com/trinityrnaseq/trinityrnaseq.git
 
 
+
+
+#############
+
+notes for developer:
+
 autoreconf --install
 
+# merging devel to master, set new release
+
+git checkout master
+git pull --rebase origin devel
+# edit release tag
+git commmit -m 'release v...' -a
+git push
+
+git checkout branch
+# continue working...
+
+#############################
+
+Release info:
+
+curl https://api.github.com/repos/trinityrnaseq/trinityrnaseq/releases
 

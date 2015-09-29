@@ -94,7 +94,7 @@ int main(int argc,char** argv)
   //dna.Read(fString);
 
   svec<int> used;
-  used.resize(seq.isize(), 0);
+  used.resize(seq.size(), 0);
 
   int offset = seq[0].isize();
 
@@ -102,7 +102,7 @@ int main(int argc,char** argv)
 
   int extra = 25;
 
-  for (i=0; i<dna.isize(); i++) {
+  for (i=0; i<dna.size(); i++) {
     DNAVector one = dna[i];
     double all = 0.;
     broken = 0;

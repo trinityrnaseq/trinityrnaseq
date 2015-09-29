@@ -114,16 +114,16 @@ void KmerSequence::Add(const vecDNAVector & all)
 
   //long long est = (long long)(all[0].isize()-K+1)*(long long)all.isize();
 
-  long long est = 0;
-  for (int i=0; i<all.isize(); i++) {
-    est += (long long)(all[i].isize()-K+1);
+  size_t est = 0;
+  for (size_t i=0; i<all.size(); i++) {
+    est += (all[i].size()-K+1);
   }
   // cout << "Estimate space: " << est << endl;
 
 
   m_kmers.resize(est);
   m_count = 0;
-  for (int j=0; j<all.isize(); j++) {
+  for (size_t j=0; j<all.size(); j++) {
     const DNAVector & d = all[j];
     for (int i=0; i<=d.isize()-K; i++) {
       if (m_kmers.lsize() <= m_count)
@@ -150,12 +150,12 @@ void KmerSequence::AddRestrict(const vecDNAVector & all, const vecDNAVector & re
   nr.SetUp(restrict);
 
 
-  long long est = (long long)(all[0].isize()-K+1)*(long long)all.isize() / 4;
+  long long est = (long long)(all[0].isize()-K+1)*all.size() / 4;
   cout << "Estimate space: " << est << " (" << est * 4 << ")" << endl;
   m_kmers.resize(est);
   m_count = 0;
   int kk = 0;
-  for (int j=0; j<all.isize(); j++) {
+  for (size_t j=0; j<all.size(); j++) {
     const DNAVector & d = all[j];
     for (int i=0; i<=d.isize()-K; i++) {
       if (m_kmers.lsize() <= m_count)

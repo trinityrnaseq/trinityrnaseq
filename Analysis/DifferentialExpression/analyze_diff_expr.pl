@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use Carp;
-use Getopt::Long qw(:config no_ignore_case bundling);
+use Getopt::Long qw(:config no_ignore_case bundling pass_through);
 use FindBin;
 use Data::Dumper;
 
@@ -13,7 +13,7 @@ my $usage = <<__EOUSAGE__;
 #
 # Required:
 #
-#  --matrix <string>       matrix.normalized.FPKM
+#  --matrix <string>       TMM.EXPR.matrix
 #
 # Optional:
 #
@@ -150,7 +150,7 @@ main: {
     my $matrix_header;
     
     {
-        # not counts, but FPKM values! 
+        # not counts, but TPM values! 
         open (my $fh, $matrix_file) or die "Error, cannot read file $matrix_file";
         $matrix_header = <$fh>;
         chomp $matrix_header;
@@ -284,7 +284,7 @@ sub parse_result_files_find_diffExp {
     
     foreach my $result_file (@$result_files_aref) {
         
-        $result_file =~ /\.([^\.]+)_vs_([^\.]+)\./ or die "Error, cannot extract condition names from $result_file";
+        $result_file =~ /matrix\.(\S+)_vs_(\S+)\.[^\.]+\.DE_results$/ or die "Error, cannot extract condition names from $result_file";
         my ($condA, $condB) = ($1, $2);
         
         my $pairwise_samples_file = "$result_file.samples";

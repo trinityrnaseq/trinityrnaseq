@@ -1,12 +1,12 @@
 #sample	replicate	left.reads	right.reads
 
-heatshock	hs_rep1	rnaseq_reads/Sp_hs.10k.left.fq.gz	rnaseq_reads/Sp_hs.10k.right.fq.gz
+heatshock	hs_rep1	../test_DATA/Sp_hs.10k.left.fq.gz	../test_DATA/Sp_hs.10k.right.fq.gz
 
-plateau	plat_rep1	rnaseq_reads/Sp_plat.10k.right.fq.gz	rnaseq_reads/Sp_plat.10k.left.fq.gz
+plateau	plat_rep1	../test_DATA/Sp_plat.10k.right.fq.gz	../test_DATA/Sp_plat.10k.left.fq.gz
 
-log_growth	log_rep1	rnaseq_reads/Sp_log.10k.left.fq.gz	rnaseq_reads/Sp_log.10k.right.fq.gz
+log_growth	log_rep1	../test_DATA/Sp_log.10k.left.fq.gz	../test_DATA/Sp_log.10k.right.fq.gz
 
-diauxic_shift	ds_rep1	rnaseq_reads/Sp_ds.10k.right.fq.gz	rnaseq_reads/Sp_ds.10k.left.fq.gz
+diauxic_shift	ds_rep1	../test_DATA/Sp_ds.10k.right.fq.gz	../test_DATA/Sp_ds.10k.left.fq.gz
 
 
 ## Trinity.pl configuration settings:

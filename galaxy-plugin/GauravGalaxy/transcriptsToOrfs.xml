@@ -1,0 +1,53 @@
+<tool id="transcriptsToOrfs" name="transcriptsToOrfs" version="0.0.1">
+	
+    <description>Trinity Transcripts to Candidate Peptides</description>
+    <requirements>
+        <requirement type="package">trinity</requirement>
+    </requirements>
+    <command interpreter="python">
+        trinityToolWrapper.py Analysis/Coding/transcripts_to_best_scoring_ORFs.pl 
+
+		-t $transcripts 
+		-m $min_prot_length 
+		--CPU $CPU
+		--search_pfam "${ filter( lambda x: str( x[0] ) == str( $pfam_db ), $__app__.tool_data_tables[ 'pfam_databases' ].get_fields() )[0][-1] }"
+
+		#if str($strand_specificity) == 'SS':
+			-S
+		#end if
+		                
+        ## direct to output
+        > output 
+ 
+    </command>
+    <inputs>
+
+		<param format="fasta" name="transcripts" type="data" label="Transcripts sequences in fastA format" help="" />
+
+		<param name="min_prot_length"  type="integer" label="Minimum peptide length (in amino acids)" value="100" min="50" help="" />
+		
+		<param name="strand_specificity" type="select" label="Strand specificity type">
+			<option value="DS">NOT strand specific, examine both strands</option>
+			<option value="SS">Strand specific, examine only top strand</option>
+		</param>
+	
+    	<param name="pfam_db" type="select" label="Pfam database">
+            <options from_data_table="pfam_databases" />
+		</param>
+	
+		<param name="CPU" type="integer" value="2" min="1" label="CPU" help="Number of CPUs to use by hmmscan" />
+
+    </inputs>
+    <outputs>
+        <data format="txt" name="trinity_pep_pfam" label="${tool.name} on ${on_string}: Pfam matches to Candidate Peptide Sequences" from_work_dir="longest_orfs.pep.pfam.dat"/>
+        <data format="fasta" name="trinity_pep_seqs" label="${tool.name} on ${on_string}: Candidate Peptide Sequences" from_work_dir="best_candidates.eclipsed_orfs_removed.pep"/>
+		<data format="bed" name="trinity_pep_coords" label = "${tool.name} on ${on_string} Candidate Peptide Coordinates" from_work_dir="best_candidates.eclipsed_orfs_removed.bed" />
+    </outputs>
+    <tests>
+    </tests>
+    <help>
+        Trinity is a de novo transcript assembler that uses RNA-seq data as input. This tool runs all Trinity_ commands--Inchworm, Chrysalis, and Butterfly--in a single pass.
+        
+        .. _Trinity: http://trinityrnaseq.sourceforge.net
+    </help>
+</tool>

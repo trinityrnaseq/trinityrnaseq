@@ -427,7 +427,6 @@ vector<DeBruijnKmer> DeBruijnGraph::deconvolute_DS_mirror_graph() {
         vector<kmer_int_type_t> collected_kmers;
 
         kmer_int_type_t rk = root_kmers[r];
-        DeBruijnKmer rdk = _kmer_map.find(rk)->second;
         
         // cerr << "Got root node ID: " << rdk.getID() << endl;
         
@@ -575,10 +574,10 @@ vector<string> DeBruijnGraph::get_candidate_weldmers(kmer_int_type_t kmer_val, i
     
     vector<string> weldmers;
     
-    for (int i = 0; i < left_extensions.size(); i++) {
+    for (size_t i = 0; i < left_extensions.size(); i++) {
 
 
-        for (int j = 0; j < right_extensions.size(); j++) {
+        for (size_t j = 0; j < right_extensions.size(); j++) {
 
             string weldmer = left_extensions[i] + kmer_string + right_extensions[j];
 
@@ -615,7 +614,7 @@ void DeBruijnGraph::recursively_construct_kmer_extensions(kmer_int_type_t kmer_v
         adjacent_kmers = kmer_node.get_prev_kmers(get_kmer_length());
     }
 
-    for (int i = 0; i < adjacent_kmers.size(); i++) {
+    for (size_t i = 0; i < adjacent_kmers.size(); i++) {
         
         kmer_int_type_t adjacent_kmer = adjacent_kmers[i];
         if (kmer_seen.find(adjacent_kmer) != kmer_seen.end()) {
@@ -629,7 +628,7 @@ void DeBruijnGraph::recursively_construct_kmer_extensions(kmer_int_type_t kmer_v
 
         kmer_extension_chars.push_back(char_extend);
         
-        if (kmer_extension_chars.size() == flank_extension_length) {
+        if (kmer_extension_chars.size() == (size_t)flank_extension_length) {
             // reached maximal extension.
             string kmer_extension_string = get_kmer_from_char_vector(kmer_extension_chars, direction);
             extension_kmer_strings.push_back(kmer_extension_string);

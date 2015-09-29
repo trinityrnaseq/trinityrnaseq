@@ -57,6 +57,9 @@ my %keep = map { + $_ => 1 } @files_to_keep;
 
 `rm -rf ./RSEM_outdir`;
 `rm -rf ./eXpress_outdir`;
+`rm -rf ./eXpress_PE`;
+`rm -rf ./kallisto_PE`;
+`rm -rf ./RSEM_PE`;
 
 foreach my $file (<*>) {
 	

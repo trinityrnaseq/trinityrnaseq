@@ -26,6 +26,8 @@ my $usage = <<__EOUSAGE__;
 #  --CPU <int>                 number of threads (default: 2)
 #  --out_prefix <string>       output prefix (default: star)
 #  --out_dir <string>          output directory (default: current working directory)
+#  --star_path <string>        full path to the STAR program to use.
+#  --patch <string>            genomic targets to patch the genome fasta with.
 #
 #######################################################################
 
@@ -46,6 +48,9 @@ my $gtf_file;
 my $out_dir;
 my $ADV = 0;
 
+my $star_path = "STAR";
+my $patch;
+
 &GetOptions( 'h' => \$help_flag,
              'genome=s' => \$genome,
              'reads=s' => \$reads,
@@ -54,7 +59,8 @@ my $ADV = 0;
              'G=s' => \$gtf_file,
              'out_dir=s' => \$out_dir,
              'ADV' => \$ADV,
-
+             'star_path=s' => \$star_path,
+             'patch=s' => \$patch,
     );
 
 
@@ -66,8 +72,12 @@ if ($help_flag) {
     die $usage;
 }
 
+if (@ARGV) {
+    die "Error, cannot recognize opts: @ARGV";
+}
 
-my $star_prog = `which STAR`;
+
+my $star_prog = `which $star_path`;
 chomp $star_prog;
 unless ($star_prog =~ /\w/) {
     die "Error, cannot locate STAR program. Be sure it's in your PATH setting.  ";
@@ -138,6 +148,11 @@ main: {
         . " --alignSJDBoverhangMin 10 "
         . " --chimSegmentReadGapMax parameter 3 "
         . " --limitBAMsortRAM 20000000000";
+
+    if ($patch) {
+        $cmd .= " --genomeFastaFiles $patch ";
+    }
+        
     
     #if ($ADV) {
         $cmd .= " --alignSJstitchMismatchNmax 5 -1 5 5 ";  #which allows for up to 5 mismatches for non-canonical GC/AG, and AT/AC junctions, and any number of mismatches for canonical junctions (the default values 0 -1 0 0 replicate the old behavior (from AlexD)

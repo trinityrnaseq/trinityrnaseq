@@ -2080,10 +2080,13 @@ sub prep_seqs {
         # make fasta
         foreach my $f (@initial_files){
             my $fastool_cmd = "cat $f | $FASTOOL_DIR/fastool";
+            my $linecount_cmd = "cat $f | wc -l";
             if ($f=~/\.gz$/){
                 $fastool_cmd = "gunzip -c $f | $FASTOOL_DIR/fastool";
+                $linecount_cmd = "gunzip -c $f | wc -l";
             }elsif ($f=~/\.bz2$/){
                 $fastool_cmd = "bunzip2 -dkc $f | $FASTOOL_DIR/fastool";
+                $linecount_cmd = "bunzip2 -dkc $f | wc -l";
             }
             
             if ($SS_lib_type && $SS_lib_type eq "R") {
@@ -2092,6 +2095,9 @@ sub prep_seqs {
             $fastool_cmd .= " --illumina-trinity --to-fasta >> $file_prefix.fa 2> $f.readcount ";
             my $cmd = $fastool_cmd;
             &process_cmd($cmd);
+
+            &ensure_complete_FQtoFA_conversion($linecount_cmd, "$f.readcount");
+            
         }
     }
     elsif ($seqType eq "fa") {
@@ -3031,3 +3037,29 @@ sub run_ANANAS {
 
     exit(0);
 }
+
+
+####
+sub ensure_complete_FQtoFA_conversion {
+    my ($linecount_cmd, $fastool_count_file) = @_;
+
+    my $fastool_count_info = `cat $fastool_count_file`;
+    $fastool_count_info =~ /Sequences parsed: (\d+)/ or confess "Error, cannot parse $fastool_count_file";
+    my $fastool_count = $1;
+
+    
+    my $num_fq_lines = `$linecount_cmd`;
+    chomp $num_fq_lines;
+
+    my $num_fq_entries = $num_fq_lines / 4;
+
+    if ($num_fq_entries == $fastool_count) {
+        print STDERR "-conversion of $num_fq_entries from FQ to FA format succeeded.\n";
+    }
+    else {
+        confess "Error, counts of reads in FQ: $num_fq_entries (as per $linecount_cmd) doesn't match fastool's report of FA records: $fastool_count ";
+    }
+
+    return;
+}
+

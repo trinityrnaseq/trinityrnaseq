@@ -114,8 +114,11 @@ main: {
         print $ofh "gene_partition_assignments <- cutree(as.hclust(hc_genes), h=$pct_height/100*max(hc_genes\$height))\n";
         $core_filename = "clusters_fixed_P_${pct_height}.heatmap";
         $outdir = basename($R_data_file) . ".clusters_fixed_P_" . $pct_height;
-        
     }
+    
+    # write gene order in heatmap clustering
+    print $ofh "write.table(gene_partition_assignments[hc_genes\$order], file=\"$core_filename.heatmap_gene_order.txt\", quote=F, sep='\t')\n";
+    
     print $ofh "max_cluster_count = max(gene_partition_assignments)\n";
     
     print $ofh "outdir = \"" . $outdir . "\"\n";

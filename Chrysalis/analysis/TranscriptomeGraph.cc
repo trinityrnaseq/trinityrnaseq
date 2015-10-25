@@ -666,7 +666,7 @@ int TranscriptomeGraph(vecDNAVector & seq,
         
         DNAVector & d = seq[0];
         for (i=0; i<=d.isize()-k; i++) {
-            fprintf(pOut, "%d\t%d\t1\t", i, i-1);
+            fprintf(pOut, "%lu\t%lu\t1\t", i, i-1);
             //cout << i << "\t" << i-1 << "\t1\t";
             for (size_t x=i; x<i+k; x++)
                 fprintf(pOut, "%c", d[x]);

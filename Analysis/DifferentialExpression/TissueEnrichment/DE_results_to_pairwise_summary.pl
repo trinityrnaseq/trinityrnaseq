@@ -23,6 +23,8 @@ main: {
 
     my %gene_to_sample_expr_val = &parse_expression_matrix($sample_expr_matrix);
 
+    print join("\t", "#feature", "sample_A", "sample_B", "log2(exprA)", "log2(exprB)", "logFC", "FDR") . "\n";
+    
     foreach my $DE_result_file (@DE_result_files) {
         print STDERR "-processing DE file: $DE_result_file\n";
         

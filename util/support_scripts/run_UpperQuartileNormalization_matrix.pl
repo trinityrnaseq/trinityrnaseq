@@ -90,11 +90,11 @@ sub upper_quartile_normalize {
     print $ofh "mean_upp_quart = mean(upp_quartiles)\n";
     print $ofh "m = m * mean_upp_quart\n";
     
-    print $ofh "write.table(m, file=\"$matrix_file.upper_quartile_norm.matrix\", quote=F, sep=\"\\t\")\n";
+    print $ofh "write.table(m, quote=F, sep=\"\\t\")\n";
     
     close $ofh;
     
-    &process_cmd("R --vanilla -q < $tmm_norm_script 1>&2 ");
+    &process_cmd("R --vanilla -q --slave < $tmm_norm_script ");
     
     return;
 }

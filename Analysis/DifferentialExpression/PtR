@@ -74,6 +74,7 @@ my $usage = <<__EOUSAGE__;
 #      --heatmap_scale_limits "<int,int>"  cap scale intensity to low,high  (ie.  "-5,5")
 #      --heatmap_colorscheme <string>  default is 'purple,black,yellow'
 #                                      a popular alternative is 'green,black,red'
+#                                      Specify a two-color gradient like so: "black,yellow".
 #
 #     # sample (column) labeling order
 #      --lexical_column_ordering        order samples by column name lexical order.

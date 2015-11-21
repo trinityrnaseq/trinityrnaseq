@@ -94,7 +94,7 @@ main: {
 
     print STDERR "\n\n";
         
-    &process_pairs(\@reads, \%counts);
+    &process_pairs(\@reads, \%counts) if @reads;
     
 
     my $sum_reads = 0;

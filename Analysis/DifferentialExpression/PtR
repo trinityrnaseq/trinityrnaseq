@@ -497,7 +497,7 @@ my $HEATMAP_COLORS;
 {
     $heatmap_colorscheme =~ s/\s//g;
     my @colors = split(/,/, $heatmap_colorscheme);
-    unless (scalar @colors == 3) {
+    unless (scalar @colors != 3 || scalar @colors != 2) {
         die "Error, need three colors as 'low,mid,high', instead have " . scalar(@colors) . " : $heatmap_colorscheme";
     }
     

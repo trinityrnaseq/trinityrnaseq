@@ -84,6 +84,10 @@ class TestTrinity(unittest.TestCase):
         self.trinity("left1.fa", morefiles="right1.fa")
         self.assertEquals(61150, self.count_seqs())
 
+    def test_paired_sequences_have_1_or_2_extension(self):
+        self.trinity("sra_test.fq", morefiles="sra_test2.fq", seqtype='fq')
+        self.assertEquals(0, self.count_bad_endings())
+
     def test_fasta_gz_paired(self):
         self.trinity("left1.fa.gz", morefiles="right1.fa.gz")
         self.assertEquals(61150, self.count_seqs())
@@ -105,7 +109,6 @@ class TestTrinity(unittest.TestCase):
             cmdline = tpl % (files, seqtype)
         if reverse:
           cmdline += " --SS_lib_type " + ('RF' if morefiles else 'R')
-        print cmdline
         with open("coverage.log", 'a') as file_out:
             subprocess.call(cmdline,shell=True, stdout=file_out)
 
@@ -117,6 +120,17 @@ class TestTrinity(unittest.TestCase):
           handle = open("trinity_out_dir/both.fa", "rU")
 
         seq_count = len([x for x in SeqIO.parse(handle, "fasta")])
+        handle.close()
+        return seq_count
+
+    def count_bad_endings(self):
+        f = "trinity_out_dir/single.fa"
+        if os.path.isfile(f):
+          handle = open(f, "rU")
+        else:
+          handle = open("trinity_out_dir/both.fa", "rU")
+
+        seq_count = len(list(x for x in SeqIO.parse(handle, "fasta") if not (x.id.endswith('/1') or x.id.endswith('/2'))))
         handle.close()
         return seq_count
 

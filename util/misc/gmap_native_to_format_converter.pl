@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use lib ("$FindBin::Bin/../../PerlLib");
+use lib ("$FindBin::RealBin/../../PerlLib");
 use Gene_obj;
 
 my $usage = "usage: $0 file.gmap (BED|GTF)\n\n";

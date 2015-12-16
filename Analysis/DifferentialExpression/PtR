@@ -539,9 +539,9 @@ main: {
     
 
     # source these after potential data restoration above - in case they changed.
-    $Rscript .= "source(\"$FindBin::Bin/R/heatmap.3.R\")\n";
-    $Rscript .= "source(\"$FindBin::Bin/R/misc_rnaseq_funcs.R\")\n";
-    $Rscript .= "source(\"$FindBin::Bin/R/pairs3.R\")\n";
+    $Rscript .= "source(\"$FindBin::RealBin/R/heatmap.3.R\")\n";
+    $Rscript .= "source(\"$FindBin::RealBin/R/misc_rnaseq_funcs.R\")\n";
+    $Rscript .= "source(\"$FindBin::RealBin/R/pairs3.R\")\n";
 
 
     

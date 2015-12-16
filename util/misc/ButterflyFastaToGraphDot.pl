@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use lib ("$FindBin::Bin/../../PerlLib", "$FindBin::Bin/../../PerlLib/KmerGraphLib");
+use lib ("$FindBin::RealBin/../../PerlLib", "$FindBin::RealBin/../../PerlLib/KmerGraphLib");
 
 use Fasta_reader;
 use StringGraph;

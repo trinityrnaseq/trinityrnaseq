@@ -6,7 +6,7 @@ use threads;
 no strict qw(subs refs);
 
 use FindBin;
-use lib ("$FindBin::Bin/PerlLib");
+use lib ("$FindBin::RealBin/PerlLib");
 use File::Basename;
 use Time::localtime;
 use Cwd;
@@ -16,7 +16,7 @@ use Getopt::Long qw(:config no_ignore_case pass_through);
 
 BEGIN {
 
-    $ENV{TRINITY_HOME} = "$FindBin::Bin";
+    $ENV{TRINITY_HOME} = "$FindBin::RealBin";
 
 }
 

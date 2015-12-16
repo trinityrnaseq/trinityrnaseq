@@ -11,7 +11,7 @@ use Data::Dumper;
 
 use Getopt::Long qw(:config no_ignore_case bundling);
 
-$ENV{PATH} .= "\:$FindBin::Bin/../trinity-plugins/rsem/sam/";  # include samtools in path, already included in rsem build.
+$ENV{PATH} .= "\:$FindBin::RealBin/../trinity-plugins/rsem/sam/";  # include samtools in path, already included in rsem build.
 
 $ENV{LC_ALL} = 'C';  # critical for proper sorting using [system "sort -k1,1 ..."] within the perl script
 
@@ -248,7 +248,7 @@ unless ($aligner eq "bowtie") {
 }
 
 
-my $util_dir = "$FindBin::Bin/../util";
+my $util_dir = "$FindBin::RealBin/../util";
 
 my ($start_dir, $work_dir, $num_hits);
 
@@ -573,7 +573,7 @@ main: {
             
             
             # report splice junctions and remove short terminal exons that are more likely noise.
-            my $cmd = "$FindBin::Bin/../Inchworm/bin/cigar_tweaker $outfile_basename.pre.coordSorted.sam target.fa $trim_short_terminal_segment_length | sort -T . -S $sort_buffer_size -k 3,3 -k 4,4n >  $outfile_basename.coordSorted.spliceAdjust.sam";
+            my $cmd = "$FindBin::RealBin/../Inchworm/bin/cigar_tweaker $outfile_basename.pre.coordSorted.sam target.fa $trim_short_terminal_segment_length | sort -T . -S $sort_buffer_size -k 3,3 -k 4,4n >  $outfile_basename.coordSorted.spliceAdjust.sam";
             &process_cmd($cmd) unless (-e "$outfile_basename.coordSorted.spliceAdjust.sam.finished");
             $cmd = "touch $outfile_basename.coordSorted.spliceAdjust.sam.finished";
             &process_cmd($cmd) unless (-e "$outfile_basename.coordSorted.spliceAdjust.sam.finished");
@@ -1030,7 +1030,7 @@ sub run_bwa_alignment_pipeline {
     my $outfile_basename = basename($output_directory);
     my $coordsorted_sam_filename = "$outfile_basename.coordSorted.sam";
     
-    $cmd = "$FindBin::Bin/SAM_filter_out_unmapped_reads.pl bwa.pre.sam | sort -k3,3 -k4,4n -T . -S $sort_buffer_size > $coordsorted_sam_filename";
+    $cmd = "$FindBin::RealBin/SAM_filter_out_unmapped_reads.pl bwa.pre.sam | sort -k3,3 -k4,4n -T . -S $sort_buffer_size > $coordsorted_sam_filename";
     &process_cmd($cmd) unless (-s $coordsorted_sam_filename);
     
     ## generate name-sorted file too

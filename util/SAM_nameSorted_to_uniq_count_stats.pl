@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use lib ("$FindBin::Bin/../PerlLib");
+use lib ("$FindBin::RealBin/../PerlLib");
 use SAM_reader;
 use SAM_entry;
 

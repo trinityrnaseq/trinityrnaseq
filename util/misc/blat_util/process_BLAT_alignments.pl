@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 use FindBin;
-use lib ("$FindBin::Bin/../../../PerlLib");
+use lib ("$FindBin::RealBin/../../../PerlLib");
 
 use strict;
 use warnings;
@@ -66,7 +66,7 @@ my $genome_db = $opt_g;
 my $transcript_db = $opt_t;
 my $output_prefix = $opt_o || "blat";
 my $blat_path = "blat";
-my $util_dir = $FindBin::Bin;
+my $util_dir = $FindBin::RealBin;
 
 unless ($genome_db && $transcript_db) {
     die "$usage\n";

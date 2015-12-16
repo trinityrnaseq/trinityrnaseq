@@ -7,7 +7,7 @@ use Getopt::Long qw(:config no_ignore_case bundling);
 use Cwd;
 use FindBin;
 use File::Basename;
-use lib ("$FindBin::Bin/../../PerlLib");
+use lib ("$FindBin::RealBin/../../PerlLib");
 use Data::Dumper;
 
 
@@ -76,7 +76,7 @@ sub upper_quartile_normalize {
     
     my $tmm_norm_script = "__tmp_upper_quart_norm.R";
     open (my $ofh, ">$tmm_norm_script") or die "Error, cannot write to $tmm_norm_script";
-    #print $ofh "source(\"$FindBin::Bin/R/edgeR_funcs.R\")\n";
+    #print $ofh "source(\"$FindBin::RealBin/R/edgeR_funcs.R\")\n";
     
     print $ofh "data = read.table(\"$matrix_file\", header=T, row.names=1, com='')\n";
     print $ofh "get_upper_quartile = function(vec) {\n"

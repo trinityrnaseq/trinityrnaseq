@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use lib ("$FindBin::Bin/../PerlLib/");
+use lib ("$FindBin::RealBin/../PerlLib/");
 use Gene_obj;
 use GFF3_utils;
 use GTF_utils;
@@ -345,7 +345,7 @@ sub generate_expressed_transcript_report {
 
     my $Rscript = "$fpkm_file.R";
     open (my $ofh, ">$Rscript");
-    print $ofh "source(\"$FindBin::Bin/R/expression_analysis_lib.R\")\n";
+    print $ofh "source(\"$FindBin::RealBin/R/expression_analysis_lib.R\")\n";
     print $ofh "png(\"$fpkm_file.genes_vs_minFPKM.png\", width=1000, height=500)\n";
     print $ofh "plot_expressed_gene_counts(\"$fpkm_file\", total=$total_transcripts, title=\"expressed transcripts vs. min FPKM\", fpkm_range=seq(0,5,0.01), outfile=\"$fpkm_file.genes_vs_minFPKM.dat\")\n";
     print $ofh "dev.off()\n";

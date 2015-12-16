@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 use FindBin;
-use lib ("$FindBin::Bin/../../PerlLib");
+use lib ("$FindBin::RealBin/../../PerlLib");
 
 use strict;
 use warnings;

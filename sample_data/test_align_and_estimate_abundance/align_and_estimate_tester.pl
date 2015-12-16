@@ -5,7 +5,7 @@ use warnings;
 
 use FindBin;
 use File::Basename;
-use lib ("$FindBin::Bin/../../PerlLib");
+use lib ("$FindBin::RealBin/../../PerlLib");
 use Process_cmd;
 
 
@@ -16,7 +16,7 @@ unless ($method =~ /^(RSEM|eXpress|kallisto)$/) {
     die $usage;
 }
 
-my $utildir = "$FindBin::Bin/../../util";
+my $utildir = "$FindBin::RealBin/../../util";
 
 my $samples_file = "samples.txt";
 my $trinity_fasta = "../test_DATA/Trinity.fasta";

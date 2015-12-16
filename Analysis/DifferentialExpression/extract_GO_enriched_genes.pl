@@ -101,7 +101,7 @@ main: {
     }
     
     ## generate a heatmap
-    my $cmd = "$FindBin::Bin/PtR -m $fpkm_outfile --log2 --heatmap --gene_dist euclidean --sample_dist euclidean";
+    my $cmd = "$FindBin::RealBin/PtR -m $fpkm_outfile --log2 --heatmap --gene_dist euclidean --sample_dist euclidean";
     if ($samples_file) {
         $cmd .= " -s $samples_file ";
     }

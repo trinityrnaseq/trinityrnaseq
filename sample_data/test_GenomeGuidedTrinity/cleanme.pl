@@ -7,7 +7,7 @@ use FindBin;
 
 
 ## we delete all files we don't need in this directory. Be careful in case users try running it somewhere else, outside this dir.
-chdir $FindBin::Bin or die "error, cannot cd to $FindBin::Bin";
+chdir $FindBin::RealBin or die "error, cannot cd to $FindBin::RealBin";
 
 
 

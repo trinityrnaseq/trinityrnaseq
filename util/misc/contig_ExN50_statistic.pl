@@ -109,14 +109,15 @@ while (@trans) {
 
 # ensure that we do E100
 if (%Estats_wanted) {
-
-    my $min_max_expr = &get_min_max(@captured);
-    my $N50 = &calc_N50(@captured);
-    my $num_trans = scalar(@captured);
     
-    print "E100\t$min_max_expr\t$N50\t$num_trans\n";
+    if (exists $Estats_wanted{"100"}) {
+        my $min_max_expr = &get_min_max(@captured);
+        my $N50 = &calc_N50(@captured);
+        my $num_trans = scalar(@captured);
+        
+        print "E100\t$min_max_expr\t$N50\t$num_trans\n";
+    }
 }
-
 
 exit(0);
 

@@ -1,0 +1,14 @@
+#!/usr/bin/env Rscript
+
+args<-commandArgs(TRUE)
+
+dat_filename = args[1]
+pdf_filename = paste(dat_filename, ".plot.pdf", sep='')
+pdf(pdf_filename)
+data = read.table(dat_filename, com='', header=T, row.names=1)
+plot(data$E.N50, xlab="Pct. Ex.", ylab="N50 contig length", col='blue', t='b')
+
+write(cat("ExN50 data plotted as:", pdf_filename), stderr())
+
+quit(save = "no", status = 0, runLast = FALSE)
+

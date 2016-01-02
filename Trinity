@@ -2093,10 +2093,10 @@ sub prep_seqs {
                 $fastool_cmd .= " --rev";
             }
             my $style = "--illumina-trinity";
-            if ($file_prefix == "left"){
+            if ($file_prefix eq "left"){
                 $style = "--append /1";
             }
-            elsif ($file_prefix == "right"){
+            elsif ($file_prefix eq "right"){
                 $style = "--append /2";
             }
             $fastool_cmd .= " $style --to-fasta >> $file_prefix.fa 2> $f.readcount ";

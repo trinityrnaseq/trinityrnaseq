@@ -420,7 +420,7 @@ void makefile_builder::DumpDependencies( const string &target )
 
   // The vector of pairs count_per_provider[] simply reverses the map
   // provider_counts[], copying each map element B->n to an ordered pair (n,B),
-  // so that the resulting vector can be sorted by number of occurences, rather
+  // so that the resulting vector can be sorted by number of occurrences, rather
   // than provider name.  (Why not build the mapping as a vector in the first
   // place?  Efficiency: keeping the vector sorted while building up the map
   // would require a lot of copying of data everytime a new provider name was

@@ -155,7 +155,7 @@ main: {
     
     close $ofh;
 
-    my $cmd = "R --vanilla -q < $Rscript";
+    my $cmd = "R --no-save --no-restore --no-site-file --no-init-file --quiet < $Rscript";
     my $ret = system($cmd);
     if ($ret) {
         die "Error, cmd: $cmd died with ret $ret";

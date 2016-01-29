@@ -435,7 +435,7 @@ clean:
 	for file in $(EXECUTABLES); do rm -f $(BIN)/$$file; done
 	rm -f MakeDepend $(BIN)/MakeDepend contigs.out my.permanent.log.file \
              core a.out Makefile.bak bsubin BasevectorTables.h $(BIN)/checkLock 
-	find $(OBJ) -name '*.o' -exec rm {} \;
+	find $(OBJ) -name '*.o' -exec rm {} \; || /bin/true
 	rm -rf cxx_repository
 	rm -f lib_*_temp.a
 

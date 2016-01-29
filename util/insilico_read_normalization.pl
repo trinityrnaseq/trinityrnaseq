@@ -467,6 +467,12 @@ sub build_selected_index {
         chomp $line;
         next unless $line =~ /\S/;
         
+        ## want core, .... just in case.
+        $line =~ s|/\w$||;
+        
+        #print STDERR "-want $line\n";
+
+
         $index{$line} = 0;
     }
     

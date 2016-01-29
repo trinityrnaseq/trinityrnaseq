@@ -1,3 +1,4 @@
+#!/bin/sh
 if [ ! -e jellyfish.kmers.fa ]; then
     gunzip -c jellyfish.kmers.fa.gz > jellyfish.kmers.fa
 fi

@@ -47,7 +47,7 @@ void write_iworm_bundle (string filename, vector<string_vec>& bundled, vector<in
     ofh.open(filename.c_str());
     
 
-    for (int i = 0; i < bundled.size(); i++) {
+    for (size_t i = 0; i < bundled.size(); i++) {
 
         int component_id = component_ids[i];
         string_vec bundled_iworms = bundled[i];
@@ -177,13 +177,13 @@ int main(int argc,char** argv)
                 DNAVector app;
                 app.SetFromBases(parser.AsString(0));
                 //cerr << "adding: " << parser.AsString(0) << endl;
-                tmpSeq[tmpSeq.isize()-1] += app; // adding the iworm sequence to that iworm entry
+                tmpSeq[tmpSeq.size()-1] += app; // adding the iworm sequence to that iworm entry
                 
                 //fprintf(p, "%s\n", parser.Line().c_str());
             }
             //fclose(p);
             
-            if (tmpSeq.isize() == 1 && tmpSeq[0].isize() < minLen) {
+            if (tmpSeq.size() == 1 && tmpSeq[0].size() < minLen) {
                 //cerr << "-discarding entry, too short." << endl;
                 continue;
             }
@@ -192,7 +192,7 @@ int main(int argc,char** argv)
             
             vector<string> iworm_bundle;
             int sum_len = 0;
-            for (int x = 0; x < tmpSeq.isize(); x++) {
+            for (size_t x = 0; x < tmpSeq.size(); x++) {
                 iworm_bundle.push_back(get_seq_string(tmpSeq[x]));    
                 sum_len += tmpSeq[x].isize();
             }

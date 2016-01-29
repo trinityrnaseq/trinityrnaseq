@@ -29,6 +29,7 @@ my $usage = <<__EOUSAGE__;
 #                                   transcripts encapsulated
 #
 #  --reuse                       don't prompt for reusing blat if the output already exists.
+#  --no_reuse                    dont prompt and do NOT reuse existing outputs
 #
 #  --out_prefix <string>         output prefix
 #
@@ -52,6 +53,7 @@ my $help_flag;
 my $allow_non_unique_mappings = 0;
 
 my $reuse_flag = 0;
+my $no_reuse_flag = 0;
 
 my $out_prefix = "";
 
@@ -62,10 +64,11 @@ my $out_prefix = "";
               'forward_orient' => \$forward_orient,
               'max_per_gap=i' => \$max_per_gap,
               'allow_non_unique_mappings' => \$allow_non_unique_mappings,
-	      'min_per_length=f' => \$min_per_length,
+              'min_per_length=f' => \$min_per_length,
 	      
               'reuse' => \$reuse_flag,
-              
+              'no_reuse' => \$no_reuse_flag,
+
               'out_prefix=s' => \$out_prefix,
 
               );
@@ -102,7 +105,11 @@ main: {
 	my $run_blat = 0;
 	
 	if (-s $blat_output) {
-        if (! $reuse_flag) {
+        
+        if ($no_reuse_flag) {
+            $run_blat = 1;
+        }
+        elsif (! $reuse_flag) {
             print STDERR "Regenerate blat output file?";
             my $response = <STDIN>;
             if ($response =~ /^y/i) {

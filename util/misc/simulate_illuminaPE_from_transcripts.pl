@@ -38,6 +38,8 @@ my $usage = <<__EOUSAGE__;
 #
 # :: note, generates left.fa and right.fa in FR stranded format
 #
+#  --make_fastq                 generate fastq instead of fasta (note, uses 'C' for all the qual scores)
+#
 #################################################################
 
 __EOUSAGE__
@@ -58,6 +60,8 @@ my $include_volcano_spread = 0;
 my $error_rate = 0;
 my $MAX_DEPTH = 1;
 
+my $make_fastq_flag = 0;
+
 &GetOptions ( 'h' => \$help_flag,
               'transcripts=s' => \$transcripts,
               'read_length=i' => \$read_length,
@@ -67,9 +71,11 @@ my $MAX_DEPTH = 1;
               'require_proper_pairs' => \$require_proper_pairs_flag,
               'include_volcano_spread' => \$include_volcano_spread,
               'error_rate=f' => \$error_rate,
-	      'max_depth=i' => \$MAX_DEPTH,
-	      
+              'max_depth=i' => \$MAX_DEPTH,
+              'make_fastq' => \$make_fastq_flag,
+    
     );
+
 
 if ($help_flag) {
     die $usage;
@@ -85,7 +91,7 @@ if ($error_rate > 0.25) {
 
 
 main: {
-
+    
     my $fasta_reader = new Fasta_reader($transcripts);
     print STDERR "-parsing incoming $transcripts...";
     my %read_seqs = $fasta_reader->retrieve_all_seqs_hash();
@@ -94,114 +100,113 @@ main: {
     my $num_trans = scalar (keys %read_seqs);
     my $counter = 0;
     
-    open (my $left_ofh, ">$out_prefix.left.simPE.fa") or die $!;
-    open (my $right_ofh, ">$out_prefix.right.simPE.fa") or die $!;
-
+    my $ext = ($make_fastq_flag) ? "fq" : "fa";
+    open (my $left_ofh, ">$out_prefix.left.simPE.$ext") or die $!;
+    open (my $right_ofh, ">$out_prefix.right.simPE.$ext") or die $!;
+    
     
     foreach my $read_acc (keys %read_seqs) {
-
-	for my $depth (1..$MAX_DEPTH) {
-
-
-	    $counter++;
-	    print STDERR "\r[" . sprintf("%.2f%%  = $counter/$num_trans]     ", $counter/$num_trans*100);
-	    
-	    my $seq = uc $read_seqs{$read_acc};
-	    
-	    
-	    ## uniform dist
-	    for (my $i = 0; $i <= length($seq); $i+=$spacing) {
-		
-		my $left_read_seq = "";
-		my $right_read_seq = "";
-		my $ill_acc = $read_acc . "_Ap$i-$counter";
-		
-		my $left_start = $i - $read_length - $pair_gap;
-		if ($left_start >= 0) {
-		    $left_read_seq = substr($seq, $left_start, $read_length);
-		}
-		
-		my $right_start = $i;
-		if ($right_start + $read_length  <= length($seq)) {
-		    $right_read_seq = substr($seq, $right_start, $read_length);
-		}
-
-		if ($require_proper_pairs_flag && ! ($left_read_seq && $right_read_seq)) { next; }
-		
-
-		if ($left_read_seq) {
-		    if ($error_rate > 0) {
-			$left_read_seq = &introduce_errors($left_read_seq, $error_rate);
-		    }
-
-		    print $left_ofh ">$ill_acc/1\n"
-			. "$left_read_seq\n";    
-		}
-		if ($right_read_seq) {
-		    $right_read_seq = &reverse_complement($right_read_seq);
-		    
-		    if ($error_rate > 0) {
-			$right_read_seq = &introduce_errors($right_read_seq, $error_rate);
-		    }
-		    
-		    print $right_ofh ">$ill_acc/2\n"
-			. "$right_read_seq\n";
-		}
-	    }
-
-
-	  volcano_spread:
-	    if ($include_volcano_spread) {
-
-		## volcano spread
-		for (my $i = 0; $i <= length($seq)/2; $i+=$spacing) {
-		    
-		    my $left_read_seq = "";
-		    my $right_read_seq = "";
-		    my $ill_acc = $read_acc . "_Bp$i";
-		    
-		    
-		    my $left_start = $i;
-		    if ($left_start >= 0) {
-			$left_read_seq = substr($seq, $left_start, $read_length);
-		    }
-		    
-		    my $right_start = length($seq)-$read_length -$i + 1;
-		    
-		    if ($left_start + $read_length >= $right_start) { next; } ## don't overlap them.
-		    
-		    if ($right_start + $read_length  <= length($seq)) {
-			$right_read_seq = substr($seq, $right_start, $read_length);
-		    }
-		    
-		    
-		    if ($require_proper_pairs_flag && ! ($left_read_seq && $right_read_seq)) { next; }
-		    
-		    if ($left_read_seq) {
-
-			if ($error_rate > 0) {
-			    $left_read_seq = &introduce_errors($left_read_seq, $error_rate);
-			}
-			
-			print $left_ofh ">$ill_acc/1\n"
-			    . "$left_read_seq\n";    
-		    }
-		    if ($right_read_seq) {
-			
-			$right_read_seq = &reverse_complement($right_read_seq);
-
-			if ($error_rate > 0) {
-			    $right_read_seq = &introduce_errors($right_read_seq, $error_rate);
-			}
-			
-			print $right_ofh ">$ill_acc/2\n"
-			    . "$right_read_seq\n";
-		    }
-		}
-		
-	    }
-	}
-
+        
+        for my $depth (1..$MAX_DEPTH) {
+            
+            
+            $counter++;
+            print STDERR "\r[" . sprintf("%.2f%%  = $counter/$num_trans]     ", $counter/$num_trans*100);
+            
+            my $seq = uc $read_seqs{$read_acc};
+            
+            
+            ## uniform dist
+            for (my $i = 0; $i <= length($seq); $i+=$spacing) {
+                
+                my $left_read_seq = "";
+                my $right_read_seq = "";
+                my $ill_acc = $read_acc . "_Ap$i-$counter";
+                
+                my $left_start = $i - $read_length - $pair_gap;
+                if ($left_start >= 0) {
+                    $left_read_seq = substr($seq, $left_start, $read_length);
+                }
+                
+                my $right_start = $i;
+                if ($right_start + $read_length  <= length($seq)) {
+                    $right_read_seq = substr($seq, $right_start, $read_length);
+                }
+                
+                if ($require_proper_pairs_flag && ! ($left_read_seq && $right_read_seq)) { next; }
+                
+                
+                if ($left_read_seq) {
+                    if ($error_rate > 0) {
+                        $left_read_seq = &introduce_errors($left_read_seq, $error_rate);
+                    }
+                    
+                    &write_seq($left_ofh, "$ill_acc/1", $left_read_seq);
+                }
+                if ($right_read_seq) {
+                    $right_read_seq = &reverse_complement($right_read_seq);
+                    
+                    if ($error_rate > 0) {
+                        $right_read_seq = &introduce_errors($right_read_seq, $error_rate);
+                    }
+                    
+                    &write_seq($right_ofh, "$ill_acc/2", $right_read_seq);
+                }
+            }
+            
+            
+          volcano_spread:
+            if ($include_volcano_spread) {
+                
+                ## volcano spread
+                for (my $i = 0; $i <= length($seq)/2; $i+=$spacing) {
+                    
+                    my $left_read_seq = "";
+                    my $right_read_seq = "";
+                    my $ill_acc = $read_acc . "_Bp$i";
+                    
+                    
+                    my $left_start = $i;
+                    if ($left_start >= 0) {
+                        $left_read_seq = substr($seq, $left_start, $read_length);
+                    }
+                    
+                    my $right_start = length($seq)-$read_length -$i + 1;
+                    
+                    if ($left_start + $read_length >= $right_start) { next; } ## don't overlap them.
+                    
+                    if ($right_start + $read_length  <= length($seq)) {
+                        $right_read_seq = substr($seq, $right_start, $read_length);
+                    }
+                    
+                    
+                    if ($require_proper_pairs_flag && ! ($left_read_seq && $right_read_seq)) { next; }
+                    
+                    if ($left_read_seq) {
+                        
+                        if ($error_rate > 0) {
+                            $left_read_seq = &introduce_errors($left_read_seq, $error_rate);
+                        }
+                        
+                        &write_seq($left_ofh, "$ill_acc/1", $left_read_seq);
+                        
+                    }
+                    if ($right_read_seq) {
+                        
+                        $right_read_seq = &reverse_complement($right_read_seq);
+                        
+                        if ($error_rate > 0) {
+                            $right_read_seq = &introduce_errors($right_read_seq, $error_rate);
+                        }
+                        
+                        &write_seq($right_ofh, "$ill_acc/2", $right_read_seq);
+                        
+                    }
+                }
+                
+            }
+        }
+        
     }
     
     close $left_ofh;
@@ -212,6 +217,22 @@ main: {
     exit(0);
 }
 
+
+
+
+####
+sub write_seq {
+    my ($ofh, $acc, $seq) = @_;
+
+    if ($make_fastq_flag) {
+        print $ofh join("\n", "\@$acc", $seq, "+", 'C' x length($seq)) . "\n";
+    }
+    else {
+        # fasta
+        print $ofh join("\n", ">$acc", $seq) . "\n";
+    }
+    return;
+}
 
 ####
 sub process_cmd {

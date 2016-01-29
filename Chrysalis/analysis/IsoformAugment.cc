@@ -46,13 +46,13 @@ int main(int argc,char** argv)
   core.AddData(ref);
   //core.SortAll();
 
-  int i, j;
+  size_t i, j;
 
   int min = 24;
   int k = 24;
 
 
-  for (i=0; i<iworm.isize(); i++) {
+  for (i=0; i<iworm.size(); i++) {
     const DNAVector & d = iworm[i];
     //if  (d.isize() > 300)
     //  continue;

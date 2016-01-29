@@ -12,6 +12,10 @@ use Fasta_reader;
 use Data::Dumper;
 
 
+my $ROTS_B = 500;
+my $ROTS_K = 5000;
+
+
 my $usage = <<__EOUSAGE__;
 
 
@@ -21,8 +25,10 @@ my $usage = <<__EOUSAGE__;
 #
 #  --matrix|m <string>               matrix of raw read counts (not normalized!)
 #
-#  --method <string>               edgeR|DESeq|DESeq2   (DESeq(2?) only supported here w/ bio replicates)
-#                                   
+#  --method <string>               edgeR|DESeq2|voom|ROTS
+#                                     note: you should have biological replicates.
+#                                           edgeR will support having no bio replicates with
+#                                           a fixed dispersion setting. 
 #
 #  Optional:
 #
@@ -54,24 +60,24 @@ my $usage = <<__EOUSAGE__;
 #  ## EdgeR-related parameters
 #  ## (no biological replicates)
 #
-#  --dispersion <float>            edgeR dispersion value (default: 0.1)   set to 0 for poisson (sometimes breaks...)
+#  --dispersion <float>            edgeR dispersion value (Read edgeR manual to guide your value choice)
+#                                    http://www.bioconductor.org/packages/release/bioc/html/edgeR.html
+#  ## ROTS parameters
+#  --ROTS_B <int>                   : number of bootstraps and permutation resampling (default: $ROTS_B)
+#  --ROTS_K <int>                   : largest top genes size (default: $ROTS_K)
 #
-#  http://www.bioconductor.org/packages/release/bioc/html/edgeR.html
 #
 ###############################################################################################
 #
-#  ## DE-Seq related parameters
+#   Documentation and manuals for various DE methods.  Please read for more advanced and more
+#   fine-tuned DE analysis than provided by this helper script.
 #
-#  --DESEQ_method <string>         "pooled", "pooled-CR", "per-condition", "blind" 
-#  --DESEQ_sharingMode <string>    "maximum", "fit-only", "gene-est-only"   
-#  --DESEQ_fitType <string>        fitType = c("parametric", "local")
+#  edgeR:       http://www.bioconductor.org/packages/release/bioc/html/edgeR.html
+#  DESeq2:      http://bioconductor.org/packages/release/bioc/html/DESeq2.html    
+#  voom/limma:  http://bioconductor.org/packages/release/bioc/html/limma.html
+#  ROTS:        http://www.btk.fi/research/research-groups/elo/software/rots/
 #
-#  ## (no biological replicates)
-#        note: FIXED as: method=blind, sharingMode=fit-only
-#       
-#  http://www.bioconductor.org/packages/release/bioc/html/DESeq.html
-#
-################################################################################################
+###############################################################################################
 
 
 
@@ -87,14 +93,13 @@ my $samples_file;
 my $min_rowSum_counts = 2;
 my $help_flag;
 my $output_dir;
-my $dispersion = 0.1;
+my $dispersion; # I've used 0.1 myself - but read the manual to guide your choice.
+
 my $contrasts_file;
 
 my $reference_sample;
 
 my $make_tar_gz_file = 0;
-
-my ($DESEQ_method, $DESEQ_sharingMode, $DESEQ_fitType);
 
 
 &GetOptions ( 'h' => \$help_flag,
@@ -108,13 +113,11 @@ my ($DESEQ_method, $DESEQ_sharingMode, $DESEQ_fitType);
               'reference_sample=s' => \$reference_sample,
               'contrasts=s' => \$contrasts_file,
               
-
-              'DESEQ_method=s' => \$DESEQ_method,
-              'DESEQ_sharingMode=s' => \$DESEQ_sharingMode,
-              'DESEQ_fitType=s' => \$DESEQ_fitType,
-
               'tar_gz_outdir' => \$make_tar_gz_file,
 
+
+              'ROTS_B=i' => \$ROTS_B,
+              'ROTS_K=i' => \$ROTS_K,
     );
 
 
@@ -142,8 +145,8 @@ if ($matrix_file =~ /fpkm/i) {
 }
 
 
-unless ($method =~ /^(edgeR|DESeq2?|GLM)$/) {
-    die "Error, do not recognize method: [$method], only edgeR or DESeq currently.";
+unless ($method =~ /^(edgeR|DESeq2|voom|ROTS|GLM)$/) {
+    die "Error, do not recognize --method [$method]";
 }
 
 
@@ -182,7 +185,9 @@ main: {
         $output_dir = "$method.$$.dir";
     }
     
-    mkdir($output_dir) or die "Error, cannot mkdir $output_dir";
+    unless (-d $output_dir) {
+        mkdir($output_dir) or die "Error, cannot mkdir $output_dir";
+    }
     chdir $output_dir or die "Error, cannot cd to $output_dir";
     
 
@@ -257,13 +262,15 @@ main: {
                 &run_edgeR_sample_pair($matrix_file, \%samples, \%sample_name_to_column, $sample_a, $sample_b);
                 
             }
-            elsif ($method eq "DESeq") {
-                &run_DESeq_sample_pair($matrix_file, \%samples, \%sample_name_to_column, $sample_a, $sample_b);
-            }
             elsif ($method eq "DESeq2") {
                 &run_DESeq2_sample_pair($matrix_file, \%samples, \%sample_name_to_column, $sample_a, $sample_b);
             }
-
+            elsif ($method eq 'voom') {
+                &run_limma_voom_sample_pair($matrix_file, \%samples, \%sample_name_to_column, $sample_a, $sample_b);
+            }
+            elsif ($method eq 'ROTS') {
+                &run_ROTS_sample_pair($matrix_file, \%samples, \%sample_name_to_column, $sample_a, $sample_b);
+            }
         }
     }
 
@@ -390,10 +397,17 @@ sub run_edgeR_sample_pair {
     if ($num_rep_A > 1 && $num_rep_B > 1) {
         print $ofh "exp_study = estimateCommonDisp(exp_study)\n";
         print $ofh "exp_study = estimateTagwiseDisp(exp_study)\n";
-        print $ofh "et = exactTest(exp_study)\n";
+        print $ofh "et = exactTest(exp_study, pair=c(\"$sample_A\", \"$sample_B\"))\n";
+    }
+    elsif (!$dispersion) {
+	die "Error, cannot calculate dispersions due to lack of replicates. Specify a dispersion parameter --dispersion <float>. See help for details\n";
     }
     else {
-        print $ofh "et = exactTest(exp_study, dispersion=$dispersion)\n";
+        unless (defined $dispersion) {
+            confess "Error, must set --dispersion <float> when using edgeR w/o bio replicates";
+
+        }
+        print $ofh "et = exactTest(exp_study, pair=c(\"$sample_A\", \"$sample_B\"), dispersion=$dispersion)\n";
     }
     print $ofh "tTags = topTags(et,n=NULL)\n";
     print $ofh "write.table(tTags, file=\'$output_prefix.edgeR.DE_results\', sep='\t', quote=F, row.names=T)\n";
@@ -423,99 +437,6 @@ sub run_edgeR_sample_pair {
 
     return;
 }
-
-sub run_DESeq_sample_pair {
-    my ($matrix_file, $samples_href, $sample_name_to_column_index_href, $sample_A, $sample_B) = @_;
-         
-    my $output_prefix = basename($matrix_file) . "." . join("_vs_", ($sample_A, $sample_B));
-        
-    my $Rscript_name = "$output_prefix.DESeq.Rscript";
-    
-    my @reps_A = @{$samples_href->{$sample_A}};
-    my @reps_B = @{$samples_href->{$sample_B}};
-
-    my $num_rep_A = scalar(@reps_A);
-    my $num_rep_B = scalar(@reps_B);
-    
-    
-    my @rep_column_indices;
-    foreach my $rep_name (@reps_A, @reps_B) {
-        my $column_index = $sample_name_to_column_index_href->{$rep_name} or die "Error, cannot determine column index for replicate name [$rep_name]" . Dumper($sample_name_to_column_index_href);
-        push (@rep_column_indices, $column_index);
-    }
-    
-
-    ## write R-script to run edgeR
-    open (my $ofh, ">$Rscript_name") or die "Error, cannot write to $Rscript_name";
-    
-    print $ofh "library(DESeq)\n";
-    print $ofh "\n";
-
-    print $ofh "data = read.table(\"$matrix_file\", header=T, row.names=1, com='')\n";
-    print $ofh "col_ordering = c(" . join(",", @rep_column_indices) . ")\n";
-    print $ofh "rnaseqMatrix = data[,col_ordering]\n";
-    print $ofh "rnaseqMatrix = round(rnaseqMatrix)\n";
-    print $ofh "rnaseqMatrix = rnaseqMatrix[rowSums(rnaseqMatrix)>=$min_rowSum_counts,]\n";
-    print $ofh "conditions = factor(c(rep(\"$sample_A\", $num_rep_A), rep(\"$sample_B\", $num_rep_B)))\n";
-    print $ofh "\n";
-    print $ofh "exp_study = newCountDataSet(rnaseqMatrix, conditions)\n";
-    print $ofh "exp_study = estimateSizeFactors(exp_study)\n";
-    #print $ofh "sizeFactors(exp_study)\n";
-    #print $ofh "exp_study = estimateVarianceFunctions(exp_study)\n";
-    
-    if ($num_rep_A == 1 && $num_rep_B == 1) {
-        
-        print STDERR "\n\n** Note, no replicates, setting method='blind', sharingMode='fit-only'\n\n";
-        
-        $DESEQ_method = "blind";
-        $DESEQ_sharingMode = "fit-only";
-        
-    }
-
-    # got bio replicates
-    my $est_disp_cmd = "exp_study = estimateDispersions(exp_study";
-    
-    if ($DESEQ_method) {
-        $est_disp_cmd .= ", method=\"$DESEQ_method\"";
-    }
-    
-    if ($DESEQ_sharingMode) {
-        $est_disp_cmd .= ", sharingMode=\"$DESEQ_sharingMode\"";
-    }
-    
-    if ($DESEQ_fitType) {
-        $est_disp_cmd .= ", fitType=\"$DESEQ_fitType\"";
-    }
-    
-    $est_disp_cmd .= ")\n";
-    
-    print $ofh $est_disp_cmd;
-    
-    
-    #print $ofh "str(fitInfo(exp_study))\n";
-    #print $ofh "plotDispEsts(exp_study)\n";
-    print $ofh "\n";
-    print $ofh "res = nbinomTest(exp_study, \"$sample_A\", \"$sample_B\")\n";
-    print $ofh "\n";
-## output results
-    print $ofh "write.table(res[order(res\$pval),], file=\'$output_prefix.DESeq.DE_results\', sep='\t', quote=FALSE, row.names=FALSE)\n";
-    
-    ## generate MA and Volcano plots
-    print $ofh "source(\"$FindBin::Bin/R/rnaseq_plot_funcs.R\")\n";
-    print $ofh "pdf(\"$output_prefix.DESeq.DE_results.MA_n_Volcano.pdf\")\n";
-    print $ofh "plot_MA_and_Volcano(log2(res\$baseMean+1), res\$log2FoldChange, res\$padj)\n";
-    print $ofh "dev.off()\n";
-
-    close $ofh;
-    
-
-
-    ## Run R-script
-    my $cmd = "R --vanilla -q < $Rscript_name";
-    &process_cmd($cmd);
-    
-    return;
-}
         
 sub run_DESeq2_sample_pair {
     my ($matrix_file, $samples_href, $sample_name_to_column_index_href, $sample_A, $sample_B) = @_;
@@ -543,7 +464,7 @@ sub run_DESeq2_sample_pair {
     }
     
 
-    ## write R-script to run edgeR
+    ## write R-script to run DESeq
     open (my $ofh, ">$Rscript_name") or die "Error, cannot write to $Rscript_name";
     
     print $ofh "library(DESeq2)\n";
@@ -597,6 +518,187 @@ sub run_DESeq2_sample_pair {
 }
 
 
+####
+sub run_limma_voom_sample_pair {
+    my ($matrix_file, $samples_href, $sample_name_to_column_index_href, $sample_A, $sample_B) = @_;
+    
+    my $output_prefix = basename($matrix_file) . "." . join("_vs_", ($sample_A, $sample_B));
+        
+    my $Rscript_name = "$output_prefix.$sample_A.vs.$sample_B.voom.Rscript";
+    
+    my @reps_A = @{$samples_href->{$sample_A}};
+    my @reps_B = @{$samples_href->{$sample_B}};
+
+    my $num_rep_A = scalar(@reps_A);
+    my $num_rep_B = scalar(@reps_B);
+    
+    unless ($num_rep_A > 1 && $num_rep_B > 1) {
+        die "Error, need multiple biological replicates for each sample in order to run voom";
+    }
+
+    my @rep_column_indices;
+    foreach my $rep_name (@reps_A, @reps_B) {
+        my $column_index = $sample_name_to_column_index_href->{$rep_name} or die "Error, cannot determine column index for replicate name [$rep_name]" . Dumper($sample_name_to_column_index_href);
+        push (@rep_column_indices, $column_index);
+    }
+        
+
+    ## write R-script to run edgeR
+    open (my $ofh, ">$Rscript_name") or die "Error, cannot write to $Rscript_name";
+    
+    print $ofh "library(edgeR)\n";
+    print $ofh "library(limma)\n";
+    
+    print $ofh "\n";
+    
+    print $ofh "data = read.table(\"$matrix_file\", header=T, row.names=1, com='')\n";
+    print $ofh "col_ordering = c(" . join(",", @rep_column_indices) . ")\n";
+    print $ofh "rnaseqMatrix = data[,col_ordering]\n";
+    print $ofh "rnaseqMatrix = round(rnaseqMatrix)\n";
+    print $ofh "rnaseqMatrix = rnaseqMatrix[rowSums(rnaseqMatrix)>=$min_rowSum_counts,]\n";
+    print $ofh "conditions = factor(c(rep(\"$sample_A\", $num_rep_A), rep(\"$sample_B\", $num_rep_B)))\n";
+    print $ofh "\n";
+    print $ofh "design = model.matrix(~conditions)\n";
+    print $ofh "## TMM normalize data\n";
+    print $ofh "lib_sizes = colSums(rnaseqMatrix)\n";
+    print $ofh "tmm_norm_factors = calcNormFactors(rnaseqMatrix, method='TMM')\n";
+    print $ofh "x = DGEList(counts=rnaseqMatrix)\n";
+    print $ofh "# voom transformation\n";
+    print $ofh "y = voom(x, design, lib.size=lib_sizes*tmm_norm_factors, plot=F)\n";
+    print $ofh "fit = eBayes(lmFit(y,design))\n";
+    print $ofh "tTags = topTable(fit,coef=2,number=Inf)\n";
+    print $ofh "# output results, including average expression val for each feature\n";
+    print $ofh "c = cpm(x)\n";
+    print $ofh "m = apply(c, 1, mean)\n";
+    print $ofh "tTags2 = cbind(tTags, logCPM=log2(m[rownames(tTags)]))\n";
+    print $ofh "DE_matrix = data.frame(logFC=tTags\$logFC, logCPM=tTags2\$logCPM, PValue=tTags\$'P.Value', FDR=tTags\$'adj.P.Val')\n";
+    print $ofh "rownames(DE_matrix) = rownames(tTags)\n";
+    print $ofh "write.table(DE_matrix, file=\'$output_prefix.voom.DE_results\', sep='\t', quote=F, row.names=T)\n";
+    
+    ## generate MA and Volcano plots
+    print $ofh "# MA and volcano plots\n";
+    print $ofh "source(\"$FindBin::Bin/R/rnaseq_plot_funcs.R\")\n";
+    print $ofh "pdf(\"$output_prefix.voom.DE_results.MA_n_Volcano.pdf\")\n";
+    print $ofh "plot_MA_and_Volcano(tTags2\$logCPM, tTags\$logFC, tTags\$'adj.P.Val')\n";
+    print $ofh "dev.off()\n";
+    
+    close $ofh;
+
+    ## Run R-script
+    my $cmd = "R --vanilla -q < $Rscript_name";
+
+
+    eval {
+        &process_cmd($cmd);
+    };
+    if ($@) {
+        print STDERR "$@\n\n";
+        print STDERR "\n\nWARNING: This voom comparison failed...\n\n";
+        ## if this is due to data paucity, such as in small sample data sets, then ignore for now.
+    }
+    
+
+    return;
+}
+
+
+####
+sub run_ROTS_sample_pair {
+    my ($matrix_file, $samples_href, $sample_name_to_column_index_href, $sample_A, $sample_B) = @_;
+    
+    my $output_prefix = basename($matrix_file) . "." . join("_vs_", ($sample_A, $sample_B));
+        
+    my $Rscript_name = "$output_prefix.$sample_A.vs.$sample_B.ROTS.Rscript";
+    
+    my @reps_A = @{$samples_href->{$sample_A}};
+    my @reps_B = @{$samples_href->{$sample_B}};
+
+    my $num_rep_A = scalar(@reps_A);
+    my $num_rep_B = scalar(@reps_B);
+    
+    unless ($num_rep_A > 1 && $num_rep_B > 1) {
+        die "Error, need multiple biological replicates for each sample in order to run ROTS";
+    }
+
+    my @rep_column_indices;
+    foreach my $rep_name (@reps_A, @reps_B) {
+        my $column_index = $sample_name_to_column_index_href->{$rep_name} or die "Error, cannot determine column index for replicate name [$rep_name]" . Dumper($sample_name_to_column_index_href);
+        push (@rep_column_indices, $column_index);
+    }
+        
+
+    ## write R-script to run DESeq2
+    open (my $ofh, ">$Rscript_name") or die "Error, cannot write to $Rscript_name";
+    
+    print $ofh "library(edgeR)\n";
+    print $ofh "library(limma)\n";
+    print $ofh "library(ROTS)\n";
+    
+    print $ofh "\n";
+    
+    print $ofh "data = read.table(\"$matrix_file\", header=T, row.names=1, com='')\n";
+    print $ofh "col_ordering = c(" . join(",", @rep_column_indices) . ")\n";
+    print $ofh "rnaseqMatrix = data[,col_ordering]\n";
+    print $ofh "rnaseqMatrix = round(rnaseqMatrix)\n";
+    print $ofh "rnaseqMatrix = rnaseqMatrix[rowSums(rnaseqMatrix)>=$min_rowSum_counts,]\n";
+    print $ofh "conditions = factor(c(rep(\"$sample_A\", $num_rep_A), rep(\"$sample_B\", $num_rep_B)))\n";
+    print $ofh "\n";
+    print $ofh "design = model.matrix(~conditions)\n";
+    print $ofh "## TMM normalize data\n";
+    print $ofh "lib_sizes = colSums(rnaseqMatrix)\n";
+    print $ofh "tmm_norm_factors = calcNormFactors(rnaseqMatrix, method='TMM')\n";
+    print $ofh "x = DGEList(counts=rnaseqMatrix)\n";
+    print $ofh "# voom transformation and ROTS (code derived from ROTS paper supp R code)\n";
+    print $ofh "voom.data = voom(x, design, lib.size=lib_sizes*tmm_norm_factors, plot=F)\n";
+    print $ofh "input_voom = voom.data\$E\n";
+    print $ofh "# run ROTS for DE analysis\n";
+    print $ofh "res_voom <- ROTS(data=input_voom,groups=conditions,B=$ROTS_B, K=$ROTS_K)\n";
+    print $ofh "results = summary(res_voom, fdr=0.1)\n";
+
+    print $ofh "# add logFC and logCPM to result table.\n";
+    print $ofh "c = cpm(x)\n";
+    print $ofh "m = apply(c, 1, mean)\n";
+    print $ofh "sampleA_cpm_matrix = c[,conditions \%in% \"$sample_A\"]\n";
+    print $ofh "mean_sampleA_cpm = apply(sampleA_cpm_matrix, 1, mean)\n";
+    print $ofh "sampleB_cpm_matrix = c[,conditions \%in% \"$sample_B\"]\n";
+    print $ofh "mean_sampleB_cpm = apply(sampleB_cpm_matrix, 1, mean)\n";
+    print $ofh "pseudocount_cpm = 1\n";
+    print $ofh "FC = (mean_sampleA_cpm + pseudocount_cpm) / (mean_sampleB_cpm + pseudocount_cpm)\n";
+    print $ofh "logFC = log2(FC)\n";
+    print $ofh "results = summary(res_voom, fdr=0.1)\n";
+    print $ofh "feature_order = rownames(results)\n";
+    print $ofh "final_table = data.frame(logCPM=log2(m+1)[feature_order], CPM_A=mean_sampleA_cpm[feature_order], CPM_B=mean_sampleB_cpm[feature_order], logFC=logFC[feature_order], results)\n";
+
+    print $ofh "write.table(final_table, file=\"$output_prefix.ROTS.DE_results\", quote=F, sep='\t')\n";
+        
+    ## generate MA and Volcano plots
+    print $ofh "# MA and volcano plots\n";
+    print $ofh "source(\"$FindBin::Bin/R/rnaseq_plot_funcs.R\")\n";
+    print $ofh "pdf(\"$output_prefix.voom.DE_results.MA_n_Volcano.pdf\")\n";
+    print $ofh "plot_MA_and_Volcano(final_table\$logCPM, final_table\$logFC, final_table\$FDR)\n";
+    print $ofh "dev.off()\n";
+    
+    
+    close $ofh;
+
+    ## Run R-script
+    my $cmd = "R --vanilla -q < $Rscript_name";
+
+
+    eval {
+        &process_cmd($cmd);
+    };
+    if ($@) {
+        print STDERR "$@\n\n";
+        print STDERR "\n\nWARNING: This ROTS comparison failed...\n\n";
+        ## if this is due to data paucity, such as in small sample data sets, then ignore for now.
+    }
+    
+
+    return;
+}
+
+
 
 
 ####
@@ -619,15 +721,14 @@ sub run_GLM {
     
 
     my $output_prefix = basename($matrix_file);
-
-             
+                 
     my $Rscript_name = "$output_prefix.GLM.Rscript";
     
     ## write R-script to run edgeR
     open (my $ofh, ">$Rscript_name") or die "Error, cannot write to $Rscript_name";
     
     print $ofh "library(edgeR)\n";
-
+    
     print $ofh "\n";
     
     print $ofh "design_matrix = read.table(\"$samples_file\", header=T, row.names=1)\n";

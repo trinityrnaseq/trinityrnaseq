@@ -11,7 +11,7 @@ rm -rf $BINDIR
 rm -rf $DOCDIR
 rm -rf $MANDIR
 
-FILE=`ls -1 -d collectl*| tail -1`
+FILE=`ls -1 -d collectl*.gz | tail -1`
 tar xzf ${FILE}
 INSTALLDIR=`find . -maxdepth 1 -type d -iname "*collect*" | tail -1`
 
@@ -26,6 +26,7 @@ mkdir -p $MANDIR
 cp make_data_files.py    $BINDIR
 cp plot.py               $BINDIR
 cp timetable.py          $BINDIR
+cp collectl2html         $BINDIR
 cd ${INSTALLDIR}
 cp collectl.pl           $BINDIR/collectl
 cp collectl.conf         $BINDIR

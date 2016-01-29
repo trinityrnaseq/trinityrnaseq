@@ -3123,7 +3123,7 @@ fi
 AM_CXXFLAGS=-m64
 
 case $CXX in
-  g++*) AM_CXXFLAGS="-std=c++0x -pedantic -fopenmp -Wall -Wextra -Wno-deprecated $AM_CXXFLAGS"
+  g++*) AM_CXXFLAGS="-ansi -pedantic -fopenmp -Wall -Wextra -Wno-deprecated $AM_CXXFLAGS"
 ;;
   sunCC*) AM_CXXFLAGS="-std=c++0x -library=stlport4 -xopenmp -xvpara -fast $AM_CXXFLAGS"
  ;;

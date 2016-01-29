@@ -20,7 +20,7 @@ namespace Cigar {
   string construct_cigar(vector<alignment_segment>& segments, 
 						 unsigned int read_length,
 						 const string& genome_seq,
-						 char strand = NULL);
+						 char strand = 0);
   
   
   

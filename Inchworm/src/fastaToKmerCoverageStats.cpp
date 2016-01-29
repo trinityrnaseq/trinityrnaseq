@@ -26,7 +26,7 @@
 #include "argProcessor.hpp"
 
 unsigned int IRKE_COMMON::MONITOR = 0;
-int KMER_SIZE = 25;
+size_t KMER_SIZE = 25;
 int MAX_THREADS = 6;
 
 // various devel params
@@ -94,8 +94,6 @@ int runMe(int argc, char* argv[]) {
     KmerCounter kcounter (KMER_SIZE, is_DS);
     populate_kmer_counter(kcounter, kmers_fasta_file);
     Fasta_reader fasta_reader(reads_fasta_file);
-    ofstream* filewriter = NULL;
-    ofstream* covwriter = NULL;
     bool write_coverage_info = args.isArgSet("--capture_coverage_info");
     
     int start_time = time(NULL);
@@ -132,7 +130,7 @@ int runMe(int argc, char* argv[]) {
         if(write_coverage_info) {
             // add the coverage info
             stats_text << "\t";
-            for (int i = 0; i < kmer_coverage.size(); i++) {
+            for (size_t i = 0; i < kmer_coverage.size(); i++) {
                 stats_text<< kmer_coverage[i];
                 if(i != kmer_coverage.size() - 1) {
                     stats_text<< ",";
@@ -170,7 +168,7 @@ void populate_kmer_counter(KmerCounter& kcounter, string& kmers_fasta_file) {
     for (int i = 0; i < omp_get_max_threads(); i++) {
         record_counter[i] = 0;
     }
-    cerr << "-reading Kmer occurences..." << endl;
+    cerr << "-reading Kmer occurrences..." << endl;
     start = time(NULL);
     Fasta_reader fasta_reader(kmers_fasta_file);
     #pragma omp parallel private (myTid)
@@ -214,11 +212,11 @@ vector<unsigned int> compute_kmer_coverage(string& sequence, KmerCounter& kcount
     if(IRKE_COMMON::MONITOR) {
         cerr << "processing sequence: " << sequence << endl;
     }
-    for (int i = 0; i <= (int) sequence.length() - KMER_SIZE; i++) {
+    for (size_t i = 0; i <= sequence.length() - KMER_SIZE; i++) {
         // cerr << "i: " << i << ", <= " << sequence.length() - KMER_SIZE << endl;
         string kmer = sequence.substr(i, KMER_SIZE);
         if(IRKE_COMMON::MONITOR >= 2) {
-            for (int j = 0; j <= i; j++) {
+            for (size_t j = 0; j <= i; j++) {
                 cerr << " ";
             }
             cerr << kmer << endl;
@@ -252,7 +250,7 @@ unsigned int median_coverage(vector<unsigned int> coverage) {
 }
 
 
-string usage(ArgProcessor args) {
+string usage(ArgProcessor) {
     stringstream usage_info;
     usage_info << endl << endl;
     usage_info << "Usage: " << endl

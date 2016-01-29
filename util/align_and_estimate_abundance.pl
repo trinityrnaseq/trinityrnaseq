@@ -5,6 +5,7 @@ use warnings;
 use FindBin;
 
 use Cwd;
+use Carp;
 
 use Getopt::Long qw(:config no_ignore_case bundling pass_through);
 
@@ -13,26 +14,49 @@ my $RSEM_DIR = "$FindBin::Bin/../trinity-plugins/rsem";
 $ENV{PATH} = "$RSEM_DIR:$ENV{PATH}"; # be sure to use the included rsem package over other ones installed.
 
 
-my %aligner_params = ( 'bowtie_RSEM' => '--all --best --strata -m 300 --chunkmbs 512',
-                                              
-                       'bowtie2_RSEM' => '--no-mixed --no-discordant --gbar 1000 --end-to-end',
-                       
-                       'bowtie_eXpress' => '--all --best --strata -m 300 --chunkmbs 512',
-                       
-                       'bowtie2_eXpress' => '--end-to-end',
-                       
-                       
+my %aligner_params = ( 
 
-                       'bowtie_none' => '--all --best --strata -m 300 --chunkmbs 512',
-                       
-                       'bowtie2_none' => '--no-mixed --no-discordant --gbar 1000 --end-to-end', 
-                       
-                       
-
+    
+    ############
+    ## Bowtie-1
+    ############
+    
+    
+    'bowtie_RSEM' => '--all --best --strata -m 300 --chunkmbs 512',
+    # params used by RSEM itself:
+    #  -a -m 200
+    
+    
+    'bowtie_eXpress' => '--all --best --strata -m 300 --chunkmbs 512',
+    # bowtie -aS -X 800 --offrate 1  (requires: bowtie-build --offrate 1)
+    
+    
+    #############
+    ## Bowtie-2
+    #############
+    
+    'bowtie2_RSEM' => '--no-mixed --no-discordant --gbar 1000 --end-to-end -k 200 ',
+    
+    ## params used by RSEM itself:
+    #   --dpad 0 --gbar 99999999 --mp 1,1 --np 1 --score-min L,0,-0.1 -I 1 -X 1000 --no-mixed --no-discordant -k 200
+    
+        
+    'bowtie2_eXpress' => '--no-mixed --no-discordant --gbar 1000 --end-to-end -k 200 ',
+    
+    
+    # recommended eXpress params: http://bio.math.berkeley.edu/eXpress/faq.html
+    # -a -X 600 --rdg 6,5 --rfg 6,5 --score-min L,-.6,-.4 --no-discordant --no-mixed
+    
+        
+    'bowtie_none' => '--all --best --strata -m 300 --chunkmbs 512',
+    
+    'bowtie2_none' => '--no-mixed --no-discordant --gbar 1000 --end-to-end -k 200 ', 
+        
     );
 
 my $rsem_add_opts = "";
 my $eXpress_add_opts = "";
+my $kallisto_add_opts = "";
 
 
 my $usage = <<__EOUSAGE__;
@@ -51,9 +75,15 @@ my $usage = <<__EOUSAGE__;
 #
 #  --single <string>
 #
-#  --est_method <string>            RSEM|eXpress       abundance estimation method.
+#  --est_method <string>           abundance estimation method.
+#                                        alignment_based:  RSEM|eXpress       
+#                                        alignment_free: kallisto
+#  
+# --output_dir <string>            write all files to output directory
+#  
 #
-#  --aln_method <string>            bowtie|bowtie2|(path to bam file) alignment method.  (note: RSEM requires bowtie)
+#  if alignment_based est_method:
+#       --aln_method <string>            bowtie|bowtie2|(path to bam file) alignment method.  (note: RSEM requires bowtie)
 #                                       (if you already have a bam file, you can use it here instead of rerunning bowtie)
 #
 # Optional:
@@ -66,8 +96,6 @@ my $usage = <<__EOUSAGE__;
 #
 # --debug                          retain intermediate files
 #
-# --output_dir <string>            write all files to output directory
-#  
 #
 #  --gene_trans_map <string>        file containing 'gene(tab)transcript' identifiers per line.
 #     or  
@@ -79,7 +107,8 @@ my $usage = <<__EOUSAGE__;
 #  --output_prefix <string>         prefix for output files.  Defaults to --est_method setting.
 #
 #
-#  --coordsort_bam                  provide coord-sorted bam in addition to the default (unsorted) bam.
+#  if alignment_based method:
+#        --coordsort_bam                  provide coord-sorted bam in addition to the default (unsorted) bam.
 #
 #  --show_full_usage_info           provide more detailed usage info for customizing the alignment or abundance estimation parameters.
 #
@@ -106,6 +135,7 @@ my $usage = <<__EOUSAGE__;
 #    $0 --transcripts Trinity.fasta --seqType fq --left reads_1.fq --right reads_2.fq --est_method RSEM --aln_method bowtie --trinity_mode --prep_reference
 #
 #########################################################################
+
 
 __EOUSAGE__
 
@@ -134,6 +164,8 @@ my $advanced_usage_info = <<__EOADVANCEDUSAGE__;
 #
 #  --eXpress_add_opts <string>  default: "$eXpress_add_opts"
 #
+#  --kallisto_add_opts <string>  default: $kallisto_add_opts  
+
 #  * note, options for handling strand-specific reads are already taken care of internally, so no need to 
 #    pass on those parameters.  
 #
@@ -161,7 +193,7 @@ my $gene_trans_map_file;
 my $max_ins_size = 800;
 
 my $est_method;
-my $aln_method;
+my $aln_method = "";
 
 
 my $retain_sorted_bam_file = 0;
@@ -178,7 +210,7 @@ my $trinity_mode;
 my $include_rsem_bam;
 my $coordsort_bam_flag = 0;
 
-&GetOptions ( 'h' => \$help_flag,
+&GetOptions ( 'help|h' => \$help_flag,
               'transcripts=s' => \$transcripts,
               'name_sorted_bam=s' => \$bam_file,
               'debug' => \$DEBUG_flag,
@@ -222,7 +254,8 @@ my $coordsort_bam_flag = 0;
               
               'rsem_add_opts=s' => \$rsem_add_opts,
               'eXpress_add_opts=s' => \$eXpress_add_opts,
-                   
+              'kallisto_add_opts=s' => \$kallisto_add_opts,
+    
               'coordsort_bam' => \$coordsort_bam_flag,
     
               );
@@ -239,48 +272,62 @@ if ($help_flag) {
 if ($show_full_usage_info) {
     die "$usage\n\n$advanced_usage_info\n\n";
 }
+unless ($est_method) {
+    die $usage;
+}
 
-unless (($est_method && $aln_method && $prep_reference && $transcripts) ## just prep reference
+my @EST_METHODS = qw(RSEM eXpress kallisto);
+my %ALIGNMENT_BASED_EST_METHODS = map { + $_ => 1 } qw (RSEM eXpress);
+my %ALIGNMENT_FREE_EST_METHODS = map { + $_ => 1 } qw (kallisto);
 
-        || ($transcripts && $aln_method && $est_method && $seqType && ($single || ($left && $right))) # do alignment
 
+unless ($output_dir) {
+    die "Error, must specify output directory name via: --output_dir   ";
+}
+
+unless (($est_method && $prep_reference && $transcripts) ## just prep reference
+
+        || ($transcripts && $est_method && $seqType && ($single || ($left && $right))) # do alignment
+    
     ) {
 
     die "Error, missing parameter. See example usage options below.\n" . $usage;
 }
 
 my $PROCESSING_EXISTING_BAM_FLAG = 0;
-if ($aln_method =~ /\.bam$/) {
-    if (-s $aln_method) {
-        # no problem, using the bam file
-        $PROCESSING_EXISTING_BAM_FLAG = 1;
+
+if  ($ALIGNMENT_FREE_EST_METHODS{$est_method}) {
+    $aln_method = "none";
+}
+else {
+    if ($aln_method =~ /\.bam$/) {
+        if (-s $aln_method) {
+            # no problem, using the bam file
+            $PROCESSING_EXISTING_BAM_FLAG = 1;
+        }
+        else {
+            die "Error, file $aln_method does not exist or is empty.  ";
+        }
     }
-    else {
-        die "Error, file $aln_method does not exist or is empty.  ";
-    }
-}
-elsif ($aln_method !~ /bowtie2?/) {
-    die "Error, --aln_method must be either 'bowtie' or 'bowtie2' ";
-}
-
-unless ($est_method =~ /^(RSEM|eXpress|none)$/) {
-    die "Error, --est_method  'RSEM' or 'eXpress' only, and capitalization matters. :) \n";
-}
-
-
-
-
-if ($output_dir) {
-    $left = &create_full_path($left) if $left;
-    $right = &create_full_path($right) if $right;
-    $single = &create_full_path($single) if $single;
-    
-    $transcripts = &create_full_path($transcripts);
-
-    if ($gene_trans_map_file) {
-        $gene_trans_map_file = &create_full_path($gene_trans_map_file);
+    elsif ($aln_method !~ /bowtie2?/) {
+        die "Error, --aln_method must be either 'bowtie' or 'bowtie2' ";
     }
 }
+
+
+unless ($est_method =~ /^(RSEM|eXpress|kallisto|none)$/) {
+    die "Error, --est_method @EST_METHODS only, and capitalization matters. :) \n";
+}
+
+
+$left = &create_full_path($left) if $left;
+$right = &create_full_path($right) if $right;
+$single = &create_full_path($single) if $single;
+
+$transcripts = &create_full_path($transcripts);
+
+$gene_trans_map_file = &create_full_path($gene_trans_map_file) if $gene_trans_map_file;
+
 
 
 if ($left && $left =~ /\.gz$/) {
@@ -326,8 +373,10 @@ if ( $thread_count !~ /^\d+$/ ) {
     elsif ($est_method =~ /^eXpress$/i) {
         push (@tools, 'express');
     }
+    elsif ($est_method eq 'kallisto') {
+        push (@tools, 'kallisto');
+    }
     
-
     foreach my $tool (@tools) {
         my $p = `which $tool`;
         unless ($p =~ /\w/) {
@@ -343,21 +392,50 @@ if ( $thread_count !~ /^\d+$/ ) {
 main: {
 
 
-    ###############################################
-    ## Prepare transcript database for alignments
-    ###############################################
-
-    my $db_index_name = "$transcripts.${aln_method}";
-    
 
     if ($trinity_mode && ! $gene_trans_map_file) {
         $gene_trans_map_file = "$transcripts.gene_trans_map";
         my $cmd = "$FindBin::Bin/support_scripts/get_Trinity_gene_to_trans_map.pl $transcripts > $gene_trans_map_file";
         &process_cmd($cmd) unless (-e $gene_trans_map_file);
     }
+    
+    if ($ALIGNMENT_BASED_EST_METHODS{$est_method}) {
         
+        &run_alignment_BASED_estimation();
+
+    }
+    else {
+        &run_alignment_FREE_estimation();
+    }
+
+    exit(0);
+}
+
+
+
+####
+sub run_alignment_FREE_estimation {
+    
+    if ($est_method eq "kallisto") {
+        &run_kallisto();
+    }
+}
+
+
+
+####
+sub run_alignment_BASED_estimation {
+    
+    my $db_index_name = "$transcripts.${aln_method}";
+    
+
     unless ($PROCESSING_EXISTING_BAM_FLAG) {
-            
+        
+        ###############################################
+        ## Prepare transcript database for alignments
+        ###############################################
+        
+                    
         if ($prep_reference) {
             
             my $cmd = "${aln_method}-build $transcripts $db_index_name";
@@ -398,8 +476,6 @@ main: {
 
             unless (-e "$rsem_prefix.rsem.prepped.ok") {
                 
-                
-                
                 &process_cmd("touch $rsem_prefix.rsem.prepped.started");
                 
                 my $cmd = "rsem-prepare-reference "; #--no-bowtie"; # update for RSEM-2.15
@@ -430,21 +506,16 @@ main: {
         exit(0);
     }
 
-
+    
     #####################
     ## Run alignments
     #####################
-
-
-    if ($output_dir) {
-        
-        my $init_dir = cwd();
-        
-        system("mkdir -p $output_dir");
-        chdir $output_dir or die "Error, cannot cd to output directory $output_dir";
     
+    unless (-d $output_dir) {
+        system("mkdir -p $output_dir");
     }
-
+    chdir $output_dir or die "Error, cannot cd to output directory $output_dir";
+        
     my $prefix = $output_prefix;
     if ($prefix) {
         $prefix .= "."; # add separator in filename
@@ -511,10 +582,9 @@ main: {
         
     }
     
-    exit(0);
+    return;
     
 }
-
 
 
 ####
@@ -560,24 +630,15 @@ sub run_eXpress {
     
     ## run eXpress
     my $express_cmd = "express $SS_opt $eXpress_add_opts $transcripts";
-        
+    
     my $cmd = "$express_cmd $bam_file";
     &process_cmd($cmd);
     
     if ($gene_trans_map_file) {
-        &make_eXpress_genes_file("results.xprs", $gene_trans_map_file);
+        
+        my $cmd = "$FindBin::Bin/support_scripts/eXpress_trans_to_gene_results.pl results.xprs $gene_trans_map_file > results.xprs.genes";
+        &process_cmd($cmd);
     }
-    
-    return;
-
-}
-
-####
-sub make_eXpress_genes_file {
-    my ($results_xprs_file, $gene_to_trans_map_file) = @_;
-
-    my $cmd = "$FindBin::Bin/support_scripts/eXpress_trans_to_gene_results.pl $results_xprs_file $gene_to_trans_map_file > $results_xprs_file.genes";
-    &process_cmd($cmd);
     
     return;
 }
@@ -691,7 +752,7 @@ sub add_zcat_gz {
         
         if ($file =~ /\.gz$/) {
 
-            $file = "<(zcat $file)";
+            $file = "<(gunzip -c $file)";  # used to be zcat
     
             
         }
@@ -702,3 +763,40 @@ sub add_zcat_gz {
 
     return($file_listing);
 }
+
+
+####
+sub run_kallisto {
+    
+    my $kallisto_index = "$transcripts.kallisto_idx";
+    
+    if ( (! $prep_reference) && (! -e $kallisto_index)) {
+        confess "Error, no kallisto index file: $kallisto_index, and --prep_reference not set.  Re-run with --prep_reference";
+    }
+    if ($prep_reference && ! -e $kallisto_index) {
+        
+        my $cmd = "kallisto index -i $kallisto_index $transcripts";
+        &process_cmd($cmd);
+    }
+
+    if ($left && $right) {
+
+        my $cmd = "kallisto quant -i $kallisto_index $kallisto_add_opts -o $output_dir $left $right";
+        &process_cmd($cmd);
+    }
+    elsif ($single) {
+        my $cmd = "kallisto quant -l $fragment_length -i $kallisto_index -o $output_dir $kallisto_add_opts $single";
+        &process_cmd($cmd);
+    }
+    
+    
+    if ($gene_trans_map_file) {
+        
+        my $cmd = "$FindBin::Bin/support_scripts/kallisto_trans_to_gene_results.pl $output_dir/abundance.tsv $gene_trans_map_file > $output_dir/abundance.tsv.genes";
+        &process_cmd($cmd);
+    }
+
+
+    return;
+}
+

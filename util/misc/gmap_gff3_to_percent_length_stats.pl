@@ -19,6 +19,7 @@ main: {
 
     open (my $fh, $gmap_gff3) or die $!;
     while (<$fh>) {
+        if (/^\#/) { next; }
         chomp;
         my @x = split(/\t/);
         my $info = $x[8];

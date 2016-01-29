@@ -540,10 +540,7 @@ void KmerSearch::Extend(long long last,
     m_usedLocal[currNum] = last;
     if (!m_connect)
         m_local.push_back(currNum);
-    
-    
-    long long j;
-    
+        
     vecDNAVector right;
     Shift(right, seq);
     
@@ -562,7 +559,7 @@ void KmerSearch::Extend(long long last,
     
     long long hi = 0;
     long long hi_index = -1;
-    for (j=0; j<right.lsize(); j++) {
+    for (size_t j=0; j<right.size(); j++) {
         const DNAVector & r = right[j];
         long long num = GetGlobalSeq()->BasesToNumber(r, 0);
         //long long num = GetFullCount(count, r, 0);
@@ -583,7 +580,7 @@ void KmerSearch::Extend(long long last,
     }
     
     
-    for (j=0; j<right.lsize(); j++) {
+    for (size_t j=0; j<right.size(); j++) {
         const DNAVector & r = right[j];
         //cout << "r size=" << r.lsize() << endl;
         long long num = GetGlobalSeq()->BasesToNumber(r, 0);
@@ -656,9 +653,9 @@ int TranscriptomeGraph(vecDNAVector & seq,
     //vecDNAVector seq;
     //seq.Read(aString);
     
-    int i;
+    size_t i;
     
-    if (seq.isize() == 1) {    // only one sequence, the graph is simple:  linear set of overlapping kmers
+    if (seq.size() == 1) {    // only one sequence, the graph is simple:  linear set of overlapping kmers
         /*FILE * pOut = NULL;
           
         if (bAppend)
@@ -669,9 +666,9 @@ int TranscriptomeGraph(vecDNAVector & seq,
         
         DNAVector & d = seq[0];
         for (i=0; i<=d.isize()-k; i++) {
-            fprintf(pOut, "%d\t%d\t1\t", i, i-1);
+            fprintf(pOut, "%lu\t%lu\t1\t", i, i-1);
             //cout << i << "\t" << i-1 << "\t1\t";
-            for (int x=i; x<i+k; x++)
+            for (size_t x=i; x<i+k; x++)
                 fprintf(pOut, "%c", d[x]);
             //cout << d[x];
             fprintf(pOut, "\t0\n");
@@ -693,10 +690,10 @@ int TranscriptomeGraph(vecDNAVector & seq,
     
     
     
-    for (i=0; i<seq.lsize(); i++) {
+    for (i=0; i<seq.size(); i++) {
         DNAVector d = seq[i];
         //cout << "i=" << i << endl;
-        char * tmp = new char[d.lsize()+1];
+        char * tmp = new char[d.size()+1];
         for (j=0; j<d.lsize(); j++) {
             //cout << j << "\t" << d[j] << endl;
             tmp[j] = d[j];
@@ -732,7 +729,7 @@ int TranscriptomeGraph(vecDNAVector & seq,
     //cout << "WARNING: no check for left seed extensions!!" << endl;
     
         
-    for (i=0; i<seq.lsize(); i++) {
+    for (i=0; i<seq.size(); i++) {
         DNAVector d = seq[i];
         //cout << i << endl;
         for (j=0; j<=d.lsize()-k; j++) {
@@ -767,7 +764,7 @@ int TranscriptomeGraph(vecDNAVector & seq,
     
     
     // examine kmers
-    for (i=0; i<seq.lsize(); i++) {
+    for (i=0; i<seq.size(); i++) {
         const DNAVector & v = seq[i];
         
         for (j=0; j<=v.lsize()-k; j++) {

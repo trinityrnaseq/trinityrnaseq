@@ -98,7 +98,7 @@ void write_deBruijn_graphs(string iwormBundleFasta, string execDir, bool sStrand
 
 
 
-void write_deBruijn_graphs(vector<string_vec>& bundled, vector<int>& component_ids, ComponentFileMgr& mgr, string outDir, string execDir, bool sStrand, map<int,bool>& pursue_component) {
+void write_deBruijn_graphs(vector<string_vec>& bundled, vector<int>& component_ids, ComponentFileMgr& mgr, string, string execDir, bool sStrand, map<int,bool>& pursue_component) {
 
     string cpp_graph_writer = execDir + "/../Inchworm/bin/FastaToDeBruijn";
     
@@ -106,7 +106,7 @@ void write_deBruijn_graphs(vector<string_vec>& bundled, vector<int>& component_i
     int num_components = bundled.size();
 
     #pragma omp parallel for schedule(dynamic)
-    for (int i = 0; i < bundled.size(); i++) {
+    for (size_t i = 0; i < bundled.size(); i++) {
 
         int component_id = component_ids[i];
         
@@ -174,7 +174,7 @@ void write_deBruijn_graphs(vector<string_vec>& bundled, vector<int>& component_i
 
 
 
-void write_iworm_bundle (string filename, vector<string_vec>& bundled, vector<int>& component_ids, ComponentFileMgr& mgr) {
+void write_iworm_bundle (string filename, vector<string_vec>& bundled, vector<int>& component_ids, ComponentFileMgr&) {
 
     ofstream ofh;
     ofh.open(filename.c_str());
@@ -183,7 +183,7 @@ void write_iworm_bundle (string filename, vector<string_vec>& bundled, vector<in
     //bundle_listing_ofh.open("iworm_bundle_file_listing.txt");
 
 
-    for (int i = 0; i < bundled.size(); i++) {
+    for (size_t i = 0; i < bundled.size(); i++) {
 
         int component_id = component_ids[i];
         string_vec bundled_iworms = bundled[i];
@@ -607,19 +607,19 @@ int main(int argc,char** argv)
                     DNAVector app;
                     app.SetFromBases(parser.AsString(0));
                     //cerr << "adding: " << parser.AsString(0) << endl;
-                    tmpSeq[tmpSeq.isize()-1] += app; // adding the iworm sequence to that iworm entry
+                    tmpSeq[tmpSeq.size()-1] += app; // adding the iworm sequence to that iworm entry
                     
                     //fprintf(p, "%s\n", parser.Line().c_str());
                 }
                 //fclose(p);
                 
-                if (tmpSeq.isize() == 1 && tmpSeq[0].isize() < minLen) {
+                if (tmpSeq.size() == 1 && tmpSeq[0].isize() < minLen) {
                     //cerr << "-discarding entry, too short." << endl;
                     continue;
                 }
                 
                 bool bGood = false;
-                for (int x=0; x<tmpSeq.isize(); x++) {
+                for (size_t x=0; x<tmpSeq.size(); x++) {
                     if (tmpSeq[x].isize() > minDumpLen) {
                         bGood = true;
                         break;
@@ -629,7 +629,7 @@ int main(int argc,char** argv)
                 if (bGood) {
                     
                     vector<string> iworm_bundle;
-                    for (int x = 0; x < tmpSeq.isize(); x++) {
+                    for (size_t x = 0; x < tmpSeq.size(); x++) {
                         iworm_bundle.push_back(get_seq_string(tmpSeq[x]));    
                         
                     }

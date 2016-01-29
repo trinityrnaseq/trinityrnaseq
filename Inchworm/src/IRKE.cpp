@@ -26,9 +26,9 @@
 #include "irke_common.hpp"
 
 
-static int MAX_RECURSION_HARD_STOP = 50;
+const unsigned int MAX_RECURSION_HARD_STOP = 50;
 
-typedef struct iworm_tmp_file {  //FIXME: make a class for this
+struct iworm_tmp_file {  //FIXME: make a class for this
     ofstream* fh;
     char* tmp_filename;
 };
@@ -68,7 +68,7 @@ void IRKE::set_prune_singleton_read_interval (unsigned long interval) {
 }
 
 
-void IRKE::build_graph(const string& fasta_filename, bool reassembleIworm, bool useKmers) {
+void IRKE::build_graph(const string& fasta_filename, bool, bool useKmers) {
 	
 	if (useKmers)
 		populate_Kmers_from_kmers(fasta_filename);
@@ -93,7 +93,7 @@ void IRKE::populate_Kmers_from_kmers(const string& fasta_filename) {
   	record_counter[i] = 0;
   }
 
-	cerr << "-reading Kmer occurences..." << endl;
+	cerr << "-reading Kmer occurrences..." << endl;
 	start = time(NULL);
 
 	Fasta_reader fasta_reader(fasta_filename);
@@ -559,7 +559,7 @@ void IRKE::compute_sequence_assemblies(KmerCounter& kcounter, float min_connecti
 
         string sequence = reconstruct_path_sequence(kcounter, joined_path, assembly_base_coverage);
 		
-		int avg_cov =  static_cast<int> ( (float)total_counts/(sequence.length()-kcounter.get_kmer_length() +1) + 0.5);
+		unsigned int avg_cov =  static_cast<unsigned int> ( (float)total_counts/(sequence.length()-kcounter.get_kmer_length() +1) + 0.5);
 		
 		/*
 		  cout << "Inchworm-reconstructed sequence, length: " << sequence.length() 
@@ -567,9 +567,9 @@ void IRKE::compute_sequence_assemblies(KmerCounter& kcounter, float min_connecti
 		  << " " << sequence << endl;
 		*/
 
-        unsigned int contig_length = sequence.length();
+        size_t contig_length = sequence.length();
 
-		if (contig_length >= MIN_ASSEMBLY_LENGTH && avg_cov >= MIN_ASSEMBLY_COVERAGE) {
+	if (contig_length >= MIN_ASSEMBLY_LENGTH && avg_cov >= MIN_ASSEMBLY_COVERAGE) {
 
 
             *(tmpfiles[myTid].fh) << total_counts << endl
@@ -641,7 +641,6 @@ void IRKE::compute_sequence_assemblies(KmerCounter& kcounter, float min_connecti
             
             //cerr << "Read sequence: " << sequence << endl;
             
-            unsigned int contig_length = sequence.length();
             unsigned int contig_hash = generateHash(sequence);
             
             if (! seen_contig_already[contig_hash]
@@ -712,7 +711,7 @@ void IRKE::compute_sequence_assemblies(KmerCounter& kcounter, float min_connecti
 
 
 bool IRKE::is_good_seed_kmer(kmer_int_type_t kmer, unsigned int kmer_count, unsigned int kmer_length, 
-                             float min_connectivity) {
+                             float) {
 
     if (kmer_count == 0) {
         return(false);
@@ -758,7 +757,7 @@ bool IRKE::is_good_seed_kmer(kmer_int_type_t kmer, unsigned int kmer_count, unsi
 
 vector<kmer_int_type_t>  IRKE::build_inchworm_contig_from_seed(kmer_int_type_t kmer, KmerCounter& kcounter, 
                                                                float min_connectivity, unsigned int& total_counts,
-                                                               bool PARALLEL_IWORM) {
+                                                               bool) {
     	        
         unsigned int kmer_count = kcounter.get_kmer_count(kmer); 
 
@@ -1171,7 +1170,7 @@ string IRKE::reconstruct_path_sequence(KmerCounter& kcounter, vector<kmer_int_ty
 }
 
 
-bool IRKE::exceeds_min_connectivity (KmerCounter& kcounter, Kmer_Occurence_Pair kmerA, Kmer_Occurence_Pair kmerB, float min_connectivity) {
+bool IRKE::exceeds_min_connectivity (KmerCounter&, Kmer_Occurence_Pair kmerA, Kmer_Occurence_Pair kmerB, float min_connectivity) {
 	
     if (min_connectivity < 1e5) {
         return(true); // consider test off
@@ -1345,7 +1344,7 @@ kmer_int_type_t IRKE::extract_best_seed(vector<kmer_int_type_t>& kmer_vec, KmerC
     unsigned int kmer_length = kcounter.get_kmer_length();
     
     unsigned int best_kmer_count = 0;
-    kmer_int_type_t best_seed;
+    kmer_int_type_t best_seed = 0;
     
     for (unsigned int i = 0; i < kmer_vec.size(); i++) {
         

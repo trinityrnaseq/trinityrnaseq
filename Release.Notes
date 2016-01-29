@@ -1,4 +1,20 @@
 
+# next release
+
+  -including -XX:ParallelGCThreads=$bflyGCThreads in ExitTester.jar execution.
+  -incorporating samtools-0.1.19 as plugin
+  
+
+
+# Release v2.0.6
+  -patch to autoconf for the inchworm build
+
+
+# Release v2.0.5
+  -bugfix to properly fan out read files (they were inadvertently ending up in a single directory)
+
+
+
 # Release v2.0.4
 
     -Trimmomatic symlink set w/ capital T

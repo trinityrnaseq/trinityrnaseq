@@ -620,16 +620,16 @@ int vecDNAVector::NameIndex(const string & name) const {
 	  return mIter->second;
 }
 
-const string & vecDNAVector::Name(int i) const {
+const string & vecDNAVector::Name(size_t i) const {
 	return m_names[i];
 }
 
-const char * vecDNAVector::NameClean(int i) const {
+const char * vecDNAVector::NameClean(size_t i) const {
   const char * p = m_names[i].c_str();
   return &p[1];
 }
 
-void vecDNAVector::SetName(int i, const string & s) {
+void vecDNAVector::SetName(size_t i, const string & s) {
 	m_name2index.erase(m_names[i]);
 	invalidateReferences(m_names[i]);
 	m_name2index[s] = i;
@@ -651,7 +651,7 @@ void vecDNAVector::push_back(const DNAVector & v, const string & name) {
   m_name2index.insert(make_pair(name, m_names.size()-1));
 }
 
-void vecDNAVector::erase(int index) {
+void vecDNAVector::erase(size_t index) {
 	  m_name2index.erase(m_names[index]);
 	  invalidateReferences(m_names[index]);
 	  m_names.erase(m_names.begin() + index);
@@ -669,14 +669,14 @@ bool vecDNAVector::erase(const string &name) {
 	return false;
 }
 
-void vecDNAVector::fast_erase(int index) {
+void vecDNAVector::fast_erase(size_t index) {
 	  m_name2index.erase(m_names[index]);
 	  invalidateReferences(m_names[index]);
 	  swap(m_names[m_names.size()-1], m_names[index]);
 	  swap(m_data[m_data.size()-1], m_data[index]);
 	  m_names.pop_back();
 	  m_data.pop_back();
-	  if(index < m_names.isize())
+	  if(index < m_names.size())
 		  m_name2index[m_names[index]] = index;
 }
 
@@ -689,16 +689,8 @@ bool vecDNAVector::fast_erase(const string &name) {
 	  return false;
 }
 
-int vecDNAVector::size() const {
-	return m_data.isize();
-}
-
-int vecDNAVector::isize() const {
-	return m_data.isize();
-}
-
-long long vecDNAVector::lsize() const {
-	return m_data.lsize();
+size_t vecDNAVector::size() const {
+	return m_data.size();
 }
 
 long long vecDNAVector::totalBases() const {
@@ -739,7 +731,7 @@ void vecDNAVector::DoProteins(bool b)
 void vecDNAVector::ReadV(const string & file) 
 {
   int ver = 1;
-  int i, j;
+  size_t i, j;
   CMReadFileStream s;
   s.Open(file.c_str());
   
@@ -749,13 +741,13 @@ void vecDNAVector::ReadV(const string & file)
   s.Read(size);
   resize(size);
 
-  for (i=0; i<isize(); i++) {
+  for (i=0; i<this->size(); i++) {
     CMString n;
     s.Read(n);
     m_names[i] = (const char*)n;
     DNAVector & d = m_data[i];
     m_name2index[m_names[i]] = i;
-    int len = 0;
+    size_t len = 0;
     s.Read(len);
     d.resize(len);
     for (j=0; j<len; j++)
@@ -768,18 +760,18 @@ void vecDNAVector::ReadV(const string & file)
 void vecDNAVector::WriteV(const string & file) const
 {
   int ver = 1;
-  int i, j;
+  size_t i, j;
   CMWriteFileStream s;
   s.Open(file.c_str());
   
   s.Write(ver);
-  s.Write(isize());
+  s.Write(size());
 
-  for (i=0; i<isize(); i++) {
+  for (i=0; i<size(); i++) {
     CMString n = m_names[i].c_str();
     s.Write(n);
     const DNAVector & d = m_data[i];
-    int len = d.isize();
+    size_t len = d.size();
     s.Write(len);
     for (j=0; j<len; j++)
       s.Write(d[j]);
@@ -793,9 +785,8 @@ void vecDNAVector::WriteV(const string & file) const
 void vecDNAVector::Write(const string & fileName, bool bSkipEmpty) const
 {
   FILE * p = fopen(fileName.c_str(), "w");
-  int i;
-  for (i=0; i<isize(); i++) {
-    if (bSkipEmpty && m_data[i].isize() == 0)
+  for (size_t i=0; i<size(); i++) {
+    if (bSkipEmpty && m_data[i].size() == 0)
       continue;
     //cout << "size: " << m_data[i].isize() << " skip=" << bSkipEmpty << endl;
     fprintf(p, "%s\n", m_names[i].c_str());
@@ -807,8 +798,7 @@ void vecDNAVector::Write(const string & fileName, bool bSkipEmpty) const
 void vecDNAVector::WriteQuals(const string & fileName) const
 {
   FILE * p = fopen(fileName.c_str(), "w");
-  int i;
-  for (i=0; i<isize(); i++) {
+  for (size_t i=0; i<size(); i++) {
     fprintf(p, "%s\n", m_names[i].c_str());
     m_data[i].WriteQual(p);
   }
@@ -1094,13 +1084,13 @@ void vecDNAVector::ReverseComplement() {
 
 void vecDNAVector::UniqueSort() {
 	map<DNAVector, string> tempNameMap;
-	for(int i = 0; i < m_data.isize(); i++)
+	for(size_t i = 0; i < m_data.size(); i++)
 		tempNameMap[m_data[i]] = m_names[i];
 
   m_name2index.clear();
   ::UniqueSort(m_data);
-  m_names.resize(m_data.isize());
-  for(int i = 0; i < m_data.isize(); i++) {
+  m_names.resize(m_data.size());
+  for(size_t i = 0; i < m_data.size(); i++) {
   	m_name2index[tempNameMap[m_data[i]]] = i;
   	tempNameMap.erase(m_data[i]);
   }

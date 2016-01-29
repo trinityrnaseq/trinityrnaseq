@@ -11,18 +11,12 @@ chdir $FindBin::Bin or die "error, cannot cd to $FindBin::Bin";
 
 
 
-my @files_to_keep = qw (cleanme.pl 
-
-                        reads.right.fq.gz
-                        reads.left.fq.gz
-
-                        run_eXpress.sh
-                        run_rsem.sh
-
-                        Trinity.fasta.gene_trans_map                        
-                        Trinity.fasta.gz
-
-                        Makefile
+my @files_to_keep = qw (
+cleanme.pl 
+Makefile
+align_and_estimate_tester.pl
+samples.txt
+plot_paired_comparisons.Rscript
 );
 
 
@@ -32,17 +26,16 @@ my %keep = map { + $_ => 1 } @files_to_keep;
 
 foreach my $file (<*>) {
 	
-	if (! $keep{$file}) {
+	if (-f $file && ! $keep{$file}) {
 		print STDERR "-removing file: $file\n";
 		unlink($file);
 	}
 }
 
 
-`rm -rf ./transdecoder.tmp.*`;
-
-`rm -rf ./eXpress_estimate`;
-`rm -rf ./rsem_estimate`;
+`rm -rf ./RSEM-*`;
+`rm -rf ./eXpress-*`;
+`rm -rf ./kallisto-*`;
 
 
 exit(0);

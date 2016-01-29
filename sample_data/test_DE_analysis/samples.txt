@@ -1,0 +1,14 @@
+wt_37	wt_37_1	/broad/hptmp/bhaas/candida/FASTQ/2M/2M.wt_37_1-SRX707647-SRR1582649_1.fastq	/broad/hptmp/bhaas/candida/FASTQ/2M/2M.wt_37_1-SRX707647-SRR1582649_2.fastq
+wt_37	wt_37_2	/broad/hptmp/bhaas/candida/FASTQ/2M/2M.wt_37_2-SRX707648-SRR1582650_1.fastq	/broad/hptmp/bhaas/candida/FASTQ/2M/2M.wt_37_2-SRX707648-SRR1582650_2.fastq
+wt_37	wt_37_3	/broad/hptmp/bhaas/candida/FASTQ/2M/2M.wt_37_3-SRX707649-SRR1582651_1.fastq	/broad/hptmp/bhaas/candida/FASTQ/2M/2M.wt_37_3-SRX707649-SRR1582651_2.fastq
+wt_GSNO	wt_GSNO_1	/broad/hptmp/bhaas/candida/FASTQ/2M/2M.wt_GSNO_1-SRX707644-SRR1582646_1.fastq	/broad/hptmp/bhaas/candida/FASTQ/2M/2M.wt_GSNO_1-SRX707644-SRR1582646_2.fastq
+wt_GSNO	wt_GSNO_2	/broad/hptmp/bhaas/candida/FASTQ/2M/2M.wt_GSNO_2-SRX707645-SRR1582647_1.fastq	/broad/hptmp/bhaas/candida/FASTQ/2M/2M.wt_GSNO_2-SRX707645-SRR1582647_2.fastq
+wt_GSNO	wt_GSNO_3	/broad/hptmp/bhaas/candida/FASTQ/2M/2M.wt_GSNO_3-SRX707646-SRR1582648_1.fastq	/broad/hptmp/bhaas/candida/FASTQ/2M/2M.wt_GSNO_3-SRX707646-SRR1582648_2.fastq
+wt_ph8	wt_ph8_1	/broad/hptmp/bhaas/candida/FASTQ/2M/2M.wt_ph8_1-SRX707641-SRR1582643_1.fastq	/broad/hptmp/bhaas/candida/FASTQ/2M/2M.wt_ph8_1-SRX707641-SRR1582643_2.fastq
+wt_ph8	wt_ph8_2	/broad/hptmp/bhaas/candida/FASTQ/2M/2M.wt_ph8_2-SRX707642-SRR1582644_1.fastq	/broad/hptmp/bhaas/candida/FASTQ/2M/2M.wt_ph8_2-SRX707642-SRR1582644_2.fastq
+wt_ph8	wt_ph8_3	/broad/hptmp/bhaas/candida/FASTQ/2M/2M.wt_ph8_3-SRX707643-SRR1582645_1.fastq	/broad/hptmp/bhaas/candida/FASTQ/2M/2M.wt_ph8_3-SRX707643-SRR1582645_2.fastq
+
+--CPU=6
+--max_memory=20G
+--seqType=fq
+--grid_conf=/seq/regev_genome_portal/SOFTWARE/trinityrnaseq/hpc_conf/BroadInst_LSF.hour.10.conf

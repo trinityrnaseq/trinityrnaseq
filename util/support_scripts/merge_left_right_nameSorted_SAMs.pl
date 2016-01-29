@@ -305,7 +305,7 @@ sub identify_mapped_pairs_single_scaffold {
 				
 				&&
 				
-				abs ($left_entry->get_aligned_position() - $right_entry->get_aligned_position()) <= $max_dist_between_pairs
+				abs ($left_entry->get_aligned_start_position() - $right_entry->get_aligned_start_position()) <= $max_dist_between_pairs
 				
 			) {
 				
@@ -313,14 +313,14 @@ sub identify_mapped_pairs_single_scaffold {
 				
 				if ( ($left_entry->get_query_strand eq '+'
 					  &&
-					  $left_entry->get_aligned_position() < $right_entry->get_aligned_position()
+					  $left_entry->get_aligned_start_position() < $right_entry->get_aligned_start_position()
 					  )
 					 
 					 ||
 					 
 					 ($left_entry->get_query_strand eq '-'
 					  && 
-					  $left_entry->get_aligned_position() > $right_entry->get_aligned_position() )
+					  $left_entry->get_aligned_start_position() > $right_entry->get_aligned_start_position() )
 					) 
 				{
 					

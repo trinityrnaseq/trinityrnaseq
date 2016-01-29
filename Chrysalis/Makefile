@@ -309,7 +309,7 @@ ifeq ($(COMPILER),g++)
 endif
 
 # Linking control (e.g. to link templates):
-SYS_LINK	=
+SYS_LINK	=  $(LDFLAGS)
 
 # Required libraries:
 SYS_LIBS	= -lm -pthread
@@ -381,7 +381,8 @@ CPP_OPTIONS	= \
 		$(SYS_LANG) \
 		$(SYS_INCS) \
 		$(OMP_OPTIONS) \
-		$(PTHREAD_OPTIONS)
+		$(PTHREAD_OPTIONS) \
+		$(CPPFLAGS)
 
 LINK_OPTIONS	= \
 		$(SYS_DEBUG) \

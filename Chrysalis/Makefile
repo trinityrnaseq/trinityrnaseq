@@ -52,6 +52,7 @@
 ##############################################################################
 
 DATE = $(shell date)
+BUILD_DATETIME ?= $(DATE)  # allow for overrides to enable reproducible builds
 OS_NAME = $(shell uname -s)
 NODE_NAME = $(shell uname -n)
 OS_RELEASE = $(shell uname -r)
@@ -277,7 +278,7 @@ XERCES_LIB	=
 
 # Base definitions:
 SYS_DEFS	= \
-		  -DMAKE_DATE='"$(DATE)"' \
+		  -DMAKE_DATE='"$(BUILD_DATETIME)"' \
 		  -DMAKE_OS_RELEASE='"$(OS_RELEASE)"' \
 		  -DMAKE_RELEASE='"$(RELEASE)"' \
 		  -DNEW_MAKEFILE

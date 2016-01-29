@@ -2,9 +2,9 @@ CXX    = g++
 prefix = ../htslib
 
 ScaffoldIwormContigs:
-	$(CXX) -I$(prefix) -L$(prefix) ScaffoldIwormContigs.cpp error_checker.cpp -lhts -lz -o scaffold_iworm_contigs
+	$(CXX) $(LDFLAGS) -I$(prefix) -L$(prefix) ScaffoldIwormContigs.cpp error_checker.cpp -lhts -o scaffold_iworm_contigs
 
 clean:
-	rm scaffold_iworm_contigs
+	rm -f scaffold_iworm_contigs
 
 

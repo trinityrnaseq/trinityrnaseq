@@ -12,7 +12,7 @@ my $ref_transcripts_fasta = $ARGV[1] or die $usage;
 my $SS_flag = $ARGV[2] || 0;
 
 
-my $cmd = "$FindBin::Bin/../../Inchworm/bin/inchworm "
+my $cmd = "$FindBin::RealBin/../../Inchworm/bin/inchworm "
     . " --reads $reads_file "
     . " --checkFastaPath $ref_transcripts_fasta ";
 

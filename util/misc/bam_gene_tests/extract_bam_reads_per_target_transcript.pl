@@ -8,7 +8,7 @@ use Getopt::Long qw(:config no_ignore_case bundling pass_through);
 use File::Basename;
 
 use FindBin;
-use lib ("$FindBin::Bin/../../../PerlLib");
+use lib ("$FindBin::RealBin/../../../PerlLib");
 
 use Nuc_translator;
 use SAM_reader;

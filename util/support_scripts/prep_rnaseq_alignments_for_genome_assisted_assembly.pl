@@ -90,7 +90,7 @@ if ($SS_lib_type && $SS_lib_type !~ /^(F|R|FR|RF)$/) {
 	die "Error, invalid --SS_lib_type, only F, R, FR, or RF are possible values";
 }
 
-my $UTIL_DIR = "$FindBin::Bin/";
+my $UTIL_DIR = "$FindBin::RealBin/";
 
 main: {
 

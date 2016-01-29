@@ -74,6 +74,7 @@ my $usage = <<__EOUSAGE__;
 #      --heatmap_scale_limits "<int,int>"  cap scale intensity to low,high  (ie.  "-5,5")
 #      --heatmap_colorscheme <string>  default is 'purple,black,yellow'
 #                                      a popular alternative is 'green,black,red'
+#                                      Specify a two-color gradient like so: "black,yellow".
 #
 #     # sample (column) labeling order
 #      --lexical_column_ordering        order samples by column name lexical order.
@@ -496,7 +497,7 @@ my $HEATMAP_COLORS;
 {
     $heatmap_colorscheme =~ s/\s//g;
     my @colors = split(/,/, $heatmap_colorscheme);
-    unless (scalar @colors == 3) {
+    unless (scalar @colors != 3 || scalar @colors != 2) {
         die "Error, need three colors as 'low,mid,high', instead have " . scalar(@colors) . " : $heatmap_colorscheme";
     }
     
@@ -538,9 +539,9 @@ main: {
     
 
     # source these after potential data restoration above - in case they changed.
-    $Rscript .= "source(\"$FindBin::Bin/R/heatmap.3.R\")\n";
-    $Rscript .= "source(\"$FindBin::Bin/R/misc_rnaseq_funcs.R\")\n";
-    $Rscript .= "source(\"$FindBin::Bin/R/pairs3.R\")\n";
+    $Rscript .= "source(\"$FindBin::RealBin/R/heatmap.3.R\")\n";
+    $Rscript .= "source(\"$FindBin::RealBin/R/misc_rnaseq_funcs.R\")\n";
+    $Rscript .= "source(\"$FindBin::RealBin/R/pairs3.R\")\n";
 
 
     

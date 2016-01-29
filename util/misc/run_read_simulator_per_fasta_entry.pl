@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use FindBin;
-use lib ("$FindBin::Bin/../../PerlLib");
+use lib ("$FindBin::RealBin/../../PerlLib");
 use Fasta_reader;
 
 
@@ -41,7 +41,7 @@ main: {
         
         my $outfile = "$sim_out_dir/$outdir/$outdir.reads.fa";
         
-        my $cmd = "$FindBin::Bin/simulate_illuminaPE_from_transcripts.pl --transcripts $template_file --out_prefix $template_file";
+        my $cmd = "$FindBin::RealBin/simulate_illuminaPE_from_transcripts.pl --transcripts $template_file --out_prefix $template_file";
         if ($require_proper_pairs_flag) {
             $cmd .= " --require_proper_pairs";
         }

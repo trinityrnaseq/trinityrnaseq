@@ -10,7 +10,7 @@ use Carp;
 use Getopt::Long qw(:config no_ignore_case bundling pass_through);
 
 
-my $RSEM_DIR = "$FindBin::Bin/../trinity-plugins/rsem";
+my $RSEM_DIR = "$FindBin::RealBin/../trinity-plugins/rsem";
 $ENV{PATH} = "$RSEM_DIR:$ENV{PATH}"; # be sure to use the included rsem package over other ones installed.
 
 
@@ -395,7 +395,7 @@ main: {
 
     if ($trinity_mode && ! $gene_trans_map_file) {
         $gene_trans_map_file = "$transcripts.gene_trans_map";
-        my $cmd = "$FindBin::Bin/support_scripts/get_Trinity_gene_to_trans_map.pl $transcripts > $gene_trans_map_file";
+        my $cmd = "$FindBin::RealBin/support_scripts/get_Trinity_gene_to_trans_map.pl $transcripts > $gene_trans_map_file";
         &process_cmd($cmd) unless (-e $gene_trans_map_file);
     }
     
@@ -510,59 +510,66 @@ sub run_alignment_BASED_estimation {
     #####################
     ## Run alignments
     #####################
+    my $prefix = $output_prefix;
+    if ($prefix) {
+        $prefix .= "."; # add separator in filename
+    }
+    my $bam_file = "${prefix}${aln_method}.bam";
+    my $bam_file_ok = "$bam_file.ok";
+    if ($PROCESSING_EXISTING_BAM_FLAG) {
+        $bam_file = $aln_method;
+        $bam_file = &create_full_path($bam_file);
+        unless (-e $bam_file_ok) {
+            &process_cmd("touch $bam_file_ok");
+        }
+    }
+    
     
     unless (-d $output_dir) {
         system("mkdir -p $output_dir");
     }
     chdir $output_dir or die "Error, cannot cd to output directory $output_dir";
         
-    my $prefix = $output_prefix;
-    if ($prefix) {
-        $prefix .= "."; # add separator in filename
-    }
+
 
     my $read_type = ($seqType eq "fq") ? "-q" : "-f";
-    
-    ## run bowtie
-    my $bowtie_cmd;
-    my $bam_file = "${prefix}${aln_method}.bam";
-    my $bam_file_ok = "$bam_file.ok";
-    if ($PROCESSING_EXISTING_BAM_FLAG) {
-        $bam_file = $aln_method;
-        unless (-e $bam_file_ok) {
-            &process_cmd("touch $bam_file_ok");
-        }
-    }
-        
+
     if ($left && $right) {
         $paired_flag = 1;
     }
     
-    if ($aln_method eq 'bowtie') {
-        if ($left && $right) {
-            $bowtie_cmd = "set -o pipefail && bowtie $read_type " . $aligner_params{"${aln_method}_${est_method}"} . " -X $max_ins_size -S -p $thread_count $db_index_name -1 $left -2 $right | samtools view -F 4 -S -b -o $bam_file -";
-           
-        }
-        else {
-            $bowtie_cmd = "set -o pipefail && bowtie $read_type " . $aligner_params{"${aln_method}_${est_method}"} . " -S -p $thread_count $db_index_name $single | samtools view -F 4 -S -b -o $bam_file -";
-        }
-    }
-    elsif ($aln_method eq 'bowtie2') {
+    if (! $PROCESSING_EXISTING_BAM_FLAG) {
+        ## run bowtie
         
-        if ($left && $right) {
+        my $bowtie_cmd;
+        
+    
+        if ($aln_method eq 'bowtie') {
+            if ($left && $right) {
+                $bowtie_cmd = "set -o pipefail && bowtie $read_type " . $aligner_params{"${aln_method}_${est_method}"} . " -X $max_ins_size -S -p $thread_count $db_index_name -1 $left -2 $right | samtools view -F 4 -S -b -o $bam_file -";
                 
-            $bowtie_cmd = "set -o pipefail && bowtie2 " . $aligner_params{"${aln_method}_${est_method}"} . " $read_type -X $max_ins_size -x $db_index_name -1 $left -2 $right -p $thread_count | samtools view -F 4 -S -b -o $bam_file -";
+            }
+            else {
+                $bowtie_cmd = "set -o pipefail && bowtie $read_type " . $aligner_params{"${aln_method}_${est_method}"} . " -S -p $thread_count $db_index_name $single | samtools view -F 4 -S -b -o $bam_file -";
+            }
         }
-        else {
-
-            $bowtie_cmd = "set -o pipefail && bowtie2 " . $aligner_params{"${aln_method}_${est_method}"} . " $read_type -x $db_index_name -U $single -p $thread_count | samtools view -F 4 -S -b -o $bam_file -";
+        elsif ($aln_method eq 'bowtie2') {
+            
+            if ($left && $right) {
+                
+                $bowtie_cmd = "set -o pipefail && bowtie2 " . $aligner_params{"${aln_method}_${est_method}"} . " $read_type -X $max_ins_size -x $db_index_name -1 $left -2 $right -p $thread_count | samtools view -F 4 -S -b -o $bam_file -";
+            }
+            else {
+                
+                $bowtie_cmd = "set -o pipefail && bowtie2 " . $aligner_params{"${aln_method}_${est_method}"} . " $read_type -x $db_index_name -U $single -p $thread_count | samtools view -F 4 -S -b -o $bam_file -";
+            }
         }
+        
+        &process_cmd($bowtie_cmd) unless (-s $bam_file && -e $bam_file_ok);
+        
+        &process_cmd("touch $bam_file_ok") unless (-e $bam_file_ok);
     }
-    
-    &process_cmd($bowtie_cmd) unless (-s $bam_file && -e $bam_file_ok);
-    
-    &process_cmd("touch $bam_file_ok") unless (-e $bam_file_ok);
-    
+     
     if ($est_method eq "eXpress") {
         &run_eXpress($bam_file);
     }
@@ -636,7 +643,7 @@ sub run_eXpress {
     
     if ($gene_trans_map_file) {
         
-        my $cmd = "$FindBin::Bin/support_scripts/eXpress_trans_to_gene_results.pl results.xprs $gene_trans_map_file > results.xprs.genes";
+        my $cmd = "$FindBin::RealBin/support_scripts/eXpress_trans_to_gene_results.pl results.xprs $gene_trans_map_file > results.xprs.genes";
         &process_cmd($cmd);
     }
     
@@ -706,6 +713,10 @@ sub run_RSEM {
 sub process_cmd {
     my ($cmd) = @_;
 
+    unless ($cmd) {
+        confess "Error, no cmd specified";
+    }
+    
     print STDERR "CMD: $cmd\n";
     
     my $ret = system("bash", "-o", "pipefail", "-c", $cmd);
@@ -792,7 +803,7 @@ sub run_kallisto {
     
     if ($gene_trans_map_file) {
         
-        my $cmd = "$FindBin::Bin/support_scripts/kallisto_trans_to_gene_results.pl $output_dir/abundance.tsv $gene_trans_map_file > $output_dir/abundance.tsv.genes";
+        my $cmd = "$FindBin::RealBin/support_scripts/kallisto_trans_to_gene_results.pl $output_dir/abundance.tsv $gene_trans_map_file > $output_dir/abundance.tsv.genes";
         &process_cmd($cmd);
     }
 

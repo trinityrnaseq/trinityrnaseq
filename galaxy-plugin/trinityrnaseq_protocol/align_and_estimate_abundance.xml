@@ -1,0 +1,89 @@
+<tool id="RSEM_abundance_estimation" name="RSEM_abundance_estimation" version="0.0.1">
+
+    <description>run RSEM to estimate transcript abundances</description>
+    <requirements>
+        <requirement type="package">trinity</requirement>
+    </requirements>
+    <command interpreter="python">
+
+        trinityToolWrapper.py util/align_and_estimate_abundance.pl --transcripts $transcripts --est_method RSEM --aln_method bowtie --trinity_mode --prep_reference --output_dir  "subdir" 
+
+        ## Inputs.
+        #if str($inputs.paired_or_single) == "paired":
+            --left $inputs.left_input --right $inputs.right_input
+            #if  $inputs.left_input.ext == 'fa':
+                --seqType fa
+            #else:
+                --seqType fq
+            #end if
+            #if str($inputs.library_type) != "None":
+                --SS_lib_type $inputs.library_type
+            #end if
+            
+        #else:
+            --single $inputs.input
+            #if  str($inputs.input.ext) == 'fa':
+                --seqType fa
+            #else:
+                --seqType fq
+            #end if
+            #if str($inputs.library_type) != "None":
+                --SS_lib_type $inputs.library_type
+            #end if
+        #end if
+
+
+    </command>
+    <inputs>
+		<param format="fasta" name="transcripts" type="data" label="transcripts_fasta" help="Fasta sequences for which reads are aligned."  />
+
+		<conditional name="inputs">
+                    <param name="paired_or_single" type="select" label="Paired or Single-end data?">
+                <option value="paired">Paired</option>
+                <option value="single">Single</option>
+            </param>
+            <when value="paired">
+                <param format="fasta,fastq" name="left_input" type="data" label="Left/Forward strand reads" help=""/>
+                <param format="fasta,fastq" name="right_input" type="data" label="Right/Reverse strand reads" help=""/>
+                <param name="library_type" type="select" label="Strand-specific Library Type">
+                    <option value="None">None</option>
+                    <option value="FR">FR</option>
+                    <option value="RF">RF</option>
+                </param>
+
+            </when>
+            <when value="single">
+                <param format="fasta,fastq" name="input" type="data" label="Single-end reads" help=""/>
+                <param name="library_type" type="select" label="Strand-specific Library Type">
+                    <option value="None">None</option>
+                    <option value="F">F</option>
+                    <option value="R">R</option>
+                </param>
+
+            </when>
+        </conditional>
+
+	
+    </inputs>
+    <outputs>
+        <data format="text" name="transcript_counts" label="${tool.name} on ${on_string}: Isoform Counts" from_work_dir="subdir/RSEM.isoforms.results"/>
+		<data format="text" name="gene_counts" label="${tool.name} on ${on_string}: Gene counts" from_work_dir="subdir/RSEM.genes.results"/>
+
+
+	</outputs>
+    <tests>
+
+
+		<test>
+			<param name="transcript_file" value="fasta" />
+			<param name="input" value="reads.left.fq" />
+			<output name="transcripts_counts" file="text" />
+		
+        </test>
+	
+
+    </tests>
+    <help>
+        .. _Trinity: http://trinityrnaseq.sourceforge.net
+    </help>
+</tool>

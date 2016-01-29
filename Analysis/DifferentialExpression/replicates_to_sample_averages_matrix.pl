@@ -89,7 +89,7 @@ samples = read.table("$samples_file", header=F, check.names=F)
 sample_types = as.vector(unique(samples[,1]))
 nsamples = length(sample_types)
 
-data = read.table("$matrix_file", header=T, row.names=1, com='', nrows=5, check.names=F)
+data = read.table("$matrix_file", header=T, row.names=1, com='', nrows=10000, check.names=F)
 classes = sapply(data,class)
 data = read.table("$matrix_file", header=T, row.names=1, com='', colClasses=classes, check.names=F)
 data = as.matrix(data)

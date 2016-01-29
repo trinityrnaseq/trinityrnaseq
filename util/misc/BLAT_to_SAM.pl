@@ -171,8 +171,8 @@ if ($SS_lib_type && $SS_lib_type !~ /^(F|R|FR|RF)$/) {
     die "Error, SS_lib_type must be one of the following: (F, R, FR, RF)  ";
 }
 
-my $UTIL_DIR = "$FindBin::Bin/../support_scripts";
-my $BLAT_UTIL_DIR = "$FindBin::Bin/blat_util";
+my $UTIL_DIR = "$FindBin::RealBin/../support_scripts";
+my $BLAT_UTIL_DIR = "$FindBin::RealBin/blat_util";
 
 my ($start_dir, $work_dir);
 
@@ -387,7 +387,7 @@ main: {
             
     
     # report splice junctions and remove short terminal exons that are more likely noise.
-    my $cmd = "$FindBin::Bin/../../Inchworm/bin/cigar_tweaker $outfile_basename.pre.coordSorted.sam target.fa $trim_short_terminal_segment_length | sort -T . -S $sort_buffer_size -k 3,3 -k 4,4n >  $outfile_basename.coordSorted.spliceAdjust.sam";
+    my $cmd = "$FindBin::RealBin/../../Inchworm/bin/cigar_tweaker $outfile_basename.pre.coordSorted.sam target.fa $trim_short_terminal_segment_length | sort -T . -S $sort_buffer_size -k 3,3 -k 4,4n >  $outfile_basename.coordSorted.spliceAdjust.sam";
     &process_cmd($cmd) unless (-e "$outfile_basename.coordSorted.spliceAdjust.sam.finished");
     $cmd = "touch $outfile_basename.coordSorted.spliceAdjust.sam.finished";
     &process_cmd($cmd) unless (-e "$outfile_basename.coordSorted.spliceAdjust.sam.finished");

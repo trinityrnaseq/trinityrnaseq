@@ -7,7 +7,7 @@ use threads;
 
 use FindBin;
 use Getopt::Long qw(:config no_ignore_case bundling);
-use lib ("$FindBin::Bin/../../PerlLib");
+use lib ("$FindBin::RealBin/../../PerlLib");
 use WigParser;
 use Fasta_reader;
 use Statistics::Descriptive;
@@ -71,7 +71,7 @@ if ($SS_lib_type && $SS_lib_type !~ /^(F|R|FR|RF)$/) {
 	die "Error, invalid --SS_lib_type, only F, R, FR, or RF are possible values";
 }
 
-my $UTIL_DIR = "$FindBin::Bin/";
+my $UTIL_DIR = "$FindBin::RealBin/";
 
 main: {
 

@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use lib ("$FindBin::Bin/../PerlLib");
+use lib ("$FindBin::RealBin/../PerlLib");
 use SAM_reader;
 use SAM_entry;
 
@@ -94,7 +94,7 @@ main: {
 
     print STDERR "\n\n";
         
-    &process_pairs(\@reads, \%counts);
+    &process_pairs(\@reads, \%counts) if @reads;
     
 
     my $sum_reads = 0;

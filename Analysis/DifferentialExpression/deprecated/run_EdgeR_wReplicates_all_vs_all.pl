@@ -58,7 +58,7 @@ main: {
 
            
             ## run DESeq
-            my $cmd = "$FindBin::Bin/run_EdgeR_wReplicates.pl --counts_matrix $counts_matrix "
+            my $cmd = "$FindBin::RealBin/run_EdgeR_wReplicates.pl --counts_matrix $counts_matrix "
                 . " --repA_name $sample_A --repA_list \"" . join(",", @reps_A) . "\" "
                 . " --repB_name $sample_B --repB_list \"" . join(",", @reps_B) . "\" ";
 

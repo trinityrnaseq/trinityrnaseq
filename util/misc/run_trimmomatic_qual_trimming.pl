@@ -72,7 +72,7 @@ main: {
 
     if ($left && $right) {
     
-        $cmd = "java -jar $FindBin::Bin/../../trinity-plugins/Trimmomatic/trimmomatic.jar PE -threads $threads -phred33 "
+        $cmd = "java -jar $FindBin::RealBin/../../trinity-plugins/Trimmomatic/trimmomatic.jar PE -threads $threads -phred33 "
             . " $left $right "
             . " $left.P.qtrim.fq $left.U.qtrim.fq "
             . " $right.P.qtrim.fq $right.U.qtrim.fq "
@@ -80,7 +80,7 @@ main: {
     }
     else {
         
-        $cmd = "java -jar $FindBin::Bin/../../trinity-plugins/Trimmomatic/trimmomatic.jar SE -threads $threads -phred33 "
+        $cmd = "java -jar $FindBin::RealBin/../../trinity-plugins/Trimmomatic/trimmomatic.jar SE -threads $threads -phred33 "
             . " $single "
             . " $single.qtrim.fq "
             . " $trim_params ";

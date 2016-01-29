@@ -17,7 +17,7 @@ while (<$fh>) {
 
 	my $iworm_outfile = "$file.iworm";
 	
-	my $cmd = "$FindBin::Bin/../Inchworm/bin/inchworm --reads $file --run_inchworm ";
+	my $cmd = "$FindBin::RealBin/../Inchworm/bin/inchworm --reads $file --run_inchworm ";
 	
 	if ($DS_flag) {
 		$cmd .= "--DS ";

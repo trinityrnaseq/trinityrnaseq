@@ -284,7 +284,7 @@ sub write_gene_to_trans_map_file {
     my $mapping_file = "$transcripts_fasta_file.component_to_trans_map";
 
 
-    my $cmd = "$FindBin::Bin/../get_Trinity_gene_to_trans_map.pl $transcripts_fasta_file > $mapping_file";
+    my $cmd = "$FindBin::RealBin/../get_Trinity_gene_to_trans_map.pl $transcripts_fasta_file > $mapping_file";
     &process_cmd($cmd);
     
     return($mapping_file);

@@ -5,7 +5,7 @@ use warnings;
 use Carp;
 
 use FindBin;
-use lib ("$FindBin::Bin/../../PerlLib");
+use lib ("$FindBin::RealBin/../../PerlLib");
 use Fasta_reader;
 use Nuc_translator;
 use Getopt::Long qw(:config no_ignore_case bundling pass_through);

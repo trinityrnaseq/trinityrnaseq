@@ -2,7 +2,7 @@
 
 use strict;
 use FindBin;
-use lib ("$FindBin::Bin/../../PerlLib");
+use lib ("$FindBin::RealBin/../../PerlLib");
 use Fasta_reader;
 use Getopt::Std;
 use strict;

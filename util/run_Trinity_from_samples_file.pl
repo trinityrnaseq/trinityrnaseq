@@ -8,7 +8,7 @@ use Cwd;
 
 ######################################################
 ## Set to base directory of the Trinity installation:
-my $BASEDIR = "$FindBin::Bin/../";
+my $BASEDIR = "$FindBin::RealBin/../";
 ######################################################
 
 my $usage = <<__EOUSAGE__;

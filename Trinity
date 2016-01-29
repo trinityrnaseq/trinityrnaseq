@@ -22,7 +22,7 @@ my $VERSION = "v2.1.1";
 
 BEGIN {
 
-    $ENV{TRINITY_HOME} = "$FindBin::Bin";
+    $ENV{TRINITY_HOME} = "$FindBin::RealBin";
 
 }
 

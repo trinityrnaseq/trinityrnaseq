@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Carp;
 use FindBin;
-use lib ("$FindBin::Bin/../../PerlLib");
+use lib ("$FindBin::RealBin/../../PerlLib");
 use Fasta_reader;
 use Ktree;
 use Nuc_translator;

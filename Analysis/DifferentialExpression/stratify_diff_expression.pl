@@ -21,7 +21,7 @@ for my $fold_change (1..8) {
 
     for my $pvalue (2..10) {
 
-        my $cmd = "$FindBin::Bin/analyze_diff_expr.pl --matrix $fpkm_matrix_file -C $fold_change -P 1e-$pvalue";
+        my $cmd = "$FindBin::RealBin/analyze_diff_expr.pl --matrix $fpkm_matrix_file -C $fold_change -P 1e-$pvalue";
         &process_cmd($cmd);
         
         

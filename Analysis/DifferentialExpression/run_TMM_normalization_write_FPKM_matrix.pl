@@ -7,7 +7,7 @@ use Getopt::Long qw(:config no_ignore_case bundling);
 use Cwd;
 use FindBin;
 use File::Basename;
-use lib ("$FindBin::Bin/../../PerlLib");
+use lib ("$FindBin::RealBin/../../PerlLib");
 use Fasta_reader;
 use Data::Dumper;
 
@@ -104,7 +104,7 @@ sub run_TMM {
     
     my $tmm_norm_script = "__tmp_runTMM.R";
     open (my $ofh, ">$tmm_norm_script") or die "Error, cannot write to $tmm_norm_script";
-    #print $ofh "source(\"$FindBin::Bin/R/edgeR_funcs.R\")\n";
+    #print $ofh "source(\"$FindBin::RealBin/R/edgeR_funcs.R\")\n";
     
     print $ofh "library(edgeR)\n\n";
     

@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use FindBin;
-use lib ("$FindBin::Bin/../../PerlLib");
+use lib ("$FindBin::RealBin/../../PerlLib");
 use Fasta_reader;
 
 print STDERR "\n\n\tNOTE - longest transcript isn't always the best transcript!... consider filtering based on relative expression support ... \n\n";

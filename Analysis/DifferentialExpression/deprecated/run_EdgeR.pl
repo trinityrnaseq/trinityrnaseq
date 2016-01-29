@@ -7,7 +7,7 @@ use Getopt::Long qw(:config no_ignore_case bundling);
 use Cwd;
 use FindBin;
 use File::Basename;
-use lib ("$FindBin::Bin/../../PerlLib");
+use lib ("$FindBin::RealBin/../../PerlLib");
 use Fasta_reader;
 
 my $usage = <<__EOUSAGE__;
@@ -225,7 +225,7 @@ sub run_TMM {
 
     my $tmm_norm_script = "__tmp_runTMM.R";
     open ($ofh, ">$tmm_norm_script") or die "Error, cannot write to $tmm_norm_script";
-    print $ofh "source(\"$FindBin::Bin/R/edgeR_funcs.R\")\n";
+    print $ofh "source(\"$FindBin::RealBin/R/edgeR_funcs.R\")\n";
     print $ofh "myDGEList = target_list_file_to_DGEList(\"$data_file_list\")\n";
     print $ofh "myDGEList\$samples\$eff.lib.size = myDGEList\$samples\$lib.size * myDGEList\$samples\$norm.factors\n";
     print $ofh "write.table(myDGEList\$samples, file=\"TMM_info.txt\", quote=F, sep=\"\\t\", row.names=F)\n";
@@ -256,7 +256,7 @@ sub run_edgeR {
     close $ofh;
     
     open ($ofh, ">$R_script") or die "Error, cannot write $R_script";
-    print $ofh "source(\"$FindBin::Bin/R/edgeR_funcs.R\")\n";
+    print $ofh "source(\"$FindBin::RealBin/R/edgeR_funcs.R\")\n";
     print $ofh "myDGEList = target_list_file_to_DGEList(\"$target_file\")\n";
     print $ofh "postscript(\"$compare_name.eps\")\n";
     print $ofh "top_entries_table = edgeR_DE_analysis(myDGEList, dispersion=$dispersion, FDR=$FDR); # set dispersion to zero for Poisson-equivalent results.\n";

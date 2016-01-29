@@ -353,7 +353,7 @@ main: {
 =strand_sep_trans
 
     if ($SS_lib_type) {
-        $cmd = "$FindBin::Bin/../support_scripts/SAM_strand_separator.pl $trans_sam_outfile.coordSorted.bam $SS_lib_type";
+        $cmd = "$FindBin::RealBin/../support_scripts/SAM_strand_separator.pl $trans_sam_outfile.coordSorted.bam $SS_lib_type";
         &process_cmd($cmd);
 
         foreach my $sam_file ("$trans_sam_outfile.coordSorted.bam.+.sam", "$trans_sam_outfile.coordSorted.bam.-.sam") {
@@ -398,7 +398,7 @@ main: {
 =strand_sep_genome
 
     if ($SS_lib_type) {
-        $cmd = "$FindBin::Bin/../support_scripts/SAM_strand_separator.pl $genome_sam_outfile.coordSorted.bam $SS_lib_type";
+        $cmd = "$FindBin::RealBin/../support_scripts/SAM_strand_separator.pl $genome_sam_outfile.coordSorted.bam $SS_lib_type";
         &process_cmd($cmd);
 
         foreach my $sam_file ("$genome_sam_outfile.coordSorted.bam.+.sam", "$genome_sam_outfile.coordSorted.bam.-.sam") {

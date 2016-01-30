@@ -92,7 +92,7 @@ if ($GTF_annots) {
 
 main: {
 
-    my $util_dir = "$FindBin::Bin/..";
+    my $util_dir = "$FindBin::RealBin/..";
     
     #############################
     ## align reads using Tophat

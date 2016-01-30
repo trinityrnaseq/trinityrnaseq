@@ -8,7 +8,7 @@ use CGI::Carp qw(fatalsToBrowser);
 use FindBin;
 use File::Basename;
 
-use lib ("$FindBin::Bin/PerlLib");
+use lib ("$FindBin::RealBin/PerlLib");
 
 use CanvasXpress::Heatmap;
 use BHStats;

@@ -11,7 +11,7 @@ use Data::Dumper;
 
 use Getopt::Long qw(:config no_ignore_case bundling);
 
-$ENV{PATH} .= "\:$FindBin::Bin/../trinity-plugins/rsem/sam/";  # include samtools in path, already included in rsem build.
+$ENV{PATH} .= "\:$FindBin::RealBin/../trinity-plugins/rsem/sam/";  # include samtools in path, already included in rsem build.
 
 $ENV{LC_ALL} = 'C';  # critical for proper sorting using [system "sort -k1,1 ..."] within the perl script
 
@@ -214,7 +214,7 @@ unless ($aligner eq "bowtie") {
 }
 
 
-my $util_dir = "$FindBin::Bin/../util/support_scripts";
+my $util_dir = "$FindBin::RealBin/../util/support_scripts";
 
 my ($start_dir, $work_dir, $num_hits);
 
@@ -657,7 +657,7 @@ sub make_RSEM_bam {
     
     if ($RUN_RSEM) {
         
-        my $cmd = "$FindBin::Bin/align_and_estimate_abundance.pl --est_method RSEM --aln_method $rsem_bam "
+        my $cmd = "$FindBin::RealBin/align_and_estimate_abundance.pl --est_method RSEM --aln_method $rsem_bam "
             . " --transcripts $target_db --seqType $seqType ";
         
         if ($left_file && $right_file) {

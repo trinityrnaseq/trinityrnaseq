@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use lib("$FindBin::Bin/../TrinityWeb/cgi-bin/PerlLib/");
+use lib("$FindBin::RealBin/../TrinityWeb/cgi-bin/PerlLib/");
 use CanvasXpress::Heatmap;
 use CanvasXpress::PlotOnLoader;
 use CanvasXpress::Line;

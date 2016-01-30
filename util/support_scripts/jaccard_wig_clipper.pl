@@ -7,7 +7,7 @@ use Carp;
 use Getopt::Long qw(:config no_ignore_case bundling pass_through);
 
 use FindBin;
-use lib ("$FindBin::Bin/../../PerlLib");
+use lib ("$FindBin::RealBin/../../PerlLib");
 
 use WigParser;
 

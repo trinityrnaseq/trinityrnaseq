@@ -168,7 +168,7 @@ void populate_kmer_counter(KmerCounter& kcounter, string& kmers_fasta_file) {
     for (int i = 0; i < omp_get_max_threads(); i++) {
         record_counter[i] = 0;
     }
-    cerr << "-reading Kmer occurences..." << endl;
+    cerr << "-reading Kmer occurrences..." << endl;
     start = time(NULL);
     Fasta_reader fasta_reader(kmers_fasta_file);
     #pragma omp parallel private (myTid)

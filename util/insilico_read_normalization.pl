@@ -6,7 +6,7 @@ use threads;
 no strict qw(subs refs);
 
 use FindBin;
-use lib ("$FindBin::Bin/../PerlLib");
+use lib ("$FindBin::RealBin/../PerlLib");
 use File::Basename;
 use Cwd;
 use Carp;

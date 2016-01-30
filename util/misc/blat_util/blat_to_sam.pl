@@ -72,7 +72,7 @@ unless ($genome_fa && $reads_fa) {
 
 main: {
 
-	my $util_dir = "$FindBin::Bin/../util";
+	my $util_dir = "$FindBin::RealBin/../util";
 	
 	my $cmd = "$util_dir/fasta_to_tab.pl $reads_fa > $reads_fa.tab";
 	&process_cmd($cmd) unless (-s "$reads_fa.tab");
@@ -97,7 +97,7 @@ main: {
 	$cmd = "$util_dir/top_blat_sam_extractor.pl $reads_fa.psl.sam.wReads $top_hits $min_per_ID > $reads_fa.psl.sam.wReads.top";
 	&process_cmd($cmd);
 
-	$cmd = "$FindBin::Bin/cigar_tweaker $reads_fa.psl.sam.wReads.top $genome_fa > $reads_fa.psl.sam.wReads.top.tweaked";
+	$cmd = "$FindBin::RealBin/cigar_tweaker $reads_fa.psl.sam.wReads.top $genome_fa > $reads_fa.psl.sam.wReads.top.tweaked";
 	&process_cmd($cmd);
 
 	$cmd = "sort -T . -S 2G -k 3,3 -k 4,4n $reads_fa.psl.sam.wReads.top.tweaked > $reads_fa.psl.sam.wReads.top.tweaked.coordSorted.sam";

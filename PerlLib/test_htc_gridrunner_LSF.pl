@@ -3,11 +3,11 @@
 use strict;
 use warnings;
 use FindBin;
-use lib ("$FindBin::Bin");
+use lib ("$FindBin::RealBin");
 
 use HTC::GridRunner;
 
-my $config_file = "$FindBin::Bin/../htc_conf/BroadInst_LSF.test.conf";
+my $config_file = "$FindBin::RealBin/../htc_conf/BroadInst_LSF.test.conf";
 
 main: {
 

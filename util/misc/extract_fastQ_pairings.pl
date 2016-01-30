@@ -6,7 +6,7 @@ use warnings;
 use Data::Dumper;
 
 use FindBin;
-use lib ("$FindBin::Bin/../../PerlLib");
+use lib ("$FindBin::RealBin/../../PerlLib");
 use Fastq_reader;
 
 my $DEBUG = 0;

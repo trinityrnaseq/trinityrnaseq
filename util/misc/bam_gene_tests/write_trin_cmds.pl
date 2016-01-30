@@ -70,7 +70,7 @@ while (<$fh>) {
     
     my $file = pop @x;
     
-    my $cmd = "$FindBin::Bin/../../../Trinity --single \"$file\" --output \"$file.trinity.$out_token\" $trin_args ";
+    my $cmd = "$FindBin::RealBin/../../../Trinity --single \"$file\" --output \"$file.trinity.$out_token\" $trin_args ";
     
     print "$cmd\n";
 }

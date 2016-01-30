@@ -87,7 +87,7 @@ main: {
     print $ofh "library(cluster)\n";
     #print $ofh "library(gplots)\n";
     print $ofh "library(Biobase)\n";
-    print $ofh "source(\"$FindBin::Bin/R/heatmap.3.R\")\n";
+    print $ofh "source(\"$FindBin::RealBin/R/heatmap.3.R\")\n";
     
     print $ofh "load(\"$R_data_file\")\n";
     

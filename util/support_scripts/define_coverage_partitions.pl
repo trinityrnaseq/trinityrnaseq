@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use lib ("$FindBin::Bin/../../PerlLib");
+use lib ("$FindBin::RealBin/../../PerlLib");
 use WigParser;
 
 my $usage = "usage: $0 strand_coverage.wig min_coverage strand[+-]\n\n";

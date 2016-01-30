@@ -1,1 +1,1053 @@
-../trinity-plugins/GAL_0.2.1/fasta_tool
+#!/usr/bin/env perl
+
+eval 'exec /usr/bin/perl  -S $0 ${1+"$@"}'
+    if 0; # not running under some shell
+
+eval 'exec /usr/bin/perl  -S $0 ${1+"$@"}'
+    if 0; # not running under some shell
+
+use strict;
+use warnings;
+use FindBin;
+use lib "$FindBin::RealBin/../lib";
+use lib "$FindBin::RealBin/../perl/lib";
+use Getopt::Long;
+use Bio::SeqIO;
+use IO::All;
+
+
+
+#-----------------------------------------------------------------------------
+#----------------------------------- MAIN ------------------------------------
+#-----------------------------------------------------------------------------
+my $usage = "
+
+Synopsis:
+
+fasta_tool [-options] fasta_file
+
+Description:
+The script takes a fasta file and can search it, reformat it, and manipulate it
+in a large variety of ways that can prove very very usful.  For options that
+provide the ability to evaluate code, use Perl.
+
+Options:
+  --summary
+      For functions that can report data for every sequence (nt_count),
+      use this flag to report only summary data for all sequences combined.
+
+  --chunks <integer>
+      Break up a single fasta file into the given number of chunks
+
+  --split
+      Split a multi-fasta into individual files.  One for each fasta.
+
+  --eval_code <code>
+      Run the given code on (\$seq_obj, \$sequence or \$header).  If the code
+      block returns a positive value then the sequence is printed.  This can be
+      used to build complex and custom filters.
+
+  --eval_all <code>
+      Run the given code on (\$seq_obj, \$sequence or \$header).  Prints all
+      sequences regardless of the return value of the evaled code.  This can
+      but used to perform operations (e.g. soft to hard masking with
+      s/[a-z]/N/g, but still print every sequence even if it's unaltered.
+
+  --extract_ids <id_file.txt>
+      Extract all of the sequences who's IDs are found in the given file.
+
+  --grep_header <pattern>
+      Grep through a multi fasta file and print out only the fasta
+      sequences that have a match in the header. Use grepv_header for
+      negation.
+
+  --grep_seq <pattern>
+      Grep throught a multi fasta file and print out only the fasta
+      sequences that have a match in the sequence. Use grepv_seq for
+      negation.
+
+  --wrap <integer>
+      Wrap the sequence output to a given number of columns.
+
+  --translate <string>
+      Translate a given nucleotide sequence to protein sequence.
+      Accepts 0,1,2 (for the phase) or 'maker' if you want to use the
+      frame from MAKER produced headers
+
+  --trim_maker_utr
+      Prints MAKER produced transcipts without the leading and trailing
+      UTR sequence
+
+  --seq_only
+      Print only the sequence (without the header) to STDOUT.  This
+      can also be accomplished with grep -v '>' fasta_file.
+
+  --nt_count
+      Print the number and percentage of every nt/aa found in the
+      sequence.
+
+  --length
+      Print the length of each sequence.
+
+  --total_length
+      Print the total length of all sequences.
+
+  --n50
+      Calculate the N-50 (http://en.wikipedia.org/wiki/N50_statistic)
+      of the sequences in the file.
+
+  --tab
+      Print the header and sequence on the same line separated by a tab.
+
+  --table
+      Print in table format rather than fasta format.
+
+  --print
+      Print the sequence.  Use in conjuction with 'wrap' or other formatting
+      commands to reformat the sequence.
+
+  --reverse
+      Reverse the order of the sequences in a fasta file.
+
+  --rev_seq
+      Reverse the order of the nt/aa in each sequence.
+
+  --comp_seq
+      Complement the nucleotide sequence.
+
+  --rev_comp
+      Reverse compliment a sequence.  Same as --rev_seq && --comp_seq together.
+
+  --uniq
+
+    Print only uniq sequences.  This method only compares complete
+    sequences.
+
+  --uniq_sub
+
+    Print only uniq sequences, but also check that shorter sequences
+    are not perfect substrings of longer sequences.
+
+  --shuffle_order
+      Randomize the order of sequences in a multi-fasta file.
+
+  --shuffle_seq
+      Randomize the order of the nt/aa in each sequence.
+
+  --shuffle_codon
+      Randomize the order of the codons in a nucleotide sequence.
+
+  --shuffle_pick
+      Pick a given number of sequences from a multi-fasta file.
+
+  --select
+      Pass in a file with IDs and return sequences with these IDs.
+
+  --remove
+      Pass in a file with IDs and remove sequences with these IDs.
+
+  --swap_ids
+      Pass in a file with two columns of IDs and map the IDs in the
+      fasta headers from the first column of the ID file to the second
+      column of the ID file.  If an ID in the fasta header is not found
+      in the first column of the ID file then issue a warning, but leave
+      the ID unmapped.
+
+  --fix_prot
+    Fix protein fasta files for use as blast database.  Removes spaces
+    and '*' and replaces any non amino acid codes with C.
+
+  --subseq
+    Grab a sub-sequence from a fasta file based on coordinates.  The
+    requested coordinates are in the form seqid:start-end;
+
+
+";
+
+my ($summary, $chunks, $split, $eval_code, $eval_all, $extract_ids,
+    $grep_header, $grepv_header, $grep_seq, $grepv_seq, $wrap, $count,
+    $translate, $seq_only, $nt_count, $length, $total_length, $n50,
+    $tab, $reverse, $rev_seq, $comp_seq, $rev_comp, $uniq, $uniq_sub,
+    $shuffle_order, $shuffle_seq, $shuffle_codon, $shuffle_pick,
+    $select_file, $remove_file, $print, $mRNAseq, $EST,
+    $trim_maker_utr, $table, $swap_ids, $fix_prot, $subseq, $tile);
+
+GetOptions('summary'        => \$summary,
+	   'chunks=i'       => \$chunks,
+	   'split'          => \$split,
+	   'eval_code=s'    => \$eval_code,
+	   'eval_all=s'     => \$eval_all,
+	   'extract_ids=s'  => \$extract_ids,
+	   'grep_header=s'  => \$grep_header,
+	   'grep_seq=s'     => \$grep_seq,
+	   'grepv_header=s' => \$grepv_header,
+	   'grepv_seq=s'    => \$grepv_seq,
+	   'wrap=i'         => \$wrap,
+	   'count'          => \$count,
+	   'translate=s'    => \$translate,
+	   'trim_maker_utr' => \$trim_maker_utr,
+	   'seq_only'       => \$seq_only,
+	   'nt_count'       => \$nt_count,
+	   'length'         => \$length,
+	   'total_length'   => \$total_length,
+	   'n50'            => \$n50,
+	   'tab'            => \$tab,
+	   'table'          => \$table,
+	   'print'          => \$print,
+	   'reverse'        => \$reverse,
+	   'rev_seq'        => \$rev_seq,
+	   'comp_seq'       => \$comp_seq,
+	   'rev_comp'       => \$rev_comp,
+	   'uniq'           => \$uniq,
+	   'uniq_sub'       => \$uniq_sub,
+	   'shuffle_order'  => \$shuffle_order,
+	   'shuffle_seq'    => \$shuffle_seq,
+	   'shuffle_codon'  => \$shuffle_codon,
+	   'shuffle_pick=i' => \$shuffle_pick,
+	   'remove=s'       => \$remove_file,
+	   'select=s'       => \$select_file,
+	   'fix_prot'       => \$fix_prot,
+	   'mRNAseq'        => \$mRNAseq,
+	   'EST'            => \$EST,
+	   'swap_ids=s'     => \$swap_ids,
+	   'subseq=s'       => \$subseq,
+	   'tile=s'         => \$tile,
+	  );
+
+my $file = shift;
+unless (($file && -r $file) || ! -t STDIN){
+    print $usage;
+    exit;
+}
+
+if ($rev_comp) {$rev_seq++; $comp_seq++}
+
+my $warning = "\n\n" . ('#' x 40) . "\nThis function is not yet thouroughly tested!!\n" . ('#' x 40) . "\n\n";
+
+warn $warning if grep {$_} ($extract_ids,
+			    $reverse,
+			    $rev_seq,
+			    $comp_seq,
+			    $shuffle_order,
+			    $shuffle_seq,
+			    $shuffle_codon,
+			    $shuffle_pick,
+			   );
+
+# These functions handle their own printing;
+$print++ unless grep {$_} ($chunks,
+			   $split,
+			   $eval_code,
+			   $eval_all,
+			   $extract_ids,
+			   $grep_header,
+			   $grep_seq,
+			   $grepv_header,
+			   $grepv_seq,
+			   $count,
+			   $translate,
+			   $seq_only,
+			   $nt_count,
+			   $length,
+			   $total_length,
+			   $n50,
+			   $reverse,
+			   $rev_seq,
+			   $comp_seq,
+			   $uniq,
+			   $uniq_sub,
+			   $shuffle_order,
+			   $shuffle_seq,
+			   $shuffle_codon,
+			   $shuffle_pick,
+			   $remove_file,
+			   $select_file,
+			   $mRNAseq,
+			   $EST,
+			   $swap_ids,
+			   $subseq,
+			   $tile,
+			  );
+
+$nt_count++ if $summary;
+
+if(defined $translate && $translate !~ /^\d+$/ && $translate ne 'maker'){
+    $translate = 0;
+}
+
+my $IN;
+if (! $file && ! -t STDIN) {
+	open ($IN, "<&=STDIN") or die "Can't open STDIN\n";
+}
+else {
+	open ($IN, $file) or die "Can't open $file for reading: $!\n";
+}
+
+#Bioperl object for main fasta input file.
+my $seq_io  = Bio::SeqIO->new(-fh => $IN,
+			      -format => 'Fasta');
+
+chunks($file, $chunks)	    if $chunks;
+split_fasta()	            if $split;
+eval_code($eval_code)       if $eval_code;
+eval_all($eval_all)         if $eval_all;
+extract_ids($extract_ids)   if $extract_ids;
+grep_header($grep_header)   if $grep_header;
+grep_seq($grep_seq)         if $grep_seq;
+grepv_header($grepv_header) if $grepv_header;
+grepv_seq($grepv_seq)       if $grepv_seq;
+translate()                 if defined($translate);
+trim_maker_utr()            if $trim_maker_utr;
+seq_only()                  if $seq_only;
+nt_count()	            if $nt_count;
+seq_length()                if $length;
+total_length()              if $total_length;
+n50()                       if $n50;
+tab()	                    if $tab;
+reverse_order()             if $reverse;
+rev_comp()                  if $rev_seq;
+rev_comp()                  if $comp_seq;
+uniq()                      if $uniq;
+uniq_sub()                  if $uniq_sub;
+shuffle_order()             if $shuffle_order;
+shuffle_seq()               if $shuffle_seq;
+shuffle_codon()             if $shuffle_codon;
+shuffle_pick($shuffle_pick) if $shuffle_pick;
+remove_ids($remove_file)    if $remove_file;
+select_ids($select_file)    if $select_file;
+swap_ids($swap_ids)         if $swap_ids;
+subseq($file, $subseq)      if $subseq;
+fix_prot()                  if $fix_prot;
+print_seq()                 if $print;
+mRNAseq()                   if $mRNAseq;
+EST()                       if $EST;
+
+#-----------------------------------------------------------------------------
+#-------------------------------- SUBROUTINES --------------------------------
+#-----------------------------------------------------------------------------
+sub chunks {
+	my($file, $chunks) = @_;
+
+	my $outfile_base; #Create a base name for the output file.
+	($outfile_base = $file) =~ s/\.[^\.]*$//; #Input file name minus it's extension.
+
+	my $file_size = io($file)->size; #What's the size of our input file.
+
+	#How many chunks should the input file be split into?
+	my $chunk_size = int($file_size/$chunks) + ($file_size % $chunks);
+
+	#How many digits should the output file interations be sprintf'ed to=?
+	my $digits = int(log($chunks)/log(10)) + 1;
+
+	#I felt like using a closure today.
+	my $file_counter = make_file_counter();
+
+	my $out;
+	my $file_name;
+	#Loop over each sequence
+	while ( my $seq = $seq_io->next_seq() ) {
+		#Get an Bio::SeqIO fh if we don't have one, or if the current output file
+		#has grown too large.
+		if (! $out || (io($file_name)->size > $chunk_size)) {
+			($out, $file_name) = get_output_stream($outfile_base, $digits, $file_counter);
+		}
+		#Write it to the file.
+		$out->write_seq($seq);
+	}
+}
+#-----------------------------------------------------------------------------
+sub get_output_stream{
+    my ($outfile_base, $digits, $file_counter) = @_;
+    my $file_count = $file_counter->();
+    #Build/format the file_name.
+    $file_count = sprintf "%0${digits}s", $file_count;
+    my $file_name = $outfile_base . "_$file_count" . '.fasta';
+    #Get Bio::SeqIO object
+    my $out = Bio::SeqIO->new(-file   => ">$file_name",
+			      -format => 'fasta');
+    return ($out, $file_name);
+}
+#-----------------------------------------------------------------------------
+sub make_file_counter {
+    #Initialize the counter.
+    my $file_counter = 0;
+
+    #Increment the counter.
+    return sub{$file_counter++}
+}
+#-----------------------------------------------------------------------------
+sub split_fasta {
+	while ( my $seq = $seq_io->next_seq() ) {
+		my $file_out = $seq->display_id . ".fasta";
+
+		#Get Bio::SeqIO object
+		my $out = Bio::SeqIO->new(-file   => ">$file_out",
+					  -format => 'fasta');
+		#Write it to the file.
+		$out->write_seq($seq);
+	}
+}
+#-----------------------------------------------------------------------------
+sub eval_code {
+	my ($code) = @_;
+
+	while (my $seq_obj = $seq_io->next_seq) {
+		my $header = get_header($seq_obj);
+		my $seq = $seq_obj->seq;
+
+		my $return_value = eval $code;
+		die "Fatal Error in code ref:\n$@\n" if $@;
+		next unless $return_value;
+		print_this_seq($header, $seq);
+	}
+
+}
+#-----------------------------------------------------------------------------s
+sub eval_all {
+	my ($code) = @_;
+
+	while (my $seq_obj = $seq_io->next_seq) {
+		my $header = get_header($seq_obj);
+		my $seq = $seq_obj->seq;
+
+		eval $code;
+		die "Fatal Error in code ref:\n$@\n" if $@;
+		print_this_seq($header, $seq);
+	}
+
+}
+#-----------------------------------------------------------------------------
+sub extract_ids {
+
+    my $id_file = shift;
+
+    open(my $IN, '<', $id_file) or die "Can't open $id_file for reading\n$!\n";
+
+    my %ids = map {$_ => 1 unless (/^\#/ || ! $_)} (<$IN>);
+
+    while (my $seq_obj = $seq_io->next_seq) {
+	my $id = $seq_obj->display_id;
+	my $header = get_header($seq_obj);
+	my $seq = $seq_obj->seq;
+
+	if (exists $ids{$id}) {
+	    print_this_seq($header, $seq);
+	}
+    }
+}
+#-----------------------------------------------------------------------------
+sub grep_header {
+	my ($pattern) = @_;
+
+	while (my $seq_obj = $seq_io->next_seq) {
+		my $header = get_header($seq_obj);
+		$header .= " " . $seq_obj->description;
+		my $seq = $seq_obj->seq;
+
+		if ($header =~ /$pattern/) {
+			print_this_seq($header, $seq);
+		}
+	}
+}
+#-----------------------------------------------------------------------------
+sub grepv_header {
+	my ($pattern) = @_;
+
+	while (my $seq_obj = $seq_io->next_seq) {
+		my $header = get_header($seq_obj);
+		my $seq = $seq_obj->seq;
+
+		if ($header !~ /$pattern/) {
+			print_this_seq($header, $seq);
+		}
+	}
+}
+#-----------------------------------------------------------------------------
+{my $i = 0;
+sub mRNAseq {
+    my $size = 50;
+
+    while (my $seq_obj = $seq_io->next_seq) {
+	my $seq = $seq_obj->seq;
+
+	my $len = length($seq);
+
+	for (my $j = 0; $j < $len/5; $j++){
+	    my $range = $len - $size;
+
+	    my $start; my $end;
+	    if($range < 0){
+		$start = 0 ;
+		$end = $len - 1;
+	    }
+	    else{
+		$start = int(rand($range));
+		$end = $start + $size - 1;
+	    }
+
+	    my $l = $end - $start + 1;
+
+		my $header = "sequence_".$i++;
+		print_this_seq($header, substr($seq, $start, $l));
+	    }
+	}
+}
+#-----------------------------------------------------------------------------
+sub EST {
+
+    while (my $seq_obj = $seq_io->next_seq) {
+	my $seq = $seq_obj->seq;
+
+	my $len = length($seq);
+
+
+	my $range = $len - 500;
+	my $min = 250;
+
+	if($range < 0 || $min < 0){
+	    my $header = "sequence_".$i++;
+	    print_this_seq($header, $seq);
+	    next;
+	}
+
+	my $A = int(rand($range) + $min);
+	my $start = int(rand($range) + $min);
+	my $end = int(rand($range));
+	my $B = int(rand($range) + $min);
+
+	my $l = abs($end - $start + 1);
+	if($l > 250){
+	    my $header = "sequence_".$i++;
+	    print_this_seq($header, substr($seq, $start, $l));
+	}
+
+	$l = abs($A - 0 + 1);
+	if($l > 250){
+	    my $header = "sequence_".$i++;
+	    print_this_seq($header, substr($seq, 0, $l));
+	}
+
+	$l = abs($len - $B + 1);
+	if($l > 250){
+	    my $header = "sequence_".$i++;
+	    print_this_seq($header, substr($seq, $B, $l));
+	}
+
+    }
+}
+}
+#-----------------------------------------------------------------------------
+sub grep_seq {
+	my ($pattern) = @_;
+
+	while (my $seq_obj = $seq_io->next_seq) {
+		my $header = get_header($seq_obj);
+		my $seq = $seq_obj->seq;
+		$seq =~ s/\s//g;
+
+		if ($seq =~ /$pattern/) {
+			print_this_seq($header, $seq);
+		}
+	}
+}
+#-----------------------------------------------------------------------------
+sub grepv_seq {
+	my ($pattern) = @_;
+
+	while (my $seq_obj = $seq_io->next_seq) {
+		my $header = get_header($seq_obj);
+		my $seq = $seq_obj->seq;
+		$seq =~ s/\s//g;
+
+		if ($seq !~ /$pattern/) {
+			print_this_seq($header, $seq);
+		}
+	}
+}
+#-----------------------------------------------------------------------------
+sub fix_prot {
+	while (my $seq_obj = $seq_io->next_seq) {
+		my $header = get_header($seq_obj);
+		my $seq = $seq_obj->seq;
+		$seq =~ s/[\s\*]//g;
+		$seq =~ s/[^abcdefghiklmnpqrstvwyzxABCDEFGHIKLMNPQRSTVWYZX\-\n]/C/g;
+		next if($seq eq ''); #skip empty fasta entries
+		print_this_seq($header, $seq);
+	}
+}
+#-----------------------------------------------------------------------------
+sub translate {
+	while (my $seq_obj = $seq_io->next_seq) {
+		my $header = get_header($seq_obj);
+		my $frame;
+		my $offset;
+		if($translate eq 'maker'){
+		    $header =~ /offset:(\d+)/;
+		    $frame = ($1 % 3);
+		    $offset = ($1 - $frame)/3;
+		}
+		else{
+		    $frame = $translate % 3;
+		    $offset = ($translate - $frame)/3;
+		}
+		my $pep_seq = $seq_obj->translate(-frame => $frame)->seq;
+		$pep_seq = substr($pep_seq, $offset);
+		$pep_seq =~ s/^([^\*]+).*/$1/;
+		print_this_seq($header, $pep_seq);
+	}
+}
+#-----------------------------------------------------------------------------
+sub trim_maker_utr {
+	while (my $seq_obj = $seq_io->next_seq) {
+		my $header = get_header($seq_obj);
+		my $frame;
+		my $offset;
+
+		$header =~ /offset:(\d+)/;
+
+		die "ERROR: These do not appear to be MAKER produced transcripts\n"
+		    if(! defined $1 || $1 eq '');
+		$frame = ($1 % 3);
+		$offset = ($1 - $frame)/3; #peptide offet without frame
+
+		my $tra_seq = $seq_obj->seq;
+		my $pep_seq = $seq_obj->translate(-frame => $frame)->seq;
+
+		$pep_seq = substr($pep_seq, $offset);
+		$pep_seq =~ s/^([^\*]+\*?).*/$1/;
+		$offset = 3 * $offset + $frame; #make transcript offset
+		my $length = 3 * length($pep_seq); #length of substring to get
+		my $fix = $offset + $length - length($tra_seq);
+		$length -= $fix	if($fix > 0);
+		$tra_seq = substr($tra_seq, $offset, $length);
+
+		print_this_seq($header, $tra_seq);
+	}
+}
+#-----------------------------------------------------------------------------
+sub seq_only {
+	while (my $seq_obj = $seq_io->next_seq) {
+		my $seq = $seq_obj->seq;
+		$seq = wrap_seq($seq, $wrap) if $wrap;
+		print $seq . "\n";
+	}
+}
+#-----------------------------------------------------------------------------
+sub nt_count {
+	my %all_seq_count;
+	my $total_count;
+
+	while (my $seq_obj = $seq_io->next_seq) {
+		my %this_seq_count;
+		my $this_count;
+		my $id = $seq_obj->display_id;
+		my $seq = $seq_obj->seq;
+		$seq =~ s/\s//g;
+		my @nts = split //, $seq;
+		for my $nt (@nts) {
+			$all_seq_count{$nt}++;
+			$this_seq_count{$nt}++;
+			$this_count++;
+			$total_count++;
+		}
+
+		next if $summary;
+		print "$id:\n";
+		print '-' x 80;
+		print "\n";
+		for my $nt (sort keys %this_seq_count) {
+			my $round = sprintf ("%.4f", $this_seq_count{$nt} / $this_count * 100);
+			print join "\t", ($nt,
+					  $this_seq_count{$nt},
+					  $round,
+					 );
+			print '%' . "\n";
+		}
+
+		my %this_report;
+		map {$this_report{aA} += $this_seq_count{$_} if $this_seq_count{$_}} qw(a A);
+		map {$this_report{tT} += $this_seq_count{$_} if $this_seq_count{$_}} qw(t T);
+		map {$this_report{gG} += $this_seq_count{$_} if $this_seq_count{$_}} qw(g G);
+		map {$this_report{cC} += $this_seq_count{$_} if $this_seq_count{$_}} qw(c C);
+
+		map {$this_report{aAtT} += $this_report{$_} if $this_report{$_}} qw(aA tT);
+		map {$this_report{gGcC} += $this_report{$_} if $this_report{$_}} qw(gG cC);
+		map {$this_report{aAtTgGcC} += $this_report{$_} if $this_report{$_}} qw(aAtT gGcC);
+
+		map {$this_report{atgc}   += $this_seq_count{$_} if $this_seq_count{$_}} qw(a t g c);
+		map {$this_report{nN}     += $this_seq_count{$_} if $this_seq_count{$_}} qw(n N);
+		map {$this_report{atgcnN} += $this_seq_count{$_} if $this_seq_count{$_}} qw(atgc nN);
+
+		for my $key (sort keys %this_report) {
+
+			print join "\t", ($key,
+					  $this_report{$key},
+					  sprintf ("%.4f", $this_report{$key} / $this_count * 100),
+					 );
+			print '%' . "\n";
+		}
+		print "\n\n";
+	}
+
+	print "All sequences combined:\n";
+	print '-' x 80;
+	print "\n";
+
+	for my $nt (sort keys %all_seq_count) {
+		print join "\t", ($nt,
+				  $all_seq_count{$nt},
+				  sprintf ("%.4f", $all_seq_count{$nt} / $total_count * 100),
+				 );
+		print '%' . "\n";
+	}
+
+	my %all_report;
+	map {$all_report{aA} += $all_seq_count{$_} if $all_seq_count{$_}} qw(a A);
+	map {$all_report{tT} += $all_seq_count{$_} if $all_seq_count{$_}} qw(t T);
+	map {$all_report{gG} += $all_seq_count{$_} if $all_seq_count{$_}} qw(g G);
+	map {$all_report{cC} += $all_seq_count{$_} if $all_seq_count{$_}} qw(c C);
+
+	map {$all_report{aAtT} += $all_report{$_} if $all_report{$_}} qw(aA tT);
+	map {$all_report{gGcC} += $all_report{$_} if $all_report{$_}} qw(gG cC);
+	map {$all_report{aAtTgGcC} += $all_report{$_} if $all_report{$_}} qw(aAtT gGcC);
+
+	map {$all_report{atgc}   += $all_seq_count{$_} if $all_seq_count{$_}} qw(a t g c);
+	map {$all_report{nN}     += $all_seq_count{$_} if $all_seq_count{$_}} qw(n N);
+	map {$all_report{atgcnN} += $all_seq_count{$_} if $all_seq_count{$_}} qw(atgc nN);
+
+	for my $key (sort keys %all_report) {
+
+		print join "\t", ($key,
+				  $all_report{$key},
+				  sprintf ("%.4f", $all_report{$key} / $total_count * 100),
+				 );
+		print '%' . "\n";
+	}
+	print "\n";
+	print "Total nts\t$total_count\n";
+}
+#-----------------------------------------------------------------------------
+sub seq_length {
+    my $count = 0;
+    my $total;
+    while (my $seq_obj = $seq_io->next_seq) {
+	my $id = $seq_obj->display_id;
+	my $length = $seq_obj->length;
+	$total += $length;
+	$count++;
+	print "$id\t$length\n";
+    }
+    print "Total\t$total\n" if $count > 1;
+}
+#-----------------------------------------------------------------------------
+sub total_length {
+    my $total_length;
+    while (my $seq_obj = $seq_io->next_seq) {
+	$total_length += $seq_obj->length;
+    }
+    print $total_length . "\n";
+}
+#-----------------------------------------------------------------------------
+sub n50 {
+    my $total_length;
+    my @lengths;
+    while (my $seq_obj = $seq_io->next_seq) {
+	my $length = $seq_obj->length;
+	$total_length += $length;
+	push @lengths, $length;
+    }
+    my $cumulative_length;
+    my $last_length;
+    my $n50;
+    for my $length (sort {$b <=> $a} @lengths) {
+	$cumulative_length += $length;
+	if ($cumulative_length > $total_length / 2) {
+	    $n50 = $length;
+	    last;
+	}
+	elsif ($cumulative_length == $total_length / 2) {
+	    $n50 = $length;
+	    $last_length = $length;
+	    last;
+	}
+	$last_length = $length;
+    }
+    $n50 = int((($n50 + $last_length) / 2) + 0.5);
+    print $n50 . "\n";
+}
+#-----------------------------------------------------------------------------
+sub tab {
+    while (my $seq_obj = $seq_io->next_seq) {
+	my $header = get_header($seq_obj);
+	my $seq = $seq_obj->seq;
+		$seq =~ s/[\s\n\t]//g;
+		print "$header\t$seq\n";
+	}
+}
+#-----------------------------------------------------------------------------
+sub print_seq {
+	while (my $seq_obj = $seq_io->next_seq) {
+		my $header = get_header($seq_obj);
+		my $seq = $seq_obj->seq;
+		print_this_seq($header, $seq);
+
+	}
+}
+#-----------------------------------------------------------------------------
+sub reverse_order {
+	my @seqs;
+	while (my $seq_obj = $seq_io->next_seq) {
+		my $header = get_header($seq_obj);
+		my $seq = $seq_obj->seq;
+		push @seqs, {seq => $seq,
+			     header => $header,
+			    };
+	}
+
+	@seqs = reverse @seqs;
+
+	for my $seq (@seqs) {
+		print_this_seq($seq->{header}, $seq->{seq});
+	}
+}
+#-----------------------------------------------------------------------------
+sub rev_comp{
+	while (my $seq_obj = $seq_io->next_seq) {
+		my $header = get_header($seq_obj);
+		my $seq = $seq_obj->seq;
+		$seq = reverse $seq   if $rev_seq;
+		if ($comp_seq) {
+			$seq =~ tr/acgtrymkswhdbvACGTRYMKSWHDBV
+				  /tgcayrkmswdhvbTGCAYRKMSWDHVB/;
+		}
+		print_this_seq($header, $seq);
+	}
+}
+#-----------------------------------------------------------------------------
+sub uniq{
+  my %seen;
+  while (my $seq_obj = $seq_io->next_seq) {
+    my $header = get_header($seq_obj);
+    my $seq = $seq_obj->seq;
+    print_this_seq($header, $seq) unless exists $seen{$seq};
+    $seen{$seq}++;
+  }
+}
+#-----------------------------------------------------------------------------
+sub uniq_sub {
+  my @seqs;
+  while (my $seq_obj = $seq_io->next_seq) {
+    my $header = get_header($seq_obj);
+    my $seq = $seq_obj->seq;
+    push @seqs, [$header, $seq];
+  }
+
+  @seqs = sort {length $a->[1] <=> length $b->[1]} @seqs;
+
+ OUTER:
+  for my $outer_idx (0 .. $#seqs) {
+    my $start_idx = $outer_idx + 1;
+    for my $inner_idx ($start_idx .. $#seqs) {
+      if ($seqs[$inner_idx][1] =~ /$seqs[$outer_idx][1]/) {
+	print STDERR "WARN : skipping_sequence : ($seqs[$outer_idx][0]) " .
+	  "$seqs[$outer_idx][1]\n";
+	next OUTER;
+      }
+    }
+    print_this_seq($seqs[$outer_idx][0], $seqs[$outer_idx][1]);
+  }
+}
+#-----------------------------------------------------------------------------
+sub shuffle_order {
+	my @seqs;
+	while (my $seq_obj = $seq_io->next_seq) {
+		my $header = get_header($seq_obj);
+		my $seq = $seq_obj->seq;
+		push @seqs, {seq => $seq,
+			     header => $header,
+			    };
+	}
+
+	shuffle(\@seqs);
+
+	for my $seq (@seqs) {
+		print_this_seq($seq->{header}, $seq->{seq});
+	}
+}
+#-----------------------------------------------------------------------------
+sub shuffle_seq {
+	while (my $seq_obj = $seq_io->next_seq) {
+		my $header = get_header($seq_obj);
+		my @seq = split //, $seq_obj->seq;
+		shuffle(\@seq);
+		my $seq = join '', @seq;
+		print_this_seq($header, $seq);
+	}
+}
+#-----------------------------------------------------------------------------
+sub shuffle_codon {
+	while (my $seq_obj = $seq_io->next_seq) {
+		my $header = get_header($seq_obj);
+		my $seq = $seq_obj->seq;
+		my @codons = $seq =~ /(.{3})/g;
+		shuffle(\@codons);
+		$seq = join '', @codons;
+		print_this_seq($header, $seq);
+	}
+}
+#-----------------------------------------------------------------------------
+sub shuffle_pick {
+	my $shuffle_pick = shift;
+
+	my @seqs;
+	while (my $seq_obj = $seq_io->next_seq) {
+		my $header = get_header($seq_obj);
+		my $seq = $seq_obj->seq;
+		push @seqs, {seq => $seq,
+			     header => $header,
+			    };
+	}
+
+	my @picks;
+	for (1 .. $shuffle_pick) {
+		push @picks, splice @seqs, int(rand(scalar @seqs)), 1;
+	}
+
+	for my $pick (@picks) {
+		print_this_seq($pick->{header}, $pick->{seq});
+	}
+}
+#-----------------------------------------------------------------------------
+sub remove_ids {
+
+	my $remove_file = shift;
+	open (my $IN, '<', $remove_file) or die "Can't open $remove_file for reading\n";
+	my %ids = map {chomp;$_, 1} (<$IN>);
+	while (my $seq_obj = $seq_io->next_seq) {
+		my $id = $seq_obj->display_id;
+		next if $ids{$id};
+		my $header = get_header($seq_obj);
+		my $seq = $seq_obj->seq;
+		print_this_seq($header, $seq);
+	}
+}
+#-----------------------------------------------------------------------------
+sub select_ids {
+
+	my $select_file = shift;
+	open (my $IN, '<', $select_file) or die "Can't open $select_file for reading\n";
+	my %ids = map {chomp;$_, 1} (<$IN>);
+	while (my $seq_obj = $seq_io->next_seq) {
+		my $id = $seq_obj->display_id;
+		next unless $ids{$id};
+		my $header = get_header($seq_obj);
+		my $seq = $seq_obj->seq;
+		print_this_seq($header, $seq);
+	}
+}
+#-----------------------------------------------------------------------------
+sub print_this_seq {
+	my ($header, $seq) = @_;
+
+	if($table){
+	    chomp $seq;
+	    ($header) = $header =~ /^([^\s+]+)/;
+	    print join("\t", $header, uc($seq))."\n";
+	}
+	else{
+	    $seq = wrap_seq($seq, $wrap) if $wrap;
+	    chomp $seq;
+	    my $join = $tab ? "\t" : "\n";
+	    print join $join, (">$header", "$seq\n");
+	}
+}
+#-----------------------------------------------------------------------------
+sub wrap_seq {
+	my ($seq, $wrap) = @_;
+
+	if ($wrap > 0) {
+		$seq =~ s/\s//g;
+		$seq =~ s/(.{$wrap})/$1\n/g;
+	}
+	chomp $seq;
+	return $seq;
+}
+#-----------------------------------------------------------------------------
+sub get_header {
+	my $seq_obj = shift;
+	return $seq_obj->display_id . " " . $seq_obj->description;
+
+}
+#-----------------------------------------------------------------------------
+sub shuffle {
+	#Fisher-Yates Shuffle
+	my $array = shift;
+
+	my $n = scalar @{$array};
+	while ($n > 1) {
+		my $k = int rand($n--);
+		($array->[$n], $array->[$k]) = ($array->[$k], $array->[$n]);
+	}
+}
+#-----------------------------------------------------------------------------
+sub swap_ids {
+
+    my $id_file = shift;
+    open (my $IN, '<', $id_file) or die "Can't open $id_file for reading\n";
+    my %ids;
+    while (<$IN>) {
+	chomp;
+	my($id1, $id2) = split /\t/, $_;
+	# $id1 =~ s/\.\d+$//;
+	$ids{$id1} = $id2;
+    }
+    while (my $seq_obj = $seq_io->next_seq) {
+	my $id = $seq_obj->display_id;
+	# gi|71999842|ref|NM_073020.2|
+	# my ($x, $y, $z, $id) = split /\|/, $id_text;
+	# $id =~ s/\.\d+//;
+	my $header = get_header($seq_obj);
+	if (exists $ids{$id}) {
+	    $header = $ids{$id};
+	}
+	my $seq = $seq_obj->seq;
+	print_this_seq($header, $seq);
+    }
+}
+#-----------------------------------------------------------------------------
+sub subseq {
+
+    my ($file, $coordinates) = @_;
+
+    require Bio::DB::Fasta;
+    my $fasta = Bio::DB::Fasta->new($file);
+
+    my ($seqid, $start, $end) = split /[:-]/, $coordinates;
+
+    print $fasta->seq($seqid, $start, $end);
+    print "\n";
+}
+#-----------------------------------------------------------------------------
+
+sub tile_seq {
+
+    my $tile = shift;
+
+    my ($tile_length, $step) = split /,/, $tile;
+    $tile_length ||= 50;
+    $step ||= 1;
+
+    while (my $seq_obj = $seq_io->next_seq) {
+	my $id  = $seq_obj->display_id;
+	my $seq = $seq_obj->seq;
+	my $seq_length = length($seq);
+	my $start;
+	for ($start = 1;$start <= ($seq_length - $tile_length); $start += $step) {
+	    my $header = "$id:$start-" . ($start + $tile_length - 1);
+	    my $subseq = substr($seq, $start, $tile_length);
+	    print ">$header\n$subseq\n";
+	}
+    }
+}
+
+#-----------------------------------------------------------------------------

@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use POSIX qw (ceil);
 use FindBin;
-use lib ("$FindBin::Bin/../../PerlLib");
+use lib ("$FindBin::RealBin/../../PerlLib");
 use Fasta_reader;
 
 my $usage = "usage: $0 Trinity.fasta [length_bin_size=100] [out_prefix='dist']\n\n";

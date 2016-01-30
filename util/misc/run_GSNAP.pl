@@ -109,7 +109,9 @@ main: {
     
     my $gsnap_use_sarray = ($no_sarray) ? "--use-sarray=0" : "";
 
-    $reads = &add_zcat_fifo($reads);
+    if ($reads =~ /\.gz$/) {
+        $reads .= " --gunzip";
+    }
 
     my $require_proper_pairs = "";
     if ($proper_pairs_only_flag) {
@@ -126,29 +128,6 @@ main: {
     
 	exit(0);
 }
-
-
-####
-sub add_zcat_fifo {
-    my ($reads) = @_;
-
-    my @adj_reads_list;
-
-    foreach my $reads_file (split(/\s+/, $reads) ) {
-        if ($reads_file =~ /\.gz$/) {
-            $reads_file = "<(zcat $reads_file)";
-        }
-        push (@adj_reads_list, $reads_file);
-    }
-    
-    my $adj_reads = join(" ", @adj_reads_list);
-
-    return($adj_reads);
-}
-                            
-    
-
-
 
 ####
 sub process_cmd {

@@ -2092,7 +2092,14 @@ sub prep_seqs {
             if ($SS_lib_type && $SS_lib_type eq "R") {
                 $fastool_cmd .= " --rev";
             }
-            $fastool_cmd .= " --illumina-trinity --to-fasta >> $file_prefix.fa 2> $f.readcount ";
+            my $style = "--illumina-trinity";
+            if ($file_prefix eq "left"){
+                $style = "--append /1";
+            }
+            elsif ($file_prefix eq "right"){
+                $style = "--append /2";
+            }
+            $fastool_cmd .= " $style --to-fasta >> $file_prefix.fa 2> $f.readcount ";
             my $cmd = $fastool_cmd;
             &process_cmd($cmd);
 

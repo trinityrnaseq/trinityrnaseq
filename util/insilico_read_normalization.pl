@@ -63,7 +63,7 @@ my $usage = <<_EOUSAGE_;
 #
 #
 #  If paired reads:
-#      --left  <string>    :left reads
+#      --left  <string>    :left reads   (if specifying multiple files, list them as comma-delimited. eg. leftA.fq,leftB.fq,...)
 #      --right <string>    :right reads
 #
 #  Or, if unpaired reads:

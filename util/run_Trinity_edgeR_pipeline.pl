@@ -92,8 +92,15 @@ my $reads_ALL_left_fq = "reads.ALL.left.fq";
 my $reads_ALL_right_fq = "reads.ALL.right.fq";
 
 my $REGENERATE_ALL_FQ = 1;
-if (-s $reads_ALL_left_fq && -s $reads_ALL_right_fq) {
-    $REGENERATE_ALL_FQ = 0;
+if (-s $reads_ALL_left_fq || -s $reads_ALL_right_fq) {
+    
+    if (-s $reads_ALL_left_fq == -s $reads_ALL_right_fq)
+    {
+        $REGENERATE_ALL_FQ = 0;
+    }
+    else {
+        unlink($reads_ALL_left_fq, $reads_ALL_right_fq);
+    }
 }
 
 

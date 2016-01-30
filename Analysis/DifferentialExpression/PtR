@@ -1063,46 +1063,41 @@ main: {
         
         # Zscale the genes across samples for Prin Component analysis
         
-        $Rscript .= "# Z-scale the genes across all the samples for PCA\n";
-        $Rscript .= "prin_comp_data = data\n";
-                    
-        unless ($ZSCALE_ROWS) {
-            $Rscript .= "for (i in 1:nrow(data)) {\n";
-            $Rscript .= "    d = data[i,]\n";
-            $Rscript .= "    d_mean = mean(d)\n";
-            $Rscript .= "    d  = d - d_mean\n";
-            $Rscript .= "    d = d / sd(d)\n";
-            $Rscript .= "    prin_comp_data[i,] = d\n";
-            $Rscript .= "}\n\n";
-        }
+        $Rscript .= "# Z-scale and center the genes across all the samples for PCA\n";
+        $Rscript .= "prin_comp_data = primary_data\n"
+            .  "prin_comp_data = log2(prin_comp_data+1)\n"
+            .  "prin_comp_data = scale(prin_comp_data)\n"
+            .  "prin_comp_data = t(scale(t(prin_comp_data), center=TRUE, scale=F)) # just center trans expr level, retain original effect size.\n"
+            .  "pca = prcomp(t(prin_comp_data), center = FALSE, scale. = FALSE)\n";
         
-        $Rscript .= "write.table(prin_comp_data, file=\"$output_prefix.ZscaleRows.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
-                
-        $Rscript .= "pc = princomp(prin_comp_data, cor=TRUE)\n";
-        $Rscript .= "pc_pct_variance = (pc\$sdev^2)/sum(pc\$sdev^2)\n";
+        
+        $Rscript .= "write.table(prin_comp_data, file=\"$output_prefix.Princomp_log2_Zscale_centered.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
+        
+        #$Rscript .= "pc = princomp(prin_comp_data, cor=TRUE)\n";
+        $Rscript .= "pc_pct_variance = (pca\$sdev^2)/sum(pca\$sdev^2)\n";
         $Rscript .= "def.par <- par(no.readonly = TRUE) # save default, for resetting...\n"
             .  "gridlayout = matrix(c(1:4),nrow=2,ncol=2, byrow=TRUE);\n"
             .  "layout(gridlayout, widths=c(1,1));\n";
         
         if (1) {
             ## write out the PC info
-            $Rscript .= "write.table(pc\$loadings, file=\"$output_prefix.ZscaleRows.PC.loadings\", quote=F, sep=\"\t\")\n";
-            $Rscript .= "write.table(pc\$scores, file=\"$output_prefix.ZscaleRows.PC.scores\", quote=F, sep=\"\t\")\n";
+            $Rscript .= "write.table(pca\$rotation, file=\"$output_prefix.PCA.loadings\", quote=F, sep=\"\t\")\n";
+            $Rscript .= "write.table(pca\$x, file=\"$output_prefix.PCA.scores\", quote=F, sep=\"\t\")\n";
             
         }
         
         
 
         $Rscript .= "for (i in 1:(max($prin_comp,2)-1)) {\n" # one plot for each n,n+1 component comparison.
-            . "    xrange = range(pc\$loadings[,i])\n"
-            . "    yrange = range(pc\$loadings[,i+1])\n"
-            . "    samples_want = rownames(pc\$loadings) \%in\% sample_type_list[[sample_types[1]]]\n" # color according to sample
+            . "    xrange = range(pca\$x[,i])\n"
+            . "    yrange = range(pca\$x[,i+1])\n"
+            . "    samples_want = rownames(pca\$x) \%in\% sample_type_list[[sample_types[1]]]\n" # color according to sample
             . "    pc_i_pct_var = sprintf(\"(%.2f%%)\", pc_pct_variance[i]*100)\n"
             . "    pc_i_1_pct_var = sprintf(\"(%.2f%%)\", pc_pct_variance[i+1]*100)\n"
-            . "    plot(pc\$loadings[samples_want,i], pc\$loadings[samples_want,i+1], xlab=paste('PC',i, pc_i_pct_var), ylab=paste('PC',i+1, pc_i_1_pct_var), xlim=xrange, ylim=yrange, col=sample_colors[1])\n"
+            . "    plot(pca\$x[samples_want,i], pca\$x[samples_want,i+1], xlab=paste('PC',i, pc_i_pct_var), ylab=paste('PC',i+1, pc_i_1_pct_var), xlim=xrange, ylim=yrange, col=sample_colors[1])\n"
             . "    for (j in 2:nsamples) {\n"
-            . "        samples_want = rownames(pc\$loadings) \%in\% sample_type_list[[sample_types[j]]]\n"
-            . "        points(pc\$loadings[samples_want,i], pc\$loadings[samples_want,i+1], col=sample_colors[j], pch=j)\n"
+            . "        samples_want = rownames(pca\$x) \%in\% sample_type_list[[sample_types[j]]]\n"
+            . "        points(pca\$x[samples_want,i], pca\$x[samples_want,i+1], col=sample_colors[j], pch=j)\n"
             . "    }\n"
             . "    plot.new()\n"
             . "    legend('topleft', as.vector(sample_types), col=sample_colors, pch=1:nsamples, ncol=2)\n"
@@ -1123,7 +1118,7 @@ main: {
         
         #$Rscript .= "dev.off();stop('debug')\n";
         
-        $Rscript .= "pcscore_mat_vals = pc\$scores[,1:$prin_comp]\n";
+        $Rscript .= "pcscore_mat_vals = pca\$rotation[,1:$prin_comp]\n";
         $Rscript .= "pcscore_mat = matrix_to_color_assignments(pcscore_mat_vals, col=colorpanel(256,'purple','black','yellow'), by='row')\n";
         $Rscript .= "colnames(pcscore_mat) = paste('PC', 1:ncol(pcscore_mat))\n"; 
         
@@ -1807,15 +1802,16 @@ sub add_prin_comp_heatmaps {
         . "uniq_genes = c()\n"
                 . "for (i in 1:$prin_comp) {\n"
                 . "    ## get genes with extreme vals\n"
-                . "    print(paste('range', range(pc\$scores[,i])))\n"
-                . "    ordered_gene_indices = order(pc\$scores[,i])\n"
+                . "    print(paste('range', range(pca\$rotation[,i])))\n"
+                . "    ordered_gene_indices = order(pca\$rotation[,i])\n"
                 . "    num_genes = length(ordered_gene_indices)\n"
                 . "    extreme_ordered_gene_indices = unique(c(1:$num_top_genes_PC_extreme, (num_genes-$num_top_genes_PC_extreme):num_genes))\n"
+                . "    print('extreme ordered gene indices')\n"
                 . "    print(extreme_ordered_gene_indices)\n"
                 . "    selected_gene_indices = ordered_gene_indices[extreme_ordered_gene_indices]\n"
                 . "    print('selected gene indices');print(selected_gene_indices);\n"
-                . "    print('PC scores:');print(pc\$scores[selected_gene_indices,i])\n"
-                . "    selected_genes_matrix = data[selected_gene_indices,]\n"
+                . "    print('PC scores:');print(pca\$rotation[selected_gene_indices,i])\n"
+                . "    selected_genes_matrix = prin_comp_data[selected_gene_indices,]\n"
                 #. "    print(selected_genes_matrix)\n"
                 . "    pc_color_bar_vals = pcscore_mat_vals[selected_gene_indices,i]\n"
                 . "    print(pc_color_bar_vals)\n"
@@ -1845,13 +1841,7 @@ sub add_prin_comp_heatmaps {
 
     ##  Include a heatmap containing all selected genes across all PCs.
 
-    $Rscript .= "all_selected_genes_matrix = data[uniq_genes,]\n";
-    #if(! $LOG2) {
-    #    $Rscript .= "all_selected_genes_matrix = log2(all_selected_genes_matrix + 1)\n";
-    #}
-    if ($CENTER) {
-        $Rscript .= "all_selected_genes_matrix = t(scale(t(all_selected_genes_matrix), scale=F))\n";
-    }
+    $Rscript .= "all_selected_genes_matrix = prin_comp_data[uniq_genes,]\n";
     
     $Rscript .= "write.table(all_selected_genes_matrix, file=paste(\"$output_prefix\", '.PC_all','_extreme',$num_top_genes_PC_extreme,'.matrix', sep=''), quote=F, sep=\"\t\")\n";
     $Rscript .= "heatmap.3(all_selected_genes_matrix, col=greenred(256), scale='none', density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=1, margins=c(10,10), cex.main=0.75, cexRow=0.5, main=paste('heatmap for ALL selected ', $num_top_genes_PC_extreme, ' extreme of all PCs')";
@@ -1876,7 +1866,10 @@ sub add_top_loadings_pc_heatmap {
     #kruskal-wallis test
 
     # subtracting out PC 
-
+    
+    die "Error - temporarily discontinued option and will revisit later.";
+    ## TODO: update code based on new use of pca and include proper tests
+    
     my $Rscript = "abs_loadings = abs(pc\$scores[,1:$prin_comp])\n"
                 . "max_loadings = apply(abs_loadings, 1, max)\n"
                 . "ordered_loadings = rev(order(max_loadings))\n"

@@ -11,7 +11,7 @@ use Cwd;
 
 $ENV{LC_ALL} = 'C';
 
-my $util_dir = "$FindBin::Bin/../../util/support_scripts";
+my $util_dir = "$FindBin::RealBin/../../util/support_scripts";
 
 
 my $usage = <<_EOUSAGE_;

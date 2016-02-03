@@ -9,7 +9,11 @@ test_eXpress:
 	./align_and_estimate_tester.pl eXpress
 
 test_kallisto:
+ifeq "" "$(shell which kallisto)"
+	echo skipping kallisto test
+else
 	./align_and_estimate_tester.pl kallisto
+endif
 
 
 clean:

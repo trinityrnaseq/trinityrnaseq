@@ -8,7 +8,7 @@ use Getopt::Long qw(:config no_ignore_case bundling);
 use FindBin;
 use File::Basename;
 
-$ENV{PATH} .= ":$FindBin::Bin/../../trinity-plugins/slclust/bin/";
+$ENV{PATH} .= ":$FindBin::RealBin/../../trinity-plugins/slclust/bin/";
 
 my $help_flag;
 
@@ -87,7 +87,7 @@ if ($help_flag) {
     die $usage;
 }
 
-my $util_dir = "$FindBin::Bin/util";
+my $util_dir = "$FindBin::RealBin/util";
 
 my $found_all_tools = 1;
 my @required_tools = qw (blat slclust);

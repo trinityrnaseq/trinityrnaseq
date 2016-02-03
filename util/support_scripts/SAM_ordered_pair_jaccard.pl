@@ -84,7 +84,7 @@ if (@ARGV) {
 }
 
 
-my $util_dir = "$FindBin::Bin";
+my $util_dir = "$FindBin::RealBin";
 
 main: {
 

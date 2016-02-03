@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use FindBin;
-use lib ("$FindBin::Bin/../../PerlLib");
+use lib ("$FindBin::RealBin/../../PerlLib");
 use Fasta_reader;
 
 my $usage = "usage: $0 [multiFastaFile] [NO_FULL_HEADER_FLAG=0]\n\n";

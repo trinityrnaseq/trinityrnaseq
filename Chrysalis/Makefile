@@ -52,6 +52,7 @@
 ##############################################################################
 
 DATE = $(shell date)
+BUILD_DATETIME ?= $(DATE)  # allow for overrides to enable reproducible builds
 OS_NAME = $(shell uname -s)
 NODE_NAME = $(shell uname -n)
 OS_RELEASE = $(shell uname -r)
@@ -277,7 +278,7 @@ XERCES_LIB	=
 
 # Base definitions:
 SYS_DEFS	= \
-		  -DMAKE_DATE='"$(DATE)"' \
+		  -DMAKE_DATE='"$(BUILD_DATETIME)"' \
 		  -DMAKE_OS_RELEASE='"$(OS_RELEASE)"' \
 		  -DMAKE_RELEASE='"$(RELEASE)"' \
 		  -DNEW_MAKEFILE
@@ -308,7 +309,7 @@ ifeq ($(COMPILER),g++)
 endif
 
 # Linking control (e.g. to link templates):
-SYS_LINK	=
+SYS_LINK	=  $(LDFLAGS)
 
 # Required libraries:
 SYS_LIBS	= -lm -pthread
@@ -380,7 +381,8 @@ CPP_OPTIONS	= \
 		$(SYS_LANG) \
 		$(SYS_INCS) \
 		$(OMP_OPTIONS) \
-		$(PTHREAD_OPTIONS)
+		$(PTHREAD_OPTIONS) \
+		$(CPPFLAGS)
 
 LINK_OPTIONS	= \
 		$(SYS_DEBUG) \
@@ -435,7 +437,7 @@ clean:
 	for file in $(EXECUTABLES); do rm -f $(BIN)/$$file; done
 	rm -f MakeDepend $(BIN)/MakeDepend contigs.out my.permanent.log.file \
              core a.out Makefile.bak bsubin BasevectorTables.h $(BIN)/checkLock 
-	find $(OBJ) -name '*.o' -exec rm {} \;
+	find $(OBJ) -name '*.o' -exec rm {} \; || /bin/true
 	rm -rf cxx_repository
 	rm -f lib_*_temp.a
 

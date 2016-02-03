@@ -93,7 +93,7 @@ void IRKE::populate_Kmers_from_kmers(const string& fasta_filename) {
   	record_counter[i] = 0;
   }
 
-	cerr << "-reading Kmer occurences..." << endl;
+	cerr << "-reading Kmer occurrences..." << endl;
 	start = time(NULL);
 
 	Fasta_reader fasta_reader(fasta_filename);

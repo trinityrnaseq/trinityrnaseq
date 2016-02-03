@@ -7,7 +7,7 @@ use Getopt::Long qw(:config no_ignore_case bundling);
 use File::Basename;
 use FindBin;
 
-use lib ("$FindBin::Bin/../../PerlLib");
+use lib ("$FindBin::RealBin/../../PerlLib");
 use CanvasXpress::Heatmap;
 
 
@@ -80,7 +80,7 @@ main: {
         
         open (my $ofh, ">$R_script") or die "Error, cannot write to file $R_script";
         
-        print $ofh "source(\"$FindBin::Bin/R/get_cluster_info.R\")\n";
+        print $ofh "source(\"$FindBin::RealBin/R/get_cluster_info.R\")\n";
         print $ofh "get_cluster_info(\"$R_data_file\")\n";
         close $ofh;
         

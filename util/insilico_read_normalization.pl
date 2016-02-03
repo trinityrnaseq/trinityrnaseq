@@ -6,7 +6,7 @@ use threads;
 no strict qw(subs refs);
 
 use FindBin;
-use lib ("$FindBin::Bin/../PerlLib");
+use lib ("$FindBin::RealBin/../PerlLib");
 use File::Basename;
 use Cwd;
 use Carp;
@@ -245,6 +245,9 @@ if ($max_memory) {
     $sort_mem = $max_memory;
     if ($PARALLEL_STATS) {
         $sort_mem = int($sort_mem/2);
+        unless ($sort_mem > 1) {
+            $sort_mem = 1;
+        }
     }
     $sort_mem .= "G";
     

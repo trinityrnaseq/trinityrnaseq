@@ -232,7 +232,7 @@ main: {
 sub cluster_diff_expressed_transcripts {
     my ($diff_expr_matrix_file) = @_;
     
-    my $cmd = "$FindBin::Bin/PtR -m $diff_expr_matrix_file --log2 --heatmap --min_colSums 0 --min_rowSums 0 --gene_dist euclidean --sample_dist euclidean --sample_cor_matrix --center_rows --save @ARGV";
+    my $cmd = "$FindBin::RealBin/PtR -m $diff_expr_matrix_file --log2 --heatmap --min_colSums 0 --min_rowSums 0 --gene_dist euclidean --sample_dist euclidean --sample_cor_matrix --center_rows --save @ARGV";
     
     if ($samples_file) {
         $cmd .= " -s $samples_file";
@@ -387,10 +387,10 @@ sub parse_result_files_find_diffExp {
         ## do GO enrichment analysis
         if ($examine_GO_enrichment_flag) {
             
-            my $cmd = "$FindBin::Bin/run_GOseq.pl --GO_assignments $GO_annots_file --lengths $gene_lengths_file --genes_single_factor $condA_up_subset_file";
+            my $cmd = "$FindBin::RealBin/run_GOseq.pl --GO_assignments $GO_annots_file --lengths $gene_lengths_file --genes_single_factor $condA_up_subset_file";
             &process_cmd($cmd) if $countA;
 
-            $cmd = "$FindBin::Bin/run_GOseq.pl --GO_assignments $GO_annots_file --lengths $gene_lengths_file --genes_single_factor $condB_up_subset_file";
+            $cmd = "$FindBin::RealBin/run_GOseq.pl --GO_assignments $GO_annots_file --lengths $gene_lengths_file --genes_single_factor $condB_up_subset_file";
             &process_cmd($cmd) if $countB;
             
         }
@@ -463,7 +463,7 @@ sub write_matrix_generate_heatmap {
     }
     close $ofh;
 
-    my $cmd = "$FindBin::Bin/PtR -m $matrix_out_file -s $pairwise_samples_file --log2 --heatmap --min_colSums 0 --min_rowSums 0 --gene_dist euclidean --sample_dist euclidean @ARGV ";
+    my $cmd = "$FindBin::RealBin/PtR -m $matrix_out_file -s $pairwise_samples_file --log2 --heatmap --min_colSums 0 --min_rowSums 0 --gene_dist euclidean --sample_dist euclidean @ARGV ";
     
     if ($samples_file) {
         $cmd .= " -s $samples_file ";

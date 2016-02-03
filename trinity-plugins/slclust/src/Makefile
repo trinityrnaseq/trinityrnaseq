@@ -17,11 +17,8 @@ OBJS           = slcluster.o graph.o graphnode.o cmd_line_opts.o
 # use ${LIBDIR} defined above if appropriate
 LIBS           = 
 
-# How they are invoked on the compile line (eg: -lspecial)
-LLIBS          =
-
 # Local additions for the CFLAG options
-LOCAL_CFLAGS   = -Wall 
+LOCAL_CXXFLAGS   = -Wall 
 #-static
 
 
@@ -34,19 +31,10 @@ BIN           = ${PROJECT_ROOT}/bin
 INCLUDE       = ${PROJECT_ROOT}/include
 
 DEBUG         = DEBUG
-CFLAGS        = -I${INCLUDE} ${LOCAL_CFLAGS}
-CC            = g++ ${CFLAGS}
+CXXFLAGS        += -I${INCLUDE} ${LOCAL_CXXFLAGS}
 
 MAKEFILE      = Makefile
 
-
-# Suffix rules
-
-.cc.o:
-	${CC} -c $<
-
-.cpp.o:
-	${CC} -c $<
 
 # Target dependencies
 
@@ -59,12 +47,13 @@ install : ${EXECUTABLE}
 
 
 clean :
-	rm -f ${OBJS} core a.out *~ \#* ${EXECUTABLE} ${MAKEFILE}.bak
+	rm -f ${OBJS} core a.out *~ \#* ${EXECUTABLE} ${MAKEFILE}.bak \
+		${BIN}/${EXECUTABLE}
 
 
 ${OBJ} : ${MAKEFILE}
 
 ${EXECUTABLE} : ${OBJS}
-	${CC} ${OBJS} ${LIBS} -o ${EXECUTABLE}	
+	${CXX} ${LDFLAGS} ${OBJS} ${LIBS} -o ${EXECUTABLE}
 	chmod 755 ${EXECUTABLE}
 

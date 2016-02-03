@@ -21,12 +21,12 @@ while ($output_dir =~ m|/$|) {
 main: {
 
     ## run bowtie
-    my $cmd = "$FindBin::Bin/../alignReads.pl --target $genome_file --left $left_fq_file --right $right_fq_file "
+    my $cmd = "$FindBin::RealBin/../alignReads.pl --target $genome_file --left $left_fq_file --right $right_fq_file "
         . " --seqType fq --aligner bowtie -o $output_dir  --max_dist_between_pairs 900000000 --no_rsem --retain_intermediate_files "
         . " -- -a -m 1 --best --strata -p 4 --chunkmbs 512 ";
     &process_cmd($cmd) unless (-s "$output_dir/$output_dir.nameSorted.sam");
 
-    $cmd = "$FindBin::Bin/HiCpipe_nameSortedSam_to_raw.pl $output_dir/$output_dir.nameSorted.sam > $output_dir/$output_dir.raw";
+    $cmd = "$FindBin::RealBin/HiCpipe_nameSortedSam_to_raw.pl $output_dir/$output_dir.nameSorted.sam > $output_dir/$output_dir.raw";
     &process_cmd($cmd) unless (-s "$output_dir/$output_dir.raw");
     
 

@@ -7,7 +7,7 @@ use Getopt::Long qw(:config no_ignore_case bundling pass_through);
 use Cwd;
 use FindBin;
 use File::Basename;
-use lib ("$FindBin::Bin/../../PerlLib");
+use lib ("$FindBin::RealBin/../../PerlLib");
 use Fasta_reader;
 use Data::Dumper;
 
@@ -413,7 +413,7 @@ sub run_edgeR_sample_pair {
     print $ofh "write.table(tTags, file=\'$output_prefix.edgeR.DE_results\', sep='\t', quote=F, row.names=T)\n";
 
     ## generate MA and Volcano plots
-    print $ofh "source(\"$FindBin::Bin/R/rnaseq_plot_funcs.R\")\n";
+    print $ofh "source(\"$FindBin::RealBin/R/rnaseq_plot_funcs.R\")\n";
     print $ofh "pdf(\"$output_prefix.edgeR.DE_results.MA_n_Volcano.pdf\")\n";
     print $ofh "result_table = tTags\$table\n";
     print $ofh "plot_MA_and_Volcano(result_table\$logCPM, result_table\$logFC, result_table\$FDR)\n";
@@ -502,7 +502,7 @@ sub run_DESeq2_sample_pair {
     print $ofh "write.table(as.data.frame(res[order(res\$pvalue),]), file=\'$output_prefix.DESeq2.DE_results\', sep='\t', quote=FALSE, row.names=F)\n";
     
     ## generate MA and Volcano plots
-    print $ofh "source(\"$FindBin::Bin/R/rnaseq_plot_funcs.R\")\n";
+    print $ofh "source(\"$FindBin::RealBin/R/rnaseq_plot_funcs.R\")\n";
     print $ofh "pdf(\"$output_prefix.DESeq2.DE_results.MA_n_Volcano.pdf\")\n";
     print $ofh "plot_MA_and_Volcano(log2(res\$baseMean+1), res\$log2FoldChange, res\$padj)\n";
     print $ofh "dev.off()\n";
@@ -577,7 +577,7 @@ sub run_limma_voom_sample_pair {
     
     ## generate MA and Volcano plots
     print $ofh "# MA and volcano plots\n";
-    print $ofh "source(\"$FindBin::Bin/R/rnaseq_plot_funcs.R\")\n";
+    print $ofh "source(\"$FindBin::RealBin/R/rnaseq_plot_funcs.R\")\n";
     print $ofh "pdf(\"$output_prefix.voom.DE_results.MA_n_Volcano.pdf\")\n";
     print $ofh "plot_MA_and_Volcano(tTags2\$logCPM, tTags\$logFC, tTags\$'adj.P.Val')\n";
     print $ofh "dev.off()\n";
@@ -673,7 +673,7 @@ sub run_ROTS_sample_pair {
         
     ## generate MA and Volcano plots
     print $ofh "# MA and volcano plots\n";
-    print $ofh "source(\"$FindBin::Bin/R/rnaseq_plot_funcs.R\")\n";
+    print $ofh "source(\"$FindBin::RealBin/R/rnaseq_plot_funcs.R\")\n";
     print $ofh "pdf(\"$output_prefix.voom.DE_results.MA_n_Volcano.pdf\")\n";
     print $ofh "plot_MA_and_Volcano(final_table\$logCPM, final_table\$logFC, final_table\$FDR)\n";
     print $ofh "dev.off()\n";

@@ -16,14 +16,14 @@ my $SS = $ARGV[4] || 0;
 main: {
 
     ## run blat:
-    my $cmd = "$FindBin::Bin/../../util/process_BLAT_alignments.pl -g $genes_fasta -t $trans_fasta -I $max_intron --CPU $blat_cpu --KEEP_PSLX";
+    my $cmd = "$FindBin::RealBin/../../util/process_BLAT_alignments.pl -g $genes_fasta -t $trans_fasta -I $max_intron --CPU $blat_cpu --KEEP_PSLX";
 
     &process_cmd($cmd);
 
     $cmd = "cat blat_out_dir/*top_1 > blat.top_1.pslx";
     &process_cmd($cmd);
 
-    $cmd = "$FindBin::Bin/util/blat_top_tier_genes.pl blat.top_1.pslx $SS";
+    $cmd = "$FindBin::RealBin/util/blat_top_tier_genes.pl blat.top_1.pslx $SS";
     &process_cmd($cmd);
     
     exit(0);

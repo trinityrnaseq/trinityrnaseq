@@ -10,7 +10,7 @@ use Carp;
 use Getopt::Long qw(:config no_ignore_case bundling pass_through);
 
 
-my $RSEM_DIR = "$FindBin::Bin/../trinity-plugins/rsem";
+my $RSEM_DIR = "$FindBin::RealBin/../trinity-plugins/rsem";
 $ENV{PATH} = "$RSEM_DIR:$ENV{PATH}"; # be sure to use the included rsem package over other ones installed.
 
 
@@ -395,7 +395,7 @@ main: {
 
     if ($trinity_mode && ! $gene_trans_map_file) {
         $gene_trans_map_file = "$transcripts.gene_trans_map";
-        my $cmd = "$FindBin::Bin/support_scripts/get_Trinity_gene_to_trans_map.pl $transcripts > $gene_trans_map_file";
+        my $cmd = "$FindBin::RealBin/support_scripts/get_Trinity_gene_to_trans_map.pl $transcripts > $gene_trans_map_file";
         &process_cmd($cmd) unless (-e $gene_trans_map_file);
     }
     
@@ -643,7 +643,7 @@ sub run_eXpress {
     
     if ($gene_trans_map_file) {
         
-        my $cmd = "$FindBin::Bin/support_scripts/eXpress_trans_to_gene_results.pl results.xprs $gene_trans_map_file > results.xprs.genes";
+        my $cmd = "$FindBin::RealBin/support_scripts/eXpress_trans_to_gene_results.pl results.xprs $gene_trans_map_file > results.xprs.genes";
         &process_cmd($cmd);
     }
     
@@ -803,7 +803,7 @@ sub run_kallisto {
     
     if ($gene_trans_map_file) {
         
-        my $cmd = "$FindBin::Bin/support_scripts/kallisto_trans_to_gene_results.pl $output_dir/abundance.tsv $gene_trans_map_file > $output_dir/abundance.tsv.genes";
+        my $cmd = "$FindBin::RealBin/support_scripts/kallisto_trans_to_gene_results.pl $output_dir/abundance.tsv $gene_trans_map_file > $output_dir/abundance.tsv.genes";
         &process_cmd($cmd);
     }
 

@@ -69,7 +69,7 @@ main: {
         
         my $outfile = "$sim_out_dir/$outdir/$outdir.reads.fa";
         
-        my $cmd = "$FindBin::Bin/../simulate_illuminaPE_from_transcripts.pl --transcripts $template_file --SS > $outfile";
+        my $cmd = "$FindBin::RealBin/../simulate_illuminaPE_from_transcripts.pl --transcripts $template_file --SS > $outfile";
         &process_cmd($cmd);
         
         $gene_counter++;

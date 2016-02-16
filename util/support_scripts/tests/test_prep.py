@@ -11,7 +11,7 @@ from Bio import SeqIO
 # clear, gzip, bzip
 
 
-class TestTrinity(unittest.TestCase):
+class TestTrinityPrepFlag(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -26,79 +26,79 @@ class TestTrinity(unittest.TestCase):
 
     def test_fastq(self):
         self.trinity("left1.fq", "fq")
-        self.assertEquals(30575, self.count_seqs())
+        self.assertEquals(30575, self.count_seqs(), "Unexpected sequence count")
 
     def test_fastq_gz(self):
         self.trinity("left1.fq.gz", "fq")
-        self.assertEquals(30575, self.count_seqs())
+        self.assertEquals(30575, self.count_seqs(), "Unexpected sequence count")
 
     def test_fastq_bz2(self):
         self.trinity("left1.fq.bz2", "fq")
-        self.assertEquals(30575, self.count_seqs())
+        self.assertEquals(30575, self.count_seqs(), "Unexpected sequence count")
 
     def test_fastq_multiple_files_single(self):
         self.trinity("left1.fq,left1.fq.gz", "fq")
-        self.assertEquals(61150, self.count_seqs())
+        self.assertEquals(61150, self.count_seqs(), "Unexpected sequence count")
 
     def test_fastq_multiple_files_single_bz2(self):
         self.trinity("left1.fq.bz2,left1.fq.gz", "fq")
-        self.assertEquals(61150, self.count_seqs())
+        self.assertEquals(61150, self.count_seqs(), "Unexpected sequence count")
 
     def test_fastq_multiple_files_single_reverse(self):
         self.trinity("left1.fq,left1.fq.gz", "fq", True)
-        self.assertEquals(61150, self.count_seqs())
+        self.assertEquals(61150, self.count_seqs(), "Unexpected sequence count")
 
     def test_fasta(self):
         self.trinity("left1.fa")
-        self.assertEquals(30575, self.count_seqs())
+        self.assertEquals(30575, self.count_seqs(), "Unexpected sequence count")
 
     def test_fasta_gz(self):
         self.trinity("left1.fa.gz")
-        self.assertEquals(30575, self.count_seqs())
+        self.assertEquals(30575, self.count_seqs(), "Unexpected sequence count")
 
     def test_fasta_multiple_files_single(self):
         self.trinity("left1.fa,left1.fa.gz")
-        self.assertEquals(61150, self.count_seqs())
+        self.assertEquals(61150, self.count_seqs(), "Unexpected sequence count")
 
     def test_fasta_multiple_files_single_reverse(self):
         self.trinity("left1.fa,left1.fa.gz", reverse=True)
-        self.assertEquals(61150, self.count_seqs())
+        self.assertEquals(61150, self.count_seqs(), "Unexpected sequence count")
 
     def test_paired_fastq(self):
         self.trinity("left1.fq", "fq", morefiles="right1.fq")
-        self.assertEquals(61150, self.count_seqs())
+        self.assertEquals(61150, self.count_seqs(), "Unexpected sequence count")
 
     def test_paired_fastq_gz(self):
         self.trinity("left1.fq.gz", "fq", morefiles="right1.fq.gz")
-        self.assertEquals(61150, self.count_seqs())
+        self.assertEquals(61150, self.count_seqs(), "Unexpected sequence count")
 
     def test_fastq_multiple_files_paired(self):
         self.trinity("left1.fq,left1.fq.gz", "fq", morefiles="right1.fq,right1.fq.gz")
-        self.assertEquals(122300, self.count_seqs())
+        self.assertEquals(122300, self.count_seqs(), "Unexpected sequence count")
 
     def test_fastq_multiple_files_paired_reverse(self):
         self.trinity("left1.fq,left1.fq.gz", "fq", reverse=True, morefiles="right1.fq,right1.fq.gz")
-        self.assertEquals(122300, self.count_seqs())
+        self.assertEquals(122300, self.count_seqs(), "Unexpected sequence count")
 
     def test_fasta_paired(self):
         self.trinity("left1.fa", morefiles="right1.fa")
-        self.assertEquals(61150, self.count_seqs())
+        self.assertEquals(61150, self.count_seqs(), "Unexpected sequence count")
 
     def test_paired_sequences_have_1_or_2_extension(self):
         self.trinity("sra_test.fq", morefiles="sra_test2.fq", seqtype='fq')
-        self.assertEquals(0, self.count_bad_endings())
+        self.assertEquals(0, self.count_bad_endings(), "Found sequences with bad endings")
 
     def test_fasta_gz_paired(self):
         self.trinity("left1.fa.gz", morefiles="right1.fa.gz")
-        self.assertEquals(61150, self.count_seqs())
+        self.assertEquals(61150, self.count_seqs(), "Unexpected sequence count")
 
     def test_fasta_multiple_files_paired(self):
         self.trinity("left1.fa,left1.fa.gz", morefiles="right1.fa,right1.fa.gz")
-        self.assertEquals(61150, self.count_seqs())
+        self.assertEquals(61150, self.count_seqs(), "Unexpected sequence count")
 
     def test_fasta_multiple_files_paired(self):
         self.trinity("left1.fa,left1.fa.gz", morefiles="right1.fa,right1.fa.gz", reverse=True)
-        self.assertEquals(122300, self.count_seqs())
+        self.assertEquals(122300, self.count_seqs(), "Unexpected sequence count")
 
     def trinity(self, files, seqtype='fa', reverse=False, morefiles=None):
         if morefiles:
@@ -109,6 +109,7 @@ class TestTrinity(unittest.TestCase):
             cmdline = tpl % (files, seqtype)
         if reverse:
           cmdline += " --SS_lib_type " + ('RF' if morefiles else 'R')
+        print "Command line:", cmdline
         with open("coverage.log", 'a') as file_out:
             subprocess.call(cmdline,shell=True, stdout=file_out)
 

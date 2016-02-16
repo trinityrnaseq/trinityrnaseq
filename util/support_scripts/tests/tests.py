@@ -29,6 +29,7 @@ class TestTrinity(unittest.TestCase):
         shutil.rmtree('trinity_out_dir', True)
 
     def test_sample_data_seq_count(self):
+        print "When assembling the sample data, the number of sequences assembled should be between 75 and 100"
         self.trinity(
             "Trinity --seqType fq %s --left reads.left.fq.gz,reads2.left.fq.gz --right reads.right.fq.gz,reads2.right.fq.gz --SS_lib_type RF --CPU 4 --no_cleanup" % MEM_FLAG)
         handle = open("trinity_out_dir/Trinity.fasta", "rU")
@@ -37,6 +38,7 @@ class TestTrinity(unittest.TestCase):
         self.assertTrue(75 <= seq_count <= 100, msg='Found %s sequences' % seq_count)
 
     def test_sample_data_trimmed_and_normalized(self):
+        print "When assembling the sample data with the --trimmomatic --normalize_reads flags, the number of sequences assembled should be between 75 and 85"
         self.trinity(
             "Trinity --seqType fq %s --left reads.left.fq.gz,reads2.left.fq.gz --right reads.right.fq.gz,reads2.right.fq.gz --SS_lib_type RF --CPU 4 --trimmomatic --normalize_reads --no_cleanup" % MEM_FLAG)
         handle = open("trinity_out_dir/Trinity.fasta", "rU")
@@ -45,12 +47,14 @@ class TestTrinity(unittest.TestCase):
         self.assertTrue(75 <= seq_count <= 85, msg='Found %s sequences' % seq_count)
 
     def test_no_cleanup_leaves_temp_files(self):
+        print "The --no_cleanup flag should ensure that the output directory is left behind"
         self.trinity(
             "Trinity --seqType fq %s --left reads.left.fq.gz,reads2.left.fq.gz --right reads.right.fq.gz,reads2.right.fq.gz --SS_lib_type RF --CPU 4 --no_cleanup" % MEM_FLAG)
         for f in TEMP_FILES:
             self.assertTrue(os.path.exists("trinity_out_dir/%s" % f), msg="%s not found with no_cleanup" % f)
 
     def test_cleanup_removes_temp_files(self):
+        print "The --full_cleanup flag should ensure that the output directory is gone but the output file remains"
         self.trinity(
             "Trinity --seqType fq %s --left reads.left.fq.gz,reads2.left.fq.gz --right reads.right.fq.gz,reads2.right.fq.gz --SS_lib_type RF --CPU 4 --full_cleanup" % MEM_FLAG)
         time.sleep(5) # Make sure the system has time to recognize the directory is gone
@@ -59,19 +63,23 @@ class TestTrinity(unittest.TestCase):
                             msg="Did full_cleanup but output file not created")
 
     def test_single_end_with_rf_lib_type_error(self):
+        print "Single reads with an SS_lib_type of RF should result in an error"
         try:
             subprocess.call("Trinity --seqType fq --single reads.left.fq --SS_lib_type RF", shell=True)
         except subprocess.CalledProcessError as e:
             self.assertTrue("Error, with --single reads, the --SS_lib_type can be 'F' or 'R' only." in e.output)
 
     def test_single_end_with_fq(self):
+        print "Single reads with FQ file should succeed"
         self.trinity("Trinity %s --seqType fq --single reads.left.fq --SS_lib_type F" % MEM_FLAG)
 
     def test_no_run_chrysalis(self):
+        print "The --no_run_chrysalis flag should result in no chrysalis subdirectory in the output directory"
         self.trinity("Trinity %s --seqType fq --single reads.left.fq --SS_lib_type F --no_run_chrysalis" % MEM_FLAG)
         self.assertEquals(0, len(os.listdir('trinity_out_dir/chrysalis')))
 
     def test_no_run_inchworm(self):
+        print "The --no_run_inchworm flag should result in no inchworm.finished file"
         self.trinity("Trinity %s --seqType fq --single reads.left.fq --SS_lib_type F --no_run_inchworm" % MEM_FLAG)
         self.assertFalse(os.path.isfile("trinity_out_dir/inchworm.K25.L25.fa.finished"),
                             msg="Inchworm appears to have run although no_run_inchworm was specified")
@@ -79,11 +87,13 @@ class TestTrinity(unittest.TestCase):
                             msg="jellyfish.kmers.fa was not created")
 
     def test_no_bowtie(self):
+        print "The --no_bowtie flag should result in no bowtie.nameSorted.bam file"
         self.trinity("Trinity %s --seqType fq --single reads.left.fq --SS_lib_type F --no_bowtie" % MEM_FLAG)
         self.assertFalse(os.path.isfile("trinity_out_dir/bowtie.nameSorted.bam"),
                             msg="Bowtie appears to have run although no_bowtie was specified")
 
     def test_no_distributed_trinity_exec(self):
+        print "The --no_distributed_trinity_exec flag should run Jellyfish but not create an output file"
         self.trinity("Trinity %s --seqType fq --single reads.left.fq --SS_lib_type F --no_distributed_trinity_exec" % MEM_FLAG)
         self.assertTrue(os.path.isfile("trinity_out_dir/inchworm.K25.L25.fa.finished"),
                             msg="Inchworm did not appear to run with no_distributed_trinity_exec flag")
@@ -93,16 +103,19 @@ class TestTrinity(unittest.TestCase):
                             msg="Trinity.fasta created with no_distributed_trinity_exec")
 
     def test_single_end_with_fa_and_reverse(self):
+        print "The --no_distributed_trinity_exec flag should run Jellyfish but not create an output file"
         self.fq2fa()
         self.trinity("Trinity %s --seqType fa --single reads.fa --SS_lib_type R" % MEM_FLAG)
 
     def test_output_correctly_changes_dir(self):
+        print "The --output flag should change the output directory"
         shutil.rmtree('trinity_test', True)
         self.trinity("Trinity %s --seqType fq --single reads.left.fq --SS_lib_type F --output trinity_test" % MEM_FLAG)
         self.assertTrue(os.path.exists("trinity_test"), msg="Changed output directory but it was not created")
         shutil.rmtree('trinity_test', True)
 
     def test_scaffold_iworm_contigs(self):
+        print "scaffold_iworm_contigs works as expected"
 	os.environ['LD_LIBRARY_PATH'] = os.environ['LD_LIBRARY_PATH'] + ':../src/trinity-plugins/htslib'
         exe = "../src/trinity-plugins/scaffold_iworm_contigs/scaffold_iworm_contigs"
         bamfile = "iworm.bowtie.nameSorted.bam"
@@ -125,26 +138,30 @@ class TestTrinity(unittest.TestCase):
         self.assertEquals(expected_order, actual_lengths)
 
     def test_Inchworm_handles_compressed_files(self):
+        print "A compressed single file should be handlred correctly by Inchworm"
         self.trinity('Trinity %s --seqType fq --single reads.left.fq.gz --SS_lib_type F --no_run_chrysalis' % MEM_FLAG);
         num_lines = sum(1 for line in open('trinity_out_dir/inchworm.K25.L25.fa'))
         self.assertTrue(2900 <= num_lines <= 3100, msg='Found %s lines' % num_lines)
 
 ### information tests
     def test_cite(self):
+        print "Cite flag should return citing information"
         expected = '\n\n* Trinity:\nFull-length transcriptome assembly from RNA-Seq data without a reference genome.\nGrabherr MG, Haas BJ, Yassour M, Levin JZ, Thompson DA, Amit I, Adiconis X, Fan L,\nRaychowdhury R, Zeng Q, Chen Z, Mauceli E, Hacohen N, Gnirke A, Rhind N, di Palma F,\nBirren BW, Nusbaum C, Lindblad-Toh K, Friedman N, Regev A.\nNature Biotechnology 29, 644\xe2\x80\x93652 (2011)\nPaper: http://www.nature.com/nbt/journal/v29/n7/full/nbt.1883.html\nCode:  http://trinityrnaseq.sf.net\n\n\n'
         cite = subprocess.check_output(["Trinity", "--cite"])
         self.assertEqual(expected, cite)
 
     def test_version(self):
+        print "Version flag should return version information"
         try:
             subprocess.check_output(["Trinity", "--version"])
             self.fail("Version returned 0 errorcode!")
         except subprocess.CalledProcessError as e:
             self.assertTrue('Trinity version: __TRINITY_VERSION_TAG__' in e.output)
-            self.assertTrue('using Trinity devel version. Note, latest production release is: v2.0.6' in e.output)
+            self.assertTrue('using Trinity devel version. Note, latest production release is: v2.1.1' in e.output)
 
 
     def test_show_full_usage_info(self):
+        print "show_full_usage_info flag has several option sections"
         try:
             subprocess.check_output(["Trinity", "--show_full_usage_info"])
         except subprocess.CalledProcessError as e:
@@ -156,20 +173,24 @@ class TestTrinity(unittest.TestCase):
 
 ### Invalid command line tests
     def test_no_JM_specified_error(self):
+        print "max_memory flag is required"
         error = self.get_error("Trinity --seqType fq --single reads.left.fq --SS_lib_type F")
         self.assertTrue("Error, must specify max memory for jellyfish to use, eg.  --max_memory 10G" in error)
 
     def test_invalid_option_error(self):
+        print "Invalid options result in an error"
         error = self.get_error("Trinity --squidward")
         self.assertTrue("Error, do not understand options: --squidward" in error)
 
     def test_set_no_cleanup_and_full_cleanup_error(self):
+        print "Setting no_cleanup and full_cleanup together results in an error"
         error = self.get_error("Trinity --no_cleanup --full_cleanup")
         self.assertTrue("cannot set --no_cleanup and --full_cleanup as they contradict" in error)
 
 
 ### Helper methods
     def trinity(self, cmdline):
+        print "Command line:", cmdline
         with open("coverage.log", 'a') as file_out:
             subprocess.call(cmdline,shell=True, stdout=file_out)
 

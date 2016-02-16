@@ -7,7 +7,7 @@ use Getopt::Long qw(:config no_ignore_case bundling pass_through);
 use FindBin;
 use File::Basename;
 
-my $min_rowSums = 10;
+my $min_rowSums = 2;
 my $min_colSums = 10;
 
 my $usage = <<__EOUSAGE__;
@@ -1064,7 +1064,7 @@ main: {
         # Zscale the genes across samples for Prin Component analysis
         
         $Rscript .= "# Z-scale and center the genes across all the samples for PCA\n";
-        $Rscript .= "prin_comp_data = primary_data\n"
+        $Rscript .= "prin_comp_data = initial_matrix\n"
             .  "prin_comp_data = log2(prin_comp_data+1)\n"
             .  "prin_comp_data = scale(prin_comp_data)\n"
             .  "prin_comp_data = t(scale(t(prin_comp_data), center=TRUE, scale=F)) # just center trans expr level, retain original effect size.\n"

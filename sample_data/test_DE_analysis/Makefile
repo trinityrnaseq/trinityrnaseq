@@ -7,7 +7,12 @@ test_edgeR:
 	cd edgeR_outdir && ../../../Analysis/DifferentialExpression/analyze_diff_expr.pl  --matrix ../Trinity_trans.TMM.EXPR.matrix --samples ../samples.txt
 
 test_DESeq2:
-	cd DESeq2_outdir && ../../../Analysis/DifferentialExpression/analyze_diff_expr.pl  --matrix ../Trinity_trans.TMM.EXPR.matrix --samples ../samples.txt 
+ifeq "" "$(shell which DESeq2)"
+       echo skipping DESeq2 test
+else
+       ../../Analysis/DifferentialExpression/run_DE_analysis.pl  -m Trinity_trans.counts.matrix --method DESeq2 -s samples.txt -o DESeq2_outdir
+       cd DESeq2_outdir && ../../../Analysis/DifferentialExpression/analyze_diff_expr.pl  --matrix ../Trinity_trans.TMM.EXPR.matrix --samples ../samples.txt 
+endif
 
 test_voom:
 	../../Analysis/DifferentialExpression/run_DE_analysis.pl  -m Trinity_trans.counts.matrix --method voom -s samples.txt -o voom_outdir

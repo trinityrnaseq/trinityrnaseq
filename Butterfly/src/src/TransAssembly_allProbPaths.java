@@ -905,7 +905,7 @@ public class TransAssembly_allProbPaths {
 		
 
 		if (BFLY_GLOBALS.VERBOSE_LEVEL >= 15) {
-			debugMes("Printing Pair Paths ------------------", 15);
+			debugMes("Printing Pair Paths  Before DAG Overlap Layout ------------------", 15);
 			printPairPaths(combinedReadHash, "PairPaths@Init");
 		}
 		
@@ -1192,6 +1192,22 @@ public class TransAssembly_allProbPaths {
 
         	HashMap<List<Integer>,HashMap<PairPath,Integer>> finalPathsToContainedReads = assignCompatibleReadsToPaths(FinalPaths_all,combinedReadHash);
 
+        	
+        	if (BFLY_GLOBALS.VERBOSE_LEVEL >= 20) {
+        		
+        		for (List<Integer> final_path : finalPathsToContainedReads.keySet()) {
+        			HashMap<PairPath,Integer> contained_reads = finalPathsToContainedReads.get(final_path);
+        			debugMes("PRELIM_FINAL_PATH:\n" + final_path + "\ncontains:", 20);
+        			int sum_support = 0;
+        			for (PairPath pp : contained_reads.keySet()) {
+        				Integer read_support = contained_reads.get(pp);
+        				debugMes(pp + "\tcount: " + read_support, 20);
+        				sum_support += read_support;
+        			}
+        			debugMes("Total support: " + sum_support + "\n", 20);
+        		}
+        		
+        	}
 
         	
         	HashMap<List<Integer>, Pair<Integer>> filtered_paths_to_keep = new HashMap<List<Integer>,Pair<Integer>>();
@@ -1374,10 +1390,10 @@ public class TransAssembly_allProbPaths {
 									  DirectedSparseGraph<SeqVertex, SimpleEdge> graph, HashMap<List<Integer>, 
 									  HashMap<PairPath, Integer>> finalPathsToContainedReads, 
 									  HashMap<List<Integer>,Integer> separate_gene_ids) {
-
-
+		
+		
 		debugMes("SECTION\n====== ## BFLY_EM_REDUCE ## ==========\n\n", 5);
-
+		
 		
 		List<List<Integer>> all_paths = new ArrayList<List<Integer>>(finalPaths_all.keySet());
 		
@@ -1429,7 +1445,7 @@ public class TransAssembly_allProbPaths {
 
 	}
 
-
+	
 
 	private static HashMap<Integer, HashMap<PairPath, Integer>> create_DAG_from_OverlapLayout(
 			DirectedSparseGraph<SeqVertex, SimpleEdge> seqvertex_graph, HashMap<Integer, HashMap<PairPath, Integer>> combinedReadHash, String dot_file_prefix, 
@@ -1473,14 +1489,27 @@ public class TransAssembly_allProbPaths {
 
 		Collections.reverse(paths); // want descending by path l
 
-		
+		//////////////////////////////
 		// remove the contained reads
+		//////////////////////////////
+		
+		//contained_path_to_containers:  (key= the path contained, value = list of all other paths that fully contain it)
 		HashMap<List<Integer>,List<List<Integer>>> contained_path_to_containers = new HashMap<List<Integer>,List<List<Integer>>>(); 
 		List<List<Integer>> noncontained_paths = remove_containments(paths, contained_path_to_containers);
 		
 		debugMes("Noncontained paths: " + noncontained_paths, 15);
 		
+		
+		//////////////////////////////
+		// find dispersed repeats ////
+		//////////////////////////////
+		
 		HashSet<Integer> dispersed_repeat_nodes = find_dispersed_repeat_nodes(noncontained_paths);
+		
+		
+		////////////////////////////
+		// build the overlap graph
+		////////////////////////////
 		
 		
 		// build a graph of compatible paths.
@@ -1518,6 +1547,10 @@ public class TransAssembly_allProbPaths {
 			writeDotFile(path_overlap_graph, dot_file_prefix + "_POG.PE_links_added.dot", graphName);
 
 		
+		//////////////////////////////
+		// Breaking cycles
+		/////////////////////////////
+		
 		int cycle_round = 0;
 		
 		boolean breaking_cycles = true;
@@ -1550,8 +1583,11 @@ public class TransAssembly_allProbPaths {
 		HashMap<Path,PathWithOrig> orig_path_to_updated_path = convert_path_DAG_to_SeqVertex_DAG(path_overlap_graph, 
 				pathMatches, seqvertex_graph, dot_file_prefix, graphName,  createMiddleDotFiles);
 		
+		// note, path_overlap_graph includes non-contained paths
+		//       pairPathToReadSupport contains all paths
 		
-		combinedReadHash = update_PairPaths_using_overlapDAG_refined_paths(orig_path_to_updated_path, pairPathToReadSupport);
+		
+		combinedReadHash = update_PairPaths_using_overlapDAG_refined_paths(orig_path_to_updated_path, pairPathToReadSupport, contained_path_to_containers);
 		
 		
 		
@@ -1731,7 +1767,8 @@ public class TransAssembly_allProbPaths {
 
 	private static HashMap<Integer, HashMap<PairPath, Integer>> update_PairPaths_using_overlapDAG_refined_paths(
 			HashMap<Path, PathWithOrig> orig_path_to_updated_path,
-			Map<PairPath, Integer> pairPathToReadSupport) {
+			Map<PairPath, Integer> pairPathToReadSupport, 
+			HashMap<List<Integer>, List<List<Integer>>> contained_path_to_containers) {
 	
 		
 		// get the old-to-new listing in List<Integer> format for use with PairPath objects
@@ -1750,7 +1787,7 @@ public class TransAssembly_allProbPaths {
 		
 		
 		
-		
+		// get list of all old/new path pairs
 		List<PathWithOrig> revised_paths = new ArrayList<PathWithOrig>(orig_path_to_updated_path.values());
 		
 		// now, create new pair paths based on updated mappings.
@@ -1763,35 +1800,55 @@ public class TransAssembly_allProbPaths {
 			
 			Integer read_support = pairPathToReadSupport.get(pp);
 			
+			debugMes("update_PairPaths_using_overlapDAG_refined_paths: orig_pp: " + pp + " has support: " + read_support, 20);
+			
+			
 			PairPath new_pp;
+			
+			List<List<Integer>> p1_list = new ArrayList<List<Integer>>();
 			
 			List<Integer> p1 = pp.getPath1();
 			if (old_to_new_path.containsKey(p1)) {
-				p1 = old_to_new_path.get(p1);
+				p1_list.add(old_to_new_path.get(p1));
 			}
 			else {
-				p1 = update_path_mappings(p1, revised_paths);
+				// might not be a unique path!! (eg. single original nodes now ending up in multiple places)
+				p1_list = get_all_possible_updated_path_mappings(p1, revised_paths);
+				
+				debugMes("update_PairPaths_using_overlapDAG_refined_paths, p1: " + p1 + " mapped to: "  + p1_list, 20);
+				
 			}
 			
+			List<List<Integer>> p2_list = new ArrayList<List<Integer>>();
 			
 			if (pp.hasSecondPath()) {
 				List<Integer> p2 = pp.getPath2();
 				if (old_to_new_path.containsKey(p2)) {
 					p2 = old_to_new_path.get(p2);
+					p2_list.add(p2);
 				}
 				else {
-					p2 = update_path_mappings(p2, revised_paths);
+					p2_list = get_all_possible_updated_path_mappings(p2, revised_paths);
 				}
-				new_pp = new PairPath(p1, p2);
+			
+				// create new pair lists
+				for (List<Integer> p1_path : p1_list) {
+					for (List<Integer> p2_path : p2_list) {
+						new_pp = new PairPath(p1_path, p2_path);
+						updated_pairPaths.put(new_pp, read_support);
+						old_pp_to_new_pp.put(pp, new_pp);  // FIXME:  need to allow for multiple mappings here wrt long reads
+						
+					}
+				}
 			}
 			else {
-				new_pp = new PairPath(p1);
+				// only individual paths
+				for (List<Integer>p1_path : p1_list) {
+					new_pp = new PairPath(p1_path);
+					updated_pairPaths.put(new_pp, read_support);
+					old_pp_to_new_pp.put(pp, new_pp); 
+				}
 			}
-			
-			updated_pairPaths.put(new_pp, read_support);
-			
-			
-			old_pp_to_new_pp.put(pp, new_pp);
 			
 		}
 		
@@ -1861,12 +1918,43 @@ public class TransAssembly_allProbPaths {
 		throw new RuntimeException("Unable to remap read: " + p1 + " given: " + revised_paths);
 	}
 
+	private static List<List<Integer>> get_all_possible_updated_path_mappings(
+				List<Integer> p1,
+				List<PathWithOrig> revised_paths) {
+	
+		List<List<Integer>> all_path_mappings = new ArrayList<List<Integer>>();
+		
+		PathWithOrig pwo_needs_updating = new PathWithOrig(p1);
+		
+		for (PathWithOrig pwo : revised_paths) {
+			
+			PathWithOrig updated_pwo = pwo_needs_updating.align_path_by_orig_id(pwo);
+			if (updated_pwo != null) {
+				List<Integer> updated_path = updated_pwo.getVertexList();
+				if (! all_path_mappings.contains(updated_path)) {
+					all_path_mappings.add(updated_path);
+				}
+			}
+			
+		}
+		if (all_path_mappings.isEmpty()) {
+		
+			throw new RuntimeException("Unable to remap read: " + p1 + " given: " + revised_paths);
+		}
+		else {
+			return(all_path_mappings);
+		}
+	}
+	
 	
 
 	private static HashMap<Path,PathWithOrig> convert_path_DAG_to_SeqVertex_DAG(
 			DirectedSparseGraph<Path, SimplePathNodeEdge> path_overlap_graph,
 			HashMap<String, PathOverlap> pathMatches,
-			DirectedSparseGraph<SeqVertex, SimpleEdge> seqvertex_graph, String dot_file_prefix, String graphName, boolean createMiddleDotFiles) {
+			DirectedSparseGraph<SeqVertex, SimpleEdge> seqvertex_graph, 
+			String dot_file_prefix, 
+			String graphName, 
+			boolean createMiddleDotFiles) {
 		
 		
 		debugMes("SECTION\n========  Convert Path-DAG to SeqVertex-DAG ============\n\n", 5);
@@ -6626,8 +6714,15 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 					if (p.isCompatibleAndContainedBySinglePath(path)) {
 						if (! pathToContainedReads.containsKey(path)) {
 							pathToContainedReads.put(path, new HashMap<PairPath, Integer>());
+							
 						}
+						
+						debugMes("assignCompatibleReadsToPaths: " + p + " is compatible with " + path, 20);
+						
 						pathToContainedReads.get(path).put(p, read_map.get(p));
+					}
+					else {
+						debugMes("assignCompatibleReadsToPaths: " + p + " is NOT compatible with " + path, 20);
 					}
 					
 				}
@@ -10827,14 +10922,21 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 
 		debugMes("removing path "+path2remove+" and keeping path "+path2keep,15);
 
+		
+		
 		if (!removeSimilarPaths.contains(path2remove))
 			removeSimilarPaths.add(path2remove);
+		
 		if (PathReads.get(path2remove)!=null)
 		{
 			if (PathReads.get(path2keep)==null)
 				PathReads.put(path2keep, new HashMap<PairPath,Integer>());
 
-			PathReads.get(path2keep).putAll(PathReads.get(path2remove));
+			
+			// no longer assuming ownership of the other's reads, as this causes problems!
+			//PathReads.get(path2keep).putAll(PathReads.get(path2remove));
+			
+			
 			PathReads.remove(path2remove);
 		}	
 

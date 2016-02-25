@@ -823,6 +823,7 @@ if ($show_version_flag) {
     exit(1);
 }
 
+
 if ($NO_CLEANUP && $FULL_CLEANUP) {
     die "cannot set --no_cleanup and --full_cleanup as they contradict";
 }
@@ -1220,6 +1221,7 @@ main: {
     
         if (-s "Trinity.fasta.tmp") {
             rename("Trinity.fasta.tmp", "$output_directory.Trinity.fasta") or die "Error, cannot rename Trinity.fasta.tmp to $output_directory.Trinity.fasta";
+
             
             print "\n\n"
                 . "###################################################################\n"
@@ -1248,10 +1250,10 @@ main: {
         
         if (-s $butterfly_output_filename) {
             
-            print "\n\n";
-            print "###################################################################\n";
-            print "Butterfly assemblies are written to $output_directory/$butterfly_output_filename\n";
-            print "###################################################################\n\n\n" unless $TRINITY_COMPLETE_FLAG;
+            print "\n\n"
+                . "###################################################################\n"
+                . "Butterfly assemblies are written to $output_directory/$butterfly_output_filename\n"
+                . "###################################################################\n\n\n" unless $TRINITY_COMPLETE_FLAG;
         }
         else {
             

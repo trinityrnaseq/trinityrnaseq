@@ -17,7 +17,7 @@ my $reads_2_fq = $ARGV[2];
 main: {
 
     unless (-s "$target_seq.1.bt2") {
-        my $cmd = "bowtie2-build $target_seq $target_seq";
+        my $cmd = "bowtie2-build $target_seq $target_seq 1>&2 ";
         &process_cmd($cmd);
     }
 

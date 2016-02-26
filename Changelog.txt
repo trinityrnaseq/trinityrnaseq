@@ -1,17 +1,50 @@
 
-# next release
+** next release
+
+	-Butterfly update: bugfix related to polynucleotide runs.
+	-util/SAM_nameSorted_to_uniq_count_stats.pl: count fragments instead of reads.
+
+
+
+# Release v2.1.1   Oct 15, 2015
 
   -including -XX:ParallelGCThreads=$bflyGCThreads in ExitTester.jar execution.
   -incorporating samtools-0.1.19 as plugin
-  
+
+A few minor fixes:
+
+Memory is divided among the samtools threads.
+
+The Trinity contig identifiers for genome-guided assemblies are now formatted correctly (as compared to v2.1.0).
+
+We now run a check to ensure that the number of fastq records being converted to fasta by fastools matches (sanity check).
+
+
+
+# Release v2.1.0   Sept 29, 2015
+
+Abundance estimation: added support for kallisto and using TPMs now instead of FPKMs for downstream analyses.
+
+DE analysis: added support for Limma/Voom and ROTS, dropped support for DESeq(1) while keeping DESeq2. For edgeR w/o bio reps, user must define dispersion parameter.
+
+Minimal changes to the assembler, minor bug fixes, tackled most github 'issues' from last release.
+
+Trinity documentation was reorganized, revised, and moved to the wiki format.
 
 
 # Release v2.0.6
   -patch to autoconf for the inchworm build
 
+patch - had to 'autoconf --install' for the Inchworm build
+
+
 
 # Release v2.0.5
   -bugfix to properly fan out read files (they were inadvertently ending up in a single directory)
+
+Performance-related patch.
+
+Files containing reads to assemble are now properly being fanned out across a number of directories and files, instead of inadvertently co-localizing them all in a single directory. Performance improvements should be observed in the context of large data sets.
 
 
 
@@ -21,7 +54,10 @@
     -additional testing built in
     -use parallel samtools always (not just w/ v1.1, silly!)
 
-
+-Trimmomatic symlink set w/ capital T
+-additional testing built in
+-use parallel samtools always (not just w/ v1.1, silly!)
+-runtime latest-version checking added
 
 ## Release v2.0.3
 
@@ -33,7 +69,13 @@
   -use Jellyfish for only phase 1 of Trinity, with inchworm doing its own kmer counting in phase 2 (faster this way).
   -moved the HTC code over to the HPC GridRunner codebase and synched.
 
+-Bugfix to Butterfly that accounts for rare edge-cases resulting in fatal error: DAG contains a cycle
 
+-Jellyfish is now only used in the initial stage-1 of Trinity (read clustering phase), and Inchworm does the kmer counting in stage-2 (the assembly phase). This results in much faster runtimes, particularly on small data sets.
+
+-Trinity is much less verbose, especially in stage-2
+
+-Matt MacManes updated the Trimmomatic settings to those defined as optimal for trinity assembly.
 
 
 
@@ -71,6 +113,52 @@
 
     -analyze_diff_expr: different options for ordering samples or replicates in the heatmap (useful for time series)
 
+
+The long awaited Trinity release is now available:
+https://github.com/trinityrnaseq/trinityrnaseq/releases
+
+This version has slightly improved assembly characteristics as compared to all previous versions of Trinity, as demonstrated from full-length transcript reconstruction stats as well as Detonate scores (to be shown later).
+
+Trinity v2.0 includes a number of significant changes as outlined below:
+
+Logistics:
+
+Trinity moves to github, with the new website location at: http://trinityrnaseq.github.io
+
+User support now occurs through the google group:
+https://groups.google.com/forum/#!forum/trinityrnaseq-users
+
+Software:
+
+-Trinity assembly now operates in two distinct phases (1): clustering reads and (2) assembly of reads. The phase (1) read clustering phase can be done by de novo read clustering (default) or in a genome-guided way (given a coordinate-sorted bam file). Phase (2) involves executing the complete Trinity process on each cluster of reads. For the de novo read clustering phase, existing Trinity components are used (Inchworm and Chrysalis), but that process will likely be replaced by an alternative mechanism in some future release. However, Inchworm and Chrysalis will continue to be core components of the Trinity assembly process (phase 2).
+
+-the Butterfly algorithm has been extensively revised to better integrate long read support and to improve on the assembly of complex isoforms, particularly those containing internally repetitive sequences.
+
+Numerous minor changes and differences in usage - see web documentation. Most notable changes are:
+
+Trinity --max_memory instead of --JM, and simpler usage for the genome-guided method, which requires that the user provide a coordinate-sorted bam file with parameter: --genome_guided_bam.
+
+If you have error-corrected pacbio reads, you can incorporate them with the Trinity --long_reads parameter. Note, however, if you have strand-specific RNA-Seq, you'll need to be sure to first reorient your pacbio reads so that they are sense strand oriented (we do not have an automated process to do that yet). Also, note that this new feature continues to be experimental and additional work is underway to fully demonstrate the added value from incorporating the long read data.
+
+Note, the build process has changed slightly:
+To build Trinity, type 'make' in the base installation directory.
+To then build additional plugin components required for post-assembly analysis, type 'make plugins'.
+If under 'make plugins', the rsem build fails, simply visit the trinity_plugins/tmp.rsem directory and type 'make', then go back and resume the 'make plugins' in the base installation directory.
+
+
+
+
+
+
+
+
+
+
+
+
+#################################
+## Older Trinity v1 release notes
+############################
 ## Trinity release 2014-07-17
 
 run_DE_analysis.pl

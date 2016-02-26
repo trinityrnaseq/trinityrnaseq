@@ -108,8 +108,8 @@ main: {
         print "$count_type\t$count\t" . sprintf("%.2f", $count/$sum_reads*100) . "\n";
     }
     print "\n";
-    print "Total aligned reads: $sum_reads\n\n";
-
+    print "Total aligned rnaseq fragments: $sum_reads\n\n";
+    
 
     close $DEBUG_OFH if $DEBUG;
     
@@ -165,12 +165,12 @@ sub process_pairs {
     my $class = "";
     
     if ($got_proper_pair) {
-        $counts_href->{proper_pairs} += 2;
+        $counts_href->{proper_pairs}++;
         $class = "PP";
         
     }
     elsif ($got_left_read && $got_right_read) {
-        $counts_href->{improper_pairs} += 2;
+        $counts_href->{improper_pairs}++;
         $class = "IP";
     }
     elsif ($got_left_read) {

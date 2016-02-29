@@ -35,7 +35,7 @@ class TestTrinity(unittest.TestCase):
         handle = open("trinity_out_dir/Trinity.fasta", "rU")
         seq_count = len([x for x in SeqIO.parse(handle, "fasta")])
         handle.close()
-        self.assertTrue(75 <= seq_count <= 100, msg='Found %s sequences' % seq_count)
+        self.assertTrue(85 <= seq_count <= 110, msg='Found %s sequences' % seq_count)
 
     def test_sample_data_trimmed_and_normalized(self):
         print "When assembling the sample data with the --trimmomatic --normalize_reads flags, the number of sequences assembled should be between 75 and 85"
@@ -44,7 +44,7 @@ class TestTrinity(unittest.TestCase):
         handle = open("trinity_out_dir/Trinity.fasta", "rU")
         seq_count = len([x for x in SeqIO.parse(handle, "fasta")])
         handle.close()
-        self.assertTrue(75 <= seq_count <= 85, msg='Found %s sequences' % seq_count)
+        self.assertTrue(85 <= seq_count <= 100, msg='Found %s sequences' % seq_count)
 
     def test_no_cleanup_leaves_temp_files(self):
         print "The --no_cleanup flag should ensure that the output directory is left behind"
@@ -141,7 +141,7 @@ class TestTrinity(unittest.TestCase):
         print "A compressed single file should be handlred correctly by Inchworm"
         self.trinity('Trinity %s --seqType fq --single reads.left.fq.gz --SS_lib_type F --no_run_chrysalis' % MEM_FLAG);
         num_lines = sum(1 for line in open('trinity_out_dir/inchworm.K25.L25.fa'))
-        self.assertTrue(2900 <= num_lines <= 3100, msg='Found %s lines' % num_lines)
+        self.assertTrue(2850 <= num_lines <= 3100, msg='Found %s lines' % num_lines)
 
 ### information tests
     def test_cite(self):
@@ -180,7 +180,7 @@ class TestTrinity(unittest.TestCase):
     def test_invalid_option_error(self):
         print "Invalid options result in an error"
         error = self.get_error("Trinity --squidward")
-        self.assertTrue("Error, do not understand options: --squidward" in error)
+        self.assertTrue("ERROR, don't recognize parameter: --squidward" in error)
 
     def test_set_no_cleanup_and_full_cleanup_error(self):
         print "Setting no_cleanup and full_cleanup together results in an error"
@@ -192,7 +192,10 @@ class TestTrinity(unittest.TestCase):
     def trinity(self, cmdline):
         print "Command line:", cmdline
         with open("coverage.log", 'a') as file_out:
+            file_out.write("COMMAND: %s\n" % cmdline) 
+            file_out.flush()
             subprocess.call(cmdline,shell=True, stdout=file_out)
+            file_out.write("TEST COMPLETE\n") 
 
     def get_error(self, cmd):
         try:

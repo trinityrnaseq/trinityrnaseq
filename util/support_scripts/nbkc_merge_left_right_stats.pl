@@ -49,6 +49,8 @@ main: {
     print STDERR "-opening $left_stats_file\n";
     if ($left_stats_file =~ /\.gz$/) {
         open ($left_fh, "gunzip -c $left_stats_file | ") or die $!;
+    } elsif ($left_stats_file =~ /\.xz$/) {
+        open(${left_fh}, "xz -cd ${left_stats_file} | ") or die $!;
     }
     else {
         open ($left_fh, $left_stats_file) or die $!;
@@ -57,6 +59,8 @@ main: {
     print STDERR "-opening $right_stats_file\n";
     if ($right_stats_file =~ /\.gz$/) {
         open ($right_fh, "gunzip -c $right_stats_file | ") or die $!;
+    } elsif ($right_stats_file =~ /\.xz$/) {
+        open (${right_fh}, "xz -dc ${right_stats_file} | ") or die $!;
     }
     else {
         open ($right_fh, $right_stats_file) or die $!;

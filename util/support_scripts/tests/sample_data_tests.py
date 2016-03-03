@@ -33,6 +33,19 @@ class TestTrinitySampleData(unittest.TestCase):
         seq_count = self.count_sequences('test_Trinity_Assembly', 'trinity_out_dir', 'Trinity.fasta')
         self.assertTrue(100 <= seq_count <= 120, msg='Found %s sequences' % seq_count)
 
+    def test_DE_analysis_EdgeR(self):
+        check_file = os.path.join(self.sampledata_dir, 'test_DE_analysis', 'edgeR_outdir', 'numDE_feature_counts.P0.001_C2.matrix')
+        self.assertTrue(os.path.isfile(check_file))
+
+    def test_align_and_estimate_abundance(self):
+        check_file = os.path.join(self.sampledata_dir, 'test_align_and_estimate_abundance', 'RSEM-gene.counts.matrix')
+        self.assertTrue(os.path.isfile(check_file))
+
+    def test_full_edgeR_pipeline(self):
+        check_file = os.path.join(self.sampledata_dir, 'test_full_edgeR_pipeline', 'read_content_analysis', 'read_content_analysis.nameSorted.bam')
+        self.assertTrue(os.path.isfile(check_file))
+
+
 ### Helper methods
     def count_sequences(self, *paths):
         gg = os.path.join(self.sampledata_dir, *paths)

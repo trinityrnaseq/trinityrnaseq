@@ -24,11 +24,11 @@ test_eXpress:
 	../../util/align_and_estimate_abundance.pl --transcripts trinity_out_dir/Trinity.fasta --seqType fq --left reads.left.fq --right reads.right.fq --SS_lib_type RF --est_method eXpress --aln_method bowtie2 --trinity_mode --prep_reference --output_dir eXpress_PE
 
 test_kallisto:
-ifeq "" "$(shell which kallisto)"
-	echo skipping kallisto test
-else
-	../../util/align_and_estimate_abundance.pl --transcripts trinity_out_dir/Trinity.fasta --seqType fq --left reads.left.fq --right reads.right.fq --est_method kallisto --trinity_mode --prep_reference --output_dir kallisto_PE
-endif
+	ifeq "" "$(shell which kallisto)"
+		echo skipping kallisto test
+	else
+		../../util/align_and_estimate_abundance.pl --transcripts trinity_out_dir/Trinity.fasta --seqType fq --left reads.left.fq --right reads.right.fq --est_method kallisto --trinity_mode --prep_reference --output_dir kallisto_PE
+	endif
 
 test_bowtie_PE_read_estimates:
 	../../util/bowtie_PE_separate_then_join.pl  --seqType fq --left reads.left.fq --right reads.right.fq --target trinity_out_dir/Trinity.fasta --aligner bowtie

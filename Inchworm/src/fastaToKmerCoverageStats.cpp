@@ -208,10 +208,17 @@ void populate_kmer_counter(KmerCounter& kcounter, string& kmers_fasta_file) {
 }
 
 vector<unsigned int> compute_kmer_coverage(string& sequence, KmerCounter& kcounter) {
-    vector<unsigned int> coverage;
     if(IRKE_COMMON::MONITOR) {
         cerr << "processing sequence: " << sequence << endl;
     }
+    if (sequence.length() < KMER_SIZE)
+    {
+        // Can't rely on length() - KMER_SIZE for this as length is unsigned
+        cerr << "Sequence: " << sequence << "is smaller than " << KMER_SIZE << " base pairs, skipping" << endl;
+	return vector<unsigned int>();
+    }
+
+    vector<unsigned int> coverage;
     for (size_t i = 0; i <= sequence.length() - KMER_SIZE; i++) {
         // cerr << "i: " << i << ", <= " << sequence.length() - KMER_SIZE << endl;
         string kmer = sequence.substr(i, KMER_SIZE);

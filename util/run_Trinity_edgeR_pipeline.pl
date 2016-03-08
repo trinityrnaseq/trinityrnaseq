@@ -13,7 +13,14 @@ my $BASEDIR = "$FindBin::RealBin/../";
 
 my $usage = <<__EOUSAGE__;
 
-
+#############################
+#
+#   Note, if you already have a Trinity assembly and it exists as:
+# 
+#       trinity_out_dir/Trinity.fasta
+#
+#  Then, it will be used as the target for expression and DE analysis.
+#
 ##########################################################################################################
 #
 #  Required:

@@ -11,8 +11,11 @@ my $usage = <<__EOUSAGE__;
 ############################################################
 #
 # Usage:  $0 --est_method <method>  sample1.results sample2.results ...
-# Required:
 #
+#      Note, if only a single input file is given, it's expected to contain the paths to all the target abundance estimation files.
+#
+# Required:
+#            
 #  --est_method <string>           RSEM|eXpress|kallisto  (needs to know what format to expect)
 #
 # Options:

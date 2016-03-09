@@ -93,7 +93,7 @@ void IRKE::populate_Kmers_from_kmers(const string& fasta_filename) {
   	record_counter[i] = 0;
   }
 
-	cerr << "-reading Kmer occurrences..." << endl;
+	cerr << "-reading Kmer occurrences..." << "\n";
 	start = time(NULL);
 
 	Fasta_reader fasta_reader(fasta_filename);
@@ -137,13 +137,13 @@ void IRKE::populate_Kmers_from_kmers(const string& fasta_filename) {
 		sum+= record_counter[i];
     delete [] record_counter;
 
-	cerr << endl << " done parsing " << sum << " Kmers, " << kcounter.size() << " added, taking " << (end-start) << " seconds." << endl;
+	cerr << "\n" << " done parsing " << sum << " Kmers, " << kcounter.size() << " added, taking " << (end-start) << " seconds." << "\n";
 
-    cerr << endl << "TIMING KMER_DB_BUILDING " << (end-start) << " s." << endl;
+    cerr << "\n" << "TIMING KMER_DB_BUILDING " << (end-start) << " s." << "\n";
     
     ofstream iworm_kmer_count_report_fh;
     iworm_kmer_count_report_fh.open("inchworm.kmer_count");
-    iworm_kmer_count_report_fh << kcounter.size() << endl;
+    iworm_kmer_count_report_fh << kcounter.size() << "\n";
     iworm_kmer_count_report_fh.close();
     
 
@@ -168,7 +168,7 @@ void IRKE::populate_Kmers_from_fasta(const string& fasta_filename, bool reassemb
     }
 
 	
-	cerr << "-storing Kmers..." << endl;
+	cerr << "-storing Kmers..." << "\n";
 	start = time(NULL);
 	
 	Fasta_reader fasta_reader(fasta_filename);
@@ -189,7 +189,7 @@ void IRKE::populate_Kmers_from_fasta(const string& fasta_filename, bool reassemb
             record_counter[myTid]++;
 			
 			if (IRKE_COMMON::MONITOR >= 4) {
-				cerr << "[" << entry_num << "] acc: " << accession << ", by thread no: " << myTid << endl;;
+				cerr << "[" << entry_num << "] acc: " << accession << ", by thread no: " << myTid << "\n";;
 			}
 			else if (IRKE_COMMON::MONITOR) {
 				if (myTid == 0 && record_counter[myTid] % 1000 == 0)
@@ -238,7 +238,7 @@ void IRKE::populate_Kmers_from_fasta(const string& fasta_filename, bool reassemb
 				if (IRKE_COMMON::MONITOR >= 1) {
 					cerr << "Adding inchworm assembly " << accession 
 						 << " K: " << kmer_val << " Cov: " << cov_val 
-						 << " with coverage: " << normalized_coverage_val << endl;
+						 << " with coverage: " << normalized_coverage_val << "\n";
 				}
 				if (cov_val < 1) {
 					stringstream err;
@@ -258,7 +258,7 @@ void IRKE::populate_Kmers_from_fasta(const string& fasta_filename, bool reassemb
 				&&
 				record_counter[myTid]/omp_get_num_threads() % PRUNE_SINGLETON_READ_INTERVAL == 0) {
 				if (IRKE_COMMON::MONITOR >= 1) {
-					cerr << "Reached singleton kmer pruning interval at read count: " << record_counter << endl;
+					cerr << "Reached singleton kmer pruning interval at read count: " << record_counter << "\n";
 				}
 				prune_kmers_min_count(1);
 			}
@@ -273,7 +273,7 @@ void IRKE::populate_Kmers_from_fasta(const string& fasta_filename, bool reassemb
 		sum+= record_counter[i];
     delete [] record_counter;
 	
-	cerr << endl << " done parsing " << sum << " sequences, extracted " << kcounter.size() << " kmers, taking " << (end-start) << " seconds." << endl;
+	cerr << "\n" << " done parsing " << sum << " sequences, extracted " << kcounter.size() << " kmers, taking " << (end-start) << " seconds." << "\n";
 	
 	
 	return;
@@ -325,7 +325,7 @@ void IRKE::traverse_path(KmerCounter& kcounter, Kmer_Occurence_Pair seed_kmer, K
 						 Kmer_visitor& place_holder, float MIN_CONNECTIVITY_RATIO, unsigned int depth) {
 	
 	if (IRKE_COMMON::MONITOR >= 3) {
-		cerr << "traverse_path, depth: " << depth << ", kmer: " << kcounter.get_kmer_string(seed_kmer.first) <<  endl;
+		cerr << "traverse_path, depth: " << depth << ", kmer: " << kcounter.get_kmer_string(seed_kmer.first) <<  "\n";
 	}
 	
 	
@@ -333,7 +333,7 @@ void IRKE::traverse_path(KmerCounter& kcounter, Kmer_Occurence_Pair seed_kmer, K
 	if (visitor.exists(seed_kmer.first)) {
 		// already visited
 		if (IRKE_COMMON::MONITOR >= 3) {
-			cout << "\talready visited " << kcounter.get_kmer_string(seed_kmer.first) << endl;
+			cout << "\talready visited " << kcounter.get_kmer_string(seed_kmer.first) << "\n";
 		}
 		
 		return;
@@ -387,7 +387,7 @@ string add_fasta_seq_line_breaks(string& sequence, int interval) {
         
         fasta_seq << *it;
         if (counter % interval == 0 && (it + 1) != sequence.end()) {
-            fasta_seq << endl;
+            fasta_seq << "\n";
         }
     }
 
@@ -414,7 +414,7 @@ void IRKE::compute_sequence_assemblies(KmerCounter& kcounter, float min_connecti
 	
     if (! got_sorted_kmers_flag) {
         stringstream error;
-        error << stacktrace() << " Error, must populate_sorted_kmers_list() before computing sequence assemblies" << endl;
+        error << stacktrace() << " Error, must populate_sorted_kmers_list() before computing sequence assemblies" << "\n";
         throw(error.str());
     }
     
@@ -424,7 +424,7 @@ void IRKE::compute_sequence_assemblies(KmerCounter& kcounter, float min_connecti
 	
 	unsigned long init_size = kcounter.size();
     
-    cerr << "Total kcounter hash size: " << init_size << " vs. sorted list size: " << kmers.size() << endl;
+    cerr << "Total kcounter hash size: " << init_size << " vs. sorted list size: " << kmers.size() << "\n";
 
 	unsigned int kmer_length = kcounter.get_kmer_length();
 	ofstream coverage_writer;
@@ -471,7 +471,7 @@ void IRKE::compute_sequence_assemblies(KmerCounter& kcounter, float min_connecti
     
     vector<iworm_tmp_file> tmpfiles;
     int num_threads = omp_get_max_threads();
-    cerr << "num threads set to: " << num_threads << endl;
+    cerr << "num threads set to: " << num_threads << "\n";
     
     for (int i =0; i < num_threads; i++) {
         iworm_tmp_file tmpfile_struct;
@@ -487,7 +487,7 @@ void IRKE::compute_sequence_assemblies(KmerCounter& kcounter, float min_connecti
         
         itmp.fh = new ofstream();
         itmp.fh->open(itmp.tmp_filename);
-        cerr << "Done opening file. " << itmp.tmp_filename << endl;
+        cerr << "Done opening file. " << itmp.tmp_filename << "\n";
     }
     
 
@@ -498,7 +498,7 @@ void IRKE::compute_sequence_assemblies(KmerCounter& kcounter, float min_connecti
     #pragma omp parallel for private (myTid) schedule (dynamic, 1000) 
 	for (unsigned int i = 0; i < kmers.size(); i++) {
 		
-		// cerr << "round: " << i << endl;
+		// cerr << "round: " << i << "\n";
 	
         myTid = omp_get_thread_num();
 	
@@ -510,7 +510,7 @@ void IRKE::compute_sequence_assemblies(KmerCounter& kcounter, float min_connecti
 			
 			stringstream error;
 			error << stacktrace() << "Error, Kcounter size has grown from " << init_size
-				  << " to " << kmer_counter_size << endl;
+				  << " to " << kmer_counter_size << "\n";
 			throw (error.str());
 		}
 		
@@ -526,15 +526,15 @@ void IRKE::compute_sequence_assemblies(KmerCounter& kcounter, float min_connecti
             continue;
         }
         
-        // cout << "SEED kmer: " << kcounter.get_kmer_string(kmer) << ", count: " << kmer_count << endl;
+        // cout << "SEED kmer: " << kcounter.get_kmer_string(kmer) << ", count: " << kmer_count << "\n";
         
         if (IRKE_COMMON::MONITOR >= 2) {
-            cerr << "SEED kmer: " << kcounter.get_kmer_string(kmer) << ", count: " << kmer_count << endl;
+            cerr << "SEED kmer: " << kcounter.get_kmer_string(kmer) << ", count: " << kmer_count << "\n";
         }
                 
         if (IRKE_COMMON::MONITOR >= 2) {
             #pragma omp critical
-            cerr << "Seed for thread: " << myTid << " is " <<  kcounter.get_kmer_string(kmer) << " with count: " << kmer_count << endl;
+            cerr << "Seed for thread: " << myTid << " is " <<  kcounter.get_kmer_string(kmer) << " with count: " << kmer_count << "\n";
         }
 
 		unsigned int total_counts;
@@ -564,7 +564,7 @@ void IRKE::compute_sequence_assemblies(KmerCounter& kcounter, float min_connecti
 		/*
 		  cout << "Inchworm-reconstructed sequence, length: " << sequence.length() 
 		  << ", avgCov: " << avg_cov
-		  << " " << sequence << endl;
+		  << " " << sequence << "\n";
 		*/
 
         size_t contig_length = sequence.length();
@@ -572,10 +572,10 @@ void IRKE::compute_sequence_assemblies(KmerCounter& kcounter, float min_connecti
 	if (contig_length >= MIN_ASSEMBLY_LENGTH && avg_cov >= MIN_ASSEMBLY_COVERAGE) {
 
 
-            *(tmpfiles[myTid].fh) << total_counts << endl
-                                  << avg_cov << endl
-                                  << kmer_count << endl
-                                  << sequence << endl;
+            *(tmpfiles[myTid].fh) << total_counts << "\n"
+                                  << avg_cov << "\n"
+                                  << kmer_count << "\n"
+                                  << sequence << "\n";
 		
         }
         
@@ -600,7 +600,7 @@ void IRKE::compute_sequence_assemblies(KmerCounter& kcounter, float min_connecti
     }
 	
 	if (IRKE_COMMON::MONITOR) {
-		cerr << endl;
+		cerr << "\n";
 	}
 	
 	if (WRITE_COVERAGE) {
@@ -639,7 +639,7 @@ void IRKE::compute_sequence_assemblies(KmerCounter& kcounter, float min_connecti
             if (tmpreader.eof()) // apparently only happens on the read after the last line is read.
                 break;
             
-            //cerr << "Read sequence: " << sequence << endl;
+            //cerr << "Read sequence: " << sequence << "\n";
             
             unsigned int contig_hash = generateHash(sequence);
             
@@ -664,7 +664,7 @@ void IRKE::compute_sequence_assemblies(KmerCounter& kcounter, float min_connecti
                 
                 sequence = add_fasta_seq_line_breaks(sequence, 60);
                 
-                cout << header << endl << sequence << endl;      
+                cout << header << "\n" << sequence << "\n";      
 
                 
             }
@@ -684,18 +684,18 @@ void IRKE::compute_sequence_assemblies(KmerCounter& kcounter, float min_connecti
                 
                 if (WRITE_COVERAGE) {
 				
-                    coverage_writer << header << endl;
+                    coverage_writer << header << "\n";
                     
                     for (unsigned int i = 0; i < assembly_base_coverage.size(); i++) {
                         coverage_writer << assembly_base_coverage[i];
                         if ( (i+1) % 30 == 0) {
-                            coverage_writer << endl;
+                            coverage_writer << "\n";
                         }
                         else {
                             coverage_writer << " ";
                         }
                     }
-                    coverage_writer << endl;
+                    coverage_writer << "\n";
                 }
                 
             }
@@ -721,7 +721,7 @@ bool IRKE::is_good_seed_kmer(kmer_int_type_t kmer, unsigned int kmer_count, unsi
         // palindromic kmer, avoid palindromes as seeds
 		
         if (IRKE_COMMON::MONITOR >= 2) {
-            cerr << "SEED kmer: " << kcounter.get_kmer_string(kmer) << " is palidnromic.  Skipping. " << endl;
+            cerr << "SEED kmer: " << kcounter.get_kmer_string(kmer) << " is palidnromic.  Skipping. " << "\n";
         }
         
         return(false);
@@ -730,7 +730,7 @@ bool IRKE::is_good_seed_kmer(kmer_int_type_t kmer, unsigned int kmer_count, unsi
         
     if (kmer_count < MIN_SEED_COVERAGE) {
         if (IRKE_COMMON::MONITOR >= 2) {
-            cerr << "-seed has insufficient coverage, skipping" << endl;
+            cerr << "-seed has insufficient coverage, skipping" << "\n";
         }
         
         return(false);
@@ -742,7 +742,7 @@ bool IRKE::is_good_seed_kmer(kmer_int_type_t kmer, unsigned int kmer_count, unsi
     if (entropy < MIN_SEED_ENTROPY) {
         
         if (IRKE_COMMON::MONITOR >= 2) {
-            cerr << "-skipping seed due to low entropy: " << entropy << endl;
+            cerr << "-skipping seed due to low entropy: " << entropy << "\n";
         }
         
         return(false);
@@ -774,7 +774,7 @@ vector<kmer_int_type_t>  IRKE::build_inchworm_contig_from_seed(kmer_int_type_t k
 		vector<kmer_int_type_t>& forward_path = selected_path_n_pair_forward.first;
 
 		if (IRKE_COMMON::MONITOR >= 2) {
-            cerr << "Forward path contains: " << forward_path.size() << " kmers. " << endl;
+            cerr << "Forward path contains: " << forward_path.size() << " kmers. " << "\n";
         }
 
 
@@ -783,7 +783,7 @@ vector<kmer_int_type_t>  IRKE::build_inchworm_contig_from_seed(kmer_int_type_t k
 			visitor.add(kmer);
             
             if (IRKE_COMMON::MONITOR >= 2) {
-                cerr << "\tForward path kmer: " << kcounter.get_kmer_string(kmer) << endl;
+                cerr << "\tForward path kmer: " << kcounter.get_kmer_string(kmer) << "\n";
             }
             
 		}
@@ -795,9 +795,9 @@ vector<kmer_int_type_t>  IRKE::build_inchworm_contig_from_seed(kmer_int_type_t k
 		Path_n_count_pair selected_path_n_pair_reverse = inchworm(kcounter, 'R', kmer, visitor, min_connectivity);
         if (IRKE_COMMON::MONITOR >= 2) {
             vector<kmer_int_type_t>& reverse_path = selected_path_n_pair_reverse.first;
-            cerr << "Reverse path contains: " << reverse_path.size() << " kmers. " << endl;
+            cerr << "Reverse path contains: " << reverse_path.size() << " kmers. " << "\n";
             for (unsigned int i = 0; i < reverse_path.size(); i++) {
-                cerr  << "\tReverse path kmer: " << kcounter.get_kmer_string(reverse_path[i]) << endl; 
+                cerr  << "\tReverse path kmer: " << kcounter.get_kmer_string(reverse_path[i]) << "\n"; 
             }
         }
         
@@ -814,7 +814,7 @@ vector<kmer_int_type_t>  IRKE::build_inchworm_contig_from_seed(kmer_int_type_t k
 
 Path_n_count_pair IRKE::inchworm (KmerCounter& kcounter, char direction, kmer_int_type_t kmer, Kmer_visitor& visitor, float min_connectivity) {
 	
-	// cout << "inchworm" << endl;
+	// cout << "inchworm" << "\n";
 	
 	Path_n_count_pair entire_path;
     entire_path.second = 0; // init cumulative path coverage
@@ -833,11 +833,11 @@ Path_n_count_pair IRKE::inchworm (KmerCounter& kcounter, char direction, kmer_in
             // terminate extension with probability of __DEVEL_rand_fracture_prob
             
             float prob_to_fracture = rand() / (float) RAND_MAX;
-            //cerr << "prob: " << prob_to_fracture << endl;
+            //cerr << "prob: " << prob_to_fracture << "\n";
             
             if (prob_to_fracture <= IRKE_COMMON::__DEVEL_rand_fracture_prob) {
                 
-                // cerr << "Fracturing at iworm round: " << inchworm_round << " given P: " << prob_to_fracture << endl;
+                // cerr << "Fracturing at iworm round: " << inchworm_round << " given P: " << prob_to_fracture << "\n";
                 
                 return(entire_path);
             }
@@ -851,9 +851,9 @@ Path_n_count_pair IRKE::inchworm (KmerCounter& kcounter, char direction, kmer_in
 		}
 		
 		if (IRKE_COMMON::MONITOR >= 3) {
-			cerr << endl << "Inchworm round(" << string(1,direction) << "): " << inchworm_round << " searching kmer: " << kmer << endl;
+			cerr << "\n" << "Inchworm round(" << string(1,direction) << "): " << inchworm_round << " searching kmer: " << kmer << "\n";
 			string kmer_str = kcounter.get_kmer_string(kmer);
-			cerr << kcounter.describe_kmer(kmer_str) << endl;
+			cerr << kcounter.describe_kmer(kmer_str) << "\n";
 		}
 		
 		visitor.erase(kmer); // seed kmer must be not visited already.
@@ -905,7 +905,7 @@ Path_n_count_pair IRKE::inchworm (KmerCounter& kcounter, char direction, kmer_in
 	}
 	
 	if (IRKE_COMMON::MONITOR >= 3) 
-		cerr << "No extension possible." << endl << endl;
+		cerr << "No extension possible." << "\n" << "\n";
 	
 	
 	return(entire_path);
@@ -928,7 +928,7 @@ Path_n_count_pair IRKE::inchworm_step (KmerCounter& kcounter, char direction, Km
 									   Kmer_visitor& eliminator, unsigned int inchworm_round, unsigned int depth, 
 									   float MIN_CONNECTIVITY_RATIO, unsigned int max_recurse) {
 	
-	// cout << "inchworm_step" << endl;
+	// cout << "inchworm_step" << "\n";
 	
 	if (IRKE_COMMON::MONITOR >= 2) {
 		cerr << "\rinchworm: " << string(1,direction) 
@@ -948,8 +948,8 @@ Path_n_count_pair IRKE::inchworm_step (KmerCounter& kcounter, char direction, Km
 		 ) {
         
         if (IRKE_COMMON::MONITOR >= 3) {
-            cerr << "base case, already visited or kmer doesn't exist." << endl;
-            cerr << kmer.first << " already visited or doesn't exist.  ending recursion at depth: " << depth << endl;
+            cerr << "base case, already visited or kmer doesn't exist." << "\n";
+            cerr << kmer.first << " already visited or doesn't exist.  ending recursion at depth: " << depth << "\n";
         }
 		
         return(best_path_n_pair);
@@ -959,7 +959,7 @@ Path_n_count_pair IRKE::inchworm_step (KmerCounter& kcounter, char direction, Km
 	visitor.add(kmer.first);
 	
 	if (PACMAN && depth > 0) {
-		// cerr << "pacman eliminated kmer: " << kmer << endl;
+		// cerr << "pacman eliminated kmer: " << kmer << "\n";
 		eliminator.add(kmer.first);
 	}
 	
@@ -977,7 +977,7 @@ Path_n_count_pair IRKE::inchworm_step (KmerCounter& kcounter, char direction, Km
 		}
 		
         if (IRKE_COMMON::MONITOR >= 3) {
-            cerr << "Got " << kmer_candidates.size() << " kmer extension candidates." << endl;
+            cerr << "Got " << kmer_candidates.size() << " kmer extension candidates." << "\n";
         }
         
 		bool tie = true;
@@ -999,7 +999,7 @@ Path_n_count_pair IRKE::inchworm_step (KmerCounter& kcounter, char direction, Km
 				    
                     !visitor.exists(kmer_candidate.first)  // avoid creating already visited kmers since they're unvisited below...
 					&& exceeds_min_connectivity(kcounter, kmer, kmer_candidate, MIN_CONNECTIVITY_RATIO) ) {
-					//cout << endl << "\ttrying " << kmer_candidate << endl;
+					//cout << "\n" << "\ttrying " << kmer_candidate << "\n";
 					
 
                     // recursive call here for extension
@@ -1025,7 +1025,7 @@ Path_n_count_pair IRKE::inchworm_step (KmerCounter& kcounter, char direction, Km
                     int rand_index = rand() % paths.size();
                     tie = false;
                     if (IRKE_COMMON::MONITOR) {
-                        cerr << "IRKE_COMMON::__DEVEL_no_greedy_extend -- picking random path index: " << rand_index << " from size(): " << paths.size() << endl;
+                        cerr << "IRKE_COMMON::__DEVEL_no_greedy_extend -- picking random path index: " << rand_index << " from size(): " << paths.size() << "\n";
                     }
                     best_path_n_pair = paths[rand_index];
                 }
@@ -1041,10 +1041,10 @@ Path_n_count_pair IRKE::inchworm_step (KmerCounter& kcounter, char direction, Km
 					// got tie, two different paths and two different endpoints:
 					if (IRKE_COMMON::MONITOR >= 3) {
 												
-						cerr << "Got tie! " << ", score: " << paths[0].second << ", recurse at: " << recurse_cap << endl;
+						cerr << "Got tie! " << ", score: " << paths[0].second << ", recurse at: " << recurse_cap << "\n";
 						vector<unsigned int> v;
-						cerr << reconstruct_path_sequence(kcounter, paths[0].first, v) << endl;
-						cerr << reconstruct_path_sequence(kcounter, paths[1].first, v) << endl;
+						cerr << reconstruct_path_sequence(kcounter, paths[0].first, v) << "\n";
+						cerr << reconstruct_path_sequence(kcounter, paths[1].first, v) << "\n";
 												
 					}
                     
@@ -1054,7 +1054,7 @@ Path_n_count_pair IRKE::inchworm_step (KmerCounter& kcounter, char direction, Km
                         int rand_index = rand() % 2;
 
                         if (IRKE_COMMON::MONITOR >= 2) {
-                            cerr << "IRKE_COMMON::__DEVEL_no_tie_breaking, so picking path: " << rand_index << " at random." << endl;
+                            cerr << "IRKE_COMMON::__DEVEL_no_tie_breaking, so picking path: " << rand_index << " at random." << "\n";
                         }
                         
                         best_path_n_pair = paths[rand_index];
@@ -1067,7 +1067,7 @@ Path_n_count_pair IRKE::inchworm_step (KmerCounter& kcounter, char direction, Km
 						best_path_length = paths[0].first.size();
 					}
 					else {
-						// cerr << "not able to delve further into the graph, though...  Stopping here." << endl;
+						// cerr << "not able to delve further into the graph, though...  Stopping here." << "\n";
 						tie = false;
                         best_path_n_pair = paths[0]; // pick one
 					}
@@ -1079,7 +1079,7 @@ Path_n_count_pair IRKE::inchworm_step (KmerCounter& kcounter, char direction, Km
 						 ) {
 					
 					if (IRKE_COMMON::MONITOR >= 3) {
-						cerr << "Tied, but two different paths join to the same kmer.  Choosing first path arbitrarily." << endl;
+						cerr << "Tied, but two different paths join to the same kmer.  Choosing first path arbitrarily." << "\n";
 					}
 					tie = false;
 					best_path_n_pair = paths[0];
@@ -1228,7 +1228,7 @@ string IRKE::thread_sequence_through_graph(string& sequence) {
 	unsigned int kmer_length = kcounter.get_kmer_length();
 	
 	if (sequence.length() < kmer_length) {
-		cerr << "Sequence length: " << sequence.length() << " is too short to contain any kmers." << endl;
+		cerr << "Sequence length: " << sequence.length() << " is too short to contain any kmers." << "\n";
 		return("");
 	}
 	
@@ -1238,7 +1238,7 @@ string IRKE::thread_sequence_through_graph(string& sequence) {
 		
 		string kmer = sequence.substr(i, kmer_length);
 		
-		s << kcounter.describe_kmer(kmer) << endl;
+		s << kcounter.describe_kmer(kmer) << "\n";
 	}
 	
 	return(s.str());
@@ -1358,7 +1358,7 @@ kmer_int_type_t IRKE::extract_best_seed(vector<kmer_int_type_t>& kmer_vec, KmerC
     }
     
     if (IRKE_COMMON::MONITOR >= 2) {
-        cerr << "Parallel method found better seed: " << kcounter.get_kmer_string(best_seed) << " with count: " << best_kmer_count << endl;
+        cerr << "Parallel method found better seed: " << kcounter.get_kmer_string(best_seed) << " with count: " << best_kmer_count << "\n";
     }
 
     return(best_seed);

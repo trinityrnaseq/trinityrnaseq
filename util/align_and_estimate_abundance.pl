@@ -276,8 +276,8 @@ unless ($est_method) {
     die $usage;
 }
 
-my @EST_METHODS = qw(RSEM eXpress kallisto);
-my %ALIGNMENT_BASED_EST_METHODS = map { + $_ => 1 } qw (RSEM eXpress);
+my @EST_METHODS = qw(RSEM express kallisto);
+my %ALIGNMENT_BASED_EST_METHODS = map { + $_ => 1 } qw (RSEM express eXpress);
 my %ALIGNMENT_FREE_EST_METHODS = map { + $_ => 1 } qw (kallisto);
 
 
@@ -315,8 +315,8 @@ else {
 }
 
 
-unless ($est_method =~ /^(RSEM|eXpress|kallisto|none)$/) {
-    die "Error, --est_method @EST_METHODS only, and capitalization matters. :) \n";
+unless ($est_method =~ /^(RSEM|express|kallisto|none)$/i) {
+    die "Error, --est_method @EST_METHODS only\n";
 }
 
 
@@ -370,13 +370,13 @@ if ( $thread_count !~ /^\d+$/ ) {
     if ($est_method =~ /^RSEM$/i) {
         push (@tools, 'rsem-calculate-expression');
     }
-    elsif ($est_method =~ /^eXpress$/i) {
+    elsif ($est_method =~ /^express$/i) {
         push (@tools, 'express');
     }
     elsif ($est_method eq 'kallisto') {
         push (@tools, 'kallisto');
     }
-    
+        
     foreach my $tool (@tools) {
         my $p = `which $tool`;
         unless ($p =~ /\w/) {
@@ -570,7 +570,7 @@ sub run_alignment_BASED_estimation {
         &process_cmd("touch $bam_file_ok") unless (-e $bam_file_ok);
     }
      
-    if ($est_method eq "eXpress") {
+    if ($est_method =~ /express/i) {
         &run_eXpress($bam_file);
     }
     elsif ($est_method eq "RSEM") {

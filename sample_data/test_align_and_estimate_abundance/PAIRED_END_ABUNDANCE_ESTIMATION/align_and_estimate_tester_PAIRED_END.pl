@@ -5,21 +5,21 @@ use warnings;
 
 use FindBin;
 use File::Basename;
-use lib ("$FindBin::RealBin/../../PerlLib");
+use lib ("$FindBin::RealBin/../../../PerlLib");
 use Process_cmd;
 
 
 my $usage = "usage: $0 (RSEM|eXpress|kallisto)\n\n";
 
 my $method = $ARGV[0] or die $usage;
-unless ($method =~ /^(RSEM|eXpress|kallisto)$/) {
+unless ($method =~ /^(RSEM|eXpress|kallisto)$/i) {
     die $usage;
 }
 
-my $utildir = "$FindBin::RealBin/../../util";
+my $utildir = "$FindBin::RealBin/../../../util";
 
 my $samples_file = "samples.txt";
-my $trinity_fasta = "../test_DATA/Trinity.fasta";
+my $trinity_fasta = "../../test_DATA/Trinity.fasta";
 
 main: {
 
@@ -58,7 +58,7 @@ main: {
             push (@gene_results, "$outdir/RSEM.genes.results");
             
         }
-        elsif ($method eq 'eXpress') {
+        elsif ($method =~ /eXpress/i) {
             $cmd .= " --est_method eXpress --output_dir $outdir --aln_method bowtie2 ";
             push (@trans_results, "$outdir/results.xprs");
             push (@gene_results, "$outdir/results.xprs.genes");

@@ -14,14 +14,14 @@ chdir $FindBin::RealBin or die "error, cannot cd to $FindBin::RealBin";
 my @files_to_keep = qw (
 cleanme.pl 
 Makefile
-align_and_estimate_tester.pl
+align_and_estimate_tester_PAIRED_END.pl
+align_and_estimate_tester_SINGLE_END.pl
 samples.txt
 plot_paired_comparisons.Rscript
 );
 
 
 my %keep = map { + $_ => 1 } @files_to_keep;
-
 
 
 foreach my $file (<*>) {

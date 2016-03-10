@@ -47,7 +47,7 @@ main: {
         my ($sample_name, $left_fq, $right_fq) = @$sample;
 
         my $cmd = "$utildir/align_and_estimate_abundance.pl --transcripts $trinity_fasta --prep_reference "
-            . " --left $left_fq --right $right_fq --seqType fq --trinity_mode ";
+            . " --left $left_fq --right $right_fq --seqType fq --trinity_mode --SS_lib_type RF ";
         
         my $outdir = "$method-$sample_name";
 

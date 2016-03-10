@@ -32,10 +32,9 @@ main: {
         open (my $fh, $samples_file) or die $!;
         while (<$fh>) {
             chomp;
-            my ($sample_name, $left_fq, $right_fq) = split(/\s+/);
-            $left_fq = &ensure_full_path($left_fq);
-            $right_fq = &ensure_full_path($right_fq);
-            push (@samples, [$sample_name, $left_fq, $right_fq]);
+            my ($sample_name, $single_fq) = split(/\s+/);
+            $single_fq = &ensure_full_path($single_fq);
+            push (@samples, [$sample_name, $single_fq]);
         }
         close $fh;
     }
@@ -44,13 +43,13 @@ main: {
     my @gene_results;
     
     foreach my $sample (@samples) {
-        my ($sample_name, $left_fq, $right_fq) = @$sample;
+        my ($sample_name, $single_fq) = @$sample;
 
         my $cmd = "$utildir/align_and_estimate_abundance.pl --transcripts $trinity_fasta --prep_reference "
-            . " --left $left_fq --right $right_fq --seqType fq --trinity_mode ";
+            . " --seqType fq --single $single_fq --trinity_mode --SS_lib_type R ";
         
         my $outdir = "$method-$sample_name";
-
+        
         if ($method eq 'RSEM') {
             $cmd .= " --est_method RSEM --output_dir $outdir --aln_method bowtie ";
             
@@ -75,8 +74,8 @@ main: {
         }
 
         &process_cmd($cmd);
-
-
+        
+        
     }
 
     ## generate matrices.

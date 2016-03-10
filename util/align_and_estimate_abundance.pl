@@ -68,12 +68,14 @@ my $usage = <<__EOUSAGE__;
 # 
 #  If Paired-end:
 #
-#  --left <string>
-#  --right <string>
+#     --left <string>
+#     --right <string>
 #  
-#    or Single-end:
+#   or Single-end:
 #
-#  --single <string>
+#      --single <string>
+#      --fragment_length <int>         specify RNA-Seq fragment length (default: 200) 
+#      --fragment_std <int>            fragment length standard deviation (defalt: 80)
 #
 #  --est_method <string>           abundance estimation method.
 #                                        alignment_based:  RSEM|eXpress       
@@ -114,7 +116,6 @@ my $usage = <<__EOUSAGE__;
 #
 #############################
 #  RSEM opts:
-#  --fragment_length <int>         optionally specify fragment length (not seq length, but frag size ie. 300) for SE reads.
 #
 #  --include_rsem_bam              provide the RSEM enhanced bam file including posterior probabilities of read assignments.
 #
@@ -198,7 +199,8 @@ my $aln_method = "";
 
 my $retain_sorted_bam_file = 0;
 
-my $fragment_length = "";
+my $fragment_length = 200;
+my $fragment_std = 80;
 
 my $output_prefix = "";
 
@@ -240,13 +242,13 @@ my $coordsort_bam_flag = 0;
               ##  devel opts
               'prep_reference' => \$prep_reference,
 
-              ## rsem opts
+              # opts for single-end reads
               'fragment_length=i' => \$fragment_length,
+              'fragment_std=i' => \$fragment_std,
               
               #
               'show_full_usage_info' => \$show_full_usage_info,
-              
-   
+                 
               'bowtie_RSEM=s' => \($aligner_params{'bowtie_RSEM'}),
               'bowtie2_RSEM=s' => \($aligner_params{'bowtie2_RSEM'}),
               'bowtie_eXpress=s' => \($aligner_params{'bowtie_eXpress'}),
@@ -285,7 +287,7 @@ unless ($output_dir) {
     die "Error, must specify output directory name via: --output_dir   ";
 }
 
-unless (($est_method && $prep_reference && $transcripts) ## just prep reference
+unless (($est_method && $prep_reference && $transcripts && (! ($single||$left||$right)) ) ## just prep reference
 
         || ($transcripts && $est_method && $seqType && ($single || ($left && $right))) # do alignment
     
@@ -322,7 +324,13 @@ unless ($est_method =~ /^(RSEM|express|kallisto|none)$/i) {
 
 $left = &create_full_path($left) if $left;
 $right = &create_full_path($right) if $right;
-$single = &create_full_path($single) if $single;
+
+if ($single) {
+    $single = &create_full_path($single);
+    unless ($fragment_length) {
+        die "Error, specify --fragment_length for single-end reads (note, not the length of the read but the mean fragment length)\n\n";
+    }
+}
 
 $transcripts = &create_full_path($transcripts);
 
@@ -541,26 +549,30 @@ sub run_alignment_BASED_estimation {
     if (! $PROCESSING_EXISTING_BAM_FLAG) {
         ## run bowtie
         
+        ##############
+        ## Align reads
+                
         my $bowtie_cmd;
-        
-    
+            
         if ($aln_method eq 'bowtie') {
             if ($left && $right) {
+                ## PE alignment
                 $bowtie_cmd = "set -o pipefail && bowtie $read_type " . $aligner_params{"${aln_method}_${est_method}"} . " -X $max_ins_size -S -p $thread_count $db_index_name -1 $left -2 $right | samtools view -F 4 -S -b -o $bam_file -";
                 
             }
             else {
+                # SE alignment
                 $bowtie_cmd = "set -o pipefail && bowtie $read_type " . $aligner_params{"${aln_method}_${est_method}"} . " -S -p $thread_count $db_index_name $single | samtools view -F 4 -S -b -o $bam_file -";
             }
         }
         elsif ($aln_method eq 'bowtie2') {
             
             if ($left && $right) {
-                
+                ## PE alignment
                 $bowtie_cmd = "set -o pipefail && bowtie2 " . $aligner_params{"${aln_method}_${est_method}"} . " $read_type -X $max_ins_size -x $db_index_name -1 $left -2 $right -p $thread_count | samtools view -F 4 -S -b -o $bam_file -";
             }
             else {
-                
+                # SE alignment
                 $bowtie_cmd = "set -o pipefail && bowtie2 " . $aligner_params{"${aln_method}_${est_method}"} . " $read_type -x $db_index_name -U $single -p $thread_count | samtools view -F 4 -S -b -o $bam_file -";
             }
         }
@@ -569,7 +581,7 @@ sub run_alignment_BASED_estimation {
         
         &process_cmd("touch $bam_file_ok") unless (-e $bam_file_ok);
     }
-     
+    
     if ($est_method =~ /express/i) {
         &run_eXpress($bam_file);
     }
@@ -636,7 +648,12 @@ sub run_eXpress {
     }
     
     ## run eXpress
-    my $express_cmd = "express $SS_opt $eXpress_add_opts $transcripts";
+    my $fraglength_param = "";
+    if ($single) {
+        $fraglength_param = "--frag-len-mean $fragment_length --frag-len-stddev $fragment_std";
+    }
+    
+    my $express_cmd = "express $SS_opt $fraglength_param $eXpress_add_opts $transcripts";
     
     my $cmd = "$express_cmd $bam_file";
     &process_cmd($cmd);
@@ -662,13 +679,11 @@ sub run_RSEM {
     
     my $keep_intermediate_files_opt = ($DEBUG_flag) ? "--keep-intermediate-files" : "";
     
-    if ($fragment_length) {
-        $fragment_length = "--fragment-length-mean $fragment_length";
+    my $fraglength_info_txt = "";
+    if ($single) {
+        $fraglength_info_txt = "--fragment-length-mean $fragment_length --fragment-length-sd $fragment_std";
     }
-    else {
-        $fragment_length = "";
-    }
-
+    
     my $SS_opt = "";
     if ($SS_lib_type) {
         if ($SS_lib_type =~ /^F/) {
@@ -693,7 +708,7 @@ sub run_RSEM {
         . "$paired_flag_text "
         . " $rsem_add_opts "
         . "-p 4 "
-        . "$fragment_length "
+        . "$fraglength_info_txt "
         . "$keep_intermediate_files_opt "
         . "$SS_opt $rsem_bam_flag "
         . "--bam $bam_file "
@@ -796,7 +811,7 @@ sub run_kallisto {
         &process_cmd($cmd);
     }
     elsif ($single) {
-        my $cmd = "kallisto quant -l $fragment_length -i $kallisto_index -o $output_dir $kallisto_add_opts $single";
+        my $cmd = "kallisto quant --single -l $fragment_length -s $fragment_std -i $kallisto_index -o $output_dir $kallisto_add_opts $single";
         &process_cmd($cmd);
     }
     

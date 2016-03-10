@@ -15,7 +15,6 @@ my @files_to_keep = qw (
 cleanme.pl 
 Makefile
 align_and_estimate_tester_PAIRED_END.pl
-align_and_estimate_tester_SINGLE_END.pl
 samples.txt
 plot_paired_comparisons.Rscript
 );
@@ -34,7 +33,7 @@ foreach my $file (<*>) {
 
 
 `rm -rf ./RSEM-*`;
-`rm -rf ./eXpress-*`;
+`rm -rf ./express-*`;
 `rm -rf ./kallisto-*`;
 
 

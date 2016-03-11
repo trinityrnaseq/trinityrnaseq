@@ -1,5 +1,5 @@
 test: test_RSEM test_eXpress test_kallisto
-	../../../Analysis/DifferentialExpression/merge_matrices.pl   RSEM-trans.TPM.not_cross_norm eXpress-trans.TPM.not_cross_norm kallisto-trans.TPM.not_cross_norm > combined.TPM.not_cross_norm.matrix
+	../../../Analysis/DifferentialExpression/merge_matrices.pl   RSEM-trans.TPM.not_cross_norm express-trans.TPM.not_cross_norm kallisto-trans.TPM.not_cross_norm > combined.TPM.not_cross_norm.matrix
 	../plot_paired_comparisons.Rscript
 
 test_RSEM:

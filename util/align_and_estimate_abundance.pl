@@ -858,12 +858,13 @@ sub run_salmon {
     }
 
     my $outdir = $output_dir; #"$output_dir.$salmon_idx_type";
-    my $libtype = ($SS_lib_type) ? "IS" . substr($SS_lib_type, 0, 1) : "IU";
+    
     
     if ($left && $right) {
         ## PE mode
         my $cmd;
-                
+        my $libtype = ($SS_lib_type) ? "IS" . substr($SS_lib_type, 0, 1) : "IU";
+            
         if ($salmon_idx_type eq 'quasi') {
             $cmd = "salmon quant -i $salmon_index -l $libtype -1 $left -2 $right -o $outdir $salmon_add_opts";
         }
@@ -878,14 +879,14 @@ sub run_salmon {
         
     }
     elsif ($single) {
-
+        my $libtype = ($SS_lib_type) ? "S" . substr($SS_lib_type, 0, 1) : "U";
         my $cmd;
-                
+        
         if ($salmon_idx_type eq 'quasi') {
-            $cmd = "salmon quant -i transcripts_index -l $libtype -r $single -o $outdir $salmon_add_opts";
+            $cmd = "salmon quant -i $salmon_index -l $libtype -r $single -o $outdir $salmon_add_opts";
         }
         elsif ($salmon_idx_type eq 'fmd') {
-            $cmd = "salmon quant -i transcripts_index -l $libtype -r $single -k $salmon_fmd_kmer_length -o $outdir $salmon_add_opts";
+            $cmd = "salmon quant -i $salmon_index -l $libtype -r $single -k $salmon_fmd_kmer_length -o $outdir $salmon_add_opts";
         }
         else {
             die "Error, not recognizing salmon_idx_type: $salmon_idx_type";

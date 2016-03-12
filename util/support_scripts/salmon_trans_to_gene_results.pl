@@ -4,9 +4,9 @@ use strict;
 use warnings;
 use Data::Dumper;
 
-my $usage = "\n\nusage: $0 abundance.tsv  gene_to_trans_map_file.txt\n\n\n";
+my $usage = "\n\nusage: $0 quant.sf gene_to_trans_map_file.txt\n\n\n";
 
-my $abundance_tsv = $ARGV[0] or die $usage;
+my $quant_sf = $ARGV[0] or die $usage;
 my $gene_to_trans_map_file = $ARGV[1] or die $usage;
 
 
@@ -28,7 +28,7 @@ main: {
     }
     
     
-    open (my $fh, $abundance_tsv) or die "Error, cannot open file $abundance_tsv";
+    open (my $fh, $quant_sf) or die "Error, cannot open file $quant_sf";
     my $header = <$fh>;
     chomp $header;
     my %field_index;
@@ -41,25 +41,35 @@ main: {
         }
     }
     
-
+    
     my %gene_data;
     while (<$fh>) {
         chomp;
+        
+        # quant.sf format:
+        #
+        #Name    Length  EffectiveLength TPM     NumReads
+        #TRINITY_DN10_c0_g1_i1   334     67.2849 3125.31 7
+        #TRINITY_DN11_c0_g1_i1   319     55.1277 0       0
+        #TRINITY_DN12_c0_g1_i1   244     244     1231.18 10
+        #TRINITY_DN17_c0_g1_i1   229     229     393.549 3
+        #TRINITY_DN18_c0_g1_i1   633     360.371 593.619 7.12107
+        
         my @x = split(/\t/);
         
-        my $trans_id = $x[ $field_index{target_id} ];
-        my $tpm = $x[ $field_index{tpm} ];
-        my $length = $x[ $field_index{length} ];
-        my $eff_length = $x[ $field_index{eff_length} ];
-        my $est_counts = $x[ $field_index{est_counts} ];
+        my $trans_id = $x[ $field_index{Name} ];
+        my $tpm = $x[ $field_index{TPM} ];
+        my $length = $x[ $field_index{Length} ];
+        my $eff_length = $x[ $field_index{EffectiveLength} ];
+        my $est_counts = $x[ $field_index{NumReads} ];
         
         my $gene = $trans_to_gene_info{$trans_id} or die "Error, cannot find gene identifier for transcript [$trans_id] ";
         
-        push (@{$gene_data{$gene}}, { trans_id => $trans_id, 
-                                      tpm => $tpm,
-                                      length => $length,
-                                      eff_length => $eff_length,
-                                      est_counts => $est_counts,
+        push (@{$gene_data{$gene}}, { Name => $trans_id, 
+                                      TPM => $tpm,
+                                      Length => $length,
+                                      EffectiveLength => $eff_length,
+                                      NumReads => $est_counts,
                                   });
         
 
@@ -91,12 +101,12 @@ main: {
             
             #print Dumper($struct);
 
-            my $trans_id = $struct->{trans_id};
-            my $tpm = $struct->{tpm};
-            my $length = $struct->{length};
+            my $trans_id = $struct->{Name};
+            my $tpm = $struct->{TPM};
+            my $length = $struct->{Length};
             
-            my $eff_length = $struct->{eff_length};
-            my $est_counts = $struct->{est_counts};
+            my $eff_length = $struct->{EffectiveLength};
+            my $est_counts = $struct->{NumReads};
             
             unless ($eff_length > 0) {
                 $eff_length = 1; # cannot have zero length feature!
@@ -131,11 +141,11 @@ main: {
             }
         }
         
-        my %gene_info = ( target_id => $gene,
-                          tpm => sprintf("%.2f", $sum_tpm),
-                          length => sprintf("%.2f", $gene_length),
-                          eff_length => sprintf("%.2f", $gene_eff_length),
-                          est_counts => sprintf("%.2f", $sum_counts),
+        my %gene_info = ( Name => $gene,
+                          TPM => sprintf("%.2f", $sum_tpm),
+                          Length => sprintf("%.2f", $gene_length),
+                          EffectiveLength => sprintf("%.2f", $gene_eff_length),
+                          NumReads => sprintf("%.2f", $sum_counts),
                           
                           );
         
@@ -150,6 +160,6 @@ main: {
         print join("\t", @vals) . "\n";
     }
     
-
+    
     exit(0);
 }

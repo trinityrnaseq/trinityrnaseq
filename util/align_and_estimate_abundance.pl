@@ -10,10 +10,6 @@ use Carp;
 use Getopt::Long qw(:config no_ignore_case bundling pass_through);
 
 
-my $RSEM_DIR = "$FindBin::RealBin/../trinity-plugins/rsem";
-$ENV{PATH} = "$RSEM_DIR:$ENV{PATH}"; # be sure to use the included rsem package over other ones installed.
-
-
 my %aligner_params = ( 
 
     
@@ -57,7 +53,10 @@ my %aligner_params = (
 my $rsem_add_opts = "";
 my $eXpress_add_opts = "";
 my $kallisto_add_opts = "";
-
+my $salmon_add_opts= "";
+my $salmon_idx_type = 'quasi';
+my $salmon_quasi_kmer_length = 31;
+my $salmon_fmd_kmer_length = 19;
 
 my $usage = <<__EOUSAGE__;
 
@@ -74,12 +73,10 @@ my $usage = <<__EOUSAGE__;
 #   or Single-end:
 #
 #      --single <string>
-#      --fragment_length <int>         specify RNA-Seq fragment length (default: 200) 
-#      --fragment_std <int>            fragment length standard deviation (defalt: 80)
 #
 #  --est_method <string>           abundance estimation method.
 #                                        alignment_based:  RSEM|eXpress       
-#                                        alignment_free: kallisto
+#                                        alignment_free: kallisto|salmon
 #  
 # --output_dir <string>            write all files to output directory
 #  
@@ -91,37 +88,65 @@ my $usage = <<__EOUSAGE__;
 # Optional:
 # 
 # --SS_lib_type <string>           strand-specific library type:  paired('RF' or 'FR'), single('F' or 'R').
+#                                         (note, no strand-specific mode for kallisto)
 #
 # --thread_count                   number of threads to use (default = 4)
 #
-# --max_ins_size <int>             maximum insert size (bowtie -X parameter, default: 800)
-#
 # --debug                          retain intermediate files
-#
 #
 #  --gene_trans_map <string>        file containing 'gene(tab)transcript' identifiers per line.
 #     or  
 #  --trinity_mode                   Setting --trinity_mode will automatically generate the gene_trans_map and use it.
 #
 #
-#  --prep_reference                 prep reference set for eXpress (builds bowtie index, etc)
+#  --prep_reference                 prep reference (builds target index)
 #
 #  --output_prefix <string>         prefix for output files.  Defaults to --est_method setting.
 #
 #
-#  if alignment_based method:
-#        --coordsort_bam                  provide coord-sorted bam in addition to the default (unsorted) bam.
+########################################
 #
-#  --show_full_usage_info           provide more detailed usage info for customizing the alignment or abundance estimation parameters.
+#  Parameters for single-end reads:
 #
-#############################
+#  --fragment_length <int>         specify RNA-Seq fragment length (default: 200) 
+#  --fragment_std <int>            fragment length standard deviation (defalt: 80)
+#
+########################################
+#  
+#   bowtie-related parameters: (note, tool-specific settings are further below)
+#
+#  --max_ins_size <int>             maximum insert size (bowtie -X parameter, default: 800)
+#  --coordsort_bam                  provide coord-sorted bam in addition to the default (unsorted) bam.
+#
+########################################
 #  RSEM opts:
 #
+#  --bowtie_RSEM <string>          if using 'bowtie', default: \"$aligner_params{bowtie_RSEM}\"
+#  --bowtie2_RSEM <string>         if using 'bowtie2', default: \"$aligner_params{bowtie2_RSEM}\"
 #  --include_rsem_bam              provide the RSEM enhanced bam file including posterior probabilities of read assignments.
+#  --rsem_add_opts <string>        additional parameters to pass on to rsem-calculate-expression
 #
-#########################################################################
+##########################################################################
+#  eXpress opts:
 #
-#  Example usage:
+#  --bowtie_eXpress <string>  default: \"$aligner_params{bowtie_eXpress}\"
+#  --bowtie2_eXpress <string> default: \"$aligner_params{bowtie2_eXpress}\"
+#  --eXpress_add_opts <string>  default: "$eXpress_add_opts"
+#
+##########################################################################
+#  kallisto opts:
+#
+#  --kallisto_add_opts <string>  default: $kallisto_add_opts  
+#
+##########################################################################
+#
+#  salmon opts:
+#
+#  --salmon_idx_type <string>    quasi|fmd (defalt: $salmon_idx_type)
+#  --salmon_add_opts <string>    default: $salmon_add_opts
+#
+#
+#  Example usage
 #
 #   ## Just prepare the reference for alignment and abundance estimation
 #
@@ -144,39 +169,6 @@ __EOUSAGE__
 
 
 
-my $advanced_usage_info = <<__EOADVANCEDUSAGE__;
-
-
-#############################################################
-## Customizing alignment and abundance estimation parameters.
-#############################################################
-#
-#  Default alignment parameters are:
-#
-#  --bowtie_RSEM <string>    default: \"$aligner_params{bowtie_RSEM}\"
-#  --bowtie2_RSEM <string>   default: \"$aligner_params{bowtie2_RSEM}\"
-#
-#  --bowtie_eXpress <string>  default: \"$aligner_params{bowtie_eXpress}\"
-#  --bowtie2_eXpress <string> default: \"$aligner_params{bowtie2_eXpress}\"
-#
-#  Options to pass on to RSEM or eXpress
-#
-#  --rsem_add_opts <string>    default: "$rsem_add_opts"
-#
-#  --eXpress_add_opts <string>  default: "$eXpress_add_opts"
-#
-#  --kallisto_add_opts <string>  default: $kallisto_add_opts  
-
-#  * note, options for handling strand-specific reads are already taken care of internally, so no need to 
-#    pass on those parameters.  
-#
-##############################################################
-
-__EOADVANCEDUSAGE__
-
-    ;
-
-my $show_full_usage_info;
 
 my $output_dir;
 my $help_flag;
@@ -195,7 +187,6 @@ my $max_ins_size = 800;
 
 my $est_method;
 my $aln_method = "";
-
 
 my $retain_sorted_bam_file = 0;
 
@@ -247,8 +238,6 @@ my $coordsort_bam_flag = 0;
               'fragment_std=i' => \$fragment_std,
               
               #
-              'show_full_usage_info' => \$show_full_usage_info,
-                 
               'bowtie_RSEM=s' => \($aligner_params{'bowtie_RSEM'}),
               'bowtie2_RSEM=s' => \($aligner_params{'bowtie2_RSEM'}),
               'bowtie_eXpress=s' => \($aligner_params{'bowtie_eXpress'}),
@@ -257,10 +246,15 @@ my $coordsort_bam_flag = 0;
               'rsem_add_opts=s' => \$rsem_add_opts,
               'eXpress_add_opts=s' => \$eXpress_add_opts,
               'kallisto_add_opts=s' => \$kallisto_add_opts,
+              'salmon_add_opts=s' => \$salmon_add_opts,
     
               'coordsort_bam' => \$coordsort_bam_flag,
+
+             'salmon_idx_type=s' => \$salmon_idx_type,
+             'salmon_quasi_kmer_length=i' => \$salmon_quasi_kmer_length,
+             'salmon_fmd_kmer_length=i' => \$salmon_fmd_kmer_length,
     
-              );
+    );
 
 
 
@@ -271,16 +265,14 @@ if (@ARGV) {
 if ($help_flag) {
     die $usage;
 }
-if ($show_full_usage_info) {
-    die "$usage\n\n$advanced_usage_info\n\n";
-}
+
 unless ($est_method) {
     die $usage;
 }
 
-my @EST_METHODS = qw(RSEM express kallisto);
+my @EST_METHODS = qw(RSEM express kallisto salmon);
 my %ALIGNMENT_BASED_EST_METHODS = map { + $_ => 1 } qw (RSEM express eXpress);
-my %ALIGNMENT_FREE_EST_METHODS = map { + $_ => 1 } qw (kallisto);
+my %ALIGNMENT_FREE_EST_METHODS = map { + $_ => 1 } qw (kallisto salmon);
 
 
 unless ($output_dir) {
@@ -317,7 +309,7 @@ else {
 }
 
 
-unless ($est_method =~ /^(RSEM|express|kallisto|none)$/i) {
+unless ($est_method =~ /^(RSEM|express|kallisto|salmon|none)$/i) {
     die "Error, --est_method @EST_METHODS only\n";
 }
 
@@ -384,6 +376,10 @@ if ( $thread_count !~ /^\d+$/ ) {
     elsif ($est_method eq 'kallisto') {
         push (@tools, 'kallisto');
     }
+    elsif ($est_method eq 'salmon') {
+        push (@tools, 'salmon');
+    }
+    
         
     foreach my $tool (@tools) {
         my $p = `which $tool`;
@@ -426,6 +422,13 @@ sub run_alignment_FREE_estimation {
     
     if ($est_method eq "kallisto") {
         &run_kallisto();
+    }
+    elsif ($est_method eq "salmon") {
+        &run_salmon();
+    }
+    else {
+        die "Error, not recognizing est_method: $est_method";
+        # sholdn't get here
     }
 }
 
@@ -820,6 +823,82 @@ sub run_kallisto {
         
         my $cmd = "$FindBin::RealBin/support_scripts/kallisto_trans_to_gene_results.pl $output_dir/abundance.tsv $gene_trans_map_file > $output_dir/abundance.tsv.genes";
         &process_cmd($cmd);
+    }
+
+
+    return;
+}
+
+
+
+####
+sub run_salmon {
+    
+    my $salmon_index = "$transcripts.salmon_${salmon_idx_type}.idx";
+    
+    if ( (! $prep_reference) && (! -e $salmon_index)) {
+        confess "Error, no salmon index file: $salmon_index, and --prep_reference not set.  Re-run with --prep_reference";
+    }
+    if ($prep_reference && ! -e $salmon_index) {
+        
+        ## Prep salmon index
+        my $cmd;
+        
+        if ($salmon_idx_type eq 'quasi') {
+            $cmd = "salmon index -t $transcripts -i $salmon_index --type quasi -k $salmon_quasi_kmer_length";
+        }
+        elsif ($salmon_idx_type eq 'fmd') {
+            $cmd = "salmon index -t $transcripts -i $salmon_index -type fmd";
+        }
+        else {
+            die "Error, not recognizing idx type: $salmon_idx_type";
+        }
+        
+        &process_cmd($cmd);
+    }
+
+    my $outdir = "$output_dir.$salmon_idx_type";
+    my $libtype = ($SS_lib_type) ? "IS" . substr($SS_lib_type, 0, 1) : "IU";
+    
+    if ($left && $right) {
+        ## PE mode
+        my $cmd;
+                
+        if ($salmon_idx_type eq 'quasi') {
+            $cmd = "salmon quant -i $salmon_index -l $libtype -1 $left -2 $right -o $outdir $salmon_add_opts";
+        }
+        elsif ($salmon_idx_type eq 'fmd') {
+            $cmd = "salmon quant -i $salmon_index -l $libtype -1 $left -2 $right -k $salmon_fmd_kmer_length -o $outdir $salmon_add_opts";
+        }
+        else {
+            die "Error, not recognizing salmon_idx_type: $salmon_idx_type";
+        }
+        
+        &process_cmd($cmd);
+        
+    }
+    elsif ($single) {
+
+        my $cmd;
+                
+        if ($salmon_idx_type eq 'quasi') {
+            $cmd = "salmon quant -i transcripts_index -l $libtype -r $single -o $outdir $salmon_add_opts";
+        }
+        elsif ($salmon_idx_type eq 'fmd') {
+            $cmd = "salmon quant -i transcripts_index -l $libtype -r $single -k $salmon_fmd_kmer_length -o $outdir $salmon_add_opts";
+        }
+        else {
+            die "Error, not recognizing salmon_idx_type: $salmon_idx_type";
+        }
+        
+        &process_cmd($cmd);
+
+    }
+    
+    if ($gene_trans_map_file) {
+        
+        my $cmd = "$FindBin::RealBin/support_scripts/kallisto_trans_to_gene_results.pl $output_dir/abundance.tsv $gene_trans_map_file > $output_dir/abundance.tsv.genes";
+        #&process_cmd($cmd);
     }
 
 

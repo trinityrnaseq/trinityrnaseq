@@ -9,7 +9,7 @@ use lib ("$FindBin::RealBin/../../../PerlLib");
 use Process_cmd;
 
 
-my $usage = "usage: $0 (RSEM|eXpress|kallisto)\n\n";
+my $usage = "usage: $0 (RSEM|eXpress|kallisto|salmon-(fmd|quasi))\n\n";
 
 my $method = $ARGV[0] or die $usage;
 unless ($method =~ /^(RSEM|eXpress|kallisto|salmon-(fmd|quasi))$/i) {
@@ -79,10 +79,9 @@ main: {
             # shouldn't ever get here.
             die "error - method $method not recognized";
         }
-
+        
         &process_cmd($cmd);
-
-
+        
     }
 
     ## generate matrices.

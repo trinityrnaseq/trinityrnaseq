@@ -1,9 +1,11 @@
+
+
 test: test_RSEM test_eXpress test_kallisto test_salmon
-	../../../Analysis/DifferentialExpression/merge_matrices.pl   RSEM-trans.TPM.not_cross_norm express-trans.TPM.not_cross_norm kallisto-trans.TPM.not_cross_norm > combined.TPM.not_cross_norm.matrix
+	../../../Analysis/DifferentialExpression/merge_matrices.pl RSEM-trans.TPM.not_cross_norm express-trans.TPM.not_cross_norm kallisto-trans.TPM.not_cross_norm salmon-quasi-trans.TPM.not_cross_norm salmon-fmd-trans.TPM.not_cross_norm > combined.TPM.not_cross_norm.matrix
 	../plot_paired_comparisons.Rscript
 
 test_RSEM:
-ifeq ("", "$(shell which rsem-calculate-expression")
+ifeq ("", "$(shell which rsem-calculate-expression)")
 	echo WARNING: skipping RSEM test, cannot locate rsem-calculate-expression tool in PATH
 else
 	./align_and_estimate_tester_PAIRED_END.pl RSEM
@@ -27,7 +29,8 @@ test_salmon:
 ifeq ("", "$(shell which salmon)")
 	echo WARNING: cannot find salmon installed in PATH, skipping salmon test
 else
-	./align_and_estimate_tester_PAIRED_END.pl salmon
+	./align_and_estimate_tester_PAIRED_END.pl salmon-quasi
+	./align_and_estimate_tester_PAIRED_END.pl salmon-fmd
 endif
 
 

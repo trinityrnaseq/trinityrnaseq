@@ -3,7 +3,7 @@
 
 	-Butterfly update: bugfix related to polynucleotide runs.
 	-util/SAM_nameSorted_to_uniq_count_stats.pl: count fragments instead of reads.
-
+	-util/abundance_estimates_to_matrix.pl: will output a matrix even if only a single sample is specified. Also, now can take a --samples_file containing a list of the target files to build the matrix from.
 
 
 # Release v2.1.1   Oct 15, 2015

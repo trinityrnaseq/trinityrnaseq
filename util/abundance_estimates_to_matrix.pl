@@ -16,7 +16,7 @@ my $usage = <<__EOUSAGE__;
 #
 # Required:
 #            
-#  --est_method <string>           RSEM|eXpress|kallisto  (needs to know what format to expect)
+#  --est_method <string>           RSEM|eXpress|kallisto|salmon  (needs to know what format to expect)
 #
 # Options:
 #
@@ -58,7 +58,7 @@ unless ($est_method && @ARGV) {
     die $usage;
 }
 
-unless ($est_method =~ /^(RSEM|eXpress|kallisto)$/i) {
+unless ($est_method =~ /^(RSEM|eXpress|kallisto|salmon-(fmd|quasi))$/i) {
     die "Error, dont recognize --est_method $est_method ";
 }
 unless ($cross_sample_norm =~ /^(TMM|UpperQuartile|none)$/i) {
@@ -119,6 +119,14 @@ if (scalar @files == 1) {
 3       est_counts
 4       tpm
 
+
+## salmon:
+0       Name
+1       Length
+2       EffectiveLength
+3       TPM
+4       NumReads
+
 =cut
     
     ;
@@ -142,6 +150,12 @@ elsif ($est_method =~ /^kallisto$/i) {
     $counts_field = "est_counts";
     $fpkm_field = "tpm";
     $tpm_field = "tpm";
+}
+elsif ($est_method =~ /^salmon/) {
+    $acc_field = "Name";
+    $counts_field = "NumReads";
+    $fpkm_field = "TPM";
+    $tpm_field = "TPM";
 }
 else {
     die "Error, dont recognize --est_method $est_method ";

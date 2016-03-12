@@ -857,7 +857,7 @@ sub run_salmon {
         &process_cmd($cmd);
     }
 
-    my $outdir = "$output_dir.$salmon_idx_type";
+    my $outdir = $output_dir; #"$output_dir.$salmon_idx_type";
     my $libtype = ($SS_lib_type) ? "IS" . substr($SS_lib_type, 0, 1) : "IU";
     
     if ($left && $right) {
@@ -897,7 +897,7 @@ sub run_salmon {
     
     if ( ($left || $single) && $gene_trans_map_file) {
         
-        my $cmd = "$FindBin::RealBin/support_scripts/salmon_trans_to_gene_results.pl $output_dir/abundance.tsv $gene_trans_map_file > $output_dir/abundance.tsv.genes";
+        my $cmd = "$FindBin::RealBin/support_scripts/salmon_trans_to_gene_results.pl $output_dir/quant.sf $gene_trans_map_file > $output_dir/quant.sf.genes";
         &process_cmd($cmd);
     }
     

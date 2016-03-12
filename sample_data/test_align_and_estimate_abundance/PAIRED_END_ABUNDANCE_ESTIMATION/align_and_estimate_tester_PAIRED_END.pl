@@ -72,7 +72,8 @@ main: {
         elsif($method =~ /salmon-(\w+)$/) {
             my $salmon_idx_type = $1;
             $cmd .= " --est_method salmon --salmon_idx_type $salmon_idx_type --output_dir $outdir";
-            
+            push (@trans_results, "$outdir/quant.sf");
+            push (@gene_results, "$outdir/quant.sf.genes");
         }
         else {
             # shouldn't ever get here.

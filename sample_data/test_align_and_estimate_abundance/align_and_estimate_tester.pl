@@ -28,8 +28,8 @@ main: {
 
     $trinity_fasta = basename($trinity_fasta);
     
-    my @global_samples;
-    my @params;
+    my @samples;
+    my @global_params;
     {
         open (my $fh, $samples_file) or die $!;
         while (<$fh>) {

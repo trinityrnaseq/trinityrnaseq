@@ -64,7 +64,7 @@ unless ($est_method && @ARGV) {
     die $usage;
 }
 
-unless ($est_method =~ /^(RSEM|eXpress|kallisto|salmon)$/i) {
+unless ($est_method =~ /^(RSEM|eXpress|kallisto|salmon)/i) {
     die "Error, dont recognize --est_method $est_method ";
 }
 unless ($cross_sample_norm =~ /^(TMM|UpperQuartile|none)$/i) {
@@ -165,7 +165,7 @@ elsif ($est_method =~ /^salmon/) {
     $tpm_field = "TPM";
 }
 else {
-    die "Error, dont recognize --est_method $est_method ";
+    die "Error, dont recognize --est_method [$est_method] ";
 }
 
 main: {

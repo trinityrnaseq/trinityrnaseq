@@ -8,29 +8,29 @@ test_RSEM:
 ifeq ("", "$(shell which rsem-calculate-expression)")
 	echo WARNING: skipping RSEM test, cannot locate rsem-calculate-expression tool in PATH
 else
-	./align_and_estimate_tester_PAIRED_END.pl RSEM
+	../align_and_estimate_tester.pl RSEM samples.txt
 endif
 
 test_eXpress:
 ifeq ("", "$(shell which express)")
 	echo WARNING: skipping express test, cant locate express tool in PATH	
 else
-	./align_and_estimate_tester_PAIRED_END.pl express
+	../align_and_estimate_tester.pl express samples.txt
 endif
 
 test_kallisto:
 ifeq ("", "$(shell which kallisto)")
 	echo WARNING: cannot find kallisto installed in PATH, skipping kallisto test
 else
-	./align_and_estimate_tester_PAIRED_END.pl kallisto
+	../align_and_estimate_tester.pl kallisto samples.txt
 endif
 
 test_salmon:
 ifeq ("", "$(shell which salmon)")
 	echo WARNING: cannot find salmon installed in PATH, skipping salmon test
 else
-	./align_and_estimate_tester_PAIRED_END.pl salmon-quasi
-	./align_and_estimate_tester_PAIRED_END.pl salmon-fmd
+	../align_and_estimate_tester.pl salmon-quasi samples.txt
+	../align_and_estimate_tester.pl salmon-fmd samples.txt
 endif
 
 

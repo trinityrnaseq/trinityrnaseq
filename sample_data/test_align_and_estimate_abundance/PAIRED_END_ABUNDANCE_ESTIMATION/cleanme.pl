@@ -35,6 +35,7 @@ foreach my $file (<*>) {
 `rm -rf ./RSEM-*`;
 `rm -rf ./express-*`;
 `rm -rf ./kallisto-*`;
-
+`rm -rf ./salmon-*`;
+`rm -rf Trinity.fasta.salmon*`;
 
 exit(0);

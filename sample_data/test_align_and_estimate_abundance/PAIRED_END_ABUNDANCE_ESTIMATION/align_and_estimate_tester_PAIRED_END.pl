@@ -12,7 +12,7 @@ use Process_cmd;
 my $usage = "usage: $0 (RSEM|eXpress|kallisto)\n\n";
 
 my $method = $ARGV[0] or die $usage;
-unless ($method =~ /^(RSEM|eXpress|kallisto|salmon)$/i) {
+unless ($method =~ /^(RSEM|eXpress|kallisto|salmon-(fmd|quasi))$/i) {
     die $usage;
 }
 
@@ -69,8 +69,9 @@ main: {
             push (@gene_results, "$outdir/abundance.tsv.genes");
             
         }
-        elsif($method eq 'salmon') {
-            $cmd .= " --est_method salmon --salmon_idx_type fmd --output_dir $outdir";
+        elsif($method =~ /salmon-(\w+)$/) {
+            my $salmon_idx_type = $1;
+            $cmd .= " --est_method salmon --salmon_idx_type $salmon_idx_type --output_dir $outdir";
             
         }
         else {

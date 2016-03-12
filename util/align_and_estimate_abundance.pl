@@ -819,7 +819,7 @@ sub run_kallisto {
     }
     
     
-    if ($gene_trans_map_file) {
+    if ( ($left || $single) && $gene_trans_map_file) {
         
         my $cmd = "$FindBin::RealBin/support_scripts/kallisto_trans_to_gene_results.pl $output_dir/abundance.tsv $gene_trans_map_file > $output_dir/abundance.tsv.genes";
         &process_cmd($cmd);
@@ -848,7 +848,7 @@ sub run_salmon {
             $cmd = "salmon index -t $transcripts -i $salmon_index --type quasi -k $salmon_quasi_kmer_length";
         }
         elsif ($salmon_idx_type eq 'fmd') {
-            $cmd = "salmon index -t $transcripts -i $salmon_index -type fmd";
+            $cmd = "salmon index -t $transcripts -i $salmon_index --type fmd";
         }
         else {
             die "Error, not recognizing idx type: $salmon_idx_type";
@@ -895,12 +895,12 @@ sub run_salmon {
 
     }
     
-    if ($gene_trans_map_file) {
+    if ( ($left || $single) && $gene_trans_map_file) {
         
-        my $cmd = "$FindBin::RealBin/support_scripts/kallisto_trans_to_gene_results.pl $output_dir/abundance.tsv $gene_trans_map_file > $output_dir/abundance.tsv.genes";
-        #&process_cmd($cmd);
+        my $cmd = "$FindBin::RealBin/support_scripts/salmon_trans_to_gene_results.pl $output_dir/abundance.tsv $gene_trans_map_file > $output_dir/abundance.tsv.genes";
+        &process_cmd($cmd);
     }
-
+    
 
     return;
 }

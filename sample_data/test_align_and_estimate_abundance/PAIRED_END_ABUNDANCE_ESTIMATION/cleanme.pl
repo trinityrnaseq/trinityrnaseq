@@ -20,6 +20,10 @@ samples.txt
 schizo.samples.txt
 test_Schizo.sh
 
+mouse.samples.txt
+test_Mouse.sh
+
+
 );
 
 

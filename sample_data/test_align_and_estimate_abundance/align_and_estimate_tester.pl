@@ -9,18 +9,16 @@ use lib ("$FindBin::RealBin/../../PerlLib");
 use Process_cmd;
 
 
-my $usage = "usage: $0 (RSEM|eXpress|kallisto|salmon-(fmd|quasi)) samples.txt\n\n";
+my $usage = "usage: $0 (RSEM|eXpress|kallisto|salmon-(fmd|quasi)) samples.txt Trinity.fasta\n\n";
 
 my $method = $ARGV[0] or die $usage;
 unless ($method =~ /^(RSEM|eXpress|kallisto|salmon-(fmd|quasi))$/i) {
     die $usage;
 }
 my $samples_file = $ARGV[1] or die $usage;
-
+my $trinity_fasta = $ARGV[2] or die $usage;
 
 my $utildir = "$FindBin::RealBin/../../util";
-
-my $trinity_fasta = "$FindBin::RealBin/../test_DATA/Trinity.fasta";
 
 main: {
 

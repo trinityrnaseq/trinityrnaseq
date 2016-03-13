@@ -19,7 +19,11 @@ samples.txt
 
 test_Schizo.sh
 schizo.samples.txt
+
+test_Mouse.sh
+mouse.samples.txt
 );
+
 
 
 my %keep = map { + $_ => 1 } @files_to_keep;

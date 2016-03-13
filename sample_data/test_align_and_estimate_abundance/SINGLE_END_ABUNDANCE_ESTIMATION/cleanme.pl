@@ -16,6 +16,9 @@ cleanme.pl
 Makefile
 align_and_estimate_tester_SINGLE_END.pl
 samples.txt
+
+test_Schizo.sh
+schizo.samples.txt
 );
 
 

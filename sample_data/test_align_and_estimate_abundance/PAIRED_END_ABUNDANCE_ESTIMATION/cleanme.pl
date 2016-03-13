@@ -16,7 +16,10 @@ cleanme.pl
 Makefile
 align_and_estimate_tester_PAIRED_END.pl
 samples.txt
-plot_paired_comparisons.Rscript
+
+schizo.samples.txt
+test_Schizo.sh
+
 );
 
 

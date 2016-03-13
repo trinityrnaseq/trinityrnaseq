@@ -1,0 +1,6 @@
+SCHIZO	/seq/RNASEQ/TRINITY_DEVEL_DATA/SCHIZO_RNASEQ_METHODS_ANALYSIS/10M/SS_trin_test/run_devel_trinity/10M.left.fq.gz	/seq/RNASEQ/TRINITY_DEVEL_DATA/SCHIZO_RNASEQ_METHODS_ANALYSIS/10M/SS_trin_test/run_devel_trinity/10M.right.fq.gz
+
+
+--SS_lib_type RF
+--seqType fq
+--trinity_mode

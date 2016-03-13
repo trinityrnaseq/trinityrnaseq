@@ -22,6 +22,10 @@ schizo.samples.txt
 
 test_Mouse.sh
 mouse.samples.txt
+
+test_Drosoph.sh
+drosoph.samples.txt
+
 );
 
 

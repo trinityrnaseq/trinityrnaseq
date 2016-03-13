@@ -1,0 +1,6 @@
+DROSOPH	/seq/RNASEQ/TRINITY_DEVEL_DATA/DROSOPHILA/10M/Drosoph.10M.left.fa.gz
+
+
+--SS_lib_type RF
+--seqType fa
+--trinity_mode

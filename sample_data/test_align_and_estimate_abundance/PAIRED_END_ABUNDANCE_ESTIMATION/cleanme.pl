@@ -23,6 +23,8 @@ test_Schizo.sh
 mouse.samples.txt
 test_Mouse.sh
 
+drosoph.samples.txt
+test_Drosoph.sh
 
 );
 

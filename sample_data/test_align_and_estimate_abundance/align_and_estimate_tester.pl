@@ -11,6 +11,7 @@ use Process_cmd;
 
 my $usage = "usage: $0 (RSEM|eXpress|kallisto|salmon-(fmd|quasi)) samples.txt Trinity.fasta\n\n";
 
+
 my $method = $ARGV[0] or die $usage;
 unless ($method =~ /^(RSEM|eXpress|kallisto|salmon-(fmd|quasi))$/i) {
     die $usage;
@@ -88,7 +89,6 @@ main: {
             $cmd .= " --est_method kallisto --output_dir $outdir ";
             push (@trans_results, "$outdir/abundance.tsv");
             push (@gene_results, "$outdir/abundance.tsv.genes");
-            
         }
         elsif($method =~ /salmon-(\w+)$/) {
             my $salmon_idx_type = $1;

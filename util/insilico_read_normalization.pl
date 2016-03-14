@@ -615,7 +615,7 @@ sub run_jellyfish {
 sub prep_seqs {
     my ($initial_file, $seqType, $file_prefix, $SS_lib_type) = @_;
 
-    ($initial_file) = &add_fifo_for_gzip($initial_file) if $initial_file =~ /\.gz$/;
+    ($initial_file) = &add_fifo_for_gzip($initial_file) if $initial_file =~ /\.gz$|\.xz$|\.bz2$/;
     
     if ($seqType eq "fq") {
         # make fasta
@@ -950,6 +950,10 @@ sub add_fifo_for_gzip {
         }
         elsif ($file =~ /\.gz$/) {
             $file = "<(gunzip -c $file)";
+        } elsif ($file =~ /\.xz$/) {
+            $file = "<(xz -d -c ${file})";
+        } elsif ($file =~ /\.bz2$/) {
+            $file = "<(bunzip2 -dc ${file})";
         }
     }
     

@@ -10,6 +10,14 @@ FASTOOL_CODE=fstrozzi-Fastool-7c3e034f05
 PARAFLY_CODE=parafly-code
 TRIMMOMATIC_CODE=Trimmomatic-0.32
 
+
+UNAME_S=$(shell uname -s)
+ifeq ("${UNAME_S}", "Linux")
+	LTINFO="LIBPATH=-ltinfo"
+endif
+
+
+
 trinity_essentials: jellyfish scaffold_iworm_contigs_target fastool_target parafly_target trimmomatic_target samtools
 
 trimmomatic_target:
@@ -18,7 +26,7 @@ trimmomatic_target:
 
 samtools:
 	tar xvf samtools-0.1.19.tar.bz2
-	cd samtools-0.1.19 && $(MAKE) LIBPATH=-ltinfo
+	cd samtools-0.1.19 && $(MAKE) ${LTINFO} 
 	mv samtools-0.1.19/samtools ./BIN/.
 
 jellyfish:

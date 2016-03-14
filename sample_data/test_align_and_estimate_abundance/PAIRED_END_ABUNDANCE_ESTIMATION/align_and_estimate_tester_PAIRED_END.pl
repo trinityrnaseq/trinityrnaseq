@@ -9,10 +9,10 @@ use lib ("$FindBin::RealBin/../../../PerlLib");
 use Process_cmd;
 
 
-my $usage = "usage: $0 (RSEM|eXpress|kallisto)\n\n";
+my $usage = "usage: $0 (RSEM|eXpress|kallisto|salmon-fmd|salmon-quasi)\n\n";
 
 my $method = $ARGV[0] or die $usage;
-unless ($method =~ /^(RSEM|eXpress|kallisto|salmon)$/i) {
+unless ($method =~ /^(RSEM|eXpress|kallisto|salmon-(fmd|quasi))$/i) {
     die $usage;
 }
 
@@ -67,11 +67,11 @@ main: {
             $cmd .= " --est_method kallisto --output_dir $outdir ";
             push (@trans_results, "$outdir/abundance.tsv");
             push (@gene_results, "$outdir/abundance.tsv.genes");
-            
         }
         elsif($method eq 'salmon') {
             $cmd .= " --est_method salmon --salmon_idx_type fmd --output_dir $outdir";
-            
+            push (@trans_results, "$outdir/quant.sf");
+            push (@gene_results, "$outdir/quant.sf.genes");
         }
         else {
             # shouldn't ever get here.

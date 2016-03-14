@@ -18,7 +18,7 @@ trimmomatic_target:
 
 samtools:
 	tar xvf samtools-0.1.19.tar.bz2
-	cd samtools-0.1.19 && $(MAKE) #LIBPATH=-ltinfo
+	cd samtools-0.1.19 && $(MAKE) LIBPATH=-ltinfo
 	mv samtools-0.1.19/samtools ./BIN/.
 
 jellyfish:

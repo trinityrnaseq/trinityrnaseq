@@ -250,6 +250,7 @@ my $basic_usage = qq^
 #                                   (def=$min_contig_length)
 #
 #  --long_reads <string>           :fasta file containing error-corrected or circular consensus (CCS) pac bio reads
+#                                   (** note: experimental parameter **, this functionality continues to be under development)
 #
 #  --genome_guided_bam <string>    :genome guided mode, provide path to coordinate-sorted bam file.
 #                                   (see genome-guided param section under --show_full_usage_info)
@@ -1036,6 +1037,7 @@ elsif ($CUFFFLY_MODE) {
 
 
 
+
 my $PARALLEL_SAMTOOLS_SORT_TOKEN = "-\@ $CPU";
 
 
@@ -1556,7 +1558,7 @@ sub run_chrysalis {
             $pipeliner->add_commands( new Command($cmd, "$iworm_min100_fa_file.bowtie_build.ok"));
 
             my $bowtie_sam_file = "$chrysalis_output_dir/iworm.bowtie.nameSorted.bam";
-	    my $samtools_max_memory = int($jellyfish_ram/($CPU*2));
+            my $samtools_max_memory = int($jellyfish_ram/($CPU*2));
             if ($long_reads){
             	$cmd = "bash -c \" set -o pipefail;bowtie2 --local -a --threads $CPU -f $iworm_min100_fa_file $bowtie_reads_fa  | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort -m $samtools_max_memory $PARALLEL_SAMTOOLS_SORT_TOKEN -no - - > $bowtie_sam_file\" ";  
             }

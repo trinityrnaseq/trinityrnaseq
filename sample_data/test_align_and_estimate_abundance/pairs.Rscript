@@ -1,0 +1,6 @@
+#!/usr/bin/env Rscript
+
+pdf("pairs.pdf")
+data = read.table("combined.TPM.not_cross_norm.matrix")
+data = log2(data+1)
+pairs(data, pch='.')

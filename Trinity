@@ -250,6 +250,7 @@ my $basic_usage = qq^
 #                                   (def=$min_contig_length)
 #
 #  --long_reads <string>           :fasta file containing error-corrected or circular consensus (CCS) pac bio reads
+#                                   (** note: experimental parameter **, this functionality continues to be under development)
 #
 #  --genome_guided_bam <string>    :genome guided mode, provide path to coordinate-sorted bam file.
 #                                   (see genome-guided param section under --show_full_usage_info)
@@ -1036,6 +1037,7 @@ elsif ($CUFFFLY_MODE) {
 
 
 
+
 my $PARALLEL_SAMTOOLS_SORT_TOKEN = "-\@ $CPU";
 
 
@@ -1556,7 +1558,7 @@ sub run_chrysalis {
             $pipeliner->add_commands( new Command($cmd, "$iworm_min100_fa_file.bowtie_build.ok"));
 
             my $bowtie_sam_file = "$chrysalis_output_dir/iworm.bowtie.nameSorted.bam";
-	    my $samtools_max_memory = int($jellyfish_ram/($CPU*2));
+            my $samtools_max_memory = int($jellyfish_ram/($CPU*2));
             if ($long_reads){
             	$cmd = "bash -c \" set -o pipefail;bowtie2 --local -a --threads $CPU -f $iworm_min100_fa_file $bowtie_reads_fa  | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort -m $samtools_max_memory $PARALLEL_SAMTOOLS_SORT_TOKEN -no - - > $bowtie_sam_file\" ";  
             }
@@ -2086,9 +2088,15 @@ sub prep_seqs {
             if ($f=~/\.gz$/){
                 $fastool_cmd = "gunzip -c $f | $FASTOOL_DIR/fastool";
                 $linecount_cmd = "gunzip -c $f | wc -l";
-            }elsif ($f=~/\.bz2$/){
+            } elsif ($f=~/\.bz2$/){
                 $fastool_cmd = "bunzip2 -dkc $f | $FASTOOL_DIR/fastool";
                 $linecount_cmd = "bunzip2 -dkc $f | wc -l";
+            } elsif ($f =~ /\.xz/) {
+                $fastool_cmd = "xz -dc ${f} | ${FASTOOL_DIR}/fastool";
+                $linecount_cmd = "xz -dc ${f} | wc -l";
+                ## I would like to suggest that these if statements are not necessary if one just does
+                ## qx"less ${f} |" because less has smart input filters in place and will automagically
+                ## handle all the likely compression formats.
             }
             
             if ($SS_lib_type && $SS_lib_type eq "R") {
@@ -2117,7 +2125,9 @@ sub prep_seqs {
                 $cmd = "gunzip -c $initial_file_str >$file_prefix.fa";
             }elsif ($initial_file_str=~/\.bz2$/){
                 $cmd = "bunzip2 -dkc $initial_file_str >$file_prefix.fa";
-            }            
+            } elsif ($initial_file_str =~ /\.xz$/) {
+                $cmd = "xz -dc ${initial_file_str} > ${file_prefix}.fa";
+            }
             &process_cmd($cmd);
         }elsif(scalar(@initial_files) > 1 && (!$SS_lib_type || $SS_lib_type ne "R")){
             foreach my $f (@initial_files){
@@ -2126,6 +2136,8 @@ sub prep_seqs {
                     $cmd = "gunzip -c $f >> $file_prefix.fa";
                 }elsif ($f=~/\.bz2$/){
                     $cmd = "bunzip2 -dkc $f >> $file_prefix.fa";
+                } elsif ($f =~ /\.xz$/) {
+                    $cmd = "xz -dc ${f} >> ${file_prefix}.fa";
                 }
                 &process_cmd($cmd);
           	}
@@ -2137,6 +2149,8 @@ sub prep_seqs {
                     $cmd = "gunzip -c $f | $UTILDIR/support_scripts/revcomp_fasta.pl >> $file_prefix.fa";
                 }elsif ($f=~/\.bz2$/){
                     $cmd = "bunzip2 -dkc $f | $UTILDIR/support_scripts/revcomp_fasta.pl >> $file_prefix.fa";
+                } elsif ($f =~ /\.xz$/) {
+                    $cmd = "xz -dc ${f} | ${UTILDIR}/support_scripts/revcomp_fasta.pl >> ${file_prefix}.fa";
                 }
                 &process_cmd($cmd);
           	}
@@ -2935,6 +2949,10 @@ sub add_fifo_for_gzip {
         }
         elsif ($file =~ /\.gz$/) {
             $file = "<(zcat $file)";
+        } elsif ($file =~ /\.xz$/) {
+            $file = "<(xzcat ${file})";
+        } elsif ($file =~ /\.bz2$/) {
+            $file = "<(bzcat ${file})";
         }
     }
     

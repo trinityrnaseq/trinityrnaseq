@@ -710,7 +710,7 @@ sub run_RSEM {
     my $cmd = "rsem-calculate-expression $no_qualities_string "
         . "$paired_flag_text "
         . " $rsem_add_opts "
-        . "-p 4 "
+        . "-p $thread_count "
         . "$fraglength_info_txt "
         . "$keep_intermediate_files_opt "
         . "$SS_opt $rsem_bam_flag "
@@ -819,7 +819,7 @@ sub run_kallisto {
     }
     
     
-    if ($gene_trans_map_file) {
+    if ( ($left || $single) && $gene_trans_map_file) {
         
         my $cmd = "$FindBin::RealBin/support_scripts/kallisto_trans_to_gene_results.pl $output_dir/abundance.tsv $gene_trans_map_file > $output_dir/abundance.tsv.genes";
         &process_cmd($cmd);
@@ -845,10 +845,10 @@ sub run_salmon {
         my $cmd;
         
         if ($salmon_idx_type eq 'quasi') {
-            $cmd = "salmon index -t $transcripts -i $salmon_index --type quasi -k $salmon_quasi_kmer_length";
+            $cmd = "salmon index -t $transcripts -i $salmon_index --type quasi -k $salmon_quasi_kmer_length -p $thread_count";
         }
         elsif ($salmon_idx_type eq 'fmd') {
-            $cmd = "salmon index -t $transcripts -i $salmon_index -type fmd";
+            $cmd = "salmon index -t $transcripts -i $salmon_index --type fmd -p $thread_count";
         }
         else {
             die "Error, not recognizing idx type: $salmon_idx_type";
@@ -857,18 +857,19 @@ sub run_salmon {
         &process_cmd($cmd);
     }
 
-    my $outdir = "$output_dir.$salmon_idx_type";
-    my $libtype = ($SS_lib_type) ? "IS" . substr($SS_lib_type, 0, 1) : "IU";
+    my $outdir = $output_dir; #"$output_dir.$salmon_idx_type";
+    
     
     if ($left && $right) {
         ## PE mode
         my $cmd;
-                
+        my $libtype = ($SS_lib_type) ? "IS" . substr($SS_lib_type, 0, 1) : "IU";
+            
         if ($salmon_idx_type eq 'quasi') {
-            $cmd = "salmon quant -i $salmon_index -l $libtype -1 $left -2 $right -o $outdir $salmon_add_opts";
+            $cmd = "salmon quant -i $salmon_index -l $libtype -1 $left -2 $right -o $outdir $salmon_add_opts -p $thread_count";
         }
         elsif ($salmon_idx_type eq 'fmd') {
-            $cmd = "salmon quant -i $salmon_index -l $libtype -1 $left -2 $right -k $salmon_fmd_kmer_length -o $outdir $salmon_add_opts";
+            $cmd = "salmon quant -i $salmon_index -l $libtype -1 $left -2 $right -k $salmon_fmd_kmer_length -o $outdir $salmon_add_opts -p $thread_count";
         }
         else {
             die "Error, not recognizing salmon_idx_type: $salmon_idx_type";
@@ -878,14 +879,14 @@ sub run_salmon {
         
     }
     elsif ($single) {
-
+        my $libtype = ($SS_lib_type) ? "S" . substr($SS_lib_type, 0, 1) : "U";
         my $cmd;
-                
+        
         if ($salmon_idx_type eq 'quasi') {
-            $cmd = "salmon quant -i transcripts_index -l $libtype -r $single -o $outdir $salmon_add_opts";
+            $cmd = "salmon quant -i $salmon_index -l $libtype -r $single -o $outdir $salmon_add_opts -p $thread_count";
         }
         elsif ($salmon_idx_type eq 'fmd') {
-            $cmd = "salmon quant -i transcripts_index -l $libtype -r $single -k $salmon_fmd_kmer_length -o $outdir $salmon_add_opts";
+            $cmd = "salmon quant -i $salmon_index -l $libtype -r $single -k $salmon_fmd_kmer_length -o $outdir $salmon_add_opts -p $thread_count";
         }
         else {
             die "Error, not recognizing salmon_idx_type: $salmon_idx_type";
@@ -895,12 +896,12 @@ sub run_salmon {
 
     }
     
-    if ($gene_trans_map_file) {
+    if ( ($left || $single) && $gene_trans_map_file) {
         
-        my $cmd = "$FindBin::RealBin/support_scripts/kallisto_trans_to_gene_results.pl $output_dir/abundance.tsv $gene_trans_map_file > $output_dir/abundance.tsv.genes";
-        #&process_cmd($cmd);
+        my $cmd = "$FindBin::RealBin/support_scripts/salmon_trans_to_gene_results.pl $output_dir/quant.sf $gene_trans_map_file > $output_dir/quant.sf.genes";
+        &process_cmd($cmd);
     }
-
+    
 
     return;
 }

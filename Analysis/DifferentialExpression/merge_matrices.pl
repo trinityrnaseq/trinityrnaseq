@@ -24,11 +24,15 @@ my %genes;
 main: {
     
     foreach my $matrix (@matrices) {
-
-        &parse_matrix($matrix);
         
+        if (-s $matrix) {
+            &parse_matrix($matrix);
+        }
+        else {
+            print STDERR "WARNING: cannot locate matrix file: $matrix";
+        }
     }
-
+    
     ## output new matrix:
 
     my @colnames = sort keys %matrix;

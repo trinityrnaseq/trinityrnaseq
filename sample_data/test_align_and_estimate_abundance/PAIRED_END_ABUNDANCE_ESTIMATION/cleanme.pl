@@ -16,7 +16,16 @@ cleanme.pl
 Makefile
 align_and_estimate_tester_PAIRED_END.pl
 samples.txt
-plot_paired_comparisons.Rscript
+
+schizo.samples.txt
+test_Schizo.sh
+
+mouse.samples.txt
+test_Mouse.sh
+
+drosoph.samples.txt
+test_Drosoph.sh
+
 );
 
 
@@ -35,6 +44,7 @@ foreach my $file (<*>) {
 `rm -rf ./RSEM-*`;
 `rm -rf ./express-*`;
 `rm -rf ./kallisto-*`;
-
+`rm -rf ./salmon-*`;
+`rm -rf Trinity.fasta.salmon*`;
 
 exit(0);

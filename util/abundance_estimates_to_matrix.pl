@@ -12,11 +12,13 @@ my $usage = <<__EOUSAGE__;
 #
 # Usage:  $0 --est_method <method>  sample1.results sample2.results ...
 #
+#      or  $0 --est_method <method> --samples_file file.listing_target_files.txt
+#
 #      Note, if only a single input file is given, it's expected to contain the paths to all the target abundance estimation files.
 #
 # Required:
 #            
-#  --est_method <string>           RSEM|eXpress|kallisto  (needs to know what format to expect)
+#  --est_method <string>           RSEM|eXpress|kallisto|salmon  (needs to know what format to expect)
 #
 # Options:
 #
@@ -26,6 +28,8 @@ my $usage = <<__EOUSAGE__;
 #      --basedir_index <int>            default(-2)
 #
 #  --out_prefix <string>                default: 'matrix'
+#
+#  --samples_file <string>              file containing a list of all the target files.
 #
 ############################################################
 
@@ -42,6 +46,7 @@ my $cross_sample_norm = "TMM";
 my $name_sample_by_basedir = 0;
 my $out_prefix = "matrix";
 my $basedir_index = -2;
+my $samples_file = "";
 
 &GetOptions('help|h' => \$help_flag,
             'est_method=s' => \$est_method,
@@ -51,6 +56,7 @@ my $basedir_index = -2;
             'out_prefix=s' => \$out_prefix,
             'basedir_index=i' => \$basedir_index,
             
+            'samples_file=s' => \$samples_file,
             );
 
 
@@ -58,26 +64,27 @@ unless ($est_method && @ARGV) {
     die $usage;
 }
 
-unless ($est_method =~ /^(RSEM|eXpress|kallisto)$/i) {
+unless ($est_method =~ /^(RSEM|eXpress|kallisto|salmon)/i) {
     die "Error, dont recognize --est_method $est_method ";
 }
 unless ($cross_sample_norm =~ /^(TMM|UpperQuartile|none)$/i) {
     die "Error, dont recognize --cross_sample_norm $cross_sample_norm ";
 }
 
-my @files = @ARGV;
+my @files;
 
-if (scalar @files == 1) {
-
-    if (-s $files[0]) {
-        # allow for a file listing the various files.
-        @files = `cat $files[0]`;
-        chomp @files;
-    }
-    else {
-        die $usage;
-    }
+if ($samples_file) {
+    # allow for a file listing the various files.
+    @files = `cat $samples_file`;
+    chomp @files;
 }
+elsif (@ARGV) {
+    @files = @ARGV;
+}
+else {
+    die $usage;
+}
+
 
 
 =data_formats
@@ -119,6 +126,14 @@ if (scalar @files == 1) {
 3       est_counts
 4       tpm
 
+
+## salmon:
+0       Name
+1       Length
+2       EffectiveLength
+3       TPM
+4       NumReads
+
 =cut
     
     ;
@@ -143,8 +158,14 @@ elsif ($est_method =~ /^kallisto$/i) {
     $fpkm_field = "tpm";
     $tpm_field = "tpm";
 }
+elsif ($est_method =~ /^salmon/) {
+    $acc_field = "Name";
+    $counts_field = "NumReads";
+    $fpkm_field = "TPM";
+    $tpm_field = "TPM";
+}
 else {
-    die "Error, dont recognize --est_method $est_method ";
+    die "Error, dont recognize --est_method [$est_method] ";
 }
 
 main: {
@@ -239,18 +260,28 @@ main: {
     close $ofh_counts;
     close $ofh_TPM;
     
-    if ($cross_sample_norm =~ /^TMM$/i) {
-        my $cmd = "$FindBin::RealBin/support_scripts/run_TMM_scale_matrix.pl --matrix $TPM_matrix_file > $out_prefix.$cross_sample_norm.EXPR.matrix";
-        &process_cmd($cmd);
+
+    if (scalar @files > 1) {
+        ## more than one sample 
+        
+        if ($cross_sample_norm =~ /^TMM$/i) {
+            my $cmd = "$FindBin::RealBin/support_scripts/run_TMM_scale_matrix.pl --matrix $TPM_matrix_file > $out_prefix.$cross_sample_norm.EXPR.matrix";
+            &process_cmd($cmd);
+        }
+        elsif ($cross_sample_norm =~ /^UpperQuartile$/) {
+            my $cmd = "$FindBin::RealBin/support_scripts/run_UpperQuartileNormalization_matrix.pl --matrix $TPM_matrix_file > $out_prefix.$cross_sample_norm.EXPR.matrix";
+            &process_cmd($cmd);
+        }
+        elsif ($cross_sample_norm =~ /^none$/i) {
+            print STDERR "-not performing cross-sample normalization.\n";
+        }
     }
-    elsif ($cross_sample_norm =~ /^UpperQuartile$/) {
-        my $cmd = "$FindBin::RealBin/support_scripts/run_UpperQuartileNormalization_matrix.pl --matrix $TPM_matrix_file > $out_prefix.$cross_sample_norm.EXPR.matrix";
-        &process_cmd($cmd);
+    else {
+        unless (scalar @files == 1) { 
+            die "Error, no target samples. Shouldn't get here.";
+        }
+        print STDERR "Warning, only one sample, so not performing cross-sample normalization\n";
     }
-    elsif ($cross_sample_norm =~ /^none$/i) {
-        print STDERR "-not performing cross-sample normalization.\n";
-    }
-    
     print STDERR "Done.\n\n";
     
     exit(0);

@@ -7,8 +7,8 @@ use Getopt::Long qw(:config no_ignore_case bundling pass_through);
 use FindBin;
 use File::Basename;
 
-my $min_rowSums = 2;
-my $min_colSums = 10;
+my $min_rowSums = 0;
+my $min_colSums = 0;
 
 my $usage = <<__EOUSAGE__;
 

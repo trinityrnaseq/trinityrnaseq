@@ -2,5 +2,5 @@ DROSOPH	/seq/RNASEQ/TRINITY_DEVEL_DATA/DROSOPHILA/10M/Drosoph.10M.left.fa.gz	/se
 
 
 --seqType fa
---trinity_mode
+--gene_trans_map /seq/RNASEQ/TRINITY_DEVEL_DATA/DROSOPHILA/Annotations/drosoph.gene_trans_map
 

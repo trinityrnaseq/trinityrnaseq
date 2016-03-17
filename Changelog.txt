@@ -1,5 +1,4 @@
-
-** next release
+# Release v2.2.0  March 17, 2016
 
 	-Butterfly update: bugfix related to polynucleotide runs.
 	-util/SAM_nameSorted_to_uniq_count_stats.pl: count fragments instead of reads.

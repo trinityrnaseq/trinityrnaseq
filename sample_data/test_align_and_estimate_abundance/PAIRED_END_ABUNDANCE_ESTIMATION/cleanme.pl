@@ -47,4 +47,7 @@ foreach my $file (<*>) {
 `rm -rf ./salmon-*`;
 `rm -rf Trinity.fasta.salmon*`;
 
+`rm -rf mm9_ucsc_genomeStudio_genes.gtf*`;
+
+
 exit(0);

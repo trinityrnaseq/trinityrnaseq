@@ -48,6 +48,6 @@ foreach my $file (<*>) {
 `rm -rf Trinity.fasta.salmon*`;
 
 `rm -rf mm9_ucsc_genomeStudio_genes.gtf*`;
-
+`rm -rf SP2_GeneDB.290110.prot_coding.cds.nr*`;
 
 exit(0);

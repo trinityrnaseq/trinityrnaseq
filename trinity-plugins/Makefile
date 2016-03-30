@@ -10,9 +10,10 @@ FASTOOL_CODE=fstrozzi-Fastool-7c3e034f05
 PARAFLY_CODE=parafly-code
 TRIMMOMATIC_CODE=Trimmomatic-0.32
 
-
+#FOUND_LTINFO=$(shell ldconfig -p |grep tinfo)
 UNAME_S=$(shell uname -s)
 ifeq ("${UNAME_S}", "Linux")
+ifneq(,$(findstring tinfo, $(shell ldconfig -p |grep tinfo))
 	LTINFO="LIBPATH=-ltinfo"
 endif
 

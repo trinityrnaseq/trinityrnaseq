@@ -61,7 +61,7 @@ my $gene_to_trans_map_file;
               'transcripts|t=s' => \$transcripts_file,
               
               'min_expr_any=f' => \$min_expr_any,
-              'min_pct_iso=i' => \$min_pct_dom_iso,
+              'min_pct_dom_iso=i' => \$min_pct_dom_iso,
               'highest_iso_only' => \$highest_iso_only_flag,
 
               'trinity_mode' => \$trinity_mode_flag,
@@ -77,16 +77,16 @@ if ($help_flag) {
 
 
 unless ($matrix_file && $transcripts_file &&
-        ($min_expr_any || defined($min_pct_dom_iso) || $highest_iso_only_flag) ) {
+        ($min_expr_any || $min_pct_dom_iso || $highest_iso_only_flag) ) {
 
     die $usage;
 }
 
-if (  (defined($min_pct_dom_iso) || $highest_iso_only_flag) && ! ($trinity_mode_flag || $gene_to_trans_map_file) ) {
+if ( ($min_pct_dom_iso || $highest_iso_only_flag) && ! ($trinity_mode_flag || $gene_to_trans_map_file) ) {
     die "Error, if --min_pct_iso or --highest_iso_only, must also specify either --trinity_mode or --gene_to_trans_map";
 }
 
-if (defined($min_pct_dom_iso) && $highest_iso_only_flag) {
+if ($min_pct_dom_iso && $highest_iso_only_flag) {
     die "Error, --min_pct_iso and --highest_iso_only are mutually exclusive parameters. ";
 }
 
@@ -95,7 +95,7 @@ main: {
 
     my %expr_vals = &parse_expr_matrix($matrix_file);
     
-    if (defined($min_pct_dom_iso) || $highest_iso_only_flag) {
+    if ($min_pct_dom_iso || $highest_iso_only_flag) {
         
         my %gene_to_iso_map = ($trinity_mode_flag) 
             ? &parse_Trinity_gene_mapping($transcripts_file)
@@ -120,15 +120,18 @@ main: {
 
         if ($min_expr_any && $info_struct->{max_expr} < $min_expr_any) {
             $keep_flag = 0;
+            print STDERR "-excluding $acc, max_expr: $info_struct->{max_expr} < $min_expr_any\n";
         }
-        if (defined($min_pct_dom_iso) && (! $info_struct->{top_iso}) && $info_struct->{pct_dom_iso_expr} < $min_pct_dom_iso) {
+        if ($min_pct_dom_iso && (! $info_struct->{top_iso}) && $info_struct->{pct_dom_iso_expr} < $min_pct_dom_iso) {
             # notice we'll still keep the dominant isoform for the gene even if it's pct iso < $min_pct_dom_iso.
             ## dont want to be silly and throw out the gene altogther...  :)
+            print STDERR "-excluding $acc, pct_dom_iso_expr $info_struct->{pct_dom_iso_expr} < $min_pct_dom_iso\n";
             
             $keep_flag = 0;
         }
-
+        
         if ($highest_iso_only_flag && ! $info_struct->{top_iso}) {
+            print STDERR "-excluding $acc, not top_iso\n";
             $keep_flag = 0;
         }
 
@@ -139,8 +142,10 @@ main: {
             my ($header_line, @seq_lines) = split(/\n/, $fasta_record);
             # tack on the pct expr info onto the header
             my $top_iso_flag = $info_struct->{top_iso};
-            my $pct_iso_expr = $info_struct->{pct_iso_expr};
-            my $pct_dom_iso_expr = $info_struct->{pct_dom_iso_expr};
+            my $pct_iso_expr = (defined $info_struct->{pct_iso_expr}) ? $info_struct->{pct_iso_expr} : "NA";
+            
+            my $pct_dom_iso_expr = (defined $info_struct->{pct_dom_iso_expr}) ? $info_struct->{pct_dom_iso_expr} : "NA";
+            
             $header_line .= " top_iso:$top_iso_flag pct_iso_expr=$pct_iso_expr pct_dom_iso_expr=$pct_dom_iso_expr";
             
             print join("\n", $header_line, @seq_lines) . "\n";

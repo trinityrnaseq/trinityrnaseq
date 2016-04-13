@@ -194,16 +194,22 @@ sub add_pct_iso_stats {
             # now compute pct iso
             foreach my $iso (@isoforms) {
                 my $expr = $expr_vals_href->{$iso}->{sum_expr};
-                my $pct_iso = sprintf("%.2f", $expr / $gene_sum_expr * 100);
+                my $pct_iso = 0;
+                if ($gene_sum_expr > 0) {
+                    $pct_iso = sprintf("%.2f", $expr / $gene_sum_expr * 100);
+                }
                 $expr_vals_href->{$iso}->{pct_iso_expr} = $pct_iso;
 
-                my $pct_dom_iso_expr = sprintf("%.2f", $expr / $dominant_iso_expr * 100);
+                my $pct_dom_iso_expr = 0;
+                if ($dominant_iso_expr > 0) {
+                    $pct_dom_iso_expr = sprintf("%.2f", $expr / $dominant_iso_expr * 100);
+                }
                 $expr_vals_href->{$iso}->{pct_dom_iso_expr} = $pct_dom_iso_expr;
             }
             # set top iso
             @isoforms = sort { $expr_vals_href->{$a}->{pct_iso_expr} <=> $expr_vals_href->{$b}->{pct_iso_expr} } @isoforms;
             
-            my $top_isoform = pop @isoforms;
+            my $top_isoform = pop @isoforms;  # note, if there's no gene expression for some reason, choice isn't informative.
             $expr_vals_href->{$top_isoform}->{top_iso} = 1;
         }
     }

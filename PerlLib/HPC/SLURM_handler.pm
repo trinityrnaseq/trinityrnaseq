@@ -84,13 +84,13 @@ sub job_running_or_pending_on_grid {
     
     # print STDERR "Polling grid to check status of job: $job_id\n";
     
-    my $response = `sacct -j $job_id`;
+    my $response = `squeue --noheader -l -j $job_id`;
     #print STDERR "Response:\n$response\n";
 
     foreach my $line (split(/\n/, $response)) {
         my @x = split(/\s+/, $line);
 
-        if ($x[0] eq $job_id) {
+        if ($x[1] eq $job_id) {
             my $state = $x[5];
             if ($state eq "COMPLETED" || $state eq "FAILED" || $state eq "TIMEOUT") {
                 return(0);

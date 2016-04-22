@@ -1,4 +1,5 @@
 
+rversion := $(shell R --version | head -1)
 
 test: test_edgeR test_DESeq2 test_voom test_ROTS test_PtR_PCA
 
@@ -15,9 +16,11 @@ test_voom:
 	cd voom_outdir && ../../../Analysis/DifferentialExpression/analyze_diff_expr.pl  --matrix ../Trinity_trans.TMM.EXPR.matrix --samples ../samples.txt 
 
 test_ROTS:
+# ROTS does not run under R 3.1
+ifeq (,$(findstring 3.1.1, $(rversion)))
 	../../Analysis/DifferentialExpression/run_DE_analysis.pl  -m Trinity_trans.counts.matrix --method ROTS -s samples.txt -o ROTS_outdir --ROTS_B 50 # make it go faster, use more in practice
 	cd ROTS_outdir && ../../../Analysis/DifferentialExpression/analyze_diff_expr.pl  --matrix ../Trinity_trans.TMM.EXPR.matrix --samples ../samples.txt 
-
+endif
 
 test_PtR_PCA:
 	../../Analysis/DifferentialExpression/PtR -m Trinity_trans.TMM.EXPR.matrix -s samples.txt --prin_comp 3 --add_prin_comp_heatmaps 30

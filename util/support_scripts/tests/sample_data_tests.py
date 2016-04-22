@@ -27,7 +27,7 @@ class TestTrinitySampleData(unittest.TestCase):
         self.assertTrue(30 <= seq_count <= 40, msg='Found %s sequences' % seq_count)
         seq_count = self.count_sequences('test_InSilicoReadNormalization',
                           'reads.single.fq.normalized_K25_C5_pctSD200.fq')
-        self.assertTrue(60 <= seq_count <= 65, msg='Found %s sequences' % seq_count)
+        self.assertTrue(50 <= seq_count <= 65, msg='Found %s sequences' % seq_count)
 
     def test_trinity_assembly(self):
         seq_count = self.count_sequences('test_Trinity_Assembly', 'trinity_out_dir', 'Trinity.fasta')
@@ -38,8 +38,11 @@ class TestTrinitySampleData(unittest.TestCase):
         self.assertTrue(os.path.isfile(check_file))
 
     def test_align_and_estimate_abundance(self):
-        check_file = os.path.join(self.sampledata_dir, 'test_align_and_estimate_abundance', 'RSEM-gene.counts.matrix')
-        self.assertTrue(os.path.isfile(check_file))
+        cats = ['PAIRED', 'SINGLE']
+        for cat in cats:
+            check_file = os.path.join(self.sampledata_dir, 'test_align_and_estimate_abundance',\
+               '%s_END_ABUNDANCE_ESTIMATION' % cat, 'RSEM-gene.counts.matrix')
+            self.assertTrue(os.path.isfile(check_file))
 
     def test_full_edgeR_pipeline(self):
         check_file = os.path.join(self.sampledata_dir, 'test_full_edgeR_pipeline', 'read_content_analysis', 'read_content_analysis.nameSorted.bam')

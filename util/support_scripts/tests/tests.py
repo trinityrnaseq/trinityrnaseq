@@ -4,6 +4,7 @@ import unittest
 import shutil
 import os
 import time
+import filecmp
 
 # Prereqs:
 # module load bowtie/0.12.8
@@ -142,6 +143,13 @@ class TestTrinity(unittest.TestCase):
         self.trinity('Trinity %s --seqType fq --single reads.left.fq.gz --SS_lib_type F --no_run_chrysalis' % MEM_FLAG);
         num_lines = sum(1 for line in open('trinity_out_dir/inchworm.K25.L25.fa'))
         self.assertTrue(2850 <= num_lines <= 3100, msg='Found %s lines' % num_lines)
+
+    def test_QuantifyGraph_works(self):
+        exe = "../src/Chrysalis/QuantifyGraph"
+        args = " -g Cbin0/c0.graph.tmp -i Cbin0/c0.reads.tmp -o c0.graph.out -max_reads 200000 -k 24"
+        result = subprocess.call(exe + args,shell=True)
+        self.assertEquals(0, result, "QuantifyGraph failed")
+        self.assertTrue(filecmp.cmp("c0.graph.out", "Cbin0/c0.graph.out.master", shallow=False), "Unexpected result from QuantifyGraph")
 
 ### information tests
     def test_cite(self):

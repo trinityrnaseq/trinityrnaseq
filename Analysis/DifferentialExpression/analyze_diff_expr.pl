@@ -13,7 +13,7 @@ my $usage = <<__EOUSAGE__;
 #
 # Required:
 #
-#  --matrix <string>       TMM.EXPR.matrix
+#  --matrix|m <string>       TMM.EXPR.matrix
 #
 # Optional:
 #
@@ -28,7 +28,7 @@ my $usage = <<__EOUSAGE__;
 #
 # Misc:
 #
-#  --samples <string>                     sample-to-replicate mappings (provided to run_DE_analysis.pl)
+#  --samples|s <string>                     sample-to-replicate mappings (provided to run_DE_analysis.pl)
 #
 #  --max_DE_genes_per_comparison <int>    extract only up to the top number of DE features within each pairwise comparison.
 #                                         This is useful when you have massive numbers of DE features but still want to make
@@ -79,7 +79,7 @@ my $gene_lengths_file;
 
 &GetOptions (  'h' => \$help_flag,
                
-               'matrix=s' => \$matrix_file,
+               'matrix|m=s' => \$matrix_file,
                'P=f' => \$p_value,
                'C=f' => \$log2_fold_change,
                'output=s' => \$output_prefix,
@@ -94,7 +94,7 @@ my $gene_lengths_file;
                'GO_annots=s' => \$GO_annots_file,
                'gene_lengths=s' => \$gene_lengths_file,
                  
-               'samples=s' => \$samples_file,
+               'samples|s=s' => \$samples_file,
              
                "order_columns_by_samples_file" => \$order_columns_by_samples_file,
 
@@ -205,7 +205,7 @@ main: {
     
     {
         open (my $ofh, ">$diff_expr_matrix") or die "Error, cannot write to file $diff_expr_matrix";
-        print $ofh "\t$matrix_header\n";
+        print $ofh "$matrix_header\n";
         foreach my $acc (keys %diffExpr) {
             my $counts_row = $read_count_rows{$acc} or die "Error, no read counts row for $acc";
             print $ofh join("\t", $acc, $counts_row) . "\n";

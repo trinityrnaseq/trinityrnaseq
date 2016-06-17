@@ -24,7 +24,7 @@ my $usage = <<__EOUSAGE__;
 #
 #  --spacing <int>              default: 1  (simulate read from every (spacing) position)
 #
-#  --pair_gap <int>             default: 150
+#  --frag_length <int>             default: 300
 #
 #  --out_prefix <string>        default: 'reads'
 #
@@ -53,7 +53,7 @@ my $require_proper_pairs_flag = 0;
 my $transcripts;
 my $read_length = 76;
 my $spacing = 1;
-my $pair_gap = 150;
+my $frag_length = 300;
 my $help_flag;
 my $out_prefix = "reads";
 my $include_volcano_spread = 0;
@@ -66,7 +66,7 @@ my $make_fastq_flag = 0;
               'transcripts=s' => \$transcripts,
               'read_length=i' => \$read_length,
               'spacing=i' => \$spacing,
-              'pair_gap=i' => \$pair_gap,
+              'frag_length=i' => \$frag_length,
               'out_prefix=s' => \$out_prefix,
               'require_proper_pairs' => \$require_proper_pairs_flag,
               'include_volcano_spread' => \$include_volcano_spread,
@@ -123,12 +123,12 @@ main: {
                 my $right_read_seq = "";
                 my $ill_acc = $read_acc . "_Ap$i-$counter";
                 
-                my $left_start = $i - $read_length - $pair_gap;
+                my $left_start = $i;
                 if ($left_start >= 0) {
                     $left_read_seq = substr($seq, $left_start, $read_length);
                 }
                 
-                my $right_start = $i;
+                my $right_start = $i + $frag_length - $read_length + 1;
                 if ($right_start + $read_length  <= length($seq)) {
                     $right_read_seq = substr($seq, $right_start, $read_length);
                 }

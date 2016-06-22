@@ -903,7 +903,7 @@ public class TransAssembly_allProbPaths {
 		// combinedReadHash: start_vertex => (pair_path => count)
 		HashMap<Integer,HashMap<PairPath,Integer>> combinedReadHash = getSuffStats_wPairs(graph,readNameHash,dijkstraDis);
 		
-
+		
 		if (BFLY_GLOBALS.VERBOSE_LEVEL >= 15) {
 			debugMes("Printing Pair Paths  Before DAG Overlap Layout ------------------", 15);
 			printPairPaths(combinedReadHash, "PairPaths@Init");
@@ -1208,6 +1208,9 @@ public class TransAssembly_allProbPaths {
         		}
         		
         	}
+        	
+        	
+        	
 
         	
         	HashMap<List<Integer>, Pair<Integer>> filtered_paths_to_keep = new HashMap<List<Integer>,Pair<Integer>>();
@@ -1230,7 +1233,20 @@ public class TransAssembly_allProbPaths {
         	
 
         	
+        	
+        	//////////////////////////////////////
+        	// Gene-level grouping of transcripts
+        	//////////////////////////////////////
+        	
+        	
         	HashMap<List<Integer>,Integer> separate_gene_ids = group_paths_into_genes(FinalPaths_all, graph);
+        
+        	
+        	//////////////////////////////////////
+        	// Filtering out lower-quality paths
+        	/////////////////////////////////////
+        	
+        	
         	
         	debugMes("Sep Gene IDs:" + separate_gene_ids, 10);
         	
@@ -1832,6 +1848,33 @@ public class TransAssembly_allProbPaths {
 				}
 			
 				// create new pair lists
+				
+				// restrict pair paths to those where each path maps uniquely
+				if (p1_list.size() == 1 && p2_list.size() == 1) {
+					List<Integer> p1_path = p1_list.get(0);
+					List<Integer> p2_path = p2_list.get(0);
+					new_pp = new PairPath(p1_path, p2_path);
+					updated_pairPaths.put(new_pp, read_support);
+					old_pp_to_new_pp.put(pp, new_pp);  // FIXME:  need to allow for multiple mappings here wrt long reads
+				}
+				else {
+					// add each path separately if not already seen
+					for (List<Integer> p1_path : p1_list) {
+						if (! updated_pairPaths.containsKey(p1_path)) {
+							new_pp = new PairPath(p1_path);
+							updated_pairPaths.put(new_pp, 1);
+						}
+					}
+					for (List<Integer> p2_path : p2_list) {
+						if (! updated_pairPaths.containsKey(p2_path)) {
+							new_pp = new PairPath(p2_path);
+							updated_pairPaths.put(new_pp, 1);
+						}
+					}
+					
+					
+				}
+				/* orig
 				for (List<Integer> p1_path : p1_list) {
 					for (List<Integer> p2_path : p2_list) {
 						new_pp = new PairPath(p1_path, p2_path);
@@ -1840,6 +1883,7 @@ public class TransAssembly_allProbPaths {
 						
 					}
 				}
+				*/
 			}
 			else {
 				// only individual paths

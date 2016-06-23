@@ -25,6 +25,7 @@ my $usage = <<__EOUSAGE__;
 #  --spacing <int>              default: 1  (simulate read from every (spacing) position)
 #
 #  --frag_length <int>             default: 300
+#  --frag_length_step <int>        default: 100  (only if max_depth > 1)
 #
 #  --out_prefix <string>        default: 'reads'
 #
@@ -54,6 +55,7 @@ my $transcripts;
 my $read_length = 76;
 my $spacing = 1;
 my $frag_length = 300;
+my $frag_length_step = 100;
 my $help_flag;
 my $out_prefix = "reads";
 my $include_volcano_spread = 0;
@@ -67,6 +69,7 @@ my $make_fastq_flag = 0;
               'read_length=i' => \$read_length,
               'spacing=i' => \$spacing,
               'frag_length=i' => \$frag_length,
+              'frag_length_step=i' => \$frag_length_step,
               'out_prefix=s' => \$out_prefix,
               'require_proper_pairs' => \$require_proper_pairs_flag,
               'include_volcano_spread' => \$include_volcano_spread,
@@ -104,24 +107,26 @@ main: {
     open (my $left_ofh, ">$out_prefix.left.simPE.$ext") or die $!;
     open (my $right_ofh, ">$out_prefix.right.simPE.$ext") or die $!;
     
+    my $FRAG_LENGTH = $frag_length;
+
     
     foreach my $read_acc (keys %read_seqs) {
+
+        my $seq = uc $read_seqs{$read_acc};
+
+        $frag_length = $FRAG_LENGTH; ## reinit
         
         for my $depth (1..$MAX_DEPTH) {
-            
-            
+                        
             $counter++;
             print STDERR "\r[" . sprintf("%.2f%%  = $counter/$num_trans]     ", $counter/$num_trans*100);
-            
-            my $seq = uc $read_seqs{$read_acc};
-            
-            
+                        
             ## uniform dist
             for (my $i = 0; $i <= length($seq); $i+=$spacing) {
                 
                 my $left_read_seq = "";
                 my $right_read_seq = "";
-                my $ill_acc = $read_acc . "_Ap$i-$counter";
+                my $ill_acc = $read_acc . "_Ap$i-D$depth-F$frag_length-$counter";
                 
                 my $left_start = $i;
                 if ($left_start >= 0) {
@@ -152,57 +157,62 @@ main: {
                     
                     &write_seq($right_ofh, "$ill_acc/2", $right_read_seq);
                 }
-            }
-            
-            
-          volcano_spread:
-            if ($include_volcano_spread) {
+
+
                 
-                ## volcano spread
-                for (my $i = 0; $i <= length($seq)/2; $i+=$spacing) {
-                    
-                    my $left_read_seq = "";
-                    my $right_read_seq = "";
-                    my $ill_acc = $read_acc . "_Bp$i";
-                    
-                    
-                    my $left_start = $i;
-                    if ($left_start >= 0) {
+            }
+            $frag_length += $frag_length_step;
+        } # end depth
+            
+            
+      volcano_spread:
+        if ($include_volcano_spread) {
+            
+            ## volcano spread
+            for (my $i = 0; $i <= length($seq)/2; $i+=$spacing) {
+                
+                my $left_read_seq = "";
+                my $right_read_seq = "";
+                my $ill_acc = $read_acc . "_Bp$i-F$frag_length";
+                
+                
+                my $left_start = $i;
+                if ($left_start >= 0) {
                         $left_read_seq = substr($seq, $left_start, $read_length);
-                    }
-                    
-                    my $right_start = length($seq)-$read_length -$i + 1;
-                    
-                    if ($left_start + $read_length >= $right_start) { next; } ## don't overlap them.
-                    
-                    if ($right_start + $read_length  <= length($seq)) {
-                        $right_read_seq = substr($seq, $right_start, $read_length);
-                    }
-                    
-                    
-                    if ($require_proper_pairs_flag && ! ($left_read_seq && $right_read_seq)) { next; }
-                    
-                    if ($left_read_seq) {
-                        
-                        if ($error_rate > 0) {
-                            $left_read_seq = &introduce_errors($left_read_seq, $error_rate);
-                        }
-                        
-                        &write_seq($left_ofh, "$ill_acc/1", $left_read_seq);
-                        
-                    }
-                    if ($right_read_seq) {
-                        
-                        $right_read_seq = &reverse_complement($right_read_seq);
-                        
-                        if ($error_rate > 0) {
-                            $right_read_seq = &introduce_errors($right_read_seq, $error_rate);
-                        }
-                        
-                        &write_seq($right_ofh, "$ill_acc/2", $right_read_seq);
-                        
-                    }
                 }
+                
+                my $right_start = length($seq)-$read_length -$i + 1;
+                
+                if ($left_start + $read_length >= $right_start) { next; } ## don't overlap them.
+                
+                if ($right_start + $read_length  <= length($seq)) {
+                    $right_read_seq = substr($seq, $right_start, $read_length);
+                }
+                
+                
+                if ($require_proper_pairs_flag && ! ($left_read_seq && $right_read_seq)) { next; }
+                
+                if ($left_read_seq) {
+                    
+                    if ($error_rate > 0) {
+                        $left_read_seq = &introduce_errors($left_read_seq, $error_rate);
+                    }
+                    
+                    &write_seq($left_ofh, "$ill_acc/1", $left_read_seq);
+                    
+                }
+                if ($right_read_seq) {
+                    
+                    $right_read_seq = &reverse_complement($right_read_seq);
+                    
+                    if ($error_rate > 0) {
+                        $right_read_seq = &introduce_errors($right_read_seq, $error_rate);
+                    }
+                    
+                    &write_seq($right_ofh, "$ill_acc/2", $right_read_seq);
+                    
+                }
+                
                 
             }
         }

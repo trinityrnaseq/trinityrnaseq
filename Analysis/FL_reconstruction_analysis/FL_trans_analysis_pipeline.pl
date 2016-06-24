@@ -14,7 +14,7 @@ my $help_flag;
 
 my $min_per_id = 99;
 my $max_per_gap = 1;
-my $min_per_length = 100;
+my $min_per_length = 99;
 
 
 my $usage = <<__EOUSAGE__;

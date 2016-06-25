@@ -2008,12 +2008,15 @@ sub run_inchworm {
         
     }
     else {
+
+        #######################################################
+        # $FORCE_INCHWORM_KMER_METHOD || $TRINITY_COMPLETE_FLAG
         
         ######################################################
         ## Using Inchworm kmer method (original, slow w/ large data)
         ######################################################
                 
-        $inchworm_cmd = "$INCHWORM_DIR/inchworm --reads $reads --run_inchworm -K $KMER_SIZE -L $MIN_IWORM_LEN --monitor 1 ";
+        $inchworm_cmd = "$INCHWORM_DIR/inchworm --reads $reads --run_inchworm -K $KMER_SIZE -L $MIN_IWORM_LEN --monitor 1 $iworm_opts ";
         if ($min_kmer_cov > 1) {
             $inchworm_cmd .= " --minKmerCount $min_kmer_cov ";
         }

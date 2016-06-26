@@ -306,6 +306,9 @@ ifeq ($(COMPILER),g++)
   ifeq ($(GPP_MAJOR_VERSION),5)
        SYS_INCS        = -iquote . $(XERCES_INC)
   endif
+  ifeq ($(GPP_MAJOR_VERSION),6)
+       SYS_INCS        = -iquote . $(XERCES_INC)
+  endif
 endif
 
 # Linking control (e.g. to link templates):

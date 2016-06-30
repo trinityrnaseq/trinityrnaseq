@@ -141,6 +141,7 @@ main: {
         . " --runThreadN $CPU "
         . " --genomeDir $star_index "
         . " --outSAMtype BAM SortedByCoordinate "
+        . " --runMode alignReads "
         . " --readFilesIn $reads "
         . " --chimJunctionOverhangMin 12 "
         . " --chimSegmentMin 12 "

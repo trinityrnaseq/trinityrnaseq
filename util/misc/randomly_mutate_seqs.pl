@@ -26,6 +26,8 @@ my $usage = <<__EOUSAGE__;
 #
 # --delete_size <int>           default: 1
 #
+#  * note, all rates must be 0 <= x <= 0.25
+#
 ###################################################################
 
 
@@ -59,6 +61,19 @@ unless ($fasta_file) {
 }
 unless ($subst_rate || $insert_rate || $delete_rate) {
     die $usage;
+}
+
+
+foreach my $info_aref ( ['subst_rate', $subst_rate ],
+                        ['insert_rate', $insert_rate ],
+                        ['delete_rate', $delete_rate ] ) {
+    
+    my ($rate_type, $val) = @$info_aref;
+    if ($val > 0.25) {
+        die "Error, --$rate_type $val exceeds max val of 0.25 ";
+    }
+    
+
 }
 
 
@@ -133,8 +148,8 @@ sub mutate_seq {
                         
             my @mut_chars = grep { $_ ne $char } qw(G A T C);
         
-            my $mut_base = $mut_chars[ int(rand(length(@mut_chars))) ];
-
+            my $mut_base = $mut_chars[ int(rand(3)) ];
+            
             $seqarray_aref->[$pos] = lc $mut_base;
         }
 

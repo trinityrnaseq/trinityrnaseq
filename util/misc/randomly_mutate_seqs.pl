@@ -97,12 +97,12 @@ main: {
             @seqarray = &mutate_seq(\@seqarray, \%seen, $subst_rate, 'substitution');
         }
         if ($insert_rate) {
-            @seqarray = &mutate_via_insertion(\@seqarray, \%seen, $insert_rate, 'insertion');
+            @seqarray = &mutate_seq(\@seqarray, \%seen, $insert_rate, 'insertion');
         }
         if ($delete_rate) {
-            @seqarray = &mutate_via_deletion(\@seqarray, \%seen, $delete_rate, 'deletion');
+            @seqarray = &mutate_seq(\@seqarray, \%seen, $delete_rate, 'deletion');
         }
-
+        
         my $mutated_seq = join("", @seqarray);
         print ">$acc mutated\n$mutated_seq\n";
         
@@ -158,10 +158,10 @@ sub mutate_seq {
             for (my $i = $pos; $i < $pos + $delete_size && $i < $seqlen; $i++) {
                 
                 $seqarray_aref->[$i] = "";
-                $seen_href->[$i] = 1;
+                $seen_href->{$i} = 1;
             }
         }
-
+        
         ## Insertions
         elsif ($mut_type eq 'insertion') {
             
@@ -181,7 +181,8 @@ sub mutate_seq {
     }
     
 
-    return;
+    return (@$seqarray_aref);
+    
 }
 
 

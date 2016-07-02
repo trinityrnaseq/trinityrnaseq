@@ -11749,6 +11749,13 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 			DirectedSparseGraph<SeqVertex, SimpleEdge> graph, String seq,
 			LocInGraph fromV, String readName) {
 
+		
+		int local_verbose_level = BFLY_GLOBALS.VERBOSE_LEVEL;
+		
+		if (readName.startsWith("LR$") && BFLY_GLOBALS.VERBOSE_LEVEL >= 15) {
+			BFLY_GLOBALS.VERBOSE_LEVEL = 20;
+		}
+		
 		List<Integer> path = new ArrayList<Integer>();
 
 		SeqVertex fromVer = getSeqVertex(graph, fromV.getNodeID());
@@ -11771,14 +11778,20 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 		Path_n_MM_count best_path_mapping = updatePathRecursively(graph,fromVer.getID(),seq,0, fromV.getIndexInNode(),
 												totalNumMM, readName, best_path_memoization);
 
+		
+		BFLY_GLOBALS.VERBOSE_LEVEL = local_verbose_level;
+		
 		if (best_path_mapping != null) {
-
+			
+			debugMes("FINAL BEST PATH for " + readName + " is " + best_path_mapping.path + " with total mm: " + best_path_mapping.mismatch_count, 15);
+			
 			return(best_path_mapping);
 		}
-
+		else {
+			debugMes("No read mapping found for: " + readName, 15);
 		
-		
-		return(null); // no such path found.
+			return(null); // no such path found.	
+		}
 	}
 	
 	/**
@@ -11817,7 +11830,7 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 		if (best_path_memoization.containsKey(read_vertex_start_pos_token)) {
 			
 			Path_n_MM_count best_path = best_path_memoization.get(read_vertex_start_pos_token);
-			debugMes("memoization: already stored best path at: " + read_vertex_start_pos_token + " = " + best_path, 20);
+			debugMes("MEMOIZATION: already stored best path at: " + read_vertex_start_pos_token + " = " + best_path, 20);
 			
 			if (best_path == null) {
 				return(null);
@@ -11886,27 +11899,94 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 			j=locInSeq;
 			i = startI;
 			
+			// try aligning the full vertex sequence w/ extended ref sequence in case it contains small deletions.
+			
+			
 			// Needleman Wunsch Global Alignment is default
 			debugMes("-running Needleman-Wunsch alignment of vertex to read", 17);
-			Alignment alignment	= NWalign.run_NW_alignment("Vertex", verSeq.substring(i, i+length_to_align), "Read", seq.substring(j, j+length_to_align), 4, -5, 10, 1);   //NW locks up or takes too long with very long sequences (eg. 40kb align to 6kb)
+			/*
+			  Alignment alignment	= NWalign.run_NW_alignment(
+			 
+					"Vertex", verSeq.substring(i, i+length_to_align), 
+					"Read", seq.substring(j, j+length_to_align), 
+					4, -5, 10, 1);   //NW locks up or takes too long with very long sequences (eg. 40kb align to 6kb)
+		    */
+			
+			int read_length_to_align =  (int) (verSeq.length() * 1.05f);
+			if (read_length_to_align + j > seq.length()) {
+				read_length_to_align = seq.length() - j;
+			}
+			
+			Alignment alignment	= NWalign.run_NW_alignment(		 
+					"Vertex", verSeq.substring(i), 
+					"Read", seq.substring(j, j+read_length_to_align), 
+					4, -5, 10, 1); 
+			
+					
 			debugMes (new jaligner.formats.Pair().format(alignment), 17);
 			AlignmentStats stats = new AlignmentStats(alignment);
 			
 			mm_encountered_here = stats.mismatches + stats.gaps + stats.left_gap_length + stats.right_gap_length;
 			
-			
-			
-			i+= length_to_align;
-			j += length_to_align;
+
 			
 			// check for right end gap in sequence
-			vertex_num_right_end_gaps = AlignmentStats.get_num_right_end_gaps(alignment.getSequence1());
-			read_num_right_end_gaps = AlignmentStats.get_num_right_end_gaps(alignment.getSequence2());
-				//j -= num_right_end_gaps;
+			String name1 = alignment.getName1();
+			char[] vertex_align = alignment.getSequence1();
+			char[] read_align = alignment.getSequence2();
+			
+			if (name1.equals("Read")) {
+				char[] swap = vertex_align;
+				vertex_align = read_align;
+				read_align = swap;
+			}
+			
+			
+			
+			vertex_num_right_end_gaps = AlignmentStats.get_num_right_end_gaps(vertex_align);
+			read_num_right_end_gaps = AlignmentStats.get_num_right_end_gaps(read_align);
 			
 			debugMes("vertex end gaps: " + vertex_num_right_end_gaps, 20);
 			debugMes("read end gaps: " + read_num_right_end_gaps, 20);
 			
+			i = verSeq.length(); // aligning to whole vertex sequence.
+			j += read_length_to_align;
+			
+			if (vertex_num_right_end_gaps > 0) {
+				// read extends beyond vertex sequence
+				
+				
+				/*
+				 * Vertex          6551 AATTTTCCAGGAAGCTTCAACTGTGTTTGCAAAACTGGATACACAGG---   6597
+	                                    |||||||||||||||||||| |||||||||||||||||||||||||.   
+	               Read            6430 AATTTTCCAGGAAGCTTCAA-TGTGTTTGCAAAACTGGATACACAGTGTC   6478
+
+				 *  Example of vertex end-gaps.
+				 * 
+				 */
+			
+				 j -= vertex_num_right_end_gaps;
+			
+				mm_encountered_here -= vertex_num_right_end_gaps;
+			}
+			else if (read_num_right_end_gaps > 0) {
+				// vertex extends beyond end of read.
+				
+				/*
+				 * Vertex          2301 TGGGGAAGCAGAACAGTATGTGTGAAGTTTATGTACTGGCACTATAAAAT   2350
+                                        |||||||||||||||||||||||||                         
+                   Read            2245 TGGGGAAGCAGAACAGTATGTGTGA-------------------------   2269
+
+				 *    Example of read end-gaps
+				 */
+				
+				
+				mm_encountered_here -= read_num_right_end_gaps;
+			
+			}
+				
+				
+			/*
 			// if read end gaps, extend to the end of the vertex
 			if (read_num_right_end_gaps > 0) {
 				
@@ -11924,6 +12004,22 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 				}
 				
 			}
+			else if (vertex_num_right_end_gaps > 0) {
+				// over-ran the vertex sequence
+				// shrink the sequence by the amount extended beyond the vertex
+				j -= vertex_num_right_end_gaps;
+				mm_encountered_here -= vertex_num_right_end_gaps;
+				debugMes("because of vertex end gaps, walking read back by " + vertex_num_right_end_gaps + " bases.", 20);
+				
+				if (i != verSeq.length()) {
+					debugMes("** ERROR: i=" + i + ", but verSeq.length() = " + verSeq.length(), 20);
+				}
+				
+			}
+			*/
+			
+			debugMes("mismatches encountered: " + mm_encountered_here, 20);
+			
 			
 			numMM = mm_encountered_here + totalNumMM;
 			
@@ -12024,6 +12120,8 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 			
 			debugMes("Pursuing extension from : " + fromV.getShortSeqWID() + " to successors: " + continueVers, 19);
 			
+			List<Path_n_MM_count> all_best_paths_explored = new ArrayList<Path_n_MM_count>();
+			
 			for (Integer successor_vertex_id : continueVersIds) {
 				
 				
@@ -12031,7 +12129,7 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 				
 				Path_n_MM_count best_extension = updatePathRecursively(graph,successor_vertex_id,
 																	seq, 
-																	j - vertex_num_right_end_gaps, // back the read seq up due to potential insertion in the read
+																	j,
 																	KMER_SIZE-1, numMM, readName,
 																	best_path_memoization);
 
@@ -12060,18 +12158,21 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 				else {
 					// have a best extension
 
-					debugMes("best path so far from vertex: " + fromV.getID() + " = " + best_extension.path, 20);
+					all_best_paths_explored.add(best_extension);
 					
-					Integer num_mm_encountered = numMM - totalNumMM;  // same as count mm_encountered_here above...
-
+					debugMes(readName + " best path so far from vertex: " + fromV.getID() 
+							+ " to : " + successor_vertex_id
+							+ " = " + best_extension.path +
+							", with total mm: " + best_extension.mismatch_count, 20);
+					
 					if (best_path == null 
 							||
-							(num_mm_encountered + best_extension.mismatch_count <= best_path.mismatch_count) ) {
+							(best_extension.mismatch_count <= best_path.mismatch_count) ) {
 
 
 						// test for tie condition
 						if (best_path != null) {
-							if (num_mm_encountered + best_extension.mismatch_count == best_path.mismatch_count) {
+							if (best_extension.mismatch_count == best_path.mismatch_count) {
 								tied_best = true;
 								debugMes("WARNING, Tied paths from vertex [V" + fromV_id + 
 										" ]: \nPath A:\n" + best_extension + 
@@ -12092,6 +12193,14 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 
 			
 			
+			debugMes("Done with exploring paths from vertex: " + fromV.getID(), 20);
+			debugMes("Paths and scores found are: ", 20);
+			for (Path_n_MM_count pmm: all_best_paths_explored) {
+				debugMes("\texplored path: " + pmm.path + " w/ mm: " + pmm.mismatch_count, 20);
+			}
+			if (best_path != null) {
+				debugMes("\tAND best selected was: " + best_path.path + " w/ mm: " + best_path.mismatch_count, 20);
+			}
 			
 			
 			if (best_path != null) {
@@ -12124,6 +12233,7 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 					}
 				}
 				else {
+					// not a tie
 					// add current node and local mismatches encountered here.
 					
 					best_path = new Path_n_MM_count(best_path);

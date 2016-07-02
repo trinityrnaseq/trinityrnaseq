@@ -824,6 +824,12 @@ if ($show_version_flag) {
     exit(1);
 }
 
+if ($TRINITY_COMPLETE_FLAG) {
+    ## force some options
+
+    # simple iworm mode.
+    $PARALLEL_IWORM_FLAG = 0;
+}
 
 if ($NO_CLEANUP && $FULL_CLEANUP) {
     die "cannot set --no_cleanup and --full_cleanup as they contradict";
@@ -833,8 +839,6 @@ if ($NO_CLEANUP && $FULL_CLEANUP) {
 if ($KMER_SIZE > $MAX_KMER_SIZE) {
     die "Error, kmer size can be at most $MAX_KMER_SIZE ";
 }
-
-
 
 if ($NO_PARALLEL_IWORM) {
     # turn it off.
@@ -1553,7 +1557,7 @@ sub run_chrysalis {
         else{ #keeping this because some may wish
             $cmd = "bowtie-build -q $iworm_min100_fa_file $iworm_min100_fa_file";
         }	
-
+        
         if (-s "$iworm_min100_fa_file") {
             $pipeliner->add_commands( new Command($cmd, "$iworm_min100_fa_file.bowtie_build.ok"));
 
@@ -1571,7 +1575,15 @@ sub run_chrysalis {
             ## generate the scaffold info
             $ENV{'LD_LIBRARY_PATH'} .= ":$ROOTDIR/trinity-plugins/htslib";
             my $iworm_scaffolds_file = "$chrysalis_output_dir/iworm_scaffolds.txt";
-            $cmd = "$ROOTDIR/trinity-plugins/scaffold_iworm_contigs/scaffold_iworm_contigs $bowtie_sam_file $inchworm_file > $iworm_scaffolds_file"; # important, must use original inchworm file because positions are indexed for later use by GraphFromFasta
+
+            # //FIXME: switch back to C++ version after testing.
+            my $USE_PERL_SCAFFOLDER = 1;
+            if ($USE_PERL_SCAFFOLDER) {
+                $cmd = "$ROOTDIR/util/support_scripts/scaffold_iworm_contigs.pl $bowtie_sam_file $inchworm_file > $iworm_scaffolds_file";
+            }
+            else {
+                $cmd = "$ROOTDIR/trinity-plugins/scaffold_iworm_contigs/scaffold_iworm_contigs $bowtie_sam_file $inchworm_file > $iworm_scaffolds_file"; # important, must use original inchworm file because positions are indexed for later use by GraphFromFasta
+            }
             
             $pipeliner->add_commands( new Command($cmd, "$iworm_scaffolds_file.ok"));
             

@@ -120,7 +120,7 @@ my $bflyCalculateCPU = 0;
 my $bflyGCThreads = 2;
 
 my $long_reads = "";
-
+my $LONG_READS_MODE = 0;
 
 ## ADVANCED OPTIONS:
 
@@ -493,7 +493,8 @@ my $advanced_usage =  <<_ADVANCEDUSAGE_;
 #  
 #  --bypass_java_version_check     : skip check for required java version 1.7
 #
-
+#  --long_reads_mode               : run in long reads mode (requires --single and the long reads integrated with LR$| accession prefixes.
+#
 
 _ADVANCEDUSAGE_
 
@@ -576,7 +577,8 @@ my $NO_VERSION_CHECK = 0;
     "SS_lib_type=s" => \$SS_lib_type,
 
     "long_reads=s" => \$long_reads,
-
+    "long_reads_mode" => \$LONG_READS_MODE,
+    
     "output=s" => \$output_directory,
     
     "min_contig_length=i" => \$min_contig_length,
@@ -706,6 +708,7 @@ right
 single
 SS_lib_type
 long_reads
+long_reads_mode
 output
 min_contig_length
 jaccard_clip
@@ -824,11 +827,30 @@ if ($show_version_flag) {
     exit(1);
 }
 
-if ($TRINITY_COMPLETE_FLAG) {
-    ## force some options
 
-    # simple iworm mode.
+my $GRAPH_FROM_FASTA_CUSTOM_PARAMS = "";
+my $GRAPH_FROM_FASTA_KK = 2*($KMER_SIZE-1);
+
+if ($TRINITY_COMPLETE_FLAG) {
+
+    ###############################################
+    ## force some options for phase 2 read assembly
+    ###############################################
+    
+    ## iworm opts
+    #$iworm_opts .= " --min_seed_entropy 1.0 ";
     $PARALLEL_IWORM_FLAG = 0;
+    
+    ## Chryaslis opts
+    #$NO_BOWTIE = 1;
+    #$GRAPH_FROM_FASTA_CUSTOM_PARAMS = "-no_glue_required -min_kmer_entropy 1 -min_weld_entropy 1";
+    #$GRAPH_FROM_FASTA_CUSTOM_PARAMS = "-max_glue_required 1 -min_kmer_entropy 1 -min_weld_entropy 1";
+    #$GRAPH_FROM_FASTA_CUSTOM_PARAMS = "-max_glue_required 1 -min_kmer_entropy 0.7 -min_weld_entropy 0.7";
+    #$GRAPH_FROM_FASTA_CUSTOM_PARAMS = "-min_iso_ratio 0.0000000001";
+    
+    #$min_iso_ratio = 0.0000000001;
+    
+    #$GRAPH_FROM_FASTA_KK = 26;
 }
 
 if ($NO_CLEANUP && $FULL_CLEANUP) {
@@ -1114,7 +1136,12 @@ main: {
     @right_files = &create_full_path(\@right_files, 1) if @right_files;
     @single_files = &create_full_path(\@single_files, 1) if @single_files;
     $output_directory = &create_full_path($output_directory, 0);
-    $long_reads = &create_full_path($long_reads, 1) if $long_reads;
+
+    if ($long_reads) {
+        $long_reads = &create_full_path($long_reads, 1);
+        $LONG_READS_MODE = 1;
+    }
+    
     $genome_guided_bam = &create_full_path($genome_guided_bam, 1) if $genome_guided_bam;
     
     $grid_conf_file = &create_full_path($grid_conf_file, 1) if $grid_conf_file;
@@ -1395,12 +1422,12 @@ sub run_Trinity {
         if ($long_reads) {
             
             # adjust the inchworm target, tack on the longer reads.
-        open (LONG_READS,$long_reads);
+            open (LONG_READS,$long_reads);
             if (<LONG_READS>!~/^>/){ #verify if it is fasta.
-        	print "The long reads file does not look like FASTA.\n";
-        	die;
+                print "The long reads file does not look like FASTA.\n";
+                die;
             } 
-        close (LONG_READS);
+            close (LONG_READS);
             $inchworm_target_fa .= ".wLongReads.fa";
             $count_of_reads += `grep -c '^>' $long_reads`; #AP we don't know if these will be one single line
             if (!-e  "$inchworm_target_fa.LR.ok"){
@@ -1478,6 +1505,16 @@ sub run_Trinity {
     ## butterfly commands can be reparameterized for exploring different assembly requirements
     ## chrysalis will just run or resume depending on what's already been processed.
     $pm_chrysalis_start = `date +%s`;
+
+    
+    if ($LONG_READS_MODE && $TRINITY_COMPLETE_FLAG) {
+        ## tack them onto the inchworm output file and use them along with the inchworm contigs.
+        
+        $inchworm_file = &append_long_reads_to_iworm_contigs($inchworm_file, $inchworm_target_fa);
+        
+    }
+    
+
     my $butterfly_cmds = &run_chrysalis($inchworm_file, $inchworm_target_fa,
                                         $min_contig_length, $group_pairs_distance, $SS_lib_type, 
                                         $trinity_target_fa, $bowtie_reads_fa);
@@ -1603,7 +1640,7 @@ sub run_chrysalis {
     
     { # GraphFromFasta
     
-        my $graphFromFasta_cmd = "-i $inchworm_file -r $reads_file -min_contig_length $min_contig_length -min_glue $min_glue -glue_factor $glue_factor -min_iso_ratio $min_iso_ratio -t $CPU -k " . ($KMER_SIZE-1) . " -kk " . 2*($KMER_SIZE-1) . " ";
+        my $graphFromFasta_cmd = "-i $inchworm_file -r $reads_file -min_contig_length $min_contig_length -min_glue $min_glue -glue_factor $glue_factor -min_iso_ratio $min_iso_ratio -t $CPU -k " . ($KMER_SIZE-1) . " -kk $GRAPH_FROM_FASTA_KK $GRAPH_FROM_FASTA_CUSTOM_PARAMS";
         # use MPI if MPI Procs >1
         if ($np > 1) {
             $graphFromFasta_cmd = "$mpiexec -np $np $CHRYSALIS_DIR/GraphFromFasta_MPI $graphFromFasta_cmd"
@@ -2890,7 +2927,11 @@ sub write_trinity_partitioned_cmds {
     else {
         $cmd .= " --full_cleanup ";
     }
-   
+
+    if ($LONG_READS_MODE) {
+        $cmd .= " --long_reads_mode ";
+    }
+        
     my @potential_args = @ORIG_ARGS;
 
     while (@potential_args) {
@@ -3105,3 +3146,105 @@ sub ensure_complete_FQtoFA_conversion {
     return;
 }
 
+####
+sub append_long_reads_to_iworm_contigs {
+    my ($inchworm_contigs_file, $reads_fa_file) = @_;
+
+    my $new_inchworm_file = "$inchworm_contigs_file.wLR.fa";
+    my $new_inchworm_checkpoint_file = $new_inchworm_file . ".ok";
+    if (-s $new_inchworm_file && -e $new_inchworm_checkpoint_file) {
+        ## already done.
+        return($new_inchworm_file);
+    }
+
+
+    ## TODO: -incorporate kmer abundance info into the LR inchworm accessions.
+
+    # extract the long reads
+    my $long_reads_fa = "$reads_fa_file.LR";
+    my $long_reads_fa_checkpoint_file = "$long_reads_fa.ok";
+    unless (-s $long_reads_fa && -e $long_reads_fa_checkpoint_file) {
+        open (my $ofh, ">$long_reads_fa") or die "Error, cannot write to $long_reads_fa";
+        
+        my $fasta_reader = new Fasta_reader($reads_fa_file);
+        while (my $fasta_entry = $fasta_reader->next()) {
+            my $accession = $fasta_entry->get_accession();
+            
+            if ($accession =~ /^LR\$/) {
+                
+                # long read
+                
+                my $sequence = $fasta_entry->get_sequence();
+                print $ofh ">$accession\n$sequence\n";
+            }
+        }
+        close $ofh;
+    
+        &process_cmd("touch $long_reads_fa_checkpoint_file");
+    }
+    
+    unless (-s $long_reads_fa) {
+        # no long reads here...
+
+        return($inchworm_contigs_file);
+    }
+    
+
+    ## determine avg kmer abundances
+    my $LR_kmer_abundances_file = "$long_reads_fa.kmer_cov";
+    my $cmd = "$INCHWORM_DIR/fastaToKmerCoverageStats  --kmers_from_reads $reads_fa_file --reads $long_reads_fa  --num_threads 1 > $LR_kmer_abundances_file 2>/dev/null";
+    my $LR_kmer_checkpoint_file = "$LR_kmer_abundances_file.ok";
+    unless (-s $LR_kmer_abundances_file && -e $LR_kmer_checkpoint_file) {
+        &process_cmd($cmd);
+        &process_cmd("touch $LR_kmer_checkpoint_file");
+    }
+    
+
+    ## capture the kmer abundance info
+    my %LR_to_kmer_abundance;
+    {
+        open (my $fh, $LR_kmer_abundances_file) or die "Error, cannot open file $LR_kmer_abundances_file";
+        while (<$fh>) {
+            chomp;
+            my @x = split(/\t/);
+            my $median_cov = $x[0];
+            my $read_acc = $x[4];
+            $LR_to_kmer_abundance{$read_acc} = $median_cov;
+        }
+        close $fh;
+    }
+    
+    my $last_iworm_header = `grep '>' $inchworm_contigs_file | tail -n1`;
+
+    $last_iworm_header =~ />a(\d+);/ or die "Error, cannot extract last iworm header info from $inchworm_contigs_file";
+    my $iworm_index = $1;
+
+    &process_cmd("cp $inchworm_contigs_file $new_inchworm_file");
+    
+    open (my $ofh, ">>$new_inchworm_file") or die "Error, cannot write to $new_inchworm_file";
+    
+    my $fasta_reader = new Fasta_reader($long_reads_fa);
+    while (my $fasta_entry = $fasta_reader->next()) {
+        my $accession = $fasta_entry->get_accession();
+        
+        if ($accession =~ /^LR\$/) {
+            
+            # long read
+            
+            my $sequence = $fasta_entry->get_sequence();
+
+            my $kmer_abundance = $LR_to_kmer_abundance{$accession} or die "Error - no kmer abundance associated with accession: [$accession] ";
+            
+            $iworm_index++;
+            print $ofh ">a${iworm_index};$kmer_abundance LR $accession\n$sequence\n"; # put LR token in there so Chrysalis can recognize it as special.
+        }
+        else {
+            die "Error, read acc: [$accession] from the long reads file: $long_reads_fa, and lacks expected formating LR\$ ";
+        }
+    }
+    close $ofh;
+    
+
+    &process_cmd("touch $new_inchworm_checkpoint_file");
+    return($new_inchworm_file);
+}

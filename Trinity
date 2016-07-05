@@ -495,6 +495,7 @@ my $advanced_usage =  <<_ADVANCEDUSAGE_;
 #
 #  --long_reads_mode               : run in long reads mode (requires --single and the long reads integrated with LR$| accession prefixes.
 #
+#  --use_bowtie2                   : use bowtie2 instead of bowtie(1) for chrysalis paired-end clustering alignments
 
 _ADVANCEDUSAGE_
 
@@ -518,7 +519,7 @@ my $NO_FASTOOL = 0;
 my $NO_CLEANUP = 0;
 my $FULL_CLEANUP = 0;
 my $NO_BOWTIE = 0;
-
+my $USE_BOWTIE2 = 0;
 
 my $BOWTIE_COMP = 0;
 
@@ -647,9 +648,10 @@ my $NO_VERSION_CHECK = 0;
     'min_pct_read_mapping=i' => \$min_pct_read_mapping,
     'weldmer_size=i' => \$weldmer_size,
     "no_bowtie" => \$NO_BOWTIE,
-    "bowtie_comp" => \$BOWTIE_COMP,
+    "bowtie_components" => \$BOWTIE_COMP,
     "no_run_chrysalis" => \$NO_RUN_CHRYSALIS_FLAG,
-             
+    "use_bowtie2" => \$USE_BOWTIE2,
+    
     # Grid computing options
     'grid_conf=s' => \$grid_conf_file,         
              
@@ -1576,6 +1578,43 @@ sub run_chrysalis {
     
     my $pair_links_file = "";
 
+
+
+    if ($TRINITY_COMPLETE_FLAG && $LONG_READS_MODE) {
+        
+        ## the bowtie_reads_fa file might contain long reads...  If it does, need to get rid of them for the bowtie alignment step.
+        
+        my $long_read_count = `grep '>LR' $bowtie_reads_fa | wc -l `;
+        chomp $long_read_count;
+        if ($long_read_count > 0) {
+            
+            my $fa_file_minus_LR = "$bowtie_reads_fa.minusLR";
+            my $fa_file_minus_LR_checkpoint = "$fa_file_minus_LR.ok";
+            unless (-e $fa_file_minus_LR && -e $fa_file_minus_LR_checkpoint) {
+                open (my $ofh, ">$fa_file_minus_LR") or die "Error, cannot open file $fa_file_minus_LR";
+                my $fasta_reader = new Fasta_reader($bowtie_reads_fa);
+                while (my $seq_obj = $fasta_reader->next()) {
+                    my $acc = $seq_obj->get_accession();
+                    if ($acc !~ /^LR\$/) {
+                        my $sequence = $seq_obj->get_sequence();
+                        print $ofh ">$acc\n$sequence\n";
+                    }
+                }
+                close $ofh;
+                &process_cmd("touch $fa_file_minus_LR_checkpoint");
+            }
+                
+            if (-s $fa_file_minus_LR) {
+                $bowtie_reads_fa = $fa_file_minus_LR;
+            }
+            else {
+                # must have only had long reads in the fa file.
+                $NO_BOWTIE = 1; # skip it
+            }
+            
+        }
+    }
+    
     ## Define iworm links via paired-end read mappings:
     if ( ($PAIRED_MODE || $LONG_READS_MODE) && ! $NO_BOWTIE) {
 
@@ -1588,7 +1627,7 @@ sub run_chrysalis {
         $pipeliner->run();
         
         $pipeliner = new Pipeliner(-verbose => $VERBOSE);
-        if($LONG_READS_MODE){
+        if($USE_BOWTIE2){
             $cmd = "bowtie2-build -o 3 $iworm_min100_fa_file $iworm_min100_fa_file"; #-o 3 / defaut is 5, less use more ram but is faster when mapping the reads
         }
         else{ #keeping this because some may wish
@@ -1600,7 +1639,7 @@ sub run_chrysalis {
 
             my $bowtie_sam_file = "$chrysalis_output_dir/iworm.bowtie.nameSorted.bam";
             my $samtools_max_memory = int($jellyfish_ram/($CPU*2));
-            if ($long_reads){
+            if ($USE_BOWTIE2){
             	$cmd = "bash -c \" set -o pipefail;bowtie2 --local -a --threads $CPU -f $iworm_min100_fa_file $bowtie_reads_fa  | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort -m $samtools_max_memory $PARALLEL_SAMTOOLS_SORT_TOKEN -no - - > $bowtie_sam_file\" ";  
             }
             else{

@@ -1577,7 +1577,7 @@ sub run_chrysalis {
     my $pair_links_file = "";
 
     ## Define iworm links via paired-end read mappings:
-    if ($PAIRED_MODE && ! $NO_BOWTIE) {
+    if ( ($PAIRED_MODE || $LONG_READS_MODE) && ! $NO_BOWTIE) {
 
         my $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
         
@@ -1588,7 +1588,7 @@ sub run_chrysalis {
         $pipeliner->run();
         
         $pipeliner = new Pipeliner(-verbose => $VERBOSE);
-        if($long_reads){
+        if($LONG_READS_MODE){
             $cmd = "bowtie2-build -o 3 $iworm_min100_fa_file $iworm_min100_fa_file"; #-o 3 / defaut is 5, less use more ram but is faster when mapping the reads
         }
         else{ #keeping this because some may wish

@@ -32,7 +32,9 @@ int MAX_THREADS = 6;
 // various devel params
 bool IRKE_COMMON::__DEVEL_no_kmer_sort = false;
 
-void populate_kmer_counter (KmerCounter& kcounter, string& kmers_fasta_file);
+void populate_kmer_counter_from_kmers (KmerCounter& kcounter, string& kmers_fasta_file);
+void populate_kmer_counter_from_reads (KmerCounter& kcounter, string& reads_fasta_file);
+
 vector<unsigned int> compute_kmer_coverage (string& sequence, KmerCounter& kcounter);
 unsigned int median_coverage (vector<unsigned int>);
 string usage(ArgProcessor args);
@@ -60,12 +62,16 @@ int runMe(int argc, char* argv[]) {
 
     ArgProcessor args(argc, argv);
     if(args.isArgSet("--help") ||
-       (!(args.isArgSet("--reads") && args.isArgSet("--kmers")))) {
+       (!(args.isArgSet("--reads")
+          &&
+          ( args.isArgSet("--kmers") || args.isArgSet("--kmers_from_reads") )
+          )) ) {
         cerr << usage(args) << endl << endl;
         exit(1);
     }
+
     string reads_fasta_file = args.getStringVal("--reads");
-    string kmers_fasta_file = args.getStringVal("--kmers");
+    
     bool is_DS = (! args.isArgSet("--SS"));
     if(args.isArgSet("--kmer_size")) {
         KMER_SIZE = args.getIntVal("--kmer_size");
@@ -92,7 +98,16 @@ int runMe(int argc, char* argv[]) {
         omp_set_num_threads(MAX_THREADS);
     }
     KmerCounter kcounter (KMER_SIZE, is_DS);
-    populate_kmer_counter(kcounter, kmers_fasta_file);
+
+    if (args.isArgSet("--kmers")) {
+        string kmers_fasta_file = args.getStringVal("--kmers");
+        populate_kmer_counter_from_kmers(kcounter, kmers_fasta_file);
+    }
+    else {
+        string kmer_read_source_fasta_file = args.getStringVal("--kmers_from_reads");
+        populate_kmer_counter_from_reads(kcounter, kmer_read_source_fasta_file);
+    }
+    
     Fasta_reader fasta_reader(reads_fasta_file);
     bool write_coverage_info = args.isArgSet("--capture_coverage_info");
     
@@ -158,7 +173,7 @@ int runMe(int argc, char* argv[]) {
     return(0);
 }
 
-void populate_kmer_counter(KmerCounter& kcounter, string& kmers_fasta_file) {
+void populate_kmer_counter_from_kmers(KmerCounter& kcounter, string& kmers_fasta_file) {
     // code largely copied from IRKE.cpp
     int i, myTid;
     unsigned long sum,
@@ -206,6 +221,76 @@ void populate_kmer_counter(KmerCounter& kcounter, string& kmers_fasta_file) {
     cerr << endl << " done parsing " << sum << " Kmers, " << kcounter.size() << " added, taking " << (end-start) << " seconds." << endl;
     return;
 }
+
+void populate_kmer_counter_from_reads (KmerCounter& kcounter, string& fasta_filename) {
+    unsigned int kmer_length = kcounter.get_kmer_length();
+    int i, myTid;
+    unsigned long sum,
+        *record_counter = new unsigned long[omp_get_max_threads()];
+    unsigned long start, end;
+
+    // init record counter
+    for (int i = 0; i < omp_get_max_threads(); i++) {
+        record_counter[i] = 0;
+    }
+
+
+    cerr << "-storing Kmers..." << "\n";
+    start = time(NULL);
+
+    Fasta_reader fasta_reader(fasta_filename);
+
+    unsigned int entry_num = 0;
+
+#pragma omp parallel private (myTid)
+    {
+        myTid = omp_get_thread_num();
+        record_counter[myTid] = 0;
+
+        while (fasta_reader.hasNext()) {
+            Fasta_entry fe = fasta_reader.getNext();
+            string accession = fe.get_accession();
+
+#pragma omp atomic
+            entry_num++;
+            record_counter[myTid]++;
+            
+            if (IRKE_COMMON::MONITOR >= 4) {
+                cerr << "[" << entry_num << "] acc: " << accession << ", by thread no: " << myTid << "\n";;
+            }
+            else if (IRKE_COMMON::MONITOR) {
+                if (myTid == 0 && record_counter[myTid] % 1000 == 0)
+                    {
+                        sum = record_counter[0];
+                        for (i=1; i<omp_get_num_threads(); i++)
+                            sum+= record_counter[i];
+                        cerr << "\r [" << sum << "] sequences parsed.     ";
+                    }
+            }
+            
+            string seq = fe.get_sequence();
+
+            if (seq.length() < KMER_SIZE + 1) {
+                continue;
+            }
+            kcounter.add_sequence(seq);
+
+        }
+        
+        cerr << "\n" << " done parsing " << sum << " sequences, extracted " << kcounter.size() << " kmers, taking " << (end-start) << " seconds." << "\n";
+        
+        
+    }
+
+
+    return;
+    
+}
+
+
+
+
+
 
 vector<unsigned int> compute_kmer_coverage(string& sequence, KmerCounter& kcounter) {
     if(IRKE_COMMON::MONITOR) {
@@ -261,8 +346,13 @@ string usage(ArgProcessor) {
     stringstream usage_info;
     usage_info << endl << endl;
     usage_info << "Usage: " << endl
-               << "  --reads  <str>             " << ":fasta file containing reads" << endl
+               << "  --reads  <str>             " << ":fasta file containing target reads for kmer coverage stats" << endl
+               << endl 
+               << " and source of kmers: " << endl
                << "  --kmers  <str>             " << ":fasta file containing kmers" << endl
+               << "      or " << endl 
+               << "  --kmers_from_reads <str>   " << ":fasta file containing reads as source of kmers" << endl 
+               << endl 
                << "* optional:" << endl
                << "  --kmer_size <int>          " << ":default = 25" << endl
                << "  --DS                             " << ":double-stranded RNA-Seq mode (not strand-specific)" << endl

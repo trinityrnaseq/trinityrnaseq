@@ -13,8 +13,7 @@ my $SAM_OFH;
 
 
 main: {
-
-    
+        
     open ($SAM_OFH, ">scaffolding_entries.sam") or die $!;
     
     my %iworm_acc_to_fasta_index;
@@ -82,6 +81,13 @@ main: {
             $core_acc = $1;
             $frag_end = $2;
         }
+        
+        # capture long read mappings
+        elsif ($read_acc =~ /^(LR\$\|\S+)/) {
+            $core_acc = $1;
+            $frag_end = "LR";
+        }
+        
         else {
             # must have mixed in a single read with the pairs...
             if ($num_warnings <= 10) {
@@ -96,7 +102,7 @@ main: {
         }
         
         if ($core_acc ne $prev_core_acc) {
-
+            
             &examine_frags(\%end_to_iworm, \%paired_iworm_contigs);
             %end_to_iworm = ();
             
@@ -148,6 +154,25 @@ main: {
 sub examine_frags {
     my ($end_to_iworm_href, $paired_iworm_contigs_href) = @_;
 
+    if (exists ($end_to_iworm_href->{LR})) {
+        my @LR_read_names = keys %{$end_to_iworm_href->{LR}};
+        
+        for (my $i = 0; $i < $#LR_read_names; $i++) {
+            for (my $j = $i + 1; $j <= $#LR_read_names; $j++) {
+                
+                my $pair  = join("\t", sort ($LR_read_names[$i], $LR_read_names[$j]) );
+                $paired_iworm_contigs_href->{$pair}++;
+
+                #print STDERR "-got LR pair: $pair\n";
+            }
+        }
+        
+        return;
+    }
+    
+
+    ## handle the paired-end reads
+    
     my @ends = keys %$end_to_iworm_href;
 
     unless (scalar @ends == 2) {

@@ -737,6 +737,14 @@ public class TransAssembly_allProbPaths {
 			describeNodes(graph);
 		}
 
+		HashMap<String,Integer> originalGraphKmerToNodeID = new HashMap<String,Integer>();
+		for (SeqVertex sv : graph.getVertices()) {
+			String kmer = sv.getName();
+			int id = sv.getID();
+			originalGraphKmerToNodeID.put(kmer,  id);
+			debugMes("ORIGINAL GRAPH NODE: " + kmer + " with ID: " + id, 20);
+		}
+		
 		
 		String[] tmpFile = file.split("/");
 		String graphName = tmpFile[tmpFile.length-1];
@@ -890,7 +898,7 @@ public class TransAssembly_allProbPaths {
 		debugMes("\nSECTION\n====================\nThreading reads through the graph\n=========================\n", 5);
 		// maps individual reads to paths within the graph
 		// readNameHash:  "actual read name" => Read object  (see Read class)
-		HashMap<String, List<Read>> readNameHash = getReadStarts(graph,file+".reads",originalVerIDsMapping,rootIDs);
+		HashMap<String, List<Read>> readNameHash = getReadStarts(graph,file+".reads",originalVerIDsMapping,rootIDs, originalGraphKmerToNodeID);
 
 				
 		
@@ -11553,12 +11561,15 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 	 * @param filename
 	 * @param originalVerIDsMapping
 	 * @param rootIDs
+	 * @param originalGraphKmerToNodeID 
 	 * @return
 	 * @throws IOException
 	 */
 	private static HashMap<String, List<Read>> getReadStarts(DirectedSparseGraph<SeqVertex, SimpleEdge> graph,
 			String filename,
-			HashMap<Integer, LocInGraph> originalVerIDsMapping, Vector<Integer> rootIDs) 
+			HashMap<Integer, LocInGraph> originalVerIDsMapping, 
+			Vector<Integer> rootIDs, 
+			HashMap<String, Integer> originalGraphKmerToNodeID) 
 					throws IOException {
 		
 		BufferedReader fileB = 	new BufferedReader(new FileReader(filename)); 
@@ -11588,7 +11599,7 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 
 			List<Integer> pathIDS = null;
 			Read r = new Read();
-			pathIDS = readAndMapSingleRead(fields,originalVerIDsMapping,graph,r,false);
+			pathIDS = readAndMapSingleRead(fields,originalVerIDsMapping,graph,r,false,originalGraphKmerToNodeID);
 
 			//debugMes("Threaded Read As: " + r.getName() + " : " + pathIDS, 19);
 			
@@ -11648,11 +11659,13 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 	 * @param graph
 	 * @param r 
 	 * @param rev
+	 * @param originalGraphKmerToNodeID 
 	 * @return
 	 */
 	private static List<Integer> readAndMapSingleRead(String[] fields,
 			HashMap<Integer, LocInGraph> originalVerIDsMapping,
-			DirectedSparseGraph<SeqVertex, SimpleEdge> graph, Read r, boolean rev) {
+			DirectedSparseGraph<SeqVertex, SimpleEdge> graph, Read r, boolean rev,
+			HashMap<String, Integer> originalGraphKmerToNodeID) {
 
 		List<Integer> pathIDS = new ArrayList<Integer>();
 		LocInGraph fromV;
@@ -11691,6 +11704,33 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 		seq = seq.substring(startInRead, endInRead+1);
 
 		debugMes("after extracting substring: " + seq, 20);
+		
+		
+		// in case original node ID was trimmed from graph, try anchoring the sequence from the first
+		// recognizable retained node ID
+		if (fromV == null) {
+			debugMes("Original node ID : " + fromOrigV + " no longer exists ... walking the sequence to try to anchor it to the refined graph:", 20);
+			for (int i = 1 + 1; i <= seq.length() - KMER_SIZE; i++) {
+				String kmer = seq.substring(i, i+KMER_SIZE);
+				if (originalGraphKmerToNodeID.containsKey(kmer)) {
+					int ID = originalGraphKmerToNodeID.get(kmer);
+					fromV = originalVerIDsMapping.get(ID);
+					if (fromV != null) {
+						debugMes("Anchored read to graph at position " + (i + startInRead) + " with kmer " + kmer, 20);
+						seq = seq.substring(i);
+						break;
+					}
+							
+				}
+			}
+			if (fromV != null) {
+				debugMes("recovered mapping of read " + name, 20);
+			}
+			else {
+				debugMes("couldn't recover mapping of read: " + name, 20);
+			}
+		}
+		
 		
 		
 		if (fromV!=null)// && toV!=null)

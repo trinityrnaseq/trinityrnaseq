@@ -1627,15 +1627,18 @@ sub run_chrysalis {
         $pipeliner->run();
         
         $pipeliner = new Pipeliner(-verbose => $VERBOSE);
+        my $bowtie_version = "";
         if($USE_BOWTIE2){
             $cmd = "bowtie2-build -o 3 $iworm_min100_fa_file $iworm_min100_fa_file"; #-o 3 / defaut is 5, less use more ram but is faster when mapping the reads
+            $bowtie_version = "bowtie2";
         }
         else{ #keeping this because some may wish
             $cmd = "bowtie-build -q $iworm_min100_fa_file $iworm_min100_fa_file";
+            $bowtie_version = "bowtie";
         }	
         
         if (-s "$iworm_min100_fa_file") {
-            $pipeliner->add_commands( new Command($cmd, "$iworm_min100_fa_file.bowtie_build.ok"));
+            $pipeliner->add_commands( new Command($cmd, "$iworm_min100_fa_file.${bowtie_version}-build.ok"));
 
             my $bowtie_sam_file = "$chrysalis_output_dir/iworm.bowtie.nameSorted.bam";
             my $samtools_max_memory = int($jellyfish_ram/($CPU*2));

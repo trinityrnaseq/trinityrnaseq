@@ -95,8 +95,8 @@ public class TransAssembly_allProbPaths {
 	// read sequence to graph mapping criteria
 	private static int MAX_MM_ALLOWED = 0; // dynamically updated global (bad)
 	private static int MAX_MM_ALLOWED_CAP = 0; // dynamically updated global (bad)
-	private static double MAX_READ_SEQ_DIVERGENCE = 0.05;
-	private static final double MAX_READ_LOCAL_SEQ_DIVERGENCE = 0.2; // avoid very bad locally aligned regions along the way.
+	private static double MAX_READ_SEQ_DIVERGENCE = 0.02;
+	private static final double MAX_READ_LOCAL_SEQ_DIVERGENCE = 0.1; // avoid very bad locally aligned regions along the way.
 	
 	
 	private static final int EXTREME_EDGE_FLOW_FACTOR = 200;
@@ -11871,18 +11871,21 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 
 		String read_vertex_start_pos_token = "" + fromV.getID() + "_" + locInNode + "_" + locInSeq;
 		
-		if (best_path_memoization.containsKey(read_vertex_start_pos_token)
-				&&
-				best_path_memoization.get(read_vertex_start_pos_token) != null)  {
+		if (best_path_memoization.containsKey(read_vertex_start_pos_token))  {
 			
 			Path_n_MM_count best_path = best_path_memoization.get(read_vertex_start_pos_token);
-			debugMes("MEMOIZATION: already stored best path at: " + read_vertex_start_pos_token + " = " + best_path, 20);
+			if (best_path == null) {
+				debugMes("MEMOIZATION: indicates this path was a dead end. Not trying again.", 20);
+				return(null);
+			}
+			else {
+				debugMes("MEMOIZATION: already stored best path at: " + read_vertex_start_pos_token + " = " + best_path, 20);
 
-			// return a copy, critically important!!! 
-			Path_n_MM_count best_path_copy = new Path_n_MM_count(best_path);
+				// return a copy, critically important!!! 
+				Path_n_MM_count best_path_copy = new Path_n_MM_count(best_path);
 
-			return(best_path_copy);
-
+				return(best_path_copy);
+			}
 		}
 		debugMes("\ntrying to continue the mapping to node "+ fromV.getShortSeqWID(), 19);
 
@@ -11898,7 +11901,8 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 		
 		// zipper align
 		boolean failed_alignment = false;
-
+		Integer mm_encountered_here = 0;
+		
 		for (; i>=0 && i<verSeq.length() && j<seq.length() ; i++,j++)
 		{
 
@@ -11908,18 +11912,21 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 			String mismatchFlag = (areTwoNucleotidesEqual(readLetter,verLetter)) ? "" : "XXX mismatch XXX";
 			debugMes("Comparing read bases: " + i + ":" + readLetter + ", " + j + ":" + verLetter + " " + mismatchFlag, 21);
 
+		
+			
 			if (!areTwoNucleotidesEqual(readLetter,verLetter)) 
 			{
 				//we have a mismatch
 				numMM++;
-
+				mm_encountered_here++;
 				
 				if ( (numMM > MAX_MM_ALLOWED)
 						||  
-						(i >= MIN_SEQ_LENGTH_TEST_DIVERGENCE && (numMM/(float)(j+1)) > MAX_READ_LOCAL_SEQ_DIVERGENCE) 
+						(i >= MIN_SEQ_LENGTH_TEST_DIVERGENCE && (mm_encountered_here/(float)(i)) > MAX_READ_LOCAL_SEQ_DIVERGENCE) 
 						)
 				{
 					failed_alignment = true;
+					debugMes("shortcircuiting the zipper test, too many MM or execeeding local seq divergence", 20);
 					break; // no point in looking further.
 				}
 
@@ -11928,7 +11935,13 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 			}
 		} // end of mapping read within node
 
-		Integer mm_encountered_here = numMM - totalNumMM;
+		if (! failed_alignment) {
+			
+			debugMes("zipper alignment mm: " + mm_encountered_here, 20);
+		}
+		
+		
+		
 		
 		// retain zipper info in case it's better than any DP alignment score
 		int zipper_i = i;
@@ -11944,6 +11957,8 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 		int MIN_LENGTH_TEST_DP = 100;
 		
 		if (USE_DP_READ_TO_VERTEX_ALIGN && length_to_align > MIN_LENGTH_TEST_DP && mm_encountered_here > 1) {
+			
+			debugMes("Running short DP test", 20);
 			
 			j=locInSeq;
 			i = startI;
@@ -11969,6 +11984,8 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 				i = zipper_i;
 				j = zipper_j;
 				mm_encountered_here = zipper_mm;
+				
+				// leave failed alignment status as is.
 			}
 			
 		}
@@ -11980,7 +11997,7 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 		
 		if (USE_DP_READ_TO_VERTEX_ALIGN && verSeq.length() > 2 && mm_encountered_here > 1 && short_DP_test_passes) {
 			
-			debugMes("  *Trying again using DP alignment:", 20);
+			debugMes("  *Trying again using full DP alignment:", 20);
 			
 			// reset i and j
 			j=locInSeq;
@@ -12135,14 +12152,42 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 		// note, i and j are now 1 more than the array index due to the last i++,j++ of the loop above.
 
 
+		float current_alignment_divergence = numMM / (float) j;
+		debugMes("alignment divergence up to seq pos " + j + 
+				" = mm: " + numMM +
+				", div:" + current_alignment_divergence, 20);
 		
-
-		if (numMM > MAX_MM_ALLOWED || max_left_gaps > MAX_LEFT_END_GAPS || failed_alignment)
+		float local_vertex_alignment_divergence = mm_encountered_here / (float) i;
+		debugMes("local vertex alignment divergence = " + mm_encountered_here + " / " + i + " = " + local_vertex_alignment_divergence, 20);
+		
+		
+		// examine the alignment at this vertex to see if it passes our requirements
+		if (i >= MIN_SEQ_LENGTH_TEST_DIVERGENCE && local_vertex_alignment_divergence >= MAX_READ_LOCAL_SEQ_DIVERGENCE) {
+			failed_alignment = true;
+			debugMes("local divergence exceeds max allowed: " + MAX_READ_LOCAL_SEQ_DIVERGENCE, 20);
+		}
+		
+		if (max_left_gaps > MAX_LEFT_END_GAPS ) {
+			failed_alignment = true;
+		}
+		
+		if (
+				
+				// cumulative alignment stats up to and including vertex do not meet thresholds
+				(current_alignment_divergence > MAX_READ_SEQ_DIVERGENCE || 
+				numMM > MAX_MM_ALLOWED )
+				
+				|| 
+				// alignment to current vertex fails
+				failed_alignment
+				)
 		{
 			debugMes("read "+readName+" has too many mismatches ("+numMM+") or too many left gaps (" + max_left_gaps + ")",19);
 
-			best_path_memoization.put(read_vertex_start_pos_token, null);
-			
+			if (failed_alignment) {
+				// store it so we don't try again from this position in the sequence and at this vertex position.
+				best_path_memoization.put(read_vertex_start_pos_token, null);
+			}
 			return(null); // go back and try alternative vertex if available
 
 		} 

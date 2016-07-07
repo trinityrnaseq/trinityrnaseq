@@ -1584,7 +1584,7 @@ sub run_chrysalis {
 
 
 
-    if ($TRINITY_COMPLETE_FLAG && $LONG_READS_MODE) {
+    if ($LONG_READS_MODE) {
         
         ## the bowtie_reads_fa file might contain long reads...  If it does, need to get rid of them for the bowtie alignment step.
         

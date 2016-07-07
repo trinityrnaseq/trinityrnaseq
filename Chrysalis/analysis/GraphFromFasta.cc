@@ -553,7 +553,9 @@ public:
 
 
         if (DEBUG) 
-            cerr << "got weldable candidate: " << d.AsString() << " with count: " << weldable_kmer_read_count << "\n";
+            cerr << "got weldable candidate: " << d.AsString()
+                 << " with count: " << weldable_kmer_read_count
+                 << " and threshold is: " << thresh << "\n";
         
 
         if (count >= thresh) {
@@ -565,14 +567,22 @@ public:
                } 
             */
             
-        
-            
+            if (DEBUG) {
+                cerr << "\tMeets threshold, welding.\n";
+            }
 
             return true;
             
         }
-        else
+        else {
+
+            if (DEBUG) {
+                cerr << "\tdoes *NOT* meet threshold .... no weld here.\n";
+            }
+                
+                
             return false;
+        }
     }
 
 
@@ -1605,6 +1615,7 @@ int main(int argc,char** argv)
                         }
                     }
                     else {
+                        // glue required
                         
                         if ( (! bNoWeld) // welding is on && not weldable, continue
                              && 
@@ -1630,8 +1641,11 @@ int main(int argc,char** argv)
                             continue;
                             
                         } else if (min_glue_required > 0 && !IsGoodCoverage(coverage, coverage_other, min_iso_ratio)) {
-                            //cerr << "Rejecting fw merge between " << dna.Name(i);
-                            //cerr << " and " << dna.Name(c) << "\n";
+
+                            if (DEBUG) {
+                                cerr << "Rejecting fw merge between " << dna.Name(i)
+                                     << " and " << dna.Name(c) << " due to coverage and min_iso_ratio check\n";
+                            }
                             
                             continue;
                         }
@@ -1644,16 +1658,17 @@ int main(int argc,char** argv)
                             
                             
                         }
-                    }
+                      
+                    } // end of glue check
                     
-                    if (REPORT_WELDS) {
+                    if (REPORT_WELDS || DEBUG) {
 #pragma omp critical
                         cout << "#Welding: " << dna.Name(i) << " to " << dna.Name(c) 
                              << " with kmer:[" << sub.AsString() << "], weldmer:["  << welding_kmer << "] found in " << welding_kmer_read_count << " reads" << "\n";
                     }
                     
                     
-                }
+                } // end of iteration through matches
                 
                 if (sStrand) {
                     // only doing the forward matches
@@ -1751,8 +1766,14 @@ int main(int argc,char** argv)
                             continue;
                             
                         } else if (min_glue_required > 0 && !IsGoodCoverage(coverage, coverage_other, min_iso_ratio)) {
-                            // cerr << "Rejecting rc merge between " << dna.Name(i);
-                            // cerr << " and " << dna.Name(c) << "\n";
+
+                            if (DEBUG) {
+                                
+                                cerr << "Rejecting rc merge between " << dna.Name(i)
+                                     << " and " << dna.Name(c) << " due to coverage and min_iso_ratio check\n";
+                                
+                            }
+                            
                             continue;
                         }
                         //cerr << "Accept (rc)!!" << "\n";
@@ -1768,7 +1789,7 @@ int main(int argc,char** argv)
                         }
                     }
                     
-                    if (REPORT_WELDS) {
+                    if (REPORT_WELDS || DEBUG) {
 #pragma omp critical
                         cout << "#Welding: " << dna.Name(i) << " to " << dna.Name(c) 
                              << " with kmer:[" << sub.AsString() << "], weldmer:["  << welding_kmer << "] found in " << welding_kmer_read_count << " reads" << "\n";

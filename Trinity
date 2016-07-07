@@ -853,6 +853,10 @@ if ($TRINITY_COMPLETE_FLAG) {
     #$min_iso_ratio = 0.0000000001;
     
     #$GRAPH_FROM_FASTA_KK = 26;
+
+    $glue_factor = 0.03;
+    
+
 }
 
 if ($NO_CLEANUP && $FULL_CLEANUP) {

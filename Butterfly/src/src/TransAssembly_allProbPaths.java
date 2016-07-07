@@ -95,7 +95,7 @@ public class TransAssembly_allProbPaths {
 	// read sequence to graph mapping criteria
 	private static int MAX_MM_ALLOWED = 0; // dynamically updated global (bad)
 	private static int MAX_MM_ALLOWED_CAP = 0; // dynamically updated global (bad)
-	private static double MAX_READ_SEQ_DIVERGENCE = 0.02;
+	private static double MAX_READ_SEQ_DIVERGENCE = 0.05;
 	private static final double MAX_READ_LOCAL_SEQ_DIVERGENCE = 0.1; // avoid very bad locally aligned regions along the way.
 	
 	
@@ -11980,13 +11980,13 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 				
 				short_DP_test_passes = false;
 				
-				// retain zipper stats
-				i = zipper_i;
-				j = zipper_j;
-				mm_encountered_here = zipper_mm;
-				
 				// leave failed alignment status as is.
 			}
+			
+			// retain earlier zipper stats, regardless of whether or not we go into full DP below.
+			i = zipper_i;
+			j = zipper_j;
+			mm_encountered_here = zipper_mm;
 			
 		}
 		
@@ -12191,15 +12191,20 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 			return(null); // go back and try alternative vertex if available
 
 		} 
-		else if (j==seq.length())
+		else if (j==seq.length() || graph.getSuccessors(fromV) == null)
 		{
 
 			/////////////////////////////////////////
-			// Reached end of the read being threaded
+			// Reached end of the read being threaded (or ran out of vertices to explore)
 			/////////////////////////////////////////
 
+			if (graph.getSuccessors(fromV) == null) {
+				// tack on unaligned terminus of sequence as mismatches
+				mm_encountered_here += seq.length() - j;
+			}
+			
 			// reached base case for recursion.
-
+			
 			debugMes("Reached end of read sequence.  Read" + readName + " with length: " + seq.length() 
 					+ " and base [" + j + "] ends at position  [" + i + "] within node: " 
 					+ fromV.getID() + " totaling " + mm_encountered_here + " mismatches. ", 19);

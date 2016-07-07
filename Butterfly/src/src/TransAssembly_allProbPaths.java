@@ -11854,6 +11854,7 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 
 		
 		int MIN_SEQ_LENGTH_TEST_DIVERGENCE = 20;
+		int MAX_LEFT_END_GAPS = 5;
 		
 		debugMes("updatePathRecursively(readName=" + readName + 
 				", locInSeq: " + locInSeq + ", locInNode: " + locInNode + ", totalNumMm: " + totalNumMM, 20);
@@ -11934,10 +11935,41 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 		
 		// use DP alignment if variation is encountered above. (trying simplest/fastest strategy first)
 		
+		boolean short_DP_test_passes = true;
+		int MIN_LENGTH_TEST_DP = 100;
+		
+		if (USE_DP_READ_TO_VERTEX_ALIGN && length_to_align > MIN_LENGTH_TEST_DP && mm_encountered_here > 1) {
+			
+			j=locInSeq;
+			i = startI;
+			
+			Alignment alignment	= NWalign.run_NW_alignment(		 
+					"Vertex", verSeq.substring(i, i+MIN_LENGTH_TEST_DP), 
+					"Read", seq.substring(j, j+MIN_LENGTH_TEST_DP), 
+					4, -5, 10, 1); 
+			
+					
+			debugMes ("DP test:\n" + new jaligner.formats.Pair().format(alignment), 17);
+			AlignmentStats stats = new AlignmentStats(alignment);
+			
+			mm_encountered_here = stats.mismatches + stats.gaps + stats.left_gap_length + stats.right_gap_length;
+			
+			float pct_divergence = mm_encountered_here/(float)(MIN_LENGTH_TEST_DP);
+			if ( pct_divergence > MAX_READ_LOCAL_SEQ_DIVERGENCE) {
+				debugMes("DP test indicates excessive divergence: " + pct_divergence, 20);
+				short_DP_test_passes = false;
+			}
+			
+		}
+		
+		
 		int vertex_num_right_end_gaps = 0;
 		int read_num_right_end_gaps = 0;
+		int max_left_gaps = 0;
 		
-		if (USE_DP_READ_TO_VERTEX_ALIGN && verSeq.length() > 2 && mm_encountered_here > 1) {
+		
+		
+		if (USE_DP_READ_TO_VERTEX_ALIGN && verSeq.length() > 2 && mm_encountered_here > 1 && short_DP_test_passes) {
 			
 			debugMes("  *Trying again using DP alignment:", 20);
 			
@@ -11991,6 +12023,9 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 			
 			vertex_num_right_end_gaps = AlignmentStats.get_num_right_end_gaps(vertex_align);
 			read_num_right_end_gaps = AlignmentStats.get_num_right_end_gaps(read_align);
+			
+			max_left_gaps = Math.max(AlignmentStats.get_num_left_end_gaps(vertex_align), 
+									 AlignmentStats.get_num_left_end_gaps(read_align));
 			
 			debugMes("vertex end gaps: " + vertex_num_right_end_gaps, 20);
 			debugMes("read end gaps: " + read_num_right_end_gaps, 20);
@@ -12073,6 +12108,7 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 				i = zipper_i;
 				j = zipper_j;
 				mm_encountered_here = zipper_mm;
+				max_left_gaps = 0;
 			}
 			
 			
@@ -12086,9 +12122,9 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 
 		
 
-		if (numMM > MAX_MM_ALLOWED)
+		if (numMM > MAX_MM_ALLOWED || max_left_gaps > MAX_LEFT_END_GAPS)
 		{
-			debugMes("read "+readName+" has too many mismatches ("+numMM+")",19);
+			debugMes("read "+readName+" has too many mismatches ("+numMM+") or too many left gaps (" + max_left_gaps + ")",19);
 
 			best_path_memoization.put(read_vertex_start_pos_token, null);
 			

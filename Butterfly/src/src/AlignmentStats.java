@@ -309,6 +309,20 @@ public class AlignmentStats {
        return(max_diffs); 
        
 	}
+
+	public static int get_num_left_end_gaps(char[] sequence) {
+		int num_end_gap = 0;
+		for (int i = 0; i < sequence.length; i++) {
+			char a = sequence[i];
+			if (a == Alignment.GAP) {
+				num_end_gap++;
+			}
+			else {
+				break;
+			}
+		}
+		return(num_end_gap);
+	}
 	
 	
 }

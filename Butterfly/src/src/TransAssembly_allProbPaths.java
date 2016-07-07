@@ -11852,6 +11852,9 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 			Integer fromV_id, String seq, int locInSeq, int locInNode, 
 			Integer totalNumMM,String readName, HashMap<String, Path_n_MM_count> best_path_memoization) {
 
+		
+		int MIN_SEQ_LENGTH_TEST_DIVERGENCE = 20;
+		
 		debugMes("updatePathRecursively(readName=" + readName + 
 				", locInSeq: " + locInSeq + ", locInNode: " + locInNode + ", totalNumMm: " + totalNumMM, 20);
 
@@ -11867,20 +11870,18 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 
 		String read_vertex_start_pos_token = "" + fromV.getID() + "_" + locInNode + "_" + locInSeq;
 		
-		if (best_path_memoization.containsKey(read_vertex_start_pos_token)) {
+		if (best_path_memoization.containsKey(read_vertex_start_pos_token)
+				&&
+				best_path_memoization.get(read_vertex_start_pos_token) != null)  {
 			
 			Path_n_MM_count best_path = best_path_memoization.get(read_vertex_start_pos_token);
 			debugMes("MEMOIZATION: already stored best path at: " + read_vertex_start_pos_token + " = " + best_path, 20);
-			
-			if (best_path == null) {
-				return(null);
-			}
-			else {
-				// return a copy, critically important!!! 
-				Path_n_MM_count best_path_copy = new Path_n_MM_count(best_path);
 
-				return(best_path_copy);
-			}
+			// return a copy, critically important!!! 
+			Path_n_MM_count best_path_copy = new Path_n_MM_count(best_path);
+
+			return(best_path_copy);
+
 		}
 		debugMes("\ntrying to continue the mapping to node "+ fromV.getShortSeqWID(), 19);
 
@@ -11910,9 +11911,10 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 				//we have a mismatch
 				numMM++;
 
+				
 				if ( (numMM > MAX_MM_ALLOWED)
 						||  
-						((numMM/(float)(j+1)) > MAX_READ_LOCAL_SEQ_DIVERGENCE) 
+						(i >= MIN_SEQ_LENGTH_TEST_DIVERGENCE && (numMM/(float)(j+1)) > MAX_READ_LOCAL_SEQ_DIVERGENCE) 
 						)
 				{
 					break; // no point in looking further.
@@ -11925,6 +11927,10 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 
 		Integer mm_encountered_here = numMM - totalNumMM;
 		
+		// retain zipper info in case it's better than any DP alignment score
+		int zipper_i = i;
+		int zipper_j = j;
+		int zipper_mm = mm_encountered_here;
 		
 		// use DP alignment if variation is encountered above. (trying simplest/fastest strategy first)
 		
@@ -12061,6 +12067,15 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 			debugMes("mismatches encountered: " + mm_encountered_here, 20);
 			
 			
+			if (mm_encountered_here >= zipper_mm && zipper_i == verSeq.length()) {
+				debugMes("Zipper alignment mm: " + zipper_mm + " <= DP mm: " + mm_encountered_here +
+						", so defaulting to earlier zipper alignment.", 20);
+				i = zipper_i;
+				j = zipper_j;
+				mm_encountered_here = zipper_mm;
+			}
+			
+			
 			numMM = mm_encountered_here + totalNumMM;
 			
 		}
@@ -12071,8 +12086,7 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 
 		
 
-		if (numMM > MAX_MM_ALLOWED  ||  
-				 ((numMM/(float)(j+1)) > MAX_READ_LOCAL_SEQ_DIVERGENCE) )
+		if (numMM > MAX_MM_ALLOWED)
 		{
 			debugMes("read "+readName+" has too many mismatches ("+numMM+")",19);
 
@@ -12179,6 +12193,9 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 				// Evaluate best paths from the successors.
 				////////////////////////////////////////////
 
+				
+				/* testing for local sequence divergence within the alignment itself
+				
 				// first, check to see if it's an extension worth considering, given our local sequence divergence restrictions.
 				if (best_extension != null
 						&&
@@ -12190,6 +12207,8 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 					best_extension = null;  // nullify the current best extension from successor_vertex_id
 					
 				}
+				
+				*/
 				
 				if (best_extension == null) {
 					debugMes("\n\tFailed extension from " + fromV.getID() + " to : " + successor_vertex_id +  ".", 19);

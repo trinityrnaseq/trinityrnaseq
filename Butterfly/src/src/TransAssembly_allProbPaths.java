@@ -11933,6 +11933,9 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 		int zipper_j = j;
 		int zipper_mm = mm_encountered_here;
 		
+		
+		
+		
 		// use DP alignment if variation is encountered above. (trying simplest/fastest strategy first)
 		
 		boolean short_DP_test_passes = true;
@@ -11957,16 +11960,20 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 			float pct_divergence = mm_encountered_here/(float)(MIN_LENGTH_TEST_DP);
 			if ( pct_divergence > MAX_READ_LOCAL_SEQ_DIVERGENCE) {
 				debugMes("DP test indicates excessive divergence: " + pct_divergence, 20);
+				
 				short_DP_test_passes = false;
+				
+				// retain zipper stats
+				i = zipper_i;
+				j = zipper_j;
+				mm_encountered_here = zipper_mm;
 			}
 			
 		}
 		
-		
 		int vertex_num_right_end_gaps = 0;
 		int read_num_right_end_gaps = 0;
 		int max_left_gaps = 0;
-		
 		
 		
 		if (USE_DP_READ_TO_VERTEX_ALIGN && verSeq.length() > 2 && mm_encountered_here > 1 && short_DP_test_passes) {

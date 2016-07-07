@@ -11897,6 +11897,7 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 		
 		
 		// zipper align
+		boolean failed_alignment = false;
 
 		for (; i>=0 && i<verSeq.length() && j<seq.length() ; i++,j++)
 		{
@@ -11918,6 +11919,7 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 						(i >= MIN_SEQ_LENGTH_TEST_DIVERGENCE && (numMM/(float)(j+1)) > MAX_READ_LOCAL_SEQ_DIVERGENCE) 
 						)
 				{
+					failed_alignment = true;
 					break; // no point in looking further.
 				}
 
@@ -12116,6 +12118,12 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 				j = zipper_j;
 				mm_encountered_here = zipper_mm;
 				max_left_gaps = 0;
+				// retain any failed alignment status
+			}
+			else {
+				
+				failed_alignment = false; // reset it as needed given that DP was ok.
+				
 			}
 			
 			
@@ -12129,7 +12137,7 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 
 		
 
-		if (numMM > MAX_MM_ALLOWED || max_left_gaps > MAX_LEFT_END_GAPS)
+		if (numMM > MAX_MM_ALLOWED || max_left_gaps > MAX_LEFT_END_GAPS || failed_alignment)
 		{
 			debugMes("read "+readName+" has too many mismatches ("+numMM+") or too many left gaps (" + max_left_gaps + ")",19);
 

@@ -566,7 +566,8 @@ my $NO_VERSION_CHECK = 0;
     'show_full_usage_info' => \$full_usage_info_flag,         
             
     'verbose' => \$VERBOSE,
- 
+    'verbose_level=i' => \$VERBOSE,
+    
     'no_version_check' => \$NO_VERSION_CHECK,
     
     ## general opts
@@ -840,7 +841,7 @@ if ($TRINITY_COMPLETE_FLAG) {
     ###############################################
     
     ## iworm opts
-    #$iworm_opts .= " --min_seed_entropy 1.0 ";
+    $iworm_opts .= " --min_seed_entropy 0.5 --min_ratio_non_error 0.02 ";
     $PARALLEL_IWORM_FLAG = 0;
     
     ## Chryaslis opts
@@ -1551,6 +1552,7 @@ sub run_Trinity {
         
         my $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
         my $cmd = "$PARAFLY -c $butterfly_cmds -shuffle -CPU $bflyCPU -failed_cmds failed_butterfly_commands.$$.txt ";  # shuffle them since the first ones are usually the longest-running ones.
+        if ($VERBOSE) { $cmd .= " -v "; }
         $pipeliner->add_commands( new Command($cmd, ".butterfly.ok"));
         $pipeliner->run();
         

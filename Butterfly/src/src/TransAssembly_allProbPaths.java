@@ -12847,24 +12847,40 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 			for (SimpleEdge e : graph.getOutEdges(v))
 				totalOut+=e.getWeight();
 
-			debugMes("FLOW: total in for vertex "+v+" is "+totalIn + " total out  is "+totalOut+" averageCov="+v.getWeightAvg(),20);
+			debugMes("FLOW: total in for vertex "+v+" is "+totalIn + ", total out  is "+totalOut+", averageCov="+v.getWeightAvg(),20);
 
 			Collection<SimpleEdge> removeEdges = new HashSet<SimpleEdge>();
+			
+			// out edges
 			for (SimpleEdge e : graph.getOutEdges(v))
 			{
-				if (e.getWeight()<totalIn* FLOW_THR || e.getWeight()<v.getWeightAvg()*FLOW_THR)
+				double e_avg_flow_thr_thresh = v.getWeightAvg() * FLOW_THR;
+				if ( e.getWeight() < e_avg_flow_thr_thresh) {
+					debugMes("EDGE_PRUNING::removeLightFlowEdges() removing low flow OUT edge " + e 
+							+ " from "+ graph.getSource(e)+" to "+graph.getDest(e) +
+							", FLOW_THR=" + FLOW_THR +
+							", e_avg_flow_thr_thresh=: " + e_avg_flow_thr_thresh, 15);
 					removeEdges.add(e);
+				}
+					
 			}
 
+			// in edges
 			for (SimpleEdge e : graph.getInEdges(v))
 			{
-				if (e.getWeight()<totalOut*FLOW_THR || e.getWeight()<v.getWeightAvg()*FLOW_THR)
+				double e_avg_flow_thr_thresh = v.getWeightAvg() * FLOW_THR;
+				if (e.getWeight() < e_avg_flow_thr_thresh) {
+					debugMes("EDGE_PRUNING::removeLightFlowEdges() removing low flow IN edge " + e 
+							+ " from "+ graph.getSource(e)+" to "+graph.getDest(e) +
+							", FLOW_THR=" + FLOW_THR +
+							", e.weight=" + e.getWeight() + " < e_avg_flow_thr_thresh=: " + e_avg_flow_thr_thresh, 15);
 					removeEdges.add(e);
+				}
 			}
 
 			for (SimpleEdge re : removeEdges)
 			{
-				debugMes("removing low flow edge "+re+" from "+ graph.getSource(re)+" to "+graph.getDest(re),20);
+				
 				graph.removeEdge(re);
 				changed = true;
 			}
@@ -12891,7 +12907,14 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 		{
 			if (graph.inDegree(v)<=1)
 				continue;
+			
 			Vector<SimpleEdge> removeEdges = new Vector<SimpleEdge>();
+			
+			// skip edges at simple cycles
+			if (atSimpleCycle(graph, v)) {
+				continue;
+			}
+			
 			int totalIn = 0;
 			for (SimpleEdge inE : graph.getInEdges(v))
 			{
@@ -12900,9 +12923,13 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 
 			for (SimpleEdge inE : graph.getInEdges(v))
 			{
-				if (inE.getWeight() <= totalIn*EDGE_THR)
+				double e_edge_thr = totalIn*EDGE_THR;
+				if (inE.getWeight() <= e_edge_thr)
 				{
-					debugMes("removing the edge: "+graph.getSource(inE)+"->"+graph.getDest(inE)+" ("+inE.getWeight()+" <= "+totalIn*EDGE_THR+")",20);
+					debugMes("EDGE_PRUNING::removeLightInEdges() removing the edge: "+
+							graph.getSource(inE)+"->"+graph.getDest(inE)+
+							" (weight: "+inE.getWeight()+" <= e_edge_thr: " + e_edge_thr +
+							", EDGE_THR=" + EDGE_THR, 15); 
 					removeEdges.add(inE);
 					somethingChanged = true;
 				}
@@ -12911,6 +12938,21 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 				graph.removeEdge(e);
 		}
 		return somethingChanged;
+	}
+
+
+	private static boolean atSimpleCycle(
+			DirectedSparseGraph<SeqVertex, SimpleEdge> graph, SeqVertex v) {
+		for (SimpleEdge e : graph.getInEdges(v)) {
+			if (graph.findEdge(v, graph.getSource(e)) != null)
+				return(true);
+		}
+		for (SimpleEdge e: graph.getOutEdges(v)) {
+			if (graph.findEdge(graph.getDest(e), v) != null)
+				return(true);
+		}
+		
+		return(false);
 	}
 
 
@@ -12929,6 +12971,12 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 		{
 			if (graph.outDegree(v)<=1)
 				continue;
+
+			// skip edges at simple cycles
+			if (atSimpleCycle(graph, v)) {
+				continue;
+			}
+			
 			Vector<SimpleEdge> removeEdges = new Vector<SimpleEdge>();
 			int totalOut = 0;
 			for (SimpleEdge outE : graph.getOutEdges(v))
@@ -12938,9 +12986,15 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 
 			for (SimpleEdge outE : graph.getOutEdges(v))
 			{
-				if (outE.getWeight() <= totalOut*EDGE_THR)
+				double e_edge_thr = totalOut * EDGE_THR;
+				if (outE.getWeight() <= e_edge_thr)
 				{
-					debugMes("removing the edge: "+graph.getSource(outE)+"->"+graph.getDest(outE),20);
+					
+					debugMes("EDGE_PRUNING::removeLightOutEdges() removing the edge: "+
+							graph.getSource(outE)+"->"+graph.getDest(outE)+
+							" (weight: "+outE.getWeight()+" <= e_edge_thr: " + e_edge_thr +
+							", EDGE_THR=" + EDGE_THR, 15);
+					
 					removeEdges.add(outE);
 					somethingChanged = true;
 				}

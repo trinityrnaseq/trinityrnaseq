@@ -875,7 +875,11 @@ public class TransAssembly_allProbPaths {
 			System.exit(0);
 		}
 
-	
+		if (createMiddleDotFiles)
+			writeDotFile(graph,file + "_compactLinearPaths_removeSmallComp.D.dot",graphName, false);
+
+		
+		
 		HashMap<Integer, LocInGraph> originalVerIDsMapping = getOriginalVerIDsMappingHash(graph);
 		
 
@@ -11828,7 +11832,7 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 			return(best_path_mapping);
 		}
 		else {
-			debugMes("No read mapping found for: " + readName, 15);
+			debugMes("NO_READ_MAPPING_FOUND_FOR: " + readName + "\n\n", 15);
 		
 			return(null); // no such path found.	
 		}
@@ -11856,15 +11860,20 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 		int MIN_SEQ_LENGTH_TEST_DIVERGENCE = 20;
 		int MAX_LEFT_END_GAPS = 5;
 		
-		debugMes("updatePathRecursively(readName=" + readName + 
-				", locInSeq: " + locInSeq + ", locInNode: " + locInNode + ", totalNumMm: " + totalNumMM, 20);
-
+		
 
 		SeqVertex fromV = getSeqVertex(graph, fromV_id);
 
 		Integer numMM = totalNumMM; // init for each node check
 
 		String verSeq = fromV.getName(); //important - full name, not kmer-adjusted name.
+		
+		
+		debugMes("updatePathRecursively(readName=" + readName + 
+				", locInSeq: " + locInSeq + " / " + (seq.length() -1) +
+				", locInNode: " + locInNode + " / " + (verSeq.length() -1) +
+				", totalNumMm: " + totalNumMM, 20);
+
 		
 		int startI = locInNode;
 		int j=locInSeq, i = startI;
@@ -11972,7 +11981,8 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 			debugMes ("DP test:\n" + new jaligner.formats.Pair().format(alignment), 17);
 			AlignmentStats stats = new AlignmentStats(alignment);
 			
-			mm_encountered_here = stats.mismatches + stats.gaps + stats.left_gap_length + stats.right_gap_length;
+			mm_encountered_here = stats.mismatches + stats.gaps + stats.left_gap_length;
+			
 			
 			float pct_divergence = mm_encountered_here/(float)(MIN_LENGTH_TEST_DP);
 			if ( pct_divergence > MAX_READ_LOCAL_SEQ_DIVERGENCE) {
@@ -12927,7 +12937,9 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 				if (inE.getWeight() <= e_edge_thr)
 				{
 					debugMes("EDGE_PRUNING::removeLightInEdges() removing the edge: "+
-							graph.getSource(inE)+"->"+graph.getDest(inE)+
+							graph.getSource(inE)+" " + graph.getSource(inE).getName() + 
+							" -> " +
+							graph.getDest(inE)+ " " + graph.getDest(inE).getName() +
 							" (weight: "+inE.getWeight()+" <= e_edge_thr: " + e_edge_thr +
 							", EDGE_THR=" + EDGE_THR, 15); 
 					removeEdges.add(inE);
@@ -12990,8 +13002,10 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 				if (outE.getWeight() <= e_edge_thr)
 				{
 					
-					debugMes("EDGE_PRUNING::removeLightOutEdges() removing the edge: "+
-							graph.getSource(outE)+"->"+graph.getDest(outE)+
+					debugMes("EDGE_PRUNING::removeLightOutEdges() removing the edge: " +
+							graph.getSource(outE)+ " " + graph.getSource(outE).getName() +
+							" -> " + 
+							graph.getDest(outE)+ " " + graph.getDest(outE).getName() +
 							" (weight: "+outE.getWeight()+" <= e_edge_thr: " + e_edge_thr +
 							", EDGE_THR=" + EDGE_THR, 15);
 					

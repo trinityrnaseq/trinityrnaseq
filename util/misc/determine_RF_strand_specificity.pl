@@ -64,7 +64,9 @@ main: {
                                                          $struct->{'-'},
                                                          $struct->{'total_reads'},
                                                          $struct->{'transcript'});
-
+        unless ($plus) { $plus = 0; }
+        unless ($minus) { $minus = 0; }
+        
         # assuming RF
         my $pct_total = $minus / $total_reads * 100;
         

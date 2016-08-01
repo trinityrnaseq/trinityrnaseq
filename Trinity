@@ -1236,7 +1236,6 @@ main: {
         }
         
         if ($MKDIR_OUTDIR_FLAG && basename($output_directory) =~ /trinity/i) { # ensure outdirectory as trinity in the name, just to be sure we dont delete something non-trinity related!!!
-            #system("rm -rf $output_directory &! > /dev/null"); # ignore filesystem errors on failed cleanup
             system("rm -rf $output_directory");
         }
         else {

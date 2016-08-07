@@ -814,7 +814,7 @@ sub run_kallisto {
         &process_cmd($cmd);
     }
     elsif ($single) {
-        my $cmd = "kallisto quant --single -l $fragment_length -s $fragment_std -i $kallisto_index -o $output_dir $kallisto_add_opts $single";
+        my $cmd = "kallisto quant -l $fragment_length -s $fragment_std -i $kallisto_index -o $output_dir $kallisto_add_opts --single $single";
         &process_cmd($cmd);
     }
     

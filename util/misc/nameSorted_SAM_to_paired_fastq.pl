@@ -13,11 +13,12 @@ use Nuc_translator;
 use Carp;
 use Data::Dumper;
 
-my $usage = "usage: $0 file.sam out_prefix\n\n";
+my $usage = "usage: $0 file.sam out_prefix [STRICT]\n\n";
 
 
 my $sam_file = $ARGV[0] or die $usage;
 my $out_prefix = $ARGV[1] or die $usage;
+my $STRICT_FLAG = $ARGV[2] || 0;
 
 
 my $left_fq_filename = "$out_prefix.left.fq";
@@ -78,10 +79,17 @@ sub process_entry {
 
     unless (@$left_entries_aref) {
         print STDERR "WARNING: $core_read_name is missing first-read entry in sam file.  skipping...\n";
+        if ($STRICT_FLAG) {
+            confess "ERROR: $core_read_name is missing first-read entry in sam file, STRICT mode enabled";
+        }
         return;
     }
     unless (@$right_entries_aref) {
         print STDERR "WARNING: $core_read_name is missing second-read entry in sam file. skipping...\n";
+        if ($STRICT_FLAG) {
+            confess "ERROR: $core_read_name is missing second-read entry in sam file. STRICT mode enabled";
+        }
+        
         return;
     }
     

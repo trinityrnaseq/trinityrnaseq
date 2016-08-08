@@ -16,7 +16,7 @@ my $usage = "usage: $0 file.sam number_records_to_check=10\n\n";
 
 
 my $sam_file = $ARGV[0] or die $usage;
-my $num_records_to_check = $ARGV[1] or die $usage;
+my $num_records_to_check = $ARGV[1] || 10;
 
 main: {
 

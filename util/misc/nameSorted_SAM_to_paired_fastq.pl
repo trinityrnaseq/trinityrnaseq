@@ -41,6 +41,8 @@ main: {
     my @left_entries;
     my @right_entries;
 
+    my $counter = 0;
+    
     while (my $sam_entry = $sam_reader->get_next()) {
         
         my $core_read_name = $sam_entry->get_read_name();
@@ -63,6 +65,12 @@ main: {
                 #confess "Error, it appears the sam file is not sorted by read name, as $core_read_name ! > $prev_read_name";
                 # no longer die here: different tools sort in different ways, where samtools is using some mixed string and integer sorting that's not lexicographical.
             }
+
+            $counter++;
+            if ($counter % 1e6 == 0) {
+                print STDERR "[$counter] PE fastq records written.\n";
+            }
+            
         }
 
         $prev_read_name = $core_read_name;

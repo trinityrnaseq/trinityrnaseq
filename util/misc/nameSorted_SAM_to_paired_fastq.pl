@@ -41,6 +41,10 @@ main: {
     while (my $sam_entry = $sam_reader->get_next()) {
         
         my $core_read_name = $sam_entry->get_read_name();
+
+        if (! $sam_entry->is_paired()) {
+            confess "ERROR, only paired reads should exist in bam file.  Encountered unpaired read: " . Dumper($sam_entry);
+        }
         
         if ($prev_read_name && $core_read_name ne $prev_read_name) {
             &process_entry($prev_read_name, \@left_entries, \@right_entries);

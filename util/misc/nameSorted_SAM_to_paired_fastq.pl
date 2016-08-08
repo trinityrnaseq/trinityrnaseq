@@ -13,6 +13,9 @@ use Nuc_translator;
 use Carp;
 use Data::Dumper;
 
+
+my $DEBUG = 0;
+
 my $usage = "usage: $0 file.sam out_prefix [STRICT]\n\n";
 
 
@@ -42,11 +45,16 @@ main: {
         
         my $core_read_name = $sam_entry->get_read_name();
 
+        print STDERR "processing $core_read_name\n" if $DEBUG;
+        
         if (! $sam_entry->is_paired()) {
             confess "ERROR, only paired reads should exist in bam file.  Encountered unpaired read: " . Dumper($sam_entry);
         }
         
         if ($prev_read_name && $core_read_name ne $prev_read_name) {
+            
+            print STDERR "\t-printing record for $core_read_name\n" if $DEBUG;
+            
             &process_entry($prev_read_name, \@left_entries, \@right_entries);
             @left_entries = ();
             @right_entries = ();

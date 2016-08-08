@@ -38,7 +38,9 @@ main: {
             last;
         }
     }
-    
+
+    print STDERR "paired read check for $sam_file is OK.\n";
+
     exit(0); # all good!
 
 }

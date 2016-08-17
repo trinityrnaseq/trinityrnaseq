@@ -61,7 +61,7 @@ my %keep = map { + $_ => 1 } @files_to_keep;
 `rm -rf ./kallisto_PE`;
 `rm -rf ./RSEM_PE`;
 `rm -rf ./test_trinity_long_reads`;
-
+`rm -rf ./test_trinity_bowtie2`;
 
 foreach my $file (<*>) {
 	

@@ -354,8 +354,11 @@ sub parse_result_files_find_diffExp {
                     $diff_expr{$id} = 1;
                     
                     my $matrix_counts = $read_fpkm_rows_href->{$id} || die "Error, no counts from matrix for $id";
-            
-                    if ($log_fold_change > 0) {
+
+                    ######################################
+                    # log fold changes should be log2(A/B)
+                    
+                    if ($log_fold_change < 0) {
                         
                         print $condB_up_ofh "$line\t$matrix_counts\n";
                         $countB++;

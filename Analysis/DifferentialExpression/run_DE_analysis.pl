@@ -410,12 +410,17 @@ sub run_edgeR_sample_pair {
         print $ofh "et = exactTest(exp_study, pair=c(\"$sample_A\", \"$sample_B\"), dispersion=$dispersion)\n";
     }
     print $ofh "tTags = topTags(et,n=NULL)\n";
-    print $ofh "write.table(tTags, file=\'$output_prefix.edgeR.DE_results\', sep='\t', quote=F, row.names=T)\n";
-
+    print $ofh "result_table = tTags\$table\n";
+    
+    ## reset logfc so it's A/B instead of B/A to be consistent with DESeq2
+    print $ofh "result_table\$logFC = -1 * result_table\$logFC\n";
+    
+    print $ofh "write.table(result_table, file=\'$output_prefix.edgeR.DE_results\', sep='\t', quote=F, row.names=T)\n";
+    
     ## generate MA and Volcano plots
     print $ofh "source(\"$FindBin::RealBin/R/rnaseq_plot_funcs.R\")\n";
     print $ofh "pdf(\"$output_prefix.edgeR.DE_results.MA_n_Volcano.pdf\")\n";
-    print $ofh "result_table = tTags\$table\n";
+
     print $ofh "plot_MA_and_Volcano(result_table\$logCPM, result_table\$logFC, result_table\$FDR)\n";
     print $ofh "dev.off()\n";
     
@@ -482,8 +487,10 @@ sub run_DESeq2_sample_pair {
              . "    colData = conditions,\n"
              . "    design = ~ conditions)\n";
     print $ofh "dds = DESeq(ddsFullCountTable)\n";
-    print $ofh "res = results(dds)\n";
 
+    print $ofh "contrast=c(\"conditions\",\"$sample_A\",\"$sample_B\")\n";
+    print $ofh "res = results(dds, contrast)\n";
+    
 
     # adj from: Carsten Kuenne, thx!
     ##recreates baseMeanA and baseMeanB columns that are not created by default DESeq2 anymore

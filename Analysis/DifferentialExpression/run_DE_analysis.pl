@@ -42,7 +42,9 @@ my $usage = <<__EOUSAGE__;
 #
 #  General options:
 #
-#  --min_rowSum_counts <int>       default: 2  (only those rows of matrix meeting requirement will be tested)
+#  --min_reps_cpm_gt1 <int>        default: 2  (only those rows of matrix meeting requirement will be tested)
+#                                  At least --min_reps_cpm_gt1 replicates must have cpm values > 1
+#                                     (ie. filtMatrix = matrix[rowSums(cpm(matrix)>1) > min_reps_cpm_gt1,]  adapted from edgeR manual)
 #
 #  --output|o                      name of directory to place outputs (default: \$method.\$pid.dir)
 #
@@ -90,7 +92,7 @@ __EOUSAGE__
 my $matrix_file;
 my $method;
 my $samples_file;
-my $min_rowSum_counts = 2;
+my $min_reps_cpm_gt1 = 2;
 my $help_flag;
 my $output_dir;
 my $dispersion; # I've used 0.1 myself - but read the manual to guide your choice.
@@ -107,9 +109,9 @@ my $make_tar_gz_file = 0;
               'method=s' => \$method,
               'samples_file|s=s' => \$samples_file,
               'output|o=s' => \$output_dir,
-              'min_rowSum_counts=i' => \$min_rowSum_counts,
+              'min_reps_cpm_gt1=i' => \$min_reps_cpm_gt1,
               'dispersion=f' => \$dispersion,
-    
+              
               'reference_sample=s' => \$reference_sample,
               'contrasts=s' => \$contrasts_file,
               
@@ -388,7 +390,7 @@ sub run_edgeR_sample_pair {
     print $ofh "col_ordering = c(" . join(",", @rep_column_indices) . ")\n";
     print $ofh "rnaseqMatrix = data[,col_ordering]\n";
     print $ofh "rnaseqMatrix = round(rnaseqMatrix)\n";
-    print $ofh "rnaseqMatrix = rnaseqMatrix[rowSums(rnaseqMatrix)>=$min_rowSum_counts,]\n";
+    print $ofh "rnaseqMatrix = rnaseqMatrix[rowSums(cpm(rnaseqMatrix) > 1) > $min_reps_cpm_gt1,]\n";
     print $ofh "conditions = factor(c(rep(\"$sample_A\", $num_rep_A), rep(\"$sample_B\", $num_rep_B)))\n";
     print $ofh "\n";
     print $ofh "exp_study = DGEList(counts=rnaseqMatrix, group=conditions)\n";
@@ -472,7 +474,7 @@ sub run_DESeq2_sample_pair {
 
     ## write R-script to run DESeq
     open (my $ofh, ">$Rscript_name") or die "Error, cannot write to $Rscript_name";
-    
+    print $ofh "library(edgeR)\n";
     print $ofh "library(DESeq2)\n";
     print $ofh "\n";
 
@@ -480,7 +482,7 @@ sub run_DESeq2_sample_pair {
     print $ofh "col_ordering = c(" . join(",", @rep_column_indices) . ")\n";
     print $ofh "rnaseqMatrix = data[,col_ordering]\n";
     print $ofh "rnaseqMatrix = round(rnaseqMatrix)\n";
-    print $ofh "rnaseqMatrix = rnaseqMatrix[rowSums(rnaseqMatrix)>=$min_rowSum_counts,]\n";
+    print $ofh "rnaseqMatrix = rnaseqMatrix[rowSums(cpm(rnaseqMatrix) > 1) > $min_reps_cpm_gt1,]\n";
     print $ofh "conditions = data.frame(conditions=factor(c(rep(\"$sample_A\", $num_rep_A), rep(\"$sample_B\", $num_rep_B))))\n";
     print $ofh "rownames(conditions) = colnames(rnaseqMatrix)\n";
     print $ofh "ddsFullCountTable <- DESeqDataSetFromMatrix(\n"
@@ -561,7 +563,7 @@ sub run_limma_voom_sample_pair {
     print $ofh "col_ordering = c(" . join(",", @rep_column_indices) . ")\n";
     print $ofh "rnaseqMatrix = data[,col_ordering]\n";
     print $ofh "rnaseqMatrix = round(rnaseqMatrix)\n";
-    print $ofh "rnaseqMatrix = rnaseqMatrix[rowSums(rnaseqMatrix)>=$min_rowSum_counts,]\n";
+    print $ofh "rnaseqMatrix = rnaseqMatrix[rowSums(cpm(rnaseqMatrix) > 1) > $min_reps_cpm_gt1,]\n";
     print $ofh "conditions = factor(c(rep(\"$sample_A\", $num_rep_A), rep(\"$sample_B\", $num_rep_B)))\n";
     print $ofh "\n";
     print $ofh "design = model.matrix(~conditions)\n";
@@ -646,7 +648,7 @@ sub run_ROTS_sample_pair {
     print $ofh "col_ordering = c(" . join(",", @rep_column_indices) . ")\n";
     print $ofh "rnaseqMatrix = data[,col_ordering]\n";
     print $ofh "rnaseqMatrix = round(rnaseqMatrix)\n";
-    print $ofh "rnaseqMatrix = rnaseqMatrix[rowSums(rnaseqMatrix)>=$min_rowSum_counts,]\n";
+    print $ofh "rnaseqMatrix = rnaseqMatrix[rowSums(cpm(rnaseqMatrix) > 1) > $min_reps_cpm_gt1,]\n";
     print $ofh "conditions = factor(c(rep(\"$sample_A\", $num_rep_A), rep(\"$sample_B\", $num_rep_B)))\n";
     print $ofh "\n";
     print $ofh "design = model.matrix(~conditions)\n";
@@ -743,7 +745,8 @@ sub run_GLM {
     
     print $ofh "data = read.table(\"$matrix_file\", header=T, row.names=1, com='')\n";
     print $ofh "rnaseqMatrix = round(data)\n";
-    print $ofh "rnaseqMatrix = rnaseqMatrix[rowSums(rnaseqMatrix)>=$min_rowSum_counts,]\n";
+    print $ofh "rnaseqMatrix = rnaseqMatrix[rowSums(cpm(rnaseqMatrix) > 1) > $min_reps_cpm_gt1,]\n";
+
 
     print $ofh "design = model.matrix(~0+groups)\n";
     print $ofh "colnames(design) = levels(groups)\n";

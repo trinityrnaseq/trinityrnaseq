@@ -411,6 +411,7 @@ sub run_edgeR_sample_pair {
     }
     print $ofh "tTags = topTags(et,n=NULL)\n";
     print $ofh "result_table = tTags\$table\n";
+    print $ofh "result_table = data.frame(sampleA=\"$sample_A\", sampleB=\"$sample_B\", result_table)\n";
     
     ## reset logfc so it's A/B instead of B/A to be consistent with DESeq2
     print $ofh "result_table\$logFC = -1 * result_table\$logFC\n";
@@ -499,14 +500,12 @@ sub run_DESeq2_sample_pair {
     print $ofh "res = cbind(baseMeanA, baseMeanB, as.data.frame(res))\n";
  
     ##adds an “id” column headline for column 0
-    print $ofh "res = cbind(id=rownames(res), as.data.frame(res))\n";
+    print $ofh "res = cbind(sampleA=\"$sample_A\", sampleB=\"$sample_B\", as.data.frame(res))\n";
 
     print $ofh "res\$padj[is.na(res\$padj)]  <- 1\n"; # Carsten Kuenne
     
-    ##set row.names to false to accomodate change above
-
     ## output results
-    print $ofh "write.table(as.data.frame(res[order(res\$pvalue),]), file=\'$output_prefix.DESeq2.DE_results\', sep='\t', quote=FALSE, row.names=F)\n";
+    print $ofh "write.table(as.data.frame(res[order(res\$pvalue),]), file=\'$output_prefix.DESeq2.DE_results\', sep='\t', quote=FALSE)\n";
     
     ## generate MA and Volcano plots
     print $ofh "source(\"$FindBin::RealBin/R/rnaseq_plot_funcs.R\")\n";
@@ -578,7 +577,7 @@ sub run_limma_voom_sample_pair {
     print $ofh "c = cpm(x)\n";
     print $ofh "m = apply(c, 1, mean)\n";
     print $ofh "tTags2 = cbind(tTags, logCPM=log2(m[rownames(tTags)]))\n";
-    print $ofh "DE_matrix = data.frame(logFC=tTags\$logFC, logCPM=tTags2\$logCPM, PValue=tTags\$'P.Value', FDR=tTags\$'adj.P.Val')\n";
+    print $ofh "DE_matrix = data.frame(sampleA=\"$sample_A\", sampleB=\"$sample_B\", logFC=tTags\$logFC, logCPM=tTags2\$logCPM, PValue=tTags\$'P.Value', FDR=tTags\$'adj.P.Val')\n";
     print $ofh "rownames(DE_matrix) = rownames(tTags)\n";
     print $ofh "write.table(DE_matrix, file=\'$output_prefix.voom.DE_results\', sep='\t', quote=F, row.names=T)\n";
     
@@ -674,8 +673,8 @@ sub run_ROTS_sample_pair {
     print $ofh "logFC = log2(FC)\n";
     print $ofh "results = summary(res_voom, fdr=0.1)\n";
     print $ofh "feature_order = rownames(results)\n";
-    print $ofh "final_table = data.frame(logCPM=log2(m+1)[feature_order], CPM_A=mean_sampleA_cpm[feature_order], CPM_B=mean_sampleB_cpm[feature_order], logFC=logFC[feature_order], results)\n";
-
+    print $ofh "final_table = data.frame(sampleA=\"$sample_A\", sampleB=\"$sample_B\", logCPM=log2(m+1)[feature_order], CPM_A=mean_sampleA_cpm[feature_order], CPM_B=mean_sampleB_cpm[feature_order], logFC=logFC[feature_order], results)\n";
+    
     print $ofh "write.table(final_table, file=\"$output_prefix.ROTS.DE_results\", quote=F, sep='\t')\n";
         
     ## generate MA and Volcano plots

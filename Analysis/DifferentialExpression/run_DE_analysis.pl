@@ -426,6 +426,7 @@ sub run_edgeR_sample_pair {
     print $ofh "result_table\$logFC = -1 * result_table\$logFC\n";
     
     print $ofh "write.table(result_table, file=\'$output_prefix.edgeR.DE_results\', sep='\t', quote=F, row.names=T)\n";
+    print $ofh "write.table(rnaseqMatrix, file=\'$output_prefix.edgeR.count_matrix\', sep='\t', quote=F, row.names=T)\n";
     
     ## generate MA and Volcano plots
     print $ofh "source(\"$FindBin::RealBin/R/rnaseq_plot_funcs.R\")\n";
@@ -515,6 +516,8 @@ sub run_DESeq2_sample_pair {
     
     ## output results
     print $ofh "write.table(as.data.frame(res[order(res\$pvalue),]), file=\'$output_prefix.DESeq2.DE_results\', sep='\t', quote=FALSE)\n";
+    print $ofh "write.table(rnaseqMatrix, file=\'$output_prefix.DESeq2.count_matrix\', sep='\t', quote=FALSE)\n";
+    
     
     ## generate MA and Volcano plots
     print $ofh "source(\"$FindBin::RealBin/R/rnaseq_plot_funcs.R\")\n";
@@ -589,6 +592,7 @@ sub run_limma_voom_sample_pair {
     print $ofh "DE_matrix = data.frame(sampleA=\"$sample_A\", sampleB=\"$sample_B\", logFC=tTags\$logFC, logCPM=tTags2\$logCPM, PValue=tTags\$'P.Value', FDR=tTags\$'adj.P.Val')\n";
     print $ofh "rownames(DE_matrix) = rownames(tTags)\n";
     print $ofh "write.table(DE_matrix, file=\'$output_prefix.voom.DE_results\', sep='\t', quote=F, row.names=T)\n";
+    print $ofh "write.table(rnaseqMatrix, file=\'$output_prefix.voom.count_matrix\', sep='\t', quote=F, row.names=T)\n";
     
     ## generate MA and Volcano plots
     print $ofh "# MA and volcano plots\n";
@@ -685,7 +689,9 @@ sub run_ROTS_sample_pair {
     print $ofh "final_table = data.frame(sampleA=\"$sample_A\", sampleB=\"$sample_B\", logCPM=log2(m+1)[feature_order], CPM_A=mean_sampleA_cpm[feature_order], CPM_B=mean_sampleB_cpm[feature_order], logFC=logFC[feature_order], results)\n";
     
     print $ofh "write.table(final_table, file=\"$output_prefix.ROTS.DE_results\", quote=F, sep='\t')\n";
-        
+    print $ofh "write.table(rnaseqMatrix, file=\"$output_prefix.ROTS.count_matrix\", quote=F, sep='\t')\n";
+    
+    
     ## generate MA and Volcano plots
     print $ofh "# MA and volcano plots\n";
     print $ofh "source(\"$FindBin::RealBin/R/rnaseq_plot_funcs.R\")\n";

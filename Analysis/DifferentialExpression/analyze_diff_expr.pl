@@ -284,8 +284,7 @@ sub parse_result_files_find_diffExp {
     
     foreach my $result_file (@$result_files_aref) {
         
-        $result_file =~ /matrix\.(\S+)_vs_(\S+)\.[^\.]+\.DE_results$/ or die "Error, cannot extract condition names from $result_file";
-        my ($condA, $condB) = ($1, $2);
+        my ($condA, $condB) = &get_sample_pairs_from_DE_results_file($result_file);
         
         my $pairwise_samples_file = "$result_file.samples";
         { 
@@ -483,3 +482,26 @@ sub write_matrix_generate_heatmap {
  
     return;
 }
+
+
+####
+sub get_sample_pairs_from_DE_results_file {
+    my ($result_file) = @_;
+
+    my ($header, $line) = split(/\n/, `head -n2 $result_file`);
+
+    unless ($header =~ /^sampleA\tsampleB/) {
+        die "Error, header [$header] of $result_file lacks expected formatting starting with sampleA\tsampleB";
+    }
+    my @header_comps = split(/\t/, $header);
+    
+    my @x = split(/\t/, $line);
+    unless (scalar(@x) == scalar(@header_comps) + 1) {
+        die "Error, top lines of result file: $result_file do not meet expectations for the R data.frame ";
+    }
+    my $sampleA = $x[1];
+    my $sampleB = $x[2];
+
+    return($sampleA, $sampleB);
+}
+

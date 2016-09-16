@@ -390,7 +390,7 @@ sub parse_result_files_find_diffExp {
         if ($examine_GO_enrichment_flag) {
             
             my $background_file = $result_file;
-            $background_file =~ s/\.DE_results$/\.count_matrix/ or die "Error, cannot modify $results_file to count_matrix name";
+            $background_file =~ s/\.DE_results$/\.count_matrix/ or die "Error, cannot modify $result_file to count_matrix name";
 
             my $cmd = "$FindBin::RealBin/run_GOseq.pl --GO_assignments $GO_annots_file "
                 . " --lengths $gene_lengths_file --genes_single_factor $condA_up_subset_file"

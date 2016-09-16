@@ -389,10 +389,19 @@ sub parse_result_files_find_diffExp {
         ## do GO enrichment analysis
         if ($examine_GO_enrichment_flag) {
             
-            my $cmd = "$FindBin::RealBin/run_GOseq.pl --GO_assignments $GO_annots_file --lengths $gene_lengths_file --genes_single_factor $condA_up_subset_file";
+            my $background_file = $result_file;
+            $background_file =~ s/\.DE_results$/\.count_matrix/ or die "Error, cannot modify $results_file to count_matrix name";
+
+            my $cmd = "$FindBin::RealBin/run_GOseq.pl --GO_assignments $GO_annots_file "
+                . " --lengths $gene_lengths_file --genes_single_factor $condA_up_subset_file"
+                . " --background $background_file ";
+            
             &process_cmd($cmd) if $countA;
 
-            $cmd = "$FindBin::RealBin/run_GOseq.pl --GO_assignments $GO_annots_file --lengths $gene_lengths_file --genes_single_factor $condB_up_subset_file";
+            $cmd = "$FindBin::RealBin/run_GOseq.pl --GO_assignments $GO_annots_file "
+                . " --lengths $gene_lengths_file --genes_single_factor $condB_up_subset_file"
+                . " --background $background_file ";
+            
             &process_cmd($cmd) if $countB;
             
         }

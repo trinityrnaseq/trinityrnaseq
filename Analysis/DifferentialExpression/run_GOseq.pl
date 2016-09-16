@@ -15,10 +15,13 @@ my $usage = <<__EOUSAGE__;
 #
 #  --GO_assignments <string>        extracted GO assignments with format: feature_id <tab> GO:000001,GO:00002,...
 #
-#  --lengths <string>               feature lengths with format:  feature_id <tab> length
+#  --lengths <string>               feature lengths file with format:  feature_id <tab> length
+#
+#  --background <string>            gene ids file that defines the full population of genes to consider in testing.
+#                                   Ideally, these represent the genes that are expressed and relevant to this test
+#                                   as opposed to using all genes in the genome.
 #
 ###############################################################################################
-
 
 
 
@@ -28,14 +31,14 @@ __EOUSAGE__
 
 
 my ($factor_labeling, $GO_file, $help_flag, $lengths_file, $genes_single_factor_file);
-
+my $background_file;
 
 &GetOptions("factor_labeling=s" => \$factor_labeling,
             "GO_assignments=s" => \$GO_file,
             "lengths=s" => \$lengths_file,
             
             "genes_single_factor=s" => \$genes_single_factor_file,
-
+            "background=s" => \$background_file,
             "help|h" => \$help_flag,
 
     );
@@ -46,7 +49,7 @@ if ($help_flag) {
 }
 
 
-unless (($factor_labeling || $genes_single_factor_file) && $GO_file && $lengths_file) {
+unless (($factor_labeling || $genes_single_factor_file) && $GO_file && $lengths_file && $background_file) {
     die $usage;
 }
 
@@ -74,11 +77,17 @@ main: {
     
     print $ofh "colnames(factor_labeling) = c('type')\n";
     print $ofh "factor_list = unique(factor_labeling[,1])\n";
-
+    print $ofh "DE_genes = rownames(factor_labeling)\n";
+    
 
     print $ofh "\n\n# get gene lengths\n";
     print $ofh "gene_lengths = read.table(\"$lengths_file\", header=T, row.names=1)\n";
     print $ofh "gene_lengths = as.matrix(gene_lengths[,1,drop=F])\n";
+
+    print $ofh "\n\n# get background gene list\n";
+    print $ofh "background = read.table(\"$background_file\", header=T, row.names=1)\n";
+    print $ofh "background.gene_ids = rownames(background)\n";
+    print $ofh "background.gene_ids = unique(c(background.gene_ids, DE_genes))\n"; 
 
     print $ofh "\n\n# parse GO assignments\n";
     print $ofh "GO_info = read.table(\"$GO_file\", header=F, row.names=1,stringsAsFactors=F)\n";
@@ -96,10 +105,12 @@ main: {
     
     print $ofh "\n\n# GO-Seq protocol: build pwf based on ALL DE features\n";
     
-    print $ofh "sample_set_gene_ids = rownames(gene_lengths)\n";
+    
+
+    print $ofh "sample_set_gene_ids = background.gene_ids\n";
     print $ofh "sample_set_gene_lengths = gene_lengths[sample_set_gene_ids,]\n";
-
-
+    print $ofh "GO_info_listed = GO_info_listed[ names(GO_info_listed) %in% sample_set_gene_ids ]\n";
+    
     print $ofh "cat_genes_vec = as.integer(sample_set_gene_ids %in% rownames(factor_labeling))\n";
     
     print $ofh "pwf=nullp(cat_genes_vec, bias.data=sample_set_gene_lengths)\n";
@@ -111,8 +122,8 @@ main: {
     print $ofh "   message('Processing category: ', feature_cat)\n";
     print $ofh "    cat_genes_vec = as.integer(sample_set_gene_ids %in% rownames(factor_labeling)[factor_labeling\$type == feature_cat])\n";
     print $ofh "    pwf\$DEgenes = cat_genes_vec\n";
-    print $ofh "    res = goseq(pwf,gene2cat=GO_info_listed)\n";
-
+    print $ofh "    res = goseq(pwf,gene2cat=GO_info_listed, use_genes_without_cat=TRUE)\n";
+    
     ## Process the over-represented    
     print $ofh "    ## over-represented categories:\n";
     print $ofh "     pvals = res\$over_represented_pvalue\n";

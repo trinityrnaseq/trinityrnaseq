@@ -19,6 +19,7 @@ my @files_to_keep = qw (
                         ds_induced_vs_log.factors
                         hs_induced_vs_log.factors
                         runMe.sh
+                        Trinity.background
                         );
 
 

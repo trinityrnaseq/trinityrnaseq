@@ -315,10 +315,7 @@ sub parse_result_files_find_diffExp {
 
         my $header = <$fh>;
         chomp $header;
-        unless ($header =~ /^id\t/) {
-            print $condA_up_ofh "id\t";
-            print $condB_up_ofh "id\t";
-        }
+        
         print $condA_up_ofh "$header\t$fpkm_matrix_header\n";
         print $condB_up_ofh "$header\t$fpkm_matrix_header\n";
 

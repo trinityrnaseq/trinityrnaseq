@@ -1,0 +1,43 @@
+#!/usr/bin/env Rscript
+
+
+validate_UP_subset <- function(filename) {
+
+	data <- read.table(filename)
+    sampleA <- data[['sampleA']][1]
+    sampleB <- data[['sampleB']][1]
+
+	sampleA_idx <- grep(sampleA, colnames(data))
+    sampleB_idx <- grep(sampleB, colnames(data))
+
+	sampleA_mean <- apply(data, 1, function(x) mean(as.numeric(x[sampleA_idx])))
+    sampleB_mean <- apply(data, 1, function(x) mean(as.numeric(x[sampleB_idx])))
+
+	sum(sampleA_mean/sampleB_mean < 0)
+    
+
+}
+
+
+
+files <- dir(pattern="*-UP.subset")
+
+
+
+errflag <- 0
+
+for (file in files) {
+
+	num_discordant <- validate_UP_subset(file)
+
+	if (num_discordant > 0) {
+    	errflag <- 1
+        warning("File: (", file, ") has ", num_discordant, " discordant features")
+    }
+    else {
+    	message("File: (", file, ") passes test.")
+    }
+}
+
+quit("no", errflag)
+

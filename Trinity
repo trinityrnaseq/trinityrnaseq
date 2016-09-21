@@ -32,8 +32,6 @@ use HPC::GridRunner;
 open (STDERR, ">&STDOUT");  ## capturing stderr and stdout in a single stdout stream
 
 
-
-
 #directory defnintions
 my $ROOTDIR = "$FindBin::RealBin";
 my $UTILDIR = "$ROOTDIR/util";
@@ -52,6 +50,9 @@ $ENV{PATH} = "$ROOTDIR/trinity-plugins/BIN:$ENV{PATH}";
 
 
 # Site specific setup
+
+my $USE_PERL_SCAFFOLDER = 0;  # for testing purposes in chrysalis stage
+
 
 my $KMER_SIZE = 25;
 my $MAX_KMER_SIZE = 32;
@@ -197,7 +198,8 @@ my $RUN_TRIMMOMATIC_FLAG = 0;
 my $trimmomatic_quality_trim_params = "ILLUMINACLIP:$TRIMMOMATIC_DIR/adapters/TruSeq3-PE.fa:2:30:10 SLIDINGWINDOW:4:5 LEADING:5 TRAILING:5 MINLEN:25";
 
 ## Normalize reads
-my $NORMALIZE_READS_FLAG = 0;
+my $NORMALIZE_READS_FLAG = 1; ## now on by default!
+my $NO_NORMALIZE_READS_FLAG = 0; ## set to trun off normalization 
 my $normalize_max_read_cov = 50;
 my $NORMALIZE_BY_READ_SET = 0; 
 
@@ -268,8 +270,9 @@ my $basic_usage = qq^
 #                                        see '--quality_trimming_params' under full usage info for tailored settings.
 #                                  
 #
-#  --normalize_reads               :run in silico normalization of reads. Defaults to max. read coverage of $normalize_max_read_cov.
+#  --no_normalize_reads            :Do *not* run in silico normalization of reads. Defaults to max. read coverage of $normalize_max_read_cov.
 #                                       see '--normalize_max_read_cov' under full usage info for tailored settings.
+#                                       (note, as of Sept 21, 2016, normalization is on by default)
 #     
 #  --no_distributed_trinity_exec   :do not run Trinity phase 2 (assembly of partitioned reads), and stop after generating command list.
 #
@@ -602,7 +605,8 @@ my $NO_VERSION_CHECK = 0;
              'quality_trimming_params=s' => \$trimmomatic_quality_trim_params,
              
     # In silico read normalization
-             'normalize_reads' => \$NORMALIZE_READS_FLAG,
+             'normalize_reads' => \$NORMALIZE_READS_FLAG,  ## left here for backwards compatibility, set to 1 by default so a noop on setting.
+             'no_normalize_reads' => \$NO_NORMALIZE_READS_FLAG,  ## new setting to turn it off.
              'normalize_max_read_cov=i' => \$normalize_max_read_cov,
              'normalize_by_read_set' =>  \$NORMALIZE_BY_READ_SET,
              
@@ -724,6 +728,7 @@ KMER_SIZE
 trimmomatic
 quality_trimming_params
 normalize_reads
+no_normalize_reads
 normalize_max_read_cov
 normalize_by_read_set
 group_pairs_distance
@@ -895,6 +900,11 @@ my $USE_FASTOOL = 1; # by default, using fastool for fastq to fasta conversion
 if ($NO_FASTOOL) {
     $USE_FASTOOL = 0;
 }
+
+if ($NO_NORMALIZE_READS_FLAG) {
+    $NORMALIZE_READS_FLAG = 0;
+}
+
 
 if ($SS_lib_type) {
     unless ($SS_lib_type =~ /^(R|F|RF|FR)$/) {
@@ -1661,8 +1671,6 @@ sub run_chrysalis {
             $ENV{'LD_LIBRARY_PATH'} .= ":$ROOTDIR/trinity-plugins/htslib";
             my $iworm_scaffolds_file = "$chrysalis_output_dir/iworm_scaffolds.txt";
 
-            # //FIXME: switch back to C++ version after testing.
-            my $USE_PERL_SCAFFOLDER = 1;
             if ($USE_PERL_SCAFFOLDER) {
                 $cmd = "$ROOTDIR/util/support_scripts/scaffold_iworm_contigs.pl $bowtie_sam_file $inchworm_file > $iworm_scaffolds_file";
             }
@@ -2968,7 +2976,7 @@ sub write_trinity_partitioned_cmds {
     }
     
     $cmd .= " --seqType fa --trinity_complete";
- 
+    
     if ($NO_CLEANUP) {
         $cmd .= " --no_cleanup ";
     }

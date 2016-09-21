@@ -588,6 +588,7 @@ sub run_limma_voom_sample_pair {
     print $ofh "# output results, including average expression val for each feature\n";
     print $ofh "c = cpm(x)\n";
     print $ofh "m = apply(c, 1, mean)\n";
+    print $ofh "tTags\$logFC = -1 * tTags\$logFC  # make A/B instead of B/A\n";
     print $ofh "tTags2 = cbind(tTags, logCPM=log2(m[rownames(tTags)]))\n";
     print $ofh "DE_matrix = data.frame(sampleA=\"$sample_A\", sampleB=\"$sample_B\", logFC=tTags\$logFC, logCPM=tTags2\$logCPM, PValue=tTags\$'P.Value', FDR=tTags\$'adj.P.Val')\n";
     print $ofh "rownames(DE_matrix) = rownames(tTags)\n";

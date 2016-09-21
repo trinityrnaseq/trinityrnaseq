@@ -1,0 +1,73 @@
+#!/usr/bin/env Rscript
+
+args<-commandArgs(TRUE)
+
+if (length(args) == 0) {
+   stop("usage: validate_UP_subset.Rscript samples.txt");
+}
+
+samples_txt_file <- args[1]
+
+
+validate_UP_subset <- function(filename, samples_list) {
+	
+	cat("validating: ", filename, "\n")
+	
+	data <- read.table(filename, header=T, stringsAsFactors=F)
+	
+	if (nrow(data) == 0) {
+		message("no DE entries reported here.")
+		return(0)
+    }
+	
+
+    sampleA <- data[['sampleA']][1]
+    sampleB <- data[['sampleB']][1]
+
+	sampleA_rep_names <- samples_list[[sampleA]][['replicate']]
+	sampleB_rep_names <- samples_list[[sampleB]][['replicate']]
+
+	sampleA_idx <- which(colnames(data) %in% sampleA_rep_names)
+    sampleB_idx <- which(colnames(data) %in% sampleB_rep_names)
+
+	sampleA_mean <- apply(data, 1, function(x) mean(as.numeric(x[sampleA_idx])))
+    sampleB_mean <- apply(data, 1, function(x) mean(as.numeric(x[sampleB_idx])))
+
+	cat("sampleA_mean: ", sampleA_mean, "\n") 
+    cat("sampleB_mean: ", sampleB_mean, "\n")
+	
+	num_discordant <- sum(sampleA_mean/sampleB_mean < 0)
+   	cat("num discordant: ", num_discordant, "\n")
+
+	return(num_discordant)
+
+}
+
+
+
+samples_info <- read.table(samples_txt_file, stringsAsFactors=F)
+colnames(samples_info) <- c('sample', 'replicate')
+samples_list <- split(samples_info, samples_info$sample)
+
+
+files <- dir(pattern="*-UP.subset$")
+
+
+
+errflag <- 0
+
+for (file in files) {
+
+	num_discordant <- validate_UP_subset(file, samples_list)
+
+	if (num_discordant > 0) {
+    	errflag <- 1
+        warning("File: (", file, ") has ", num_discordant, " discordant features")
+    }
+    else {
+    	message("File: (", file, ") passes test.")
+    }
+}
+
+quit("no", errflag)
+

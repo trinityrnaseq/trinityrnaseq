@@ -1668,7 +1668,7 @@ sub run_chrysalis {
             	$cmd = "bash -c \" set -o pipefail;bowtie2 --local -a --threads $CPU -f $iworm_min100_fa_file $bowtie_reads_fa  | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort -m $samtools_max_memory $PARALLEL_SAMTOOLS_SORT_TOKEN -no - - > $bowtie_sam_file\" ";  
             }
             else{
-            	$cmd = "bash -c \" set -o pipefail; bowtie -a -m 20 --best --strata --threads $CPU  --chunkmbs 512 -q -S -f $iworm_min100_fa_file $bowtie_reads_fa  | samtools view - $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb | samtools sort - -m $samtools_max_memory $PARALLEL_SAMTOOLS_SORT_TOKEN -no - > $bowtie_sam_file\" ";
+            	$cmd = "bash -c \" set -o pipefail; bowtie -a -m 20 --best --strata --threads $CPU  --chunkmbs 512 -q -S -f $iworm_min100_fa_file $bowtie_reads_fa  | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort - -m $samtools_max_memory $PARALLEL_SAMTOOLS_SORT_TOKEN -no - > $bowtie_sam_file\" ";
             }            
             
             $pipeliner->add_commands( new Command($cmd, "$bowtie_sam_file.ok"));

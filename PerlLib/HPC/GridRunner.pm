@@ -12,6 +12,7 @@ use HPC::LSF_handler;
 use HPC::SGE_handler;
 use HPC::SLURM_handler;
 use HPC::PBS_handler;
+use HPC::PBSPro_handler;
 
 BEGIN {
 
@@ -71,7 +72,7 @@ sub new {
     print STDERR Dumper(\%config);
 
     my $grid_type = $config{grid} or confess "Error, grid type not specified in config file: $config_file";
-    unless ($grid_type =~ /^(LSF|SGE|SLURM|PBS)$/) {
+    unless ($grid_type =~ /^(LSF|SGE|SLURM|PBS|PBSPro)$/) {
         confess "Error, grid type: $grid_type is not currently supported";
     }
     
@@ -87,6 +88,9 @@ sub new {
     }
     elsif ($grid_type eq "PBS") {
         $handler = HPC::PBS_handler->new(\%config);
+    }
+    elsif ($grid_type eq "PBSPro") {
+        $handler = HPC::PBSPro_handler->new(\%config);
     }
     else {
         confess "Error, grid type: $grid_type is not supported";

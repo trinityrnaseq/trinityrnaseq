@@ -1282,7 +1282,7 @@ main: {
         }
         
         if ($MKDIR_OUTDIR_FLAG && basename($output_directory) =~ /trinity/i) { # ensure outdirectory as trinity in the name, just to be sure we dont delete something non-trinity related!!!
-            system("rm -rf $output_directory &"); # ignore filesystem errors on failed cleanup
+            system("rm -rf $output_directory");
         }
         else {
             print STDERR "WARNING, cannot remove output directory $output_directory, since not created in this run. (safety precaution)\n";
@@ -1663,11 +1663,16 @@ sub run_chrysalis {
 
             my $bowtie_sam_file = "$chrysalis_output_dir/iworm.bowtie.nameSorted.bam";
             my $samtools_max_memory = int($jellyfish_ram/($CPU*2));
+<<<<<<< HEAD
             if ($USE_BOWTIE2){
             	$cmd = "bash -c \" set -o pipefail;bowtie2 --local -a --threads $CPU -f $iworm_min100_fa_file $bowtie_reads_fa  | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort -m $samtools_max_memory $PARALLEL_SAMTOOLS_SORT_TOKEN -no - - > $bowtie_sam_file\" ";  
+=======
+            if ($long_reads){
+            	$cmd = "bash -c \" set -o pipefail;bowtie2 --local -a --threads $CPU -f $iworm_min100_fa_file $bowtie_reads_fa  | samtools view - $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb | samtools sort - -m $samtools_max_memory $PARALLEL_SAMTOOLS_SORT_TOKEN -no - > $bowtie_sam_file\" ";  # the '-' as the standard input (stdin) in origin perl program cannot work well in CentOS
+>>>>>>> 5cc19070ceb461af107de79d568aed0b0e24d580
             }
             else{
-            	$cmd = "bash -c \" set -o pipefail; bowtie -a -m 20 --best --strata --threads $CPU  --chunkmbs 512 -q -S -f $iworm_min100_fa_file $bowtie_reads_fa  | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort -m $samtools_max_memory $PARALLEL_SAMTOOLS_SORT_TOKEN -no - - > $bowtie_sam_file\" ";
+            	$cmd = "bash -c \" set -o pipefail; bowtie -a -m 20 --best --strata --threads $CPU  --chunkmbs 512 -q -S -f $iworm_min100_fa_file $bowtie_reads_fa  | samtools view - $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb | samtools sort - -m $samtools_max_memory $PARALLEL_SAMTOOLS_SORT_TOKEN -no - > $bowtie_sam_file\" ";
             }            
             
             $pipeliner->add_commands( new Command($cmd, "$bowtie_sam_file.ok"));

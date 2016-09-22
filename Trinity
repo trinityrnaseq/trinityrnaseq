@@ -198,9 +198,10 @@ my $RUN_TRIMMOMATIC_FLAG = 0;
 my $trimmomatic_quality_trim_params = "ILLUMINACLIP:$TRIMMOMATIC_DIR/adapters/TruSeq3-PE.fa:2:30:10 SLIDINGWINDOW:4:5 LEADING:5 TRAILING:5 MINLEN:25";
 
 ## Normalize reads
-my $NORMALIZE_READS_FLAG = 1; ## now on by default!
-my $NO_NORMALIZE_READS_FLAG = 0; ## set to trun off normalization 
+my $NORMALIZE_READS_FLAG = 0; ## now on by default, unless told not to via --no_normalize_reads!  See below for logic.
+my $NO_NORMALIZE_READS_FLAG = 0; ## set to turn off normalization (will be turned on if trinity_complete_flag and ! --normalize_reads set. 
 my $normalize_max_read_cov = 50;
+my $normalize_max_pct_stdev = 10000; # effectively turn it off for this application.
 my $NORMALIZE_BY_READ_SET = 0; 
 
 
@@ -861,7 +862,12 @@ if ($TRINITY_COMPLETE_FLAG) {
     #$GRAPH_FROM_FASTA_KK = 26;
 
     $glue_factor = 0.03;
-    
+
+
+    unless ($NORMALIZE_READS_FLAG) {
+        ## do not normalize by default when in trinity-complete mode. Normalizion should have been done earlier.
+        $NO_NORMALIZE_READS_FLAG = 1;
+    }
 
 }
 
@@ -901,8 +907,8 @@ if ($NO_FASTOOL) {
     $USE_FASTOOL = 0;
 }
 
-if ($NO_NORMALIZE_READS_FLAG) {
-    $NORMALIZE_READS_FLAG = 0;
+unless ($NO_NORMALIZE_READS_FLAG) {
+    $NORMALIZE_READS_FLAG = 1;
 }
 
 
@@ -1587,6 +1593,13 @@ sub run_chrysalis {
     my ($inchworm_file, $reads_file,
         $min_contig_length, $group_pairs_distance, $SS_lib_type, $pairs_fa, $bowtie_reads_fa) = @_;
     
+
+
+    print STDERR "--------------------------------------------------------\n"
+               . "-------------------- Chrysalis -------------------------\n"
+               . "-- (Contig Clustering & de Bruijn Graph Construction) --\n"
+               . "--------------------------------------------------------\n\n" if (! $TRINITY_COMPLETE_FLAG);
+
     
     my $butterfly_cmds = &create_full_path("$chrysalis_output_dir/butterfly_commands");
     
@@ -2796,7 +2809,7 @@ sub normalize {
     
 
     my $cmd = "$UTILDIR/insilico_read_normalization.pl --seqType $seqType --JM $max_memory "
-        . " --max_cov $max_read_coverage --CPU $CPU --output $normalize_outdir";
+        . " --max_cov $max_read_coverage --CPU $CPU --output $normalize_outdir   --max_pct_stdev $normalize_max_pct_stdev ";
     
     if ($SS_lib_type) {
         $cmd .= " --SS_lib_type $SS_lib_type ";

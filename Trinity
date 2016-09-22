@@ -26,6 +26,7 @@ BEGIN {
 
 }
 
+use lib "$FindBin::RealBin/HpcGridRunner/PerlLib";
 use HPC::GridRunner;
 
 

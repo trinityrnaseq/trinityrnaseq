@@ -8,7 +8,7 @@ test: test_assembly test_bowtie_PE_read_estimates
 
 test_assembly:
 	./runMe.sh
-	./misc_run_tests/__test_runMe_include_normalization.sh
+	./misc_run_tests/__test_runMe_NO_normalization.sh
 	./misc_run_tests/__runMe_with_qual_trimming.sh
 	./misc_run_tests/__runMe_with_qual_trimming_and_normalization.sh
 	./misc_run_tests/__test_runMe_with_jaccard_clip.sh

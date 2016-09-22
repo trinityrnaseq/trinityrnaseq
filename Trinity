@@ -332,16 +332,8 @@ my $full_usage = qq^
 #                                   (see butterfly options: java -jar Butterfly.jar ).
 #                                   (note: only for expert or experimental use.  Commonly used parameters are exposed through this Trinity menu here).
 #
-#    //////////////////////////////////
-#    Alternative reconstruction modes:
-#                                  Default mode is the 'regular' Butterfly transcript reconstruction by graph node extension.
 #
-#       --PasaFly                  PASA-like algorithm for maximally-supported isoforms 
-#           or
-#       --CuffFly                  Cufflinks-like algorithm to report minimum transcripts
-#
-#
-#  Butterfly read-pair grouping settings (used for all reconstruction modes to define 'pair paths'):
+#  Butterfly read-pair grouping settings (used to define 'pair paths'):
 #
 #  --group_pairs_distance <int>    :maximum length expected between fragment pairs (default: $group_pairs_distance)
 #                                   (reads outside this distance are treated as single-end)

@@ -1,6 +1,4 @@
 [submodule "trinityrnaseq.wiki"]
 	path = trinityrnaseq.wiki
 	url = https://github.com/trinityrnaseq/trinityrnaseq.wiki.git
-[submodule "HpcGridRunner"]
-	path = HpcGridRunner
-	url = https://github.com/HpcGridRunner/HpcGridRunner.git
+

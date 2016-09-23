@@ -902,6 +902,11 @@ main: {
     
     if ($sample_cor_matrix_flag || $heatmap_flag || $sample_cor_subset_matrix) {
 
+        # require that we have at least two rows and two columns
+        $Rscript .= "if (nrow(data) < 2) { stop(\"\n\n**** Sorry, at least two rows are required for this matrix.\n\n\");}\n";
+        $Rscript .= "if (ncol(data) < 2) { stop(\"\n\n**** Sorry, at least two columns are required for this matrix.\n\n\");}\n";
+        
+        
         if ($sample_cor_matrix_flag || $sample_cor_subset_matrix || $sample_dist =~ /sample_cor/) {
 
             $Rscript .= "sample_cor = cor(data, method=\'$sample_cor\', use='pairwise.complete.obs')\n";

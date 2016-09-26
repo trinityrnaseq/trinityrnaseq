@@ -26,10 +26,6 @@ BEGIN {
 
 }
 
-use lib "$FindBin::RealBin/HpcGridRunner/PerlLib";
-use HPC::GridRunner;
-
-
 open (STDERR, ">&STDOUT");  ## capturing stderr and stdout in a single stdout stream
 
 
@@ -154,7 +150,7 @@ my $max_memory;
 
 
 ## Grid computing options:
-my $grid_conf_file;
+my $grid_exec_toolname = "";
 
 ## Performance monitoring options 
 my $pm_logfile = "Trinity.timing";
@@ -205,9 +201,9 @@ my $normalize_max_read_cov = 50;
 my $normalize_max_pct_stdev = 10000; # effectively turn it off for this application.
 my $NORMALIZE_BY_READ_SET = 0; 
 
-
 my $grid_node_CPU = 1;
 my $grid_node_max_memory = "1G";
+
 
 # Note: For the Trinity logo below the backslashes are quoted in order to keep
 #   them from quoting the character than follows them.  "\\" keeps "\ " from occuring.
@@ -414,17 +410,22 @@ my $full_usage = qq^
 # --genome_guided_min_reads_per_partition <int>   :default min of 10 reads per partition
 #
 #
-#################################
-# Grid-computing options: #######
+#######################################################################
+# Trinity phase 2 (parallel assembly of read clusters) Options: #######
 #
-#  --grid_conf <string>                 :configuration file for supported compute farms
-#                                       ex.  TRINITY_HOME/htc_conf/BroadInst_LSF.conf
-#                                       currently supported computing gris: LSF, SGE
+#  --grid_exec <string>                 :your command-line utility for submitting jobs to the grid.
+#                                        This should be a command line tool that accepts a single parameter:
+#                                        \${your_submission_tool} /path/to/file/containing/commands.txt
+#                                        and this submission tool should exit(0) upon successful 
+#                                        completion of all commands.
 #
 #  --grid_node_CPU <int>                number of threads for each parallel process to leverage. (default: $grid_node_CPU)
 #
 #  --grid_node_max_memory <string>         max memory targeted for each grid node. (default: $grid_node_max_memory)
 #
+#            The --grid_node_CPU and --grid_node_max_memory are applied as 
+#              the --CPU and --max_memory parameters for the Trinity jobs run in 
+#              Trinity Phase 2 (assemlby of read clusters)
 #
     ^;
 
@@ -650,13 +651,15 @@ my $NO_VERSION_CHECK = 0;
     "bowtie_components" => \$BOWTIE_COMP,
     "no_run_chrysalis" => \$NO_RUN_CHRYSALIS_FLAG,
     "use_bowtie2" => \$USE_BOWTIE2,
+
+    "show_advanced_options" => \$show_advanced_options,
     
     # Grid computing options
-    'grid_conf=s' => \$grid_conf_file,         
-             
-    "show_advanced_options" => \$show_advanced_options,
+    'grid_exec=s' => \$grid_exec_toolname,         
 
-             
+    "grid_node_CPU=i" => $grid_node_CPU,
+    "grid_node_max_memory=s" => $grid_node_max_memory,
+                 
     # misc
     'run_as_paired' => \$run_as_paired_flag,
     'no_fastool' => \$NO_FASTOOL,
@@ -683,9 +686,6 @@ my $NO_VERSION_CHECK = 0;
     "genome_guided_just_prep" => \$genome_guided_just_prep_flag,
 
     "trinity_complete" => \$TRINITY_COMPLETE_FLAG,
-    
-    "grid_node_CPU=i" => \$grid_node_CPU,
-    "grid_node_max_memory=s" => \$grid_node_max_memory,
     
     "bypass_java_version_check" => \$bypass_java_version_check,
     
@@ -759,7 +759,7 @@ weldmer_size
 no_bowtie
 bowtie_comp
 no_run_chrysalis
-grid_conf
+grid_exec
 show_advanced_options
 run_as_paired
 no_fastool
@@ -778,8 +778,6 @@ genome_guided_min_coverage
 genome_guided_min_reads_per_partition
 genome_guided_just_prep
 trinity_complete
-grid_node_CPU
-grid_node_max_memory
 bypass_java_version_check
 ananas_dir
 
@@ -1088,13 +1086,6 @@ unless (basename($output_directory) =~ /trinity/i) {
 }
 
 
-if ($grid_conf_file) {
-    # Prep for HPC parafly use.
-    $ENV{PATH} = dirname($PARAFLY) . ":$ENV{PATH}";
-    &HPC::GridRunner::use_parafly();
-}
-
-
 main: {
     $ENV{OMP_NUM_THREADS} = $CPU;
 
@@ -1159,8 +1150,6 @@ main: {
     }
     
     $genome_guided_bam = &create_full_path($genome_guided_bam, 1) if $genome_guided_bam;
-    
-    $grid_conf_file = &create_full_path($grid_conf_file, 1) if $grid_conf_file;
     
     unless (-d $output_directory) {
         
@@ -2946,22 +2935,18 @@ sub run_partitioned_cmds {
     }
 
     ## Execute the commands:
-    if ($grid_conf_file) {
-        my @cmds = `cat $cmds_file`;
-        chomp @cmds;
+    if ($grid_exec_toolname) {
         
-        my $grid_runner = new HPC::GridRunner($grid_conf_file, "$cmds_file.htc_cache_success");
-        my $ret = $grid_runner->run_on_grid(@cmds);
-        if ($ret) {
-            die "Error, not all $cmds_file commands completed successfully.  Cannot continue.";
-        }
+        print STDERR "\n\n\t*** Dispatching parallel commands to the compute farm:\n";
+        my $cmd = "$grid_exec_toolname $cmds_file";
+        &process_cmd($cmd);
         
     }
     else {
         my $cmd = "$PARAFLY -c $cmds_file -CPU $CPU -v ";
         &process_cmd($cmd);
     }
-
+    
     return;
 }
 

@@ -31,6 +31,11 @@ my @files_to_keep = qw (cleanme.pl
                         __test_runMe_with_SE_reads.sh
 
    runRecTrinity.sh
+
+
+reads.left.fa.gz
+reads.right.fa.gz
+
                         );
 
 

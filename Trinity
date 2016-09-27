@@ -2299,7 +2299,7 @@ sub create_full_path {
 sub process_cmd {
     my ($cmd) = @_;
 
-    print STDERR &mytime."CMD: $cmd\n" unless ($TRINITY_COMPLETE_FLAG);
+    print STDERR &mytime."CMD: $cmd\n" if ($VERBOSE || ! $TRINITY_COMPLETE_FLAG);
     
     my $start_time = time();
     my $ret = system("bash", "-c", $cmd);

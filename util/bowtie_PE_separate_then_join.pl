@@ -247,7 +247,7 @@ main: {
     my $index_ext = ($aligner eq 'bowtie') ? "ebwt" : "bt2";
         
     my @bowtie_build_files = <$target_db.*.$index_ext>;
-    print Dumper(\@bowtie_build_files);
+    print STDERR "Found bowtie build files: " . Dumper(\@bowtie_build_files) if @bowtie_build_files;
     unless (@bowtie_build_files) {
         
         print STDERR "Note - bowtie-build indices do not yet exist. Indexing genome now.\n";
@@ -272,6 +272,14 @@ main: {
         unlink($start_index_file);
         
         chdir($curr_dir) or die "Error, cannot cd back to $curr_dir";
+    
+        @bowtie_build_files = <$target_db.*.$index_ext>;
+        if (@bowtie_build_files) {
+            print STDERR "Now have bowtie build files: " . Dumper(\@bowtie_build_files);
+        }
+        else {
+            confess "Error, not finding bowtie build files after having supposedly built them";
+        }
     }
     
     if ($JUST_PREP_BUILD) {
@@ -291,7 +299,7 @@ main: {
     
     chdir $work_dir or die "Error, cannot cd to $work_dir";
     
-    unless (-s "target.fa") {
+    unless (-s "target.1.ebwt") {
         
         # prep the target here for converting sam to bam later.
         
@@ -308,10 +316,6 @@ main: {
         &process_cmd($cmd);
         
             
-        @bowtie_build_files = <$target_db.*.$index_ext>;
-        
-        print Dumper(\@bowtie_build_files);
-        
         ## reuse them, but name them target.fa
         foreach my $file (@bowtie_build_files) {
             if ($file =~ /offrate|TRANS/) { next; } # ignore the offrate-1 index
@@ -372,7 +376,7 @@ main: {
             chdir ($target_dir) or die "Error, cannot cd to $target_dir";
             
             my $cmd = "ln -sf ../target.* .";
-            &process_cmd($cmd) unless (-e "target.fa");
+            &process_cmd($cmd);
             
             
             ## processes below ultimately end up generating $target.nameSorted.sam

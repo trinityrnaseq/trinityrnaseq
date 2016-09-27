@@ -479,7 +479,7 @@ sub build_selected_index {
         $index{$line} = 0;
     }
     
-    return \%index;
+    return (%index);
 }
 
 
@@ -491,7 +491,9 @@ sub make_normalized_reads_file {
 
     my @source_files = @$source_files_aref;
     
-    my $idx = build_selected_index( $selected_entries );
+    my %idx = &build_selected_index( $selected_entries );
+
+    #print STDERR Dumper(\%idx);
     
     for my $orig_file ( @source_files ) {
         my $reader;
@@ -508,17 +510,24 @@ sub make_normalized_reads_file {
         
             if ($seqType eq 'fq') {
                 $acc = $seq_obj->get_core_read_name();
-            } elsif ($seqType eq 'fa') {
+            } 
+            elsif ($seqType eq 'fa') {
                 $acc = $seq_obj->get_accession();
-                $acc =~ s|/[12]$||;
+                $acc =~ s|/[12]\s*$||;
             }
             
-            if ( exists $$idx{$acc} ) {
-                $$idx{$acc}++;
+            #print STDERR "parsed acc: [$acc]\n";
+            
+            if ( exists $idx{$acc} ) {
+                $idx{$acc}++;
                 my $record = '';
                 
-                if    ($seqType eq 'fq') { $record = $seq_obj->get_fastq_record() } 
-                elsif ($seqType eq 'fa') { $record = $seq_obj->get_FASTA_format(fasta_line_len => -1) }
+                if ($seqType eq 'fq') { 
+                    $record = $seq_obj->get_fastq_record();
+                } 
+                elsif ($seqType eq 'fa') { 
+                    $record = $seq_obj->get_FASTA_format(fasta_line_len => -1);
+                }
                 
                 print $ofh $record;
             }
@@ -526,13 +535,26 @@ sub make_normalized_reads_file {
     }
     
     ## check and make sure they were all found
-    my $not_found_count = 0;
-    for my $k ( keys %$idx ) {
-        $not_found_count++ if $$idx{$k} == 0;
+    my %missing;
+    for my $k ( keys %idx ) {
+        if ($idx{$k} == 0) {
+
+        
+            $missing{$k} =1 ;
+        }
+        
     }
+    close $ofh;
+
+    my $not_found_count = scalar(keys %missing);
     
     if ( $not_found_count ) {
-        die "Error, not all specified records have been retrieved (missing $not_found_count) from @source_files";
+        open (my $ofh, ">$outfile.missing_accs") or die "Error, cannot write to file $outfile.missing_accs";
+        print $ofh join("\n", keys %missing) . "\n";
+        close $ofh;
+
+        die "Error, not all specified records have been retrieved (missing $not_found_count) from @source_files, see file: $outfile.missing_accs for list of missing entries";
+        
     }
     
     return;
@@ -615,8 +637,11 @@ sub run_jellyfish {
 sub prep_seqs {
     my ($initial_file, $seqType, $file_prefix, $SS_lib_type) = @_;
 
-    ($initial_file) = &add_fifo_for_gzip($initial_file) if $initial_file =~ /\.gz$|\.xz$|\.bz2$/;
-    
+    my $using_FIFO_flag = 0;
+    if ($initial_file =~ /\.gz$|\.xz$|\.bz2$/) {
+        ($initial_file) = &add_fifo_for_gzip($initial_file);
+        $using_FIFO_flag = 1;
+    }
     if ($seqType eq "fq") {
         # make fasta
         
@@ -640,9 +665,17 @@ sub prep_seqs {
             &process_cmd($cmd);
         }
         else {
-            ## just symlink it here:
-            my $cmd = "ln -s $initial_file $file_prefix.fa";
-            &process_cmd($cmd) unless (-e "$file_prefix.fa");
+
+            if ($using_FIFO_flag) {
+                # can't symlink it, so just cat it
+                my $cmd = "cat $initial_file > $file_prefix.fa";
+                &process_cmd($cmd);
+            }
+            else {
+                ## just symlink it here:
+                my $cmd = "ln -s $initial_file $file_prefix.fa";
+                &process_cmd($cmd) unless (-e "$file_prefix.fa");
+            }
         }
     }
     elsif (($seqType eq "cfa") | ($seqType eq "cfq")) {

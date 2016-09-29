@@ -1,5 +1,8 @@
 #!/usr/bin/env perl
 
+# works for trinity transcripts or trinity genes, Sept 28 2016 bhaas
+
+
 # lightweight fasta reader capabilities:
 package Fasta_reader;
 
@@ -184,20 +187,33 @@ main: {
         $accs{$acc} = 1;
     }
 
+    my %seen;
     while (my $seq_obj = $fasta_reader->next()) {
 
         my $acc = $seq_obj->get_accession();
-        if ($accs{$acc}) {
+
+        my $gene_id = $acc;
+        $gene_id =~ s/_i\d+$//;
+        
+        if ($accs{$acc} || $accs{$gene_id}) {
             print $seq_obj->get_FASTA_format();
-            delete $accs{$acc};
+            $seen{$acc} = 1 if $accs{$acc};
+            $seen{$gene_id} = 1 if $accs{$gene_id};
+            
         }
     }
 
+    # remove seen entries
+    foreach my $seen_acc (keys %seen) {
+        delete $accs{$seen_acc} if exists $accs{$seen_acc};
+    }
+
+    
     if (%accs) {
         print STDERR "Error, could not locate entries for: " . join(", ", keys %accs) . "\n";
         exit(1);
     }
-
+    
     exit(0);
 }
 

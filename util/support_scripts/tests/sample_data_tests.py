@@ -35,18 +35,18 @@ class TestTrinitySampleData(unittest.TestCase):
 
     def test_DE_analysis_EdgeR(self):
         check_file = os.path.join(self.sampledata_dir, 'test_DE_analysis', 'edgeR_outdir', 'numDE_feature_counts.P0.001_C2.matrix')
-        self.assertTrue(os.path.isfile(check_file))
+        self.assertTrue(os.path.isfile(check_file), 'DE output file not created')
 
     def test_align_and_estimate_abundance(self):
         cats = ['PAIRED', 'SINGLE']
         for cat in cats:
             check_file = os.path.join(self.sampledata_dir, 'test_align_and_estimate_abundance',\
                '%s_END_ABUNDANCE_ESTIMATION' % cat, 'RSEM-gene.counts.matrix')
-            self.assertTrue(os.path.isfile(check_file))
+            self.assertTrue(os.path.isfile(check_file), 'RSEM-gene.counts.matrix not created')
 
     def test_full_edgeR_pipeline(self):
         check_file = os.path.join(self.sampledata_dir, 'test_full_edgeR_pipeline', 'read_content_analysis', 'read_content_analysis.nameSorted.bam')
-        self.assertTrue(os.path.isfile(check_file))
+        self.assertTrue(os.path.isfile(check_file), 'edgeR sorted BAM not created')
 
 
 ### Helper methods

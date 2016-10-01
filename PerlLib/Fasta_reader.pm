@@ -4,6 +4,8 @@
 package Fasta_reader;
 
 use strict;
+use warnings;
+use Carp;
 
 sub new {
     my ($packagename, $fastaFile) = @_;
@@ -23,8 +25,12 @@ sub new {
 		$filehandle = $fastaFile;
 	}
 	else {
-		
-		open ($filehandle, $fastaFile) or die "Error: Couldn't open $fastaFile\n";
+		if ($fastaFile =~ /\.gz$/) {
+            open ($filehandle, "gunzip -c $fastaFile | ") or confess "Error, cannot open file $fastaFile using 'gunzip -c'";
+        }
+        else {
+            open ($filehandle, $fastaFile) or die "Error: Couldn't open $fastaFile\n";
+        }
 		$self->{fastaFile} = $fastaFile;
 	}
 	

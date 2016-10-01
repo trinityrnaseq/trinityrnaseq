@@ -23,15 +23,14 @@ sub new {
 	else {
 		if ( $fastqFile =~ /\.gz$/ ) {
 		    open ($filehandle, "gunzip -c $fastqFile | ") or die "Error: Couldn't open compressed $fastqFile\n";
-                }
-                elsif ($fastqFile =~ /\.xz$/) {
-                    open($filehandle, "xz -c -d ${fastqFile} | ") or die "Error, couldn't open compressed $fastqFile $!";
-                }
-                elsif ($fastqFile =~ /\.bz2$/) {
-                    open ($filehandle, "bunzip2 -c $fastqFile | ") or die "Error, couldn't open compressed $fastqFile $!";
-                } else {
-                    open ($filehandle, $fastqFile) or die "Error: Couldn't open $fastqFile\n";
-                }
+        }
+        elsif ($fastqFile =~ /\.bz2$/) {
+            open ($filehandle, "bunzip2 -c $fastqFile | ") or die "Error, couldn't open compressed $fastqFile $!";
+            
+        } else {
+            open ($filehandle, $fastqFile) or die "Error: Couldn't open $fastqFile\n";
+        }
+        
 		$self->{fastqFile} = $fastqFile;
 	}
 	

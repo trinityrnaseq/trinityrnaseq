@@ -6,20 +6,21 @@ use FindBin;
 use lib ("$FindBin::Bin/../../PerlLib");
 use DelimParser;
 
-my $usage = "\n\n\tusage: $0 Trinotate_report.xls.gene_ontology DE_analysis.GOseq.enriched\n\n";
+my $usage = "\n\n\tusage: $0 Trinotate_report.xls.gene_ontology DE_analysis.GOseq.enriched DE_analysis.DE_results_at_thresholds\n\n";
 
 my $gene_ontology_assignments_file = $ARGV[0] or die $usage;
 my $enriched_file = $ARGV[1] or die $usage;
-
+my $DE_results_file = $ARGV[2] or die $usage;
 
 main: {
 
      my %enriched_GO = &parse_GO_enriched($enriched_file);
+
+     my %DE_genes = &parse_DE_genes($DE_results_file);
      
-     my %genes_with_enriched_GO = &parse_GO_assignments($gene_ontology_assignments_file, \%enriched_GO);
+     my %genes_with_enriched_GO = &parse_GO_assignments($gene_ontology_assignments_file, \%enriched_GO, \%DE_genes);
 
      my $tab_writer = new DelimParser::Writer(*STDOUT, "\t", ['Category', 'ID', 'Term', 'Genes', 'adj_pval']);
-
      
      foreach my $row (values %enriched_GO) {
 
@@ -34,11 +35,16 @@ main: {
          my $go_term_info = $row->{go_term};
          my ($go_type, $go_descr) = split(/\s+/, $go_term_info, 2);
          my $go_id = $row->{'category'};
+         my $genes = $genes_with_enriched_GO{$go_id};
          
+         unless ($genes) {
+             die "Error, no genes extracted for GO category: $go_id $go_type $go_descr ";
+         }
+                  
          $tab_writer->write_row( { 'Category' => $go_type,
                                    'ID' => $go_id,
                                    'Term' => $go_descr,
-                                   'Genes' => $genes_with_enriched_GO{$go_id},
+                                   'Genes' => $genes,
                                    'adj_pval' => $row->{over_represented_FDR},
                                  } );
          
@@ -47,6 +53,24 @@ main: {
 
      exit(0);
 }
+
+####
+sub parse_DE_genes {
+    my ($file) = @_;
+
+    my %genes;
+    
+    open (my $fh, $file) or die "Error, cannot open file $file";
+    while (<$fh>) {
+        chomp;
+        my @x = split(/\t/);
+        my $gene_id = $x[0];
+        $genes{$gene_id} = 1;
+    }
+
+    return(%genes);
+}
+
 
 ####
 sub parse_GO_enriched {
@@ -68,14 +92,21 @@ sub parse_GO_enriched {
 
 ####
 sub parse_GO_assignments {
-    my ($gene_ontology_assignment_file, $enriched_GO_href) = @_;
+    my ($gene_ontology_assignment_file, $enriched_GO_href, $DE_genes_href) = @_;
 
+    use Data::Dumper;
+    print STDERR Dumper($DE_genes_href);
+    
+    
     my %GO_to_gene_ids;
     
     open (my $fh, $gene_ontology_assignment_file) or die "Error, cannot open file $gene_ontology_assignment_file";
     while (<$fh>) {
         chomp;
         my ($gene_id, $GO_assignments) = split(/\t/);
+
+        unless (exists $DE_genes_href->{$gene_id}) { next; }
+        
         my @GO = split(/,/, $GO_assignments);
 
         foreach my $GO_id (@GO) {

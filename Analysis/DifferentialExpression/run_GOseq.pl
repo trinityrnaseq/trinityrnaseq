@@ -102,11 +102,21 @@ main: {
              . "    return(d);\n"
              . "}\n";
 
+
+    
+    print $ofh "\n\n#organize go_id -> list of genes\n";  
+    print $ofh "GO_to_gene_list = list()\n";
+    print $ofh "for (gene_id in names(GO_info_listed)) {\n";
+    print $ofh "    go_list = GO_info_listed[[gene_id]]\n";
+    print $ofh "    for (go_id in go_list) {\n";
+    print $ofh "        GO_to_gene_list[[go_id]] = c(GO_to_gene_list[[go_id]], gene_id)\n";
+    print $ofh "    }\n";
+    print $ofh "}\n";
+    
     
     print $ofh "\n\n# GO-Seq protocol: build pwf based on ALL DE features\n";
     
     
-
     print $ofh "sample_set_gene_ids = background.gene_ids\n";
     print $ofh "sample_set_gene_lengths = gene_lengths[sample_set_gene_ids,]\n";
     print $ofh "GO_info_listed = GO_info_listed[ names(GO_info_listed) %in% sample_set_gene_ids ]\n";
@@ -120,7 +130,8 @@ main: {
     print $ofh "\n\n# perform functional enrichment testing for each category.\n";
     print $ofh "for (feature_cat in factor_list) {\n";
     print $ofh "   message('Processing category: ', feature_cat)\n";
-    print $ofh "    cat_genes_vec = as.integer(sample_set_gene_ids %in% rownames(factor_labeling)[factor_labeling\$type == feature_cat])\n";
+    print $ofh "    gene_ids_in_feature_cat = rownames(factor_labeling)[factor_labeling\$type == feature_cat]\n";
+    print $ofh "    cat_genes_vec = as.integer(sample_set_gene_ids %in% gene_ids_in_feature_cat)\n";
     print $ofh "    pwf\$DEgenes = cat_genes_vec\n";
     print $ofh "    res = goseq(pwf,gene2cat=GO_info_listed, use_genes_without_cat=TRUE)\n";
     
@@ -141,6 +152,14 @@ main: {
 
     print $ofh "    descr = unlist(lapply(result_table\$category, get_GO_term_descr))\n";
     print $ofh "    result_table\$go_term = descr;\n";
+
+    print $ofh "    result_table\$gene_ids = do.call(rbind, lapply(result_table\$category, function(x) { \n" .
+               "            gene_list = GO_to_gene_list[[x]]\n" .
+               "            gene_list = gene_list[gene_list %in% rownames(factor_labeling)]\n" .
+               "            paste(gene_list, collapse=', ');\n" .
+               "     }) )\n";
+    
+
     print $ofh "    write.table(result_table[order(result_table\$over_represented_pvalue),], file=go_enrich_filename, sep='\t', quote=F, row.names=F)\n";
     
 

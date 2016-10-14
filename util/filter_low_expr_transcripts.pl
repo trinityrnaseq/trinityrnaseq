@@ -83,11 +83,11 @@ unless ($matrix_file && $transcripts_file &&
 }
 
 if ( ($min_pct_dom_iso || $highest_iso_only_flag) && ! ($trinity_mode_flag || $gene_to_trans_map_file) ) {
-    die "Error, if --min_pct_iso or --highest_iso_only, must also specify either --trinity_mode or --gene_to_trans_map";
+    die "Error, if --min_pct_dom_iso or --highest_iso_only, must also specify either --trinity_mode or --gene_to_trans_map";
 }
 
 if ($min_pct_dom_iso && $highest_iso_only_flag) {
-    die "Error, --min_pct_iso and --highest_iso_only are mutually exclusive parameters. ";
+    die "Error, --min_pct_dom_iso and --highest_iso_only are mutually exclusive parameters. ";
 }
 
 

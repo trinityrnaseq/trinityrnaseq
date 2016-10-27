@@ -1320,6 +1320,8 @@ sub run_Trinity {
     $inchworm_file = &create_full_path($inchworm_file, 0);
     
     my $trinity_target_fa = (@single_files) ? "single.fa" : "both.fa"; 
+    $trinity_target_fa = &create_full_path($trinity_target_fa, 1);
+    
     my $inchworm_target_fa = $trinity_target_fa; # change this later if we have long_reads
     my $bowtie_reads_fa = $trinity_target_fa; # dont include long reads in this... keep them separate.
     

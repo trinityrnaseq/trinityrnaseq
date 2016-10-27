@@ -29,7 +29,17 @@ int print_seq(int ilmn_trinity, char *append, int to_fasta, char *s[]) {
         }
         printf(">%s/%c\n", s[0], s[3][0]);
 	}
-	else if (append == NULL) {
+    else if ((s[0][strlen(s[0])-2] == '/') && s[3] == NULL) {
+        // not a header comment-including entry, earlier fastq style
+        // see if we already have the direction indicated
+        char read_dir = s[0][strlen(s[0])-1];
+        if (! (read_dir == '1' || read_dir == '2')) {
+            fprintf(stderr, "Error, cannot convert fastq file to fasta since cannot recognize read orientation as /1 or /2 (instead: %c)", read_dir);
+            exit(3);
+        }
+        printf(">%s\n", s[0]);
+    }
+    else if (append == NULL) {
 		printf(">%s\n", s[0]);
 	}
 	else {

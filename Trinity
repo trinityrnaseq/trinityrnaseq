@@ -1246,7 +1246,7 @@ main: {
     };
     
     if ($@) {
-        print STDERR "$@\n" if $VERBOSE;
+        print STDERR "$@\n" if $VERBOSE || ! $TRINITY_COMPLETE_FLAG;
         if ($@ !~ /^NON_FATAL_EXCEPTION/) {
             die "Trinity run failed. Must investigate error above.\n";
         }
@@ -1320,7 +1320,7 @@ sub run_Trinity {
     $inchworm_file = &create_full_path($inchworm_file, 0);
     
     my $trinity_target_fa = (@single_files) ? "single.fa" : "both.fa"; 
-    $trinity_target_fa = &create_full_path($trinity_target_fa, 1);
+    $trinity_target_fa = &create_full_path($trinity_target_fa, 0);
     
     my $inchworm_target_fa = $trinity_target_fa; # change this later if we have long_reads
     my $bowtie_reads_fa = $trinity_target_fa; # dont include long reads in this... keep them separate.
@@ -1514,12 +1514,12 @@ sub run_Trinity {
     $pm_chrysalis_start = `date +%s`;
 
     
-    if ($LONG_READS_MODE && $TRINITY_COMPLETE_FLAG) {
-        ## tack them onto the inchworm output file and use them along with the inchworm contigs.
-        
-        $inchworm_file = &append_long_reads_to_iworm_contigs($inchworm_file, $inchworm_target_fa);
-        
-    }
+    #if ($LONG_READS_MODE && $TRINITY_COMPLETE_FLAG) {
+    #    ## tack them onto the inchworm output file and use them along with the inchworm contigs.
+    #    
+    #    $inchworm_file = &append_long_reads_to_iworm_contigs($inchworm_file, $inchworm_target_fa);
+    #    
+    #}
     
 
     my $butterfly_cmds = &run_chrysalis($inchworm_file, $inchworm_target_fa,
@@ -1589,14 +1589,16 @@ sub run_chrysalis {
     
     my $quantify_graph_cmds = &create_full_path("$chrysalis_output_dir/quantifyGraph_commands");
     
-    my $pair_links_file = "";
+    
 
-
-
+    my $fa_file_only_LR = "$bowtie_reads_fa.onlyLR";
     if ($LONG_READS_MODE) {
         
-        ## the bowtie_reads_fa file might contain long reads...  If it does, need to get rid of them for the bowtie alignment step.
+        ########################################
+        ## separate the long and the short reads
         
+        ## the bowtie_reads_fa file might contain long reads...  If it does, need to get rid of them for the bowtie alignment step.
+                
         my $long_read_count = `grep '>LR' $bowtie_reads_fa | wc -l `;
         chomp $long_read_count;
         if ($long_read_count > 0) {
@@ -1605,15 +1607,20 @@ sub run_chrysalis {
             my $fa_file_minus_LR_checkpoint = "$fa_file_minus_LR.ok";
             unless (-e $fa_file_minus_LR && -e $fa_file_minus_LR_checkpoint) {
                 open (my $ofh, ">$fa_file_minus_LR") or die "Error, cannot open file $fa_file_minus_LR";
+                open (my $ofh_LR, ">$fa_file_only_LR") or die "Error, cannot write to file $fa_file_only_LR";
                 my $fasta_reader = new Fasta_reader($bowtie_reads_fa);
                 while (my $seq_obj = $fasta_reader->next()) {
                     my $acc = $seq_obj->get_accession();
-                    if ($acc !~ /^LR\$/) {
-                        my $sequence = $seq_obj->get_sequence();
+                    my $sequence = $seq_obj->get_sequence();
+                    if ($acc =~ /^LR\$/) {
+                        print $ofh_LR ">$acc\n$sequence\n";
+                    }
+                    else {
                         print $ofh ">$acc\n$sequence\n";
                     }
                 }
                 close $ofh;
+                close $ofh_LR;
                 &process_cmd("touch $fa_file_minus_LR_checkpoint");
             }
                 
@@ -1627,9 +1634,12 @@ sub run_chrysalis {
             
         }
     }
-    
-    ## Define iworm links via paired-end read mappings:
-    if ( ($PAIRED_MODE || $LONG_READS_MODE) && ! $NO_BOWTIE) {
+        
+    my $iworm_scaffolds_file = "$chrysalis_output_dir/iworm_scaffolds.txt";
+    if ( $PAIRED_MODE && ! $NO_BOWTIE) {
+
+        ##################################################
+        ## Define iworm links via paired-end read mappings:
 
         my $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
         
@@ -1641,7 +1651,7 @@ sub run_chrysalis {
         
         $pipeliner = new Pipeliner(-verbose => $VERBOSE);
         my $bowtie_version = "";
-        if($USE_BOWTIE2){
+        if ($USE_BOWTIE2){
             $cmd = "bowtie2-build -o 3 $iworm_min100_fa_file $iworm_min100_fa_file"; #-o 3 / defaut is 5, less use more ram but is faster when mapping the reads
             $bowtie_version = "bowtie2";
         }
@@ -1667,7 +1677,7 @@ sub run_chrysalis {
             
             ## generate the scaffold info
             $ENV{'LD_LIBRARY_PATH'} .= ":$ROOTDIR/trinity-plugins/htslib";
-            my $iworm_scaffolds_file = "$chrysalis_output_dir/iworm_scaffolds.txt";
+            
 
             if ($USE_PERL_SCAFFOLDER) {
                 $cmd = "$ROOTDIR/util/support_scripts/scaffold_iworm_contigs.pl $bowtie_sam_file $inchworm_file > $iworm_scaffolds_file";
@@ -1678,14 +1688,40 @@ sub run_chrysalis {
             
             $pipeliner->add_commands( new Command($cmd, "$iworm_scaffolds_file.ok"));
             
-            $pair_links_file = $iworm_scaffolds_file;
+            
             
             $pipeliner->run();
             
         }
     }
     
-    
+    ## back to long reads
+    my $LR_blast_pairs_file = "$inchworm_file.LR_blastn.outfmt6";
+    if ($LONG_READS_MODE && -s $fa_file_only_LR) {
+        
+        ## map inchworm contigs to the long reads.
+        my $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
+        
+        $pipeliner->add_commands( new Command("makeblastdb -in $fa_file_only_LR -dbtype nucl", "LR_makeblastdb.ok"));
+        
+
+        $pipeliner->add_commands( new Command("blastn -db $fa_file_only_LR -query $inchworm_file -outfmt 6 -perc_identity 98 -evalue 1e-5 > $LR_blast_pairs_file", "LR_blastn.ok"));
+        
+        
+        
+        my $new_pair_links_file = "$iworm_scaffolds_file.wLR";
+        if (-s $iworm_scaffolds_file) {
+            $pipeliner->add_commands(new Command("cp $iworm_scaffolds_file $new_pair_links_file", "cp_iworm_scaff_to_LR_init.ok"));
+        }
+        $iworm_scaffolds_file = $new_pair_links_file; # reset for future use
+        
+        $pipeliner->add_commands(new Command("$UTILDIR/support_scripts/iworm_LR_to_scaff_pairs.pl $LR_blast_pairs_file $inchworm_file $min_glue >> $iworm_scaffolds_file", 
+                                             "add_LR_scaff_links.ok"));
+        
+        
+        $pipeliner->run();
+    }
+        
     
     my $chrysalis_pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
     
@@ -1705,8 +1741,8 @@ sub run_chrysalis {
         if ($SS_lib_type) {
             $graphFromFasta_cmd .= " -strand ";
         }
-        if ($pair_links_file) {
-            $graphFromFasta_cmd .= " -scaffolding $pair_links_file ";
+        if (-s $iworm_scaffolds_file) {
+            $graphFromFasta_cmd .= " -scaffolding $iworm_scaffolds_file ";
         }
         if ($CHRYSALIS_DEBUG_WELD_ALL) {
             $graphFromFasta_cmd .= " -debug_weld_all ";
@@ -2218,7 +2254,7 @@ sub prep_seqs {
             $fastool_cmd .= " $style --to-fasta >> $file_prefix.fa 2> $f.readcount ";
             my $cmd = $fastool_cmd;
             &process_cmd($cmd);
-
+            
             &ensure_complete_FQtoFA_conversion($linecount_cmd, "$f.readcount");
             
         }

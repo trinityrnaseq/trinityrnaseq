@@ -1721,11 +1721,11 @@ sub run_chrysalis {
         
         $pipeliner->run();
     }
-        
+    
     
     my $chrysalis_pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
     
-
+    
     my $graphFromFasta_outfile = "$chrysalis_output_dir/GraphFromIwormFasta.out";
     
     { # GraphFromFasta
@@ -1814,8 +1814,20 @@ sub run_chrysalis {
         return ("RECURSIVE_TRINITY_COMPLETE"); # indicate to caller that we're in recursive trinity mode.
     }
     
+    
 
+    if ($LONG_READS_MODE) {
+        ## add the long reads to the iworm bundle
+        
+        my $new_bundle_file = "$iworm_bundles_fasta_file.wLR";
 
+        my $cmd = "$UTILDIR/support_scripts/add_LR_reads_to_iworm_bundle.pl $iworm_bundles_fasta_file $sorted_reads_to_components_file > $new_bundle_file";
+        
+        $chrysalis_pipeliner->add_commands(new Command($cmd, "add_LR_to_iworm_bundles.ok"));
+        
+        $iworm_bundles_fasta_file = $new_bundle_file; # for future use
+    }
+    
     
     my $deBruijnGraph_outfile = "$iworm_bundles_fasta_file.deBruijn";
 
@@ -1831,11 +1843,12 @@ sub run_chrysalis {
         
         $chrysalis_pipeliner->add_commands(new Command($cmd, "$deBruijnGraph_outfile.ok") );
     }
+    
     $chrysalis_pipeliner->run();
     
     
         
-    unless (-s "$chrysalis_output_dir/bundled_iworm_contigs.fasta.deBruijn") {
+    unless (-s $deBruijnGraph_outfile ) {
         die "NON_FATAL_EXCEPTION: WARNING, no deBruijn graphs generated based on inchworm contigs: $chrysalis_output_dir/bundled_iworm_contigs.fasta.deBruijn";
     }
     
@@ -1846,7 +1859,7 @@ sub run_chrysalis {
     
     my $partitioning_checkpoint_file = "$chrysalis_output_dir/file_partitioning.ok";
 
-    my $cmd = "$UTILDIR/support_scripts/partition_chrysalis_graphs_n_reads.pl --deBruijns $chrysalis_output_dir/bundled_iworm_contigs.fasta.deBruijn --componentReads $chrysalis_output_dir/readsToComponents.out.sort -N 1000 -L $min_contig_length ";
+    my $cmd = "$UTILDIR/support_scripts/partition_chrysalis_graphs_n_reads.pl --deBruijns $deBruijnGraph_outfile --componentReads $chrysalis_output_dir/readsToComponents.out.sort -N 1000 -L $min_contig_length ";
     my $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
     $pipeliner->add_commands (new Command( $cmd, "$partitioning_checkpoint_file") );
     $pipeliner->run();

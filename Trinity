@@ -493,7 +493,7 @@ my $advanced_usage =  <<_ADVANCEDUSAGE_;
 #
 #  --long_reads_mode               : run in long reads mode (requires --single and the long reads integrated with LR$| accession prefixes.
 #
-#  --use_bowtie2                   : use bowtie2 instead of bowtie(1) for chrysalis paired-end clustering alignments
+
 
 _ADVANCEDUSAGE_
 
@@ -517,7 +517,6 @@ my $NO_FASTOOL = 0;
 my $NO_CLEANUP = 0;
 my $FULL_CLEANUP = 0;
 my $NO_BOWTIE = 0;
-my $USE_BOWTIE2 = 0;
 
 my $BOWTIE_COMP = 0;
 
@@ -650,7 +649,6 @@ my $NO_VERSION_CHECK = 0;
     "no_bowtie" => \$NO_BOWTIE,
     "bowtie_components" => \$BOWTIE_COMP,
     "no_run_chrysalis" => \$NO_RUN_CHRYSALIS_FLAG,
-    "use_bowtie2" => \$USE_BOWTIE2,
 
     "show_advanced_options" => \$show_advanced_options,
     
@@ -1035,13 +1033,13 @@ $ENV{OMP_NUM_THREADS} = $CPU; ## for Inchworm and Chrysalis
 my $PAIRED_MODE = ( (@left_files && @right_files)  || $run_as_paired_flag) ? 1:0;
 if ($PAIRED_MODE && (!$NO_RUN_CHRYSALIS_FLAG)  && (!$NO_BOWTIE)) {
     ## be sure we can find 'bowtie', since we use it as part of the iworm pair scaffolding step
-    my $bowtie_path = `which bowtie`;
-    my $bowtie_build_path = `which bowtie-build`;
-    if ($bowtie_path =~ /\w/ && $bowtie_build_path =~ /\w/) {
-        print "Paired mode requires bowtie. Found bowtie at: $bowtie_path\n and bowtie-build at $bowtie_build_path\n\n" if $VERBOSE;
+    my $bowtie2_path = `which bowtie2`;
+    my $bowtie2_build_path = `which bowtie2-build`;
+    if ($bowtie2_path =~ /\w/ && $bowtie2_build_path =~ /\w/) {
+        print "Paired mode requires bowtie2. Found bowtie2 at: $bowtie2_path\n and bowtie-build at $bowtie2_build_path\n\n" if $VERBOSE;
     }
     else {
-        die "Error, cannot find path to bowtie ($bowtie_path) or bowtie-build ($bowtie_build_path), which is now needed as part of Chrysalis' read scaffolding step.  If you should choose to not run bowtie, include the --no_bowtie in your Trinity command.\n\n";
+        die "Error, cannot find path to bowtie2 ($bowtie2_path) or bowtie2-build ($bowtie2_build_path), which is now needed as part of Chrysalis' read scaffolding step.  If you should choose to not run bowtie, include the --no_bowtie in your Trinity command.\n\n";
     }
     
     my $samtools_path = `which samtools`;
@@ -1650,29 +1648,16 @@ sub run_chrysalis {
         $pipeliner->run();
         
         $pipeliner = new Pipeliner(-verbose => $VERBOSE);
-        my $bowtie_version = "";
-        if ($USE_BOWTIE2){
-            $cmd = "bowtie2-build -o 3 $iworm_min100_fa_file $iworm_min100_fa_file"; #-o 3 / defaut is 5, less use more ram but is faster when mapping the reads
-            $bowtie_version = "bowtie2";
-        }
-        else{ #keeping this because some may wish
-            $cmd = "bowtie-build -q $iworm_min100_fa_file $iworm_min100_fa_file";
-            $bowtie_version = "bowtie";
-        }	
+        $cmd = "bowtie2-build -o 3 $iworm_min100_fa_file $iworm_min100_fa_file"; #-o 3 / defaut is 5, less use more ram but is faster when mapping the reads
         
         if (-s "$iworm_min100_fa_file") {
-            $pipeliner->add_commands( new Command($cmd, "$iworm_min100_fa_file.${bowtie_version}-build.ok"));
+            $pipeliner->add_commands( new Command($cmd, "$iworm_min100_fa_file.bowtie2-build.ok"));
 
             my $bowtie_sam_file = "$chrysalis_output_dir/iworm.bowtie.nameSorted.bam";
             my $samtools_max_memory = int($jellyfish_ram/($CPU*2));
 
-            if ($USE_BOWTIE2){
-            	$cmd = "bash -c \" set -o pipefail;bowtie2 --local -a --threads $CPU -f $iworm_min100_fa_file $bowtie_reads_fa  | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort -m $samtools_max_memory $PARALLEL_SAMTOOLS_SORT_TOKEN -no - - > $bowtie_sam_file\" ";  
-            }
-            else{
-            	$cmd = "bash -c \" set -o pipefail; bowtie -a -m 20 --best --strata --threads $CPU  --chunkmbs 512 -q -S -f $iworm_min100_fa_file $bowtie_reads_fa  | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort - -m $samtools_max_memory $PARALLEL_SAMTOOLS_SORT_TOKEN -no - > $bowtie_sam_file\" ";
-            }            
-            
+            $cmd = "bash -c \" set -o pipefail;bowtie2 --local -a --threads $CPU -f $iworm_min100_fa_file $bowtie_reads_fa  | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort -m $samtools_max_memory $PARALLEL_SAMTOOLS_SORT_TOKEN -no - - > $bowtie_sam_file\" ";  
+                        
             $pipeliner->add_commands( new Command($cmd, "$bowtie_sam_file.ok"));
             
             ## generate the scaffold info

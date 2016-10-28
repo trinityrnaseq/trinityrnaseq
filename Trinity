@@ -907,7 +907,7 @@ if ($SS_lib_type) {
     }
     
     if (@single_files) {
-        if ($run_as_paired_flag) {
+        if ($run_as_paired_flag && ! $TRINITY_COMPLETE_FLAG) {
             die "Error, if you have paired-end reads and want to run as strand-specific, then you must specify the --left and --right parameters";
         }
         if (length($SS_lib_type) != 1) {
@@ -1258,12 +1258,12 @@ main: {
         if (-s "Trinity.fasta.tmp") {
             rename("Trinity.fasta.tmp", "$output_directory.Trinity.fasta") or die "Error, cannot rename Trinity.fasta.tmp to $output_directory.Trinity.fasta";
 
-            
-            print "\n\n"
-                . "###################################################################\n"
-                . "Butterfly assemblies are written to $output_directory.Trinity.fasta\n"
-                . "###################################################################\n\n\n" unless $TRINITY_COMPLETE_FLAG;
-            
+            if ($VERBOSE || ! $TRINITY_COMPLETE_FLAG) {
+                print "\n\n"
+                    . "###################################################################\n"
+                    . "Butterfly assemblies are written to $output_directory.Trinity.fasta\n"
+                    . "###################################################################\n\n\n";
+            }
         }
         else {
             print "# No butterfly assemblies to report.\n" unless $TRINITY_COMPLETE_FLAG;
@@ -1285,11 +1285,14 @@ main: {
         }
         
         if (-s $butterfly_output_filename) {
+
+            if ($VERBOSE || ! $TRINITY_COMPLETE_FLAG) {
             
             print "\n\n"
                 . "###################################################################\n"
                 . "Butterfly assemblies are written to $output_directory/$butterfly_output_filename\n"
-                . "###################################################################\n\n\n" unless $TRINITY_COMPLETE_FLAG;
+                . "###################################################################\n\n\n";
+            }
         }
         else {
             
@@ -1424,30 +1427,68 @@ sub run_Trinity {
             $count_of_reads = `wc -l < $inchworm_target_fa`;chomp($count_of_reads); #AP: grep is  expensive; one test took 2h...!
             $count_of_reads/=2;
         }
+
+        {
+            open (my $ofh, ">$trinity_target_fa.read_count") or die $!;
+            print $ofh $count_of_reads."\n";
+            close $ofh;
+        }
+        
+        
+         
         if ($long_reads) {
-            
-            # adjust the inchworm target, tack on the longer reads.
-            open (LONG_READS,$long_reads);
+        
+            my $trinity_target_fa_wLR = "$trinity_target_fa.wLR";
+
+            open (LONG_READS, $long_reads) or die "Error, cannot open file: $long_reads";
             if (<LONG_READS>!~/^>/){ #verify if it is fasta.
                 print "The long reads file does not look like FASTA.\n";
                 die;
             } 
             close (LONG_READS);
-            $inchworm_target_fa .= ".wLongReads.fa";
+                        
             $count_of_reads += `grep -c '^>' $long_reads`; #AP we don't know if these will be one single line
-            if (!-e  "$inchworm_target_fa.LR.ok"){
-                &process_cmd("cat $long_reads | sed 's/>/>LR\\\$\\\|/' > $inchworm_target_fa"); #  
+            if (!-e  "$trinity_target_fa_wLR.ok"){
+                &process_cmd("cp $trinity_target_fa $trinity_target_fa_wLR");
+                &process_cmd("cat $long_reads | sed 's/>/>LR\\\$\\\|/' >> $trinity_target_fa_wLR"); #  
                 
-                ## merge the long reads with the short reads into target file.
-                &process_cmd("cat $inchworm_target_fa >> $trinity_target_fa "); #TODO: if it dies while doing this then truncate both.fa (truncate -s size both.fa) to its original size and redo;
-                &process_cmd("touch $inchworm_target_fa.LR.ok");
+                &process_cmd("touch $trinity_target_fa_wLR.ok");
+                {
+                    open (my $ofh, ">$trinity_target_fa_wLR.read_count") or die $!;
+                    print $ofh $count_of_reads."\n";
+                    close $ofh;
+                }
             }
-            &process_cmd("ln -fs $trinity_target_fa $inchworm_target_fa "); #just to keep the filename .wLongReads.fa and to avoid unnecessary duplication of reads.
-        }
+
+            # make the full trinity target the one w/ LRs
+            $trinity_target_fa = $trinity_target_fa_wLR;
             
-        open (my $ofh, ">$inchworm_target_fa.read_count") or die $!;
-        print $ofh $count_of_reads."\n";
-        close $ofh;
+        }
+        elsif ($LONG_READS_MODE) {
+            # create an inchworm target that lacks the LRs
+            my $num_long_reads =  `grep -c '^\>LR\\\$' $trinity_target_fa`;
+            #print STDERR "num long reads: $num_long_reads  :: $trinity_target_fa\n";
+            if ($num_long_reads > 0) {
+                my $inchworm_target_minus_LR = "$trinity_target_fa.minusLR";
+                my $inchworm_target_minus_LR_checkpoint = "$inchworm_target_minus_LR.ok";
+                unless (-s $inchworm_target_minus_LR && -e $inchworm_target_minus_LR_checkpoint) {
+                    open (my $ofh, ">$inchworm_target_minus_LR") or die "Error, cannot write to $inchworm_target_minus_LR";
+                    my $fasta_reader = new Fasta_reader($trinity_target_fa);
+                    while (my $seq_obj = $fasta_reader->next()) {
+                        my $acc = $seq_obj->get_accession();
+                        if ($acc !~ /^LR\$\|/) {
+                            my $fasta_entry = $seq_obj->get_FASTA_format();
+                            print $ofh $fasta_entry;
+                        }
+                    }
+                    close $ofh;
+                }
+
+                $inchworm_target_fa = $inchworm_target_minus_LR;
+                $bowtie_reads_fa = $inchworm_target_minus_LR;
+            }
+        }
+        
     }
     
     if ($prep_only){
@@ -1465,7 +1506,7 @@ sub run_Trinity {
         &process_cmd("touch $inchworm_finished_checkpoint_file");
     }
     $pm_inchworm_end = `date +%s`;
-
+    
     
     unless (-s $inchworm_file) {
         
@@ -1560,7 +1601,7 @@ sub run_Trinity {
         # my $cmd = 'find ./chrysalis -name "*allProbPaths.fasta" -exec cat {} + > Trinity.fasta.tmp';
         # no longer scan the file system... we know which files should exist
         print STDERR "\n\n** Harvesting all assembled transcripts into a single multi-fasta file...\n" unless ($TRINITY_COMPLETE_FLAG);
-        $cmd = "$UTILDIR/support_scripts/print_butterfly_assemblies.pl $chrysalis_output_dir/component_base_listing.txt > Trinity.fasta.tmp";
+        $cmd = "$UTILDIR/support_scripts/print_butterfly_assemblies.pl $chrysalis_output_dir/component_base_listing.txt > " . &create_full_path("Trinity.fasta.tmp");
         &process_cmd($cmd);
         
         
@@ -1572,8 +1613,9 @@ sub run_Trinity {
 
 ####
 sub run_chrysalis {
-    my ($inchworm_file, $reads_file,
-        $min_contig_length, $group_pairs_distance, $SS_lib_type, $pairs_fa, $bowtie_reads_fa) = @_;
+    my ($inchworm_file, $inchworm_target_fa,
+        $min_contig_length, $group_pairs_distance, $SS_lib_type, 
+        $trinity_target_fa, $bowtie_reads_fa) = @_;
     
 
 
@@ -1596,45 +1638,31 @@ sub run_chrysalis {
         ## separate the long and the short reads
         
         ## the bowtie_reads_fa file might contain long reads...  If it does, need to get rid of them for the bowtie alignment step.
-                
-        my $long_read_count = `grep '>LR' $bowtie_reads_fa | wc -l `;
+        
+        my $long_read_count = `grep '>LR' $trinity_target_fa | wc -l `;
         chomp $long_read_count;
         if ($long_read_count > 0) {
             
-            my $fa_file_minus_LR = "$bowtie_reads_fa.minusLR";
-            my $fa_file_minus_LR_checkpoint = "$fa_file_minus_LR.ok";
-            unless (-e $fa_file_minus_LR && -e $fa_file_minus_LR_checkpoint) {
-                open (my $ofh, ">$fa_file_minus_LR") or die "Error, cannot open file $fa_file_minus_LR";
+            my $only_LR_fa_checkpoint = "$fa_file_only_LR.ok";
+            unless (-e $fa_file_only_LR && -e $only_LR_fa_checkpoint) {
                 open (my $ofh_LR, ">$fa_file_only_LR") or die "Error, cannot write to file $fa_file_only_LR";
-                my $fasta_reader = new Fasta_reader($bowtie_reads_fa);
+                my $fasta_reader = new Fasta_reader($trinity_target_fa);
                 while (my $seq_obj = $fasta_reader->next()) {
                     my $acc = $seq_obj->get_accession();
                     my $sequence = $seq_obj->get_sequence();
                     if ($acc =~ /^LR\$/) {
                         print $ofh_LR ">$acc\n$sequence\n";
                     }
-                    else {
-                        print $ofh ">$acc\n$sequence\n";
-                    }
                 }
-                close $ofh;
                 close $ofh_LR;
-                &process_cmd("touch $fa_file_minus_LR_checkpoint");
+                &process_cmd("touch $only_LR_fa_checkpoint");
             }
-                
-            if (-s $fa_file_minus_LR) {
-                $bowtie_reads_fa = $fa_file_minus_LR;
-            }
-            else {
-                # must have only had long reads in the fa file.
-                $NO_BOWTIE = 1; # skip it
-            }
-            
+                        
         }
     }
-        
+    
     my $iworm_scaffolds_file = "$chrysalis_output_dir/iworm_scaffolds.txt";
-    if ( $PAIRED_MODE && ! $NO_BOWTIE) {
+    if ( $PAIRED_MODE && -s $bowtie_reads_fa && ! $NO_BOWTIE) {
 
         ##################################################
         ## Define iworm links via paired-end read mappings:
@@ -1715,7 +1743,7 @@ sub run_chrysalis {
     
     { # GraphFromFasta
     
-        my $graphFromFasta_cmd = "-i $inchworm_file -r $reads_file -min_contig_length $min_contig_length -min_glue $min_glue -glue_factor $glue_factor -min_iso_ratio $min_iso_ratio -t $CPU -k " . ($KMER_SIZE-1) . " -kk $GRAPH_FROM_FASTA_KK $GRAPH_FROM_FASTA_CUSTOM_PARAMS";
+        my $graphFromFasta_cmd = "-i $inchworm_file -r $trinity_target_fa -min_contig_length $min_contig_length -min_glue $min_glue -glue_factor $glue_factor -min_iso_ratio $min_iso_ratio -t $CPU -k " . ($KMER_SIZE-1) . " -kk $GRAPH_FROM_FASTA_KK $GRAPH_FROM_FASTA_CUSTOM_PARAMS";
         # use MPI if MPI Procs >1
         if ($np > 1) {
             $graphFromFasta_cmd = "$mpiexec -np $np $CHRYSALIS_DIR/GraphFromFasta_MPI $graphFromFasta_cmd"
@@ -1765,8 +1793,8 @@ sub run_chrysalis {
                 $cmd = "$mpiexec -np $np $CHRYSALIS_DIR/ReadsToTranscripts_MPI"
             }
         }
-
-        $cmd .= " -i $reads_file -f $iworm_bundles_fasta_file -o $reads_to_components_output_file -t $CPU -max_mem_reads $max_reads_per_loop ";
+        
+        $cmd .= " -i $trinity_target_fa -f $iworm_bundles_fasta_file -o $reads_to_components_output_file -t $CPU -max_mem_reads $max_reads_per_loop ";
         if ($SS_lib_type) {
             $cmd .= " -strand ";
         }
@@ -1801,17 +1829,17 @@ sub run_chrysalis {
     
     
 
-    if ($LONG_READS_MODE) {
-        ## add the long reads to the iworm bundle
-        
-        my $new_bundle_file = "$iworm_bundles_fasta_file.wLR";
-
-        my $cmd = "$UTILDIR/support_scripts/add_LR_reads_to_iworm_bundle.pl $iworm_bundles_fasta_file $sorted_reads_to_components_file > $new_bundle_file";
-        
-        $chrysalis_pipeliner->add_commands(new Command($cmd, "add_LR_to_iworm_bundles.ok"));
-        
-        $iworm_bundles_fasta_file = $new_bundle_file; # for future use
-    }
+    #if ($LONG_READS_MODE) {
+    #    ## add the long reads to the iworm bundle
+    #    
+    #    my $new_bundle_file = "$iworm_bundles_fasta_file.wLR";
+    #
+    #    my $cmd = "$UTILDIR/support_scripts/add_LR_reads_to_iworm_bundle.pl $iworm_bundles_fasta_file $sorted_reads_to_components_file > $new_bundle_file";
+    #    
+    #    $chrysalis_pipeliner->add_commands(new Command($cmd, "add_LR_to_iworm_bundles.ok"));
+    #    
+    #    $iworm_bundles_fasta_file = $new_bundle_file; # for future use
+    #}
     
     
     my $deBruijnGraph_outfile = "$iworm_bundles_fasta_file.deBruijn";
@@ -2996,7 +3024,7 @@ sub write_trinity_partitioned_cmds {
     ##################################################
 
     my $cmd = "$UTILDIR/support_scripts/write_partitioned_trinity_cmds.pl --reads_list_file $reads_list_file --CPU $grid_node_CPU --max_memory $grid_node_max_memory ";
-    if ($run_as_paired_flag) {
+    if ($PAIRED_MODE) {
         $cmd .= " --run_as_paired ";
     }
     if ($SS_lib_type) {

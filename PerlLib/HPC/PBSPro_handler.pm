@@ -1,5 +1,6 @@
-package HPC::SLURM_handler;
+package HPC::PBSPro_handler;
 
+use File::Basename;
 use strict;
 use warnings;
 use base qw(HPC::Base_handler);
@@ -34,24 +35,29 @@ sub submit_job_to_grid {
 
     ## submit the command, do any additional job administration as required, such as capturing job ID
 
-    my $cmd = $self->{config}->{cmd} or confess "ERROR, need cmd set in config";
+    my $cmd = $self->{config}->{cmd} or confess "Error, need cmd from config file";
     
-    $cmd .= " -e $shell_script.stderr -o $shell_script.stdout";
-    
-     ##with SLURM max expected running time should preferably be specified, otherwise the scheduler will assume default value for the partition; structure is days-hours:minutes:seconds like so 1-02:30:00  
-    
+    my $idx = rindex($cmd, "/");
+    my $jobName = substr($cmd, $idx+1);
+    $cmd .= " -j oe -N $jobName ";
+
     $cmd .= " $shell_script 2>&1 ";
-        
+    
+
+    print STDERR "CMD: $cmd\n";
 
     my $job_id_text = `$cmd`;
     
-    # print STDERR "\n$job_id_text\n";
+    
+    
     
     my $ret = $?;
     
+    print STDERR "\nPBSPro job (ret=$ret), text:: $job_id_text\n";
+    
 
     if ($ret) {
-        print STDERR "FARMIT failed to accept job: $cmd\n (ret $ret)\n";
+        print STDERR "FARMIT failed to accept job: $cmd\n (ret $ret)\n$job_id_text\n";
         return(-1);
     }
     else {
@@ -59,9 +65,7 @@ sub submit_job_to_grid {
         ## job submitted just fine.
         
         ## get the job ID and log it:
-        
-        
-        if ($job_id_text =~ /Submitted batch job (\d+)/) {
+        if ($job_id_text =~ /(\d+)(\.[0-9a-zA-Z])*/) {
             my $job_id = $1;
             return($job_id);
         }
@@ -83,22 +87,21 @@ sub job_running_or_pending_on_grid {
     }
     
     # print STDERR "Polling grid to check status of job: $job_id\n";
-    
-    my $response = `squeue --noheader -l -j $job_id`;
+    my $response = `qstat`;
     #print STDERR "Response:\n$response\n";
 
     foreach my $line (split(/\n/, $response)) {
         my @x = split(/\s+/, $line);
-
-        if ($x[1] eq $job_id) {
-            my $state = $x[5];
-            if ($state eq "COMPLETED" || $state eq "FAILED" || $state eq "TIMEOUT") {
-                return(0);
-            }
-            else {
-                $self->{job_id_to_submission_time}->{$job_id} = time();
-                return($state);
-            }
+	my $lcl_job_id = $x[0];
+	if ($x[0] =~ /(\d+)(\.[0-9a-zA-Z])*/) {
+	    $lcl_job_id = $1;
+	}
+        if ($lcl_job_id eq $job_id) {
+            my $state = $x[4];
+            
+            $self->{job_id_to_submission_time}->{$job_id} = time();
+            return($state);
+            
         }
     }
     

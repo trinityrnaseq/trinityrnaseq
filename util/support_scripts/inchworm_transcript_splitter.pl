@@ -11,7 +11,7 @@ use Cwd;
 
 $ENV{LC_ALL} = 'C';
 
-my $util_dir = "$FindBin::RealBin/../../util/support_scripts";
+my $util_dir = "$FindBin::RealBin";
 
 
 my $usage = <<_EOUSAGE_;
@@ -32,9 +32,9 @@ my $usage = <<_EOUSAGE_;
 #
 # Optional (if strand-specific RNA-Seq):
 #  
-#  --SS_lib_type <string>            RF or FR
-#
 #  --work_dir <string>               directory to perform data processing (default: workdir.\$pid
+#
+#  --SS_lib_type <string>            RF or FR
 #
 #  --CPU <int>                       default: 2
 #
@@ -69,10 +69,13 @@ unless ($inchworm_contigs && ($single_file || ($left_file && $right_file)) && $s
   die $usage;
 }
 
-
 unless ($work_dir) {
-  $work_dir = "jaccard_clip_workdir";
+    $work_dir = cwd() . "/jaccard_clip_workdir";
+    unless (-d $work_dir) {
+        mkdir($work_dir) or die "Error, cannot mkdir $work_dir";
+    }
 }
+
 
 main: {
 	
@@ -95,44 +98,36 @@ main: {
   
     
 
-
-  &process_cmd("ln -s $inchworm_contigs $outdir/iworm.fa") unless (-e "$outdir/iworm.fa");
-
-
-  
-
-
-	
+  my $target_iworm_fa = "$outdir/iworm.fa";
+  &process_cmd("ln -s $inchworm_contigs $target_iworm_fa") unless (-e $target_iworm_fa);
+  	
    
   ## run the bowtie alignment pipeline
+
+  my $bowtie_out = "$outdir";
   my $cmd  = "";
 
   if ($left_file && $right_file) {
           
-      $cmd = "$util_dir/../bowtie_PE_separate_then_join.pl --seqType $seqType --left $left_file --right $right_file --aligner bowtie --target iworm.fa ";
+      $cmd = "$util_dir/bowtie2_wrapper.pl --seqType $seqType --left $left_file --right $right_file --CPU $CPU --target $target_iworm_fa -o $bowtie_out/bowtie2";
   }
   else {
             
-      $cmd = "$util_dir/../bowtie_PE_separate_then_join.pl --seqType $seqType --single $single_file --aligner bowtie --target iworm.fa ";
+      $cmd = "$util_dir/bowtie2_wrapper.pl --seqType $seqType --single $single_file --CPU $CPU --target $target_iworm_fa -o $bowtie_out/bowtie2";
   }
   
   if ($SS_lib_type) {
-    $cmd .= "--SS_lib_type $SS_lib_type ";
+    $cmd .= " --SS_lib_type $SS_lib_type ";
   }
-
-  $cmd .= " -- -p $CPU ";
 
 
   chdir $outdir or die "Error, cannot cd to $outdir";
   
-  if ($SS_lib_type){
-      &process_cmd($cmd) unless( -e "bowtie_out/bowtie_out.coordSorted.bam.+.bam.finished");
-  }else{
-      &process_cmd($cmd) unless (-e "bowtie_out/bowtie_out.coordSorted.bam.finished");
-  }
   
+  &process_cmd($cmd);
+    
 	
-  my $final_bam_file = ($SS_lib_type) ? "bowtie_out/bowtie_out.coordSorted.bam.+.bam" : "bowtie_out/bowtie_out.coordSorted.bam";
+  my $final_bam_file = ($SS_lib_type) ? "$bowtie_out/bowtie2.coordSorted.bam.+.bam" : "$bowtie_out/bowtie2.coordSorted.bam";
 	
   my $alignment_file = "bowtie_alignments.for_jaccard.bam";
   &process_cmd("ln -sf $final_bam_file $alignment_file");

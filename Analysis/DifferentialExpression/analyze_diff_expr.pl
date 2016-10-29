@@ -284,8 +284,7 @@ sub parse_result_files_find_diffExp {
     
     foreach my $result_file (@$result_files_aref) {
         
-        $result_file =~ /matrix\.(\S+)_vs_(\S+)\.[^\.]+\.DE_results$/ or die "Error, cannot extract condition names from $result_file";
-        my ($condA, $condB) = ($1, $2);
+        my ($condA, $condB) = &get_sample_pairs_from_DE_results_file($result_file);
         
         my $pairwise_samples_file = "$result_file.samples";
         { 
@@ -316,10 +315,7 @@ sub parse_result_files_find_diffExp {
 
         my $header = <$fh>;
         chomp $header;
-        unless ($header =~ /^id\t/) {
-            print $condA_up_ofh "id\t";
-            print $condB_up_ofh "id\t";
-        }
+        
         print $condA_up_ofh "$header\t$fpkm_matrix_header\n";
         print $condB_up_ofh "$header\t$fpkm_matrix_header\n";
 
@@ -354,8 +350,11 @@ sub parse_result_files_find_diffExp {
                     $diff_expr{$id} = 1;
                     
                     my $matrix_counts = $read_fpkm_rows_href->{$id} || die "Error, no counts from matrix for $id";
-            
-                    if ($log_fold_change > 0) {
+
+                    ######################################
+                    # log fold changes should be log2(A/B)
+                    
+                    if ($log_fold_change < 0) {
                         
                         print $condB_up_ofh "$line\t$matrix_counts\n";
                         $countB++;
@@ -387,10 +386,19 @@ sub parse_result_files_find_diffExp {
         ## do GO enrichment analysis
         if ($examine_GO_enrichment_flag) {
             
-            my $cmd = "$FindBin::RealBin/run_GOseq.pl --GO_assignments $GO_annots_file --lengths $gene_lengths_file --genes_single_factor $condA_up_subset_file";
+            my $background_file = $result_file;
+            $background_file =~ s/\.DE_results$/\.count_matrix/ or die "Error, cannot modify $result_file to count_matrix name";
+
+            my $cmd = "$FindBin::RealBin/run_GOseq.pl --GO_assignments $GO_annots_file "
+                . " --lengths $gene_lengths_file --genes_single_factor $condA_up_subset_file"
+                . " --background $background_file ";
+            
             &process_cmd($cmd) if $countA;
 
-            $cmd = "$FindBin::RealBin/run_GOseq.pl --GO_assignments $GO_annots_file --lengths $gene_lengths_file --genes_single_factor $condB_up_subset_file";
+            $cmd = "$FindBin::RealBin/run_GOseq.pl --GO_assignments $GO_annots_file "
+                . " --lengths $gene_lengths_file --genes_single_factor $condB_up_subset_file"
+                . " --background $background_file ";
+            
             &process_cmd($cmd) if $countB;
             
         }
@@ -480,3 +488,26 @@ sub write_matrix_generate_heatmap {
  
     return;
 }
+
+
+####
+sub get_sample_pairs_from_DE_results_file {
+    my ($result_file) = @_;
+
+    my ($header, $line) = split(/\n/, `head -n2 $result_file`);
+
+    unless ($header =~ /^sampleA\tsampleB/) {
+        die "Error, header [$header] of $result_file lacks expected formatting starting with sampleA\tsampleB";
+    }
+    my @header_comps = split(/\t/, $header);
+    
+    my @x = split(/\t/, $line);
+    unless (scalar(@x) == scalar(@header_comps) + 1) {
+        die "Error, top lines of result file: $result_file do not meet expectations for the R data.frame ";
+    }
+    my $sampleA = $x[1];
+    my $sampleB = $x[2];
+
+    return($sampleA, $sampleB);
+}
+

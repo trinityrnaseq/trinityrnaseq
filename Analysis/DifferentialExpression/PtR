@@ -119,9 +119,9 @@ my $usage = <<__EOUSAGE__;
 #
 #  --top_rows <int>         only include the top number of rows in the matrix, as ordered.
 #
-#  --min_colSums <int>      min number of fragments, default: $min_colSums
+#  --min_colSums <float>      min number of fragments, default: $min_colSums
 #
-#  --min_rowSums <int>      min number of fragments, default: $min_rowSums
+#  --min_rowSums <float>      min number of fragments, default: $min_rowSums
 #
 #  --gene_grep <string>     grep on string to restrict to genes
 #
@@ -369,8 +369,8 @@ my $NO_REUSE = 0;
     
     'restrict_samples=s' => \$restrict_samples,
     'top_rows=i' => \$top_rows,
-    'min_colSums=i' => \$min_colSums,
-    'min_rowSums=i' => \$min_rowSums,
+    'min_colSums=f' => \$min_colSums,
+    'min_rowSums=f' => \$min_rowSums,
 
     'binary' => \$MAKE_BINARY_FLAG,
     
@@ -902,6 +902,11 @@ main: {
     
     if ($sample_cor_matrix_flag || $heatmap_flag || $sample_cor_subset_matrix) {
 
+        # require that we have at least two rows and two columns
+        $Rscript .= "if (nrow(data) < 2) { stop(\"\n\n**** Sorry, at least two rows are required for this matrix.\n\n\");}\n";
+        $Rscript .= "if (ncol(data) < 2) { stop(\"\n\n**** Sorry, at least two columns are required for this matrix.\n\n\");}\n";
+        
+        
         if ($sample_cor_matrix_flag || $sample_cor_subset_matrix || $sample_dist =~ /sample_cor/) {
 
             $Rscript .= "sample_cor = cor(data, method=\'$sample_cor\', use='pairwise.complete.obs')\n";

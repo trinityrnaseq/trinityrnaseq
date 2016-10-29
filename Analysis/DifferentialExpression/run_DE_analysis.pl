@@ -15,6 +15,8 @@ use Data::Dumper;
 my $ROTS_B = 500;
 my $ROTS_K = 5000;
 
+my $MIN_REPS_MIN_CPM = "2,1";
+
 
 my $usage = <<__EOUSAGE__;
 
@@ -42,7 +44,9 @@ my $usage = <<__EOUSAGE__;
 #
 #  General options:
 #
-#  --min_rowSum_counts <int>       default: 2  (only those rows of matrix meeting requirement will be tested)
+#  --min_reps_min_cpm  <string>    default: $MIN_REPS_MIN_CPM  (format: 'min_reps,min_cpm')
+#                                  At least min count of replicates must have cpm values > min cpm value.
+#                                     (ie. filtMatrix = matrix[rowSums(cpm(matrix)> min_cpm) >= min_reps, ]  adapted from edgeR manual)
 #
 #  --output|o                      name of directory to place outputs (default: \$method.\$pid.dir)
 #
@@ -90,7 +94,7 @@ __EOUSAGE__
 my $matrix_file;
 my $method;
 my $samples_file;
-my $min_rowSum_counts = 2;
+
 my $help_flag;
 my $output_dir;
 my $dispersion; # I've used 0.1 myself - but read the manual to guide your choice.
@@ -107,9 +111,9 @@ my $make_tar_gz_file = 0;
               'method=s' => \$method,
               'samples_file|s=s' => \$samples_file,
               'output|o=s' => \$output_dir,
-              'min_rowSum_counts=i' => \$min_rowSum_counts,
+              'min_reps_min_cpm=s' => \$MIN_REPS_MIN_CPM,
               'dispersion=f' => \$dispersion,
-    
+              
               'reference_sample=s' => \$reference_sample,
               'contrasts=s' => \$contrasts_file,
               
@@ -147,6 +151,11 @@ if ($matrix_file =~ /fpkm/i) {
 
 unless ($method =~ /^(edgeR|DESeq2|voom|ROTS|GLM)$/) {
     die "Error, do not recognize --method [$method]";
+}
+
+my ($MIN_REPS, $MIN_CPM) = split(/,/, $MIN_REPS_MIN_CPM);
+unless ($MIN_REPS > 0 && $MIN_CPM > 0) {
+    die "Error, --min_reps_min_cpm $MIN_REPS_MIN_CPM must include values > 0 in comma-delimited format. ex.  '2,1' ";
 }
 
 
@@ -388,7 +397,7 @@ sub run_edgeR_sample_pair {
     print $ofh "col_ordering = c(" . join(",", @rep_column_indices) . ")\n";
     print $ofh "rnaseqMatrix = data[,col_ordering]\n";
     print $ofh "rnaseqMatrix = round(rnaseqMatrix)\n";
-    print $ofh "rnaseqMatrix = rnaseqMatrix[rowSums(rnaseqMatrix)>=$min_rowSum_counts,]\n";
+    print $ofh "rnaseqMatrix = rnaseqMatrix[rowSums(cpm(rnaseqMatrix) > $MIN_CPM) >= $MIN_REPS,]\n";
     print $ofh "conditions = factor(c(rep(\"$sample_A\", $num_rep_A), rep(\"$sample_B\", $num_rep_B)))\n";
     print $ofh "\n";
     print $ofh "exp_study = DGEList(counts=rnaseqMatrix, group=conditions)\n";
@@ -410,12 +419,19 @@ sub run_edgeR_sample_pair {
         print $ofh "et = exactTest(exp_study, pair=c(\"$sample_A\", \"$sample_B\"), dispersion=$dispersion)\n";
     }
     print $ofh "tTags = topTags(et,n=NULL)\n";
-    print $ofh "write.table(tTags, file=\'$output_prefix.edgeR.DE_results\', sep='\t', quote=F, row.names=T)\n";
-
+    print $ofh "result_table = tTags\$table\n";
+    print $ofh "result_table = data.frame(sampleA=\"$sample_A\", sampleB=\"$sample_B\", result_table)\n";
+    
+    ## reset logfc so it's A/B instead of B/A to be consistent with DESeq2
+    print $ofh "result_table\$logFC = -1 * result_table\$logFC\n";
+    
+    print $ofh "write.table(result_table, file=\'$output_prefix.edgeR.DE_results\', sep='\t', quote=F, row.names=T)\n";
+    print $ofh "write.table(rnaseqMatrix, file=\'$output_prefix.edgeR.count_matrix\', sep='\t', quote=F, row.names=T)\n";
+    
     ## generate MA and Volcano plots
     print $ofh "source(\"$FindBin::RealBin/R/rnaseq_plot_funcs.R\")\n";
     print $ofh "pdf(\"$output_prefix.edgeR.DE_results.MA_n_Volcano.pdf\")\n";
-    print $ofh "result_table = tTags\$table\n";
+
     print $ofh "plot_MA_and_Volcano(result_table\$logCPM, result_table\$logFC, result_table\$FDR)\n";
     print $ofh "dev.off()\n";
     
@@ -466,7 +482,7 @@ sub run_DESeq2_sample_pair {
 
     ## write R-script to run DESeq
     open (my $ofh, ">$Rscript_name") or die "Error, cannot write to $Rscript_name";
-    
+    print $ofh "library(edgeR)\n";
     print $ofh "library(DESeq2)\n";
     print $ofh "\n";
 
@@ -474,7 +490,7 @@ sub run_DESeq2_sample_pair {
     print $ofh "col_ordering = c(" . join(",", @rep_column_indices) . ")\n";
     print $ofh "rnaseqMatrix = data[,col_ordering]\n";
     print $ofh "rnaseqMatrix = round(rnaseqMatrix)\n";
-    print $ofh "rnaseqMatrix = rnaseqMatrix[rowSums(rnaseqMatrix)>=$min_rowSum_counts,]\n";
+    print $ofh "rnaseqMatrix = rnaseqMatrix[rowSums(cpm(rnaseqMatrix) > $MIN_CPM) >= $MIN_REPS,]\n";
     print $ofh "conditions = data.frame(conditions=factor(c(rep(\"$sample_A\", $num_rep_A), rep(\"$sample_B\", $num_rep_B))))\n";
     print $ofh "rownames(conditions) = colnames(rnaseqMatrix)\n";
     print $ofh "ddsFullCountTable <- DESeqDataSetFromMatrix(\n"
@@ -482,8 +498,10 @@ sub run_DESeq2_sample_pair {
              . "    colData = conditions,\n"
              . "    design = ~ conditions)\n";
     print $ofh "dds = DESeq(ddsFullCountTable)\n";
-    print $ofh "res = results(dds)\n";
 
+    print $ofh "contrast=c(\"conditions\",\"$sample_A\",\"$sample_B\")\n";
+    print $ofh "res = results(dds, contrast)\n";
+    
 
     # adj from: Carsten Kuenne, thx!
     ##recreates baseMeanA and baseMeanB columns that are not created by default DESeq2 anymore
@@ -492,14 +510,14 @@ sub run_DESeq2_sample_pair {
     print $ofh "res = cbind(baseMeanA, baseMeanB, as.data.frame(res))\n";
  
     ##adds an “id” column headline for column 0
-    print $ofh "res = cbind(id=rownames(res), as.data.frame(res))\n";
+    print $ofh "res = cbind(sampleA=\"$sample_A\", sampleB=\"$sample_B\", as.data.frame(res))\n";
 
     print $ofh "res\$padj[is.na(res\$padj)]  <- 1\n"; # Carsten Kuenne
     
-    ##set row.names to false to accomodate change above
-
     ## output results
-    print $ofh "write.table(as.data.frame(res[order(res\$pvalue),]), file=\'$output_prefix.DESeq2.DE_results\', sep='\t', quote=FALSE, row.names=F)\n";
+    print $ofh "write.table(as.data.frame(res[order(res\$pvalue),]), file=\'$output_prefix.DESeq2.DE_results\', sep='\t', quote=FALSE)\n";
+    print $ofh "write.table(rnaseqMatrix, file=\'$output_prefix.DESeq2.count_matrix\', sep='\t', quote=FALSE)\n";
+    
     
     ## generate MA and Volcano plots
     print $ofh "source(\"$FindBin::RealBin/R/rnaseq_plot_funcs.R\")\n";
@@ -555,7 +573,7 @@ sub run_limma_voom_sample_pair {
     print $ofh "col_ordering = c(" . join(",", @rep_column_indices) . ")\n";
     print $ofh "rnaseqMatrix = data[,col_ordering]\n";
     print $ofh "rnaseqMatrix = round(rnaseqMatrix)\n";
-    print $ofh "rnaseqMatrix = rnaseqMatrix[rowSums(rnaseqMatrix)>=$min_rowSum_counts,]\n";
+    print $ofh "rnaseqMatrix = rnaseqMatrix[rowSums(cpm(rnaseqMatrix) > $MIN_CPM) >= $MIN_REPS,]\n";
     print $ofh "conditions = factor(c(rep(\"$sample_A\", $num_rep_A), rep(\"$sample_B\", $num_rep_B)))\n";
     print $ofh "\n";
     print $ofh "design = model.matrix(~conditions)\n";
@@ -570,10 +588,12 @@ sub run_limma_voom_sample_pair {
     print $ofh "# output results, including average expression val for each feature\n";
     print $ofh "c = cpm(x)\n";
     print $ofh "m = apply(c, 1, mean)\n";
+    print $ofh "tTags\$logFC = -1 * tTags\$logFC  # make A/B instead of B/A\n";
     print $ofh "tTags2 = cbind(tTags, logCPM=log2(m[rownames(tTags)]))\n";
-    print $ofh "DE_matrix = data.frame(logFC=tTags\$logFC, logCPM=tTags2\$logCPM, PValue=tTags\$'P.Value', FDR=tTags\$'adj.P.Val')\n";
+    print $ofh "DE_matrix = data.frame(sampleA=\"$sample_A\", sampleB=\"$sample_B\", logFC=tTags\$logFC, logCPM=tTags2\$logCPM, PValue=tTags\$'P.Value', FDR=tTags\$'adj.P.Val')\n";
     print $ofh "rownames(DE_matrix) = rownames(tTags)\n";
     print $ofh "write.table(DE_matrix, file=\'$output_prefix.voom.DE_results\', sep='\t', quote=F, row.names=T)\n";
+    print $ofh "write.table(rnaseqMatrix, file=\'$output_prefix.voom.count_matrix\', sep='\t', quote=F, row.names=T)\n";
     
     ## generate MA and Volcano plots
     print $ofh "# MA and volcano plots\n";
@@ -640,7 +660,7 @@ sub run_ROTS_sample_pair {
     print $ofh "col_ordering = c(" . join(",", @rep_column_indices) . ")\n";
     print $ofh "rnaseqMatrix = data[,col_ordering]\n";
     print $ofh "rnaseqMatrix = round(rnaseqMatrix)\n";
-    print $ofh "rnaseqMatrix = rnaseqMatrix[rowSums(rnaseqMatrix)>=$min_rowSum_counts,]\n";
+    print $ofh "rnaseqMatrix = rnaseqMatrix[rowSums(cpm(rnaseqMatrix) > $MIN_CPM) >= $MIN_REPS,]\n";
     print $ofh "conditions = factor(c(rep(\"$sample_A\", $num_rep_A), rep(\"$sample_B\", $num_rep_B)))\n";
     print $ofh "\n";
     print $ofh "design = model.matrix(~conditions)\n";
@@ -667,10 +687,12 @@ sub run_ROTS_sample_pair {
     print $ofh "logFC = log2(FC)\n";
     print $ofh "results = summary(res_voom, fdr=0.1)\n";
     print $ofh "feature_order = rownames(results)\n";
-    print $ofh "final_table = data.frame(logCPM=log2(m+1)[feature_order], CPM_A=mean_sampleA_cpm[feature_order], CPM_B=mean_sampleB_cpm[feature_order], logFC=logFC[feature_order], results)\n";
-
+    print $ofh "final_table = data.frame(sampleA=\"$sample_A\", sampleB=\"$sample_B\", logCPM=log2(m+1)[feature_order], CPM_A=mean_sampleA_cpm[feature_order], CPM_B=mean_sampleB_cpm[feature_order], logFC=logFC[feature_order], results)\n";
+    
     print $ofh "write.table(final_table, file=\"$output_prefix.ROTS.DE_results\", quote=F, sep='\t')\n";
-        
+    print $ofh "write.table(rnaseqMatrix, file=\"$output_prefix.ROTS.count_matrix\", quote=F, sep='\t')\n";
+    
+    
     ## generate MA and Volcano plots
     print $ofh "# MA and volcano plots\n";
     print $ofh "source(\"$FindBin::RealBin/R/rnaseq_plot_funcs.R\")\n";
@@ -737,7 +759,8 @@ sub run_GLM {
     
     print $ofh "data = read.table(\"$matrix_file\", header=T, row.names=1, com='')\n";
     print $ofh "rnaseqMatrix = round(data)\n";
-    print $ofh "rnaseqMatrix = rnaseqMatrix[rowSums(rnaseqMatrix)>=$min_rowSum_counts,]\n";
+    print $ofh "rnaseqMatrix = rnaseqMatrix[rowSums(cpm(rnaseqMatrix) > $MIN_CPM) >= $MIN_REPS,]\n";
+
 
     print $ofh "design = model.matrix(~0+groups)\n";
     print $ofh "colnames(design) = levels(groups)\n";

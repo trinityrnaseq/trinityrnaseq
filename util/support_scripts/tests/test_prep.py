@@ -102,10 +102,10 @@ class TestTrinityPrepFlag(unittest.TestCase):
 
     def trinity(self, files, seqtype='fa', reverse=False, morefiles=None):
         if morefiles:
-            tpl = "Trinity --left %s --right %s --prep --seqType %s --max_memory 2G --no_version_check"
+            tpl = "Trinity --left %s --right %s --prep --seqType %s --max_memory 2G --no_version_check --no_normalize_reads"
             cmdline = tpl % (files, morefiles, seqtype)
         else:
-            tpl = "Trinity --single %s --prep --seqType %s --max_memory 2G --no_version_check"
+            tpl = "Trinity --single %s --prep --seqType %s --max_memory 2G --no_version_check --no_normalize_reads"
             cmdline = tpl % (files, seqtype)
         if reverse:
           cmdline += " --SS_lib_type " + ('RF' if morefiles else 'R')

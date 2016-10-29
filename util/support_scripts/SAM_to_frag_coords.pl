@@ -91,14 +91,14 @@ main: {
 	my @frags;
 
     my $read_coords_file = "$sam_file.read_coords";
-
-    &extract_read_coords($read_coords_file) unless (-s $read_coords_file);
-
+    my $read_coords_checkpoint = "$read_coords_file.ok";
+    
+    &extract_read_coords($read_coords_file) unless (-s $read_coords_checkpoint);
+    &process_cmd("touch $read_coords_checkpoint");
+    
     my $pair_coords_file = "$sam_file.frag_coords";
     &extract_frag_coords($read_coords_file, $pair_coords_file);
-    
-    
-        
+            
     
     exit(0);
 
@@ -130,31 +130,36 @@ sub extract_read_coords {
         
         # unless ($sam_entry->get_mate_scaffold_name() eq "=" || $sam_entry->get_mate_scaffold_name() eq $sam_entry->get_scaffold_name()) { next; }
         # commenting out above - just describe the reads, let the other routine handle the fragment definition.
-        
-        my $scaffold = $sam_entry->get_scaffold_name();
-        my $core_read_name = $sam_entry->get_core_read_name();
-        my $read_name = $sam_entry->get_read_name();
-        my $full_read_name = $sam_entry->reconstruct_full_read_name();
-        
-        #print "read_name: $read_name, full_read_name: $full_read_name\n";
-        
-        
-        my $pair_side = ".";
-        if ($full_read_name =~ m|/([12])$|) {
-            $pair_side = $1;
+
+
+        eval {
+            my $scaffold = $sam_entry->get_scaffold_name();
+            my $core_read_name = $sam_entry->get_core_read_name();
+            my $read_name = $sam_entry->get_read_name();
+            my $full_read_name = $sam_entry->reconstruct_full_read_name();
+            
+            #print "read_name: $read_name, full_read_name: $full_read_name\n";
+            
+            
+            my $pair_side = ".";
+            if ($full_read_name =~ m|/([12])$|) {
+                $pair_side = $1;
+            }
+            elsif ($read_name =~ m|/([12])$|) {
+                $pair_side = $1;
+            }
+            
+            my $mate_scaff_pos = $sam_entry->get_mate_scaffold_position();
+            my ($read_start, $read_end) = $sam_entry->get_genome_span();
+            
+            
+            print $ofh join("\t", $scaffold, $core_read_name, $pair_side, $read_start, $read_end) . "\n" if $scaffold ne '*' && $read_start && $read_end;
+        };
+
+        if ($@) {
+            print STDERR "******\nError parsing SAM entry: " . Dumper($sam_entry) . " \n$@\n******\n\n\n";
         }
-        elsif ($read_name =~ m|/([12])$|) {
-            $pair_side = $1;
-        }
-        
-        my $mate_scaff_pos = $sam_entry->get_mate_scaffold_position();
-        my ($read_start, $read_end) = $sam_entry->get_genome_span();
-        
-        
-        print $ofh join("\t", $scaffold, $core_read_name, $pair_side, $read_start, $read_end) . "\n" if $scaffold ne '*' && $read_start && $read_end;
-        
     }
-    
     
     close $ofh;
 

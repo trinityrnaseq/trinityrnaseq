@@ -11594,6 +11594,9 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 			line_counter++;
 			if (line_counter % 1000 == 0 && BFLY_GLOBALS.VERBOSE_LEVEL >= 10)
 				System.err.print("\rmapped read [" + line_counter + "]");	
+			else if (BFLY_GLOBALS.VERBOSE_LEVEL >= 11) {
+				System.err.print("\rmapped read [" + line_counter + "]");
+			}
 
 			//			Component 0
 			//			>@42MRYAAXX100104:7:100:1000:103#0      11      101393  36      101418          GAAAGACTGTCACCCTTGAGGTGGAGTCCTCTGACACTATTGACAATGTCAAGAGCAAAATCCAAGACAAGGAAGG
@@ -11610,7 +11613,7 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 			if (pathIDS==null || (pathIDS!=null && pathIDS.isEmpty()))
 			{
 				numReadsNotMapped++;
-				debugMes("Read could not be threaded: " + r.getName(), 17);
+				debugMes("Read could not be threaded: " + r.getName(), 12);
 			}else
 			{
 
@@ -11623,15 +11626,15 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 
 				//System.err.println(r.getName());
 				debugMes("Threaded Read as: " + r.getName() + " : " + pathIDS, 17);
-				debugMes("ReadPath@Init: " + r.getName() + " : " + pathIDS, 15);
+				debugMes("ReadPath@Init: " + r.getName() + " : " + pathIDS, 12);
 
 			}
 		}	
 
-
+		
 
 		//		debugMes("number of reads not found in graph = "+numReadsNotMapped +" of a total of "+(numReadsNotMapped+numReadsMapped),10);
-		debugMes("number of reads found = "+numReadsMapped 
+		debugMes("number of reads threaded = "+numReadsMapped 
 				+" (from total of "+(numReadsNotMapped+numReadsMapped)+") which came from "
 				+ readNameHash.keySet().size() + " pairs",10);
 
@@ -11696,6 +11699,8 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 		fromV = originalVerIDsMapping.get(fromOrigV);
 		seq = fields[6]; //there is an empty field before the seq.
 
+		r.init(name,seq, fromV, startInRead, endInRead, pathIDS);
+		
 
 		if (endInRead >= seq.length()) {
 			debugMes("read " + name + " has sequence length that is shorter than supposed endInRead marking(" + endInRead + "): " + seq, 0);
@@ -11758,6 +11763,7 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 				}
 				else {
 					debugMes("Trimmed path for read: " + name + " threaded as: " + best_path.toString() + " is empty", 19);
+					
 				}
 				
 				String pathSeq = getPathSeq(graph, pathIDS);
@@ -12031,10 +12037,11 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 				read_length_to_align = seq.length() - j;
 			}
 			
-			Alignment alignment	= NWalign.run_NW_alignment(		 
+			int bandwidth = (int) (MAX_READ_LOCAL_SEQ_DIVERGENCE * read_length_to_align);
+			Alignment alignment	= NWalign.run_NW_banded_alignment(		 
 					"Vertex", verSeq.substring(i), 
 					"Read", seq.substring(j, j+read_length_to_align), 
-					4, -5, 10, 1); 
+					4, -5, 10, 1, bandwidth); 
 			
 					
 			debugMes (new jaligner.formats.Pair().format(alignment), 17);

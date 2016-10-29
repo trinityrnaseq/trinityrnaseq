@@ -20,6 +20,7 @@
  */
 
 import jaligner.Alignment;
+import jaligner.NeedlemanWunschGotohBanded;
 import jaligner.Sequence;
 import jaligner.SmithWatermanGotoh;
 import jaligner.NeedlemanWunschGotoh;
@@ -79,15 +80,21 @@ public class NWalign {
 				
 				Matrix matrix = MatrixGenerator.generate(match_score, mismatch_penalty);
 				
-				
-				
 				//Matrix matrix = MatrixLoader.load(m);
 				Alignment alignment;
 				if (mode.equals("S")) {
 					alignment = SmithWatermanGotoh.align (s1, s2, matrix, open_penalty, extend_penalty);
 				}
-				else {
+				else if (mode.equals("N")){
 					alignment = NeedlemanWunschGotoh.align(s1, s2, matrix, open_penalty, extend_penalty);
+				}
+				else if (mode.equals("NB")) {
+					int bandwidth = Integer.parseInt(args[3]);
+					alignment = NeedlemanWunschGotohBanded.align(s1, s2, matrix, open_penalty, extend_penalty, bandwidth);
+				}
+				else {
+					printUsage();
+					throw new RuntimeException("error");
 				}
 				
 				System.out.println (alignment.getSummary());
@@ -95,20 +102,16 @@ public class NWalign {
 				
 				AlignmentStats stats = get_alignment_stats(alignment);
 				
-				
 				int alignment_length = stats.alignment_length;
 				int matches = stats.matches;
 				int mismatches = stats.mismatches;
 				int gaps = stats.gaps;
 				
-			
-				
 				float percent_A_in_alignment = (float) stats.get_count_of_bases_in_aligned_region(s1.getId()) / (s1.length()) * 100;
 				float percent_B_in_alignment = (float) stats.get_count_of_bases_in_aligned_region(s2.getId()) / (s2.length()) * 100;
 					
 				float max_percent_aligned = Math.max(percent_A_in_alignment, percent_B_in_alignment);
-				
-				
+					
 				float percent_identity = (float)matches/(matches+mismatches) * 100;
 				float percent_gapped = (float)gaps/alignment_length * 100;
 				
@@ -132,7 +135,7 @@ public class NWalign {
 		buffer.append ( "\n" );
 		buffer.append ( "Usage:\n" );
 		buffer.append ( "------\n" );
-		buffer.append ( "java -jar jaligner.jar <s1> <s2> (S or N)\n" );
+		buffer.append ( "java -jar jaligner.jar <s1> <s2> (S, N, or NB) [bandwidth=10]\n" );
 		buffer.append("\tS: Smith-Waterman\n");
 		buffer.append("\tN: Needleman-Wunsch\n");
 		buffer.append ( "\n" ) ;
@@ -163,6 +166,22 @@ public class NWalign {
 		
 		return(alignment);
 	}
+	
+
+	public static Alignment run_NW_banded_alignment(String name1, String s1, String name2, String s2, 
+			int match, int mismatch, int open, int extend, int bandwidth) {
+
+		Matrix matrix = MatrixGenerator.generate(match, mismatch);
+
+		Sequence seq1 = new Sequence(name1, s1);
+		Sequence seq2 = new Sequence(name2, s2);
+		Alignment alignment = NeedlemanWunschGotohBanded.align(seq1, seq2, matrix, open, extend, bandwidth);
+
+		return(alignment);
+	}
+
+	
+	
 		
 	public static AlignmentStats get_alignment_stats(Alignment a) {
 		AlignmentStats stats = new AlignmentStats(a);

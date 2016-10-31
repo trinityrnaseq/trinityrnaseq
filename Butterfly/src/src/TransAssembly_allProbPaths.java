@@ -146,7 +146,7 @@ public class TransAssembly_allProbPaths {
 	
 	private static boolean pasaFlyUniqueOpt = false; // variation on PASA
 	
-	private static boolean ILLUSTRATE_FINAL_ASSEMBLIES = false;
+	private static boolean ILLUSTRATE_FINAL_ASSEMBLIES = true;
 	
 	private static boolean MAKE_PE_SE = false; 
 	
@@ -932,7 +932,7 @@ public class TransAssembly_allProbPaths {
 
 		DirectedSparseGraph<SeqVertex, SimpleEdge> seqvertex_graph = new DirectedSparseGraph<SeqVertex, SimpleEdge>();
 
-		combinedReadHash = create_DAG_from_OverlapLayout(seqvertex_graph, combinedReadHash, file, graphName, createMiddleDotFiles);
+		HashMap<Integer, HashMap<PairPath, Integer>> seqvertex_combinedReadHash = create_DAG_from_OverlapLayout(seqvertex_graph, combinedReadHash, file, graphName, createMiddleDotFiles);
 
 		
 
@@ -945,7 +945,7 @@ public class TransAssembly_allProbPaths {
 
 		if (BFLY_GLOBALS.VERBOSE_LEVEL >= 15) {
 			debugMes("Printing Pair Paths ------------------", 15);
-			printPairPaths(combinedReadHash, "PairPaths@PostOverlapLayout");
+			printPairPaths(seqvertex_combinedReadHash, "PairPaths@PostOverlapLayout");
 		}
 
 		
@@ -954,10 +954,10 @@ public class TransAssembly_allProbPaths {
 		
 		debugMes("SECTION\n======= Reorganize Read Pairings =========\n\n", 5);
 		dijkstraDis = new DijkstraDistance<SeqVertex, SimpleEdge>(seqvertex_graph, true);
-		combinedReadHash = reorganizeReadPairings(seqvertex_graph, combinedReadHash, dijkstraDis);
+		seqvertex_combinedReadHash = reorganizeReadPairings(seqvertex_graph, seqvertex_combinedReadHash, dijkstraDis);
 		
 		if (BFLY_GLOBALS.VERBOSE_LEVEL >= 15)
-			printPairPaths(combinedReadHash, "PairPaths@AfterPairReorganization");
+			printPairPaths(seqvertex_combinedReadHash, "PairPaths@AfterPairReorganization");
 		
 		
 		//start working on one sub component at a time:
@@ -1032,7 +1032,7 @@ public class TransAssembly_allProbPaths {
         	totalNumSuccComps++;
 
         	// extract the reads that correspond to this subcomponent
-        	HashMap<Integer,HashMap<PairPath,Integer>> componentReadHash = getComponentReads(compID, comp, combinedReadHash);
+        	HashMap<Integer,HashMap<PairPath,Integer>> componentReadHash = getComponentReads(compID, comp, seqvertex_combinedReadHash);
 
         	if (componentReadHash.isEmpty()) {
         		debugMes("No pairpaths stored for comp: " + comp + ", so skipping it.", 10);
@@ -1081,7 +1081,7 @@ public class TransAssembly_allProbPaths {
 
         	if (INFER_UNRESOLVED_XSTRUCTURE_PATHS) {
         		debugMes("## INFERRING UNRESOLVED X STRUCTURE PATHS ##", 10);
-        		infer_best_triplets_across_unresolved_Xstructure(combinedReadHash, seqvertex_graph, xStructuresResolvedByTriplets, tripletMapper);
+        		infer_best_triplets_across_unresolved_Xstructure(seqvertex_combinedReadHash, seqvertex_graph, xStructuresResolvedByTriplets, tripletMapper);
 				
 			}
         	
@@ -1205,8 +1205,28 @@ public class TransAssembly_allProbPaths {
         		continue;
         	}
         	
+        	
+        	int numXstructsResolved = countNumOfXstructuresResolved(seqvertex_graph,comp,FinalPaths_all);
+        	if (numXstructs>0)
+        		debugMes("number X structures resolved = "+numXstructsResolved + " / " + numXstructs,10);
+        	
+        	
+        	// convert graph node IDs back to the original collapsed de Bruijn graph:
+        	
+        	HashMap<List<Integer>, Pair<Integer>> FinalPaths_all_orig_ids = new HashMap<List<Integer>, Pair<Integer>>();
+        	for (List<Integer> final_path : FinalPaths_all.keySet()) {
+        		List<Integer> revised_path_orig_ids = new ArrayList<Integer>();
+        		for (Integer seq_vertex_id : final_path ) {
+        			SeqVertex sv = SeqVertex.retrieveSeqVertexByID(seq_vertex_id);
+        			
+        			Integer orig_id = sv.getOrigButterflyID();
+        			revised_path_orig_ids.add(orig_id);
+        		}
+        		FinalPaths_all_orig_ids.put(revised_path_orig_ids, FinalPaths_all.get(final_path));
+        	}
+        	
 
-        	HashMap<List<Integer>,HashMap<PairPath,Integer>> finalPathsToContainedReads = assignCompatibleReadsToPaths(FinalPaths_all,combinedReadHash);
+        	HashMap<List<Integer>,HashMap<PairPath,Integer>> finalPathsToContainedReads = assignCompatibleReadsToPaths(FinalPaths_all_orig_ids, combinedReadHash);
 
         	
         	if (BFLY_GLOBALS.VERBOSE_LEVEL >= 20) {
@@ -1224,8 +1244,6 @@ public class TransAssembly_allProbPaths {
         		}
         		
         	}
-        	
-        	
         	
 
         	
@@ -1255,7 +1273,7 @@ public class TransAssembly_allProbPaths {
         	//////////////////////////////////////
         	
         	
-        	HashMap<List<Integer>,Integer> separate_gene_ids = group_paths_into_genes(FinalPaths_all, seqvertex_graph);
+        	HashMap<List<Integer>,Integer> separate_gene_ids = group_paths_into_genes(FinalPaths_all_orig_ids, graph);
         
         	
         	//////////////////////////////////////
@@ -1268,7 +1286,7 @@ public class TransAssembly_allProbPaths {
         	
         	if ( (! NO_EM_REDUCE) && FinalPaths_all.size() > 1) {
 
-        		HashMap<List<Integer>, Pair<Integer>> EM_reduced_paths = run_EM_REDUCE(FinalPaths_all, seqvertex_graph, finalPathsToContainedReads, separate_gene_ids);
+        		HashMap<List<Integer>, Pair<Integer>> EM_reduced_paths = run_EM_REDUCE(FinalPaths_all_orig_ids, graph, finalPathsToContainedReads, separate_gene_ids);
 
         		filtered_paths_to_keep.putAll(EM_reduced_paths);
         		
@@ -1276,7 +1294,7 @@ public class TransAssembly_allProbPaths {
         	
         	// by default, running both lower ranking path removal and EM-reduction, and combining positively-filtered entries.
         	if (! filtered_paths_to_keep.isEmpty()) {
-        		FinalPaths_all = filtered_paths_to_keep;
+        		FinalPaths_all_orig_ids = filtered_paths_to_keep;
         	}
         	
         	if ( (! NO_PATH_MERGING)  && FinalPaths_all.size() > 1) {
@@ -1285,7 +1303,7 @@ public class TransAssembly_allProbPaths {
         		debugMes("SECTION\n========= CD-HIT -like Removal of Too-Similar Sequences with Lesser Read Support =========\n\n", 5);
 
         		// alignment-based removal of lesser-supported paths that are too similar in sequence.
-        		FinalPaths_all = reduce_cdhit_like(FinalPaths_all, seqvertex_graph, finalPathsToContainedReads);
+        		FinalPaths_all_orig_ids = reduce_cdhit_like(FinalPaths_all_orig_ids, graph, finalPathsToContainedReads);
 
         	}
         	
@@ -1294,12 +1312,12 @@ public class TransAssembly_allProbPaths {
         	String component_name = pathName[pathName.length-1];
 
 
-        	if (FinalPaths_all==null)
+        	if (FinalPaths_all_orig_ids==null)
         		continue;
 
 
         	if (BFLY_GLOBALS.VERBOSE_LEVEL >= 15) {
-        		for (List<Integer> path : FinalPaths_all.keySet()) {
+        		for (List<Integer> path : FinalPaths_all_orig_ids.keySet()) {
         			debugMes("FinalPath@AfterFiltering: " + path, 15);
         		}
         	}
@@ -1309,7 +1327,7 @@ public class TransAssembly_allProbPaths {
         	HashMap<List<Integer>,ArrayList<String>> final_paths_to_long_read_content = new HashMap<List<Integer>,ArrayList<String>>();
         	if (! LONG_READ_PATH_MAP.isEmpty()) {
         		
-        		assign_long_read_content_to_final_paths(FinalPaths_all, finalPathsToContainedReads,LONG_READ_PATH_MAP, final_paths_to_long_read_content);
+        		assign_long_read_content_to_final_paths(FinalPaths_all_orig_ids, finalPathsToContainedReads,LONG_READ_PATH_MAP, final_paths_to_long_read_content);
         		
         	}
         	
@@ -1318,25 +1336,24 @@ public class TransAssembly_allProbPaths {
         	// Output the fasta sequences
         	//----------------------------
         	
-        	printFinalPaths(FinalPaths_all, seqvertex_graph, pout_all, component_name, totalNumReads, 
-        			final_paths_to_long_read_content, xStructuresResolvedByTriplets, separate_gene_ids);
+        	printFinalPaths(FinalPaths_all_orig_ids, graph, pout_all, component_name, totalNumReads, 
+        			final_paths_to_long_read_content, separate_gene_ids);
     		
         	
-        	totalNumPaths += FinalPaths_all.size();
+        	totalNumPaths += FinalPaths_all_orig_ids.size();
 
         	if (ILLUSTRATE_FINAL_ASSEMBLIES) {
-        		 calcExpressionOfFinalPaths(FinalPaths_all, finalPathsToContainedReads);
+        		 debugMes("## ILLUSTRATING FINAL ASSEMBLIES", 20);
+        		 illustrateFinalPaths(FinalPaths_all_orig_ids, finalPathsToContainedReads);
         	}
        
-        	int numXstructsResolved = countNumOfXstructuresResolved(seqvertex_graph,comp,FinalPaths_all);
-        	if (numXstructs>0)
-        		debugMes("number X structures resolved = "+numXstructsResolved + " / " + numXstructs,10);
+        	
         	
         }
        
 
 
-		removeAllEdgesOfSandT(seqvertex_graph);
+		removeAllEdgesOfSandT(graph);
 
 		pout_all.close();
 		if (FIND_ALSO_DIFF_PATHS)
@@ -6769,6 +6786,8 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 			HashMap<List<Integer>, Pair<Integer>> finalPaths_all,
 			HashMap<Integer, HashMap<PairPath, Integer>> combinedReadHash) {
 		
+		debugMes("\n\n## assignCompatibleReadsToPaths()", 20);
+		
 		HashMap<List<Integer>, HashMap<PairPath, Integer>> pathToContainedReads = new HashMap<List<Integer>, HashMap<PairPath, Integer>>();
 		
 		for (List<Integer> path : finalPaths_all.keySet()) {
@@ -8724,7 +8743,6 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 			String name, 
 			long totalNumReads,
 			HashMap<List<Integer>,ArrayList<String>> final_paths_to_long_read_content, 
-			HashMap<Integer, Boolean> xStructuresResolvedByTriplets, 
 			HashMap<List<Integer>, Integer> separate_gene_ids) 
 
 			throws FileNotFoundException 
@@ -8781,7 +8799,7 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 
 			String seqName = name + "_g" + gene_id + "_i" + iso_id;
 
-			String pathName = get_pathName_string(path, graph, xStructuresResolvedByTriplets);
+			String pathName = get_pathName_string(path, graph);
 
 			seqName += " len="+seq.length() + " path="+ pathName;
 
@@ -10086,61 +10104,14 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 	 * @param FinalPaths
 	 * @param PathReads
 	 */
-	private static HashMap<List<Integer>,HashMap<PairPath,Integer>> calcExpressionOfFinalPaths(
+	private static void illustrateFinalPaths(
 			HashMap<List<Integer>, Pair<Integer>> FinalPaths,
 			HashMap<List<Integer>, HashMap<PairPath, Integer>> PathReads) {
 
-		
-		//BFLY_GLOBALS.VERBOSE_LEVEL = 20; 
-		
-		
-		debugMes("calcExpressionOfFinalPaths()", 12);
 
-		HashMap<PairPath,Pair<Integer>> ReadPerPathCounts = new HashMap<PairPath, Pair<Integer>>();
-		
-		//HashMap<List<Integer>, List<PairPath>> finalPathsToContainedReads = new HashMap<List<Integer>,List<PairPath>>();
-		HashMap<List<Integer>,HashMap<PairPath,Integer>> finalPathsToContainedReads = new HashMap<List<Integer>,HashMap<PairPath,Integer>>();
 		
 		
-		for (List<Integer> path : FinalPaths.keySet()) {
-			debugMes("\n\nRead pairs mapped to final path: " + path + " :", 18);
-
-			for (PairPath read : PathReads.get(path).keySet())
-			{
-
-				Integer count = PathReads.get(path).get(read);
-				
-				
-
-				debugMes("-checking for compatibility with read: " + read, 18);
-
-				// check for complete containment:
-				if (! read.isCompatibleAndContainedBySinglePath(path)) {
-					debugMes("\t* not compatible.", 18);
-					continue;
-				}
-				else {
-					debugMes("\t* COMPATIBLE read.", 18);
-				}
-
-				if (!finalPathsToContainedReads.containsKey(path)) {
-					finalPathsToContainedReads.put(path, new HashMap<PairPath,Integer>()); 
-				}
-
-				finalPathsToContainedReads.get(path).put(read, count);
-
-				debugMes("\tRead: " + read.get_paths(), 18);
-
-			
-				if (!ReadPerPathCounts.containsKey(read))
-					ReadPerPathCounts.put(read,new Pair<Integer>(1,count));
-				else
-					ReadPerPathCounts.put(read,new Pair<Integer>(ReadPerPathCounts.get(read).getFirst()+1,count));
-			}
-		}
-
-		debugMes("\n\n*** PATHS AND COMPATIBLE READS ***\n", 15);
-
+		
 		for (List<Integer> path : FinalPaths.keySet())
 		{
 
@@ -10150,36 +10121,18 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 			Integer supp = 0;
 			Integer totalCounts = 0;
 
-			HashMap<PairPath, Integer> containedReads = finalPathsToContainedReads.get(path);
-			if (containedReads == null) {
-				debugMes("ERROR, found path:" + path + ", but no contained reads assigned. how?", 10);
-				continue;  //FIXME: why was this path captured if no reads are contained? (rare find)
-			}
-			for (PairPath read : containedReads.keySet())
-			{
+			HashMap<PairPath, Integer> containedReads = PathReads.get(path);
+			
+			String ascii_illustration = getPathMappingAsciiIllustration(path, containedReads);
+			debugMes("\nPath Illustration:\n\n" + ascii_illustration + "\n", 5);
+
+			//TODO: enable printing at lower verbose level, but note that crazy long paths cause serious performance problems for generating these illustrations... some fine-tuning definitely required there.
 
 
-				Integer numPaths = ReadPerPathCounts.get(read).getFirst();
-				Integer count = ReadPerPathCounts.get(read).getSecond();
-				supp += count/numPaths;
-				totalCounts += count;
 
-				debugMes("READ: " + read + ", numPaths: " + numPaths + ", count: " + count, 15);	
-			}
-
-
-			if (BFLY_GLOBALS.VERBOSE_LEVEL >= 25) {
-				String ascii_illustration = getPathMappingAsciiIllustration(path, finalPathsToContainedReads.get(path), ReadPerPathCounts);
-				debugMes("\nPath Illustration:\n\n" + ascii_illustration + "\n", 5);
-				
-				//TODO: enable printing at lower verbose level, but note that crazy long paths cause serious performance problems for generating these illustrations... some fine-tuning definitely required there.
-			}
-
-
-			FinalPaths.put(path, new Pair<Integer>(totalCounts,supp));
 		}
 
-		return(finalPathsToContainedReads);
+	
 
 	}
 
@@ -14948,8 +14901,7 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 
 	public static String getPathMappingAsciiIllustration (
 			final List<Integer> finalPath, 
-			HashMap<PairPath,Integer> readPathsHashmap,
-			HashMap<PairPath,Pair<Integer>> readsPerPathCount
+			HashMap<PairPath,Integer> readPathsHashmap
 			) {
 
 		String ascii_illustration = "";
@@ -14990,9 +14942,9 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 			}
 
 			int read_counts = readPathsHashmap.get(read);
-			int support_count = readsPerPathCount.get(read).getSecond();
+	
 
-			ascii_illustration += "    Read: " + read.get_paths() + " read_support: " + read_counts + " in_num_paths: " + support_count + "\n";
+			ascii_illustration += "    Read: " + read.get_paths() + " read_support: " + read_counts + "\n";
 
 		}
 
@@ -15477,7 +15429,7 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 	}			
 
 	private static String get_pathName_string (List<Integer> path,
-			DirectedSparseGraph<SeqVertex, SimpleEdge> graph, HashMap<Integer, Boolean> xStructuresResolvedByTriplets) {
+			DirectedSparseGraph<SeqVertex, SimpleEdge> graph) {
 
 
 		/*
@@ -15531,9 +15483,12 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 				//int node_id = v.getOrigButterflyID();
 				int node_id = v.getID();
 				String path_node = "" + node_id;
+				
+				/*
 				if (xStructuresResolvedByTriplets.containsKey(node_id) && ! xStructuresResolvedByTriplets.get(node_id)) {
 					path_node = "@" + path_node + "@!";
 				}
+				*/
 				
 				pathName = pathName + path_node +":"+j+"-"+(j+iSeqL-1);
 

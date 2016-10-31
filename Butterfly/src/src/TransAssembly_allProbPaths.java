@@ -1231,6 +1231,8 @@ public class TransAssembly_allProbPaths {
         	
         	if (BFLY_GLOBALS.VERBOSE_LEVEL >= 20) {
         		
+        		// verbose dump of read support
+        		
         		for (List<Integer> final_path : finalPathsToContainedReads.keySet()) {
         			HashMap<PairPath,Integer> contained_reads = finalPathsToContainedReads.get(final_path);
         			debugMes("PRELIM_FINAL_PATH:\n" + final_path + "\ncontains:", 20);
@@ -1243,6 +1245,20 @@ public class TransAssembly_allProbPaths {
         			debugMes("Total support: " + sum_support + "\n", 20);
         		}
         		
+        	}
+        	
+        	// remove those paths that didn't have reads assigned:
+        	{
+        		Set<List<Integer>> paths_to_remove = new HashSet<List<Integer>>();
+        		for (List<Integer> path : FinalPaths_all_orig_ids.keySet()) {
+        			if (! finalPathsToContainedReads.containsKey(path)) {
+        				debugMes("-removing final path that was not assigned read support: " + path, 10);
+        				paths_to_remove.add(path);
+        			}
+        		}
+        		for (List<Integer> path : paths_to_remove) {
+        			FinalPaths_all_orig_ids.remove(path);
+        		}
         	}
         	
 
@@ -1342,7 +1358,7 @@ public class TransAssembly_allProbPaths {
         	
         	totalNumPaths += FinalPaths_all_orig_ids.size();
 
-        	if (ILLUSTRATE_FINAL_ASSEMBLIES) {
+        	if ( BFLY_GLOBALS.VERBOSE_LEVEL >= 20) {
         		 debugMes("## ILLUSTRATING FINAL ASSEMBLIES", 20);
         		 illustrateFinalPaths(FinalPaths_all_orig_ids, finalPathsToContainedReads);
         	}
@@ -10109,9 +10125,6 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 			HashMap<List<Integer>, HashMap<PairPath, Integer>> PathReads) {
 
 
-		
-		
-		
 		for (List<Integer> path : FinalPaths.keySet())
 		{
 

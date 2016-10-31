@@ -2854,7 +2854,7 @@ sub normalize {
                . "---------------------------------------------------------------\n\n";
     
     
-
+    
     my $cmd = "$UTILDIR/insilico_read_normalization.pl --seqType $seqType --JM $max_memory "
         . " --max_cov $max_read_coverage --CPU $CPU --output $normalize_outdir   --max_pct_stdev $normalize_max_pct_stdev ";
     
@@ -2911,9 +2911,11 @@ sub files_exist {
 
     foreach my $file (@files) {
         if (! -e $file) {
+            print STDERR "-file doesn't yet exist: $file\n" if $VERBOSE;
             return(0); # not exists
         }
     }
+    print STDERR "-all files exist: @files\n" if $VERBOSE;
     
     return(1); # all exist
 }

@@ -1950,7 +1950,7 @@ public class TransAssembly_allProbPaths {
 			
 		}
 		
-		update_long_read_path_mappings(old_pp_to_new_pp);
+		//update_long_read_path_mappings(old_pp_to_new_pp);
 		
 		
 		HashMap<Integer, HashMap<PairPath, Integer>> new_combinedReadHash = construct_combinedReadhHash_from_PairPath_list(updated_pairPaths);

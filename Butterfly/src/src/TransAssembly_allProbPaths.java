@@ -922,21 +922,25 @@ public class TransAssembly_allProbPaths {
 		}
 		
 		
-
+		
+		////////////////////////////////////////////////////////////////////////////////
+		/// Moving from Collapsed de Bruijn Graph to an Overlap Graph 'seqvertex_graph' 
+		////////////////////////////////////////////////////////////////////////////////
+		
+		
 		debugMes("SECTION\n========  Create DAG from Overlap Layout ============\n\n", 5);
 
 		DirectedSparseGraph<SeqVertex, SimpleEdge> seqvertex_graph = new DirectedSparseGraph<SeqVertex, SimpleEdge>();
 
 		combinedReadHash = create_DAG_from_OverlapLayout(seqvertex_graph, combinedReadHash, file, graphName, createMiddleDotFiles);
 
-		graph = seqvertex_graph; // replacement.
+		
 
-
-		My_DFS dfs = new My_DFS(graph);
+		My_DFS dfs = new My_DFS(seqvertex_graph);
 		dfs.runDFS2();
 
 		if (createMiddleDotFiles)
-			writeDotFile(graph,file + "_vertex_DAG_postOverlapLayout.dot",graphName, false);
+			writeDotFile(seqvertex_graph,file + "_vertex_DAG_postOverlapLayout.dot",graphName, false);
 
 
 		if (BFLY_GLOBALS.VERBOSE_LEVEL >= 15) {
@@ -949,8 +953,8 @@ public class TransAssembly_allProbPaths {
 		
 		
 		debugMes("SECTION\n======= Reorganize Read Pairings =========\n\n", 5);
-		dijkstraDis = new DijkstraDistance<SeqVertex, SimpleEdge>(graph, true);
-		combinedReadHash = reorganizeReadPairings(graph, combinedReadHash, dijkstraDis);
+		dijkstraDis = new DijkstraDistance<SeqVertex, SimpleEdge>(seqvertex_graph, true);
+		combinedReadHash = reorganizeReadPairings(seqvertex_graph, combinedReadHash, dijkstraDis);
 		
 		if (BFLY_GLOBALS.VERBOSE_LEVEL >= 15)
 			printPairPaths(combinedReadHash, "PairPaths@AfterPairReorganization");
@@ -962,7 +966,7 @@ public class TransAssembly_allProbPaths {
 
 		//removeShortOrphanNodes(graph, MIN_OUTPUT_SEQ);
 		
-		Set<Set<SeqVertex>> comps = divideIntoComponents(graph);   //**** IMPORTANT: THIS HAPPENS AFTER UNROLLING REPEATS AND BEFORE FINAL LOOP BREAKING
+		Set<Set<SeqVertex>> comps = divideIntoComponents(seqvertex_graph);   //**** IMPORTANT: THIS HAPPENS AFTER UNROLLING REPEATS AND BEFORE FINAL LOOP BREAKING
 
 		debugMes("total number of components = "+comps.size(),10);
 		int compID = -1;
@@ -975,7 +979,7 @@ public class TransAssembly_allProbPaths {
 		String[] pathName = file.split("/");
 
 
-		if (graph.getVertexCount() == 0) {
+		if (seqvertex_graph.getVertexCount() == 0) {
 			System.err.println("Graph is empty. Quitting.");
 			System.exit(0);
 		}
@@ -986,9 +990,9 @@ public class TransAssembly_allProbPaths {
 		
 	
 		// update the edge weights in the new graph
-		for (SimpleEdge e : graph.getEdges()) {
-			String from_kmer = graph.getSource(e).getLastKmer();
-			String to_kmer = graph.getDest(e).getFirstKmer();
+		for (SimpleEdge e : seqvertex_graph.getEdges()) {
+			String from_kmer = seqvertex_graph.getSource(e).getLastKmer();
+			String to_kmer = seqvertex_graph.getDest(e).getFirstKmer();
 			
 			debugMes("Searching for kmer set: " + from_kmer + " -> " + to_kmer, 15);
 			
@@ -1002,7 +1006,7 @@ public class TransAssembly_allProbPaths {
 
 		
 		if (createMiddleDotFiles)
-			writeDotFile(graph,file + "_final.Z.dot",graphName, false);
+			writeDotFile(seqvertex_graph,file + "_final.Z.dot",graphName, false);
 	
 		
 		////////////////////////////
@@ -1010,7 +1014,7 @@ public class TransAssembly_allProbPaths {
 		////////////////////////////
 		
 		
-		DijkstraDistanceWoVer<SeqVertex, SimpleEdge> dijkstraDisWoVer = new DijkstraDistanceWoVer<SeqVertex, SimpleEdge>(graph);
+		DijkstraDistanceWoVer<SeqVertex, SimpleEdge> dijkstraDisWoVer = new DijkstraDistanceWoVer<SeqVertex, SimpleEdge>(seqvertex_graph);
  
 		//initiation
 		NUM_MISMATCHES_HASH = new HashMap<String, AlignmentStats>();  // cache alignment results for reuse.
@@ -1062,7 +1066,7 @@ public class TransAssembly_allProbPaths {
         	HashMap<Integer, List<List<Integer>>> tripletMapper = extractTripletsFromReads(componentReadHash);
         	
         
-        	HashMap<Integer,Boolean> xStructuresResolvedByTriplets = getXstructuresResolvedByTriplets(graph, comp, tripletMapper);
+        	HashMap<Integer,Boolean> xStructuresResolvedByTriplets = getXstructuresResolvedByTriplets(seqvertex_graph, comp, tripletMapper);
 
         	if (BFLY_GLOBALS.VERBOSE_LEVEL >= 10) {
         		// describe the locked down nodes
@@ -1077,7 +1081,7 @@ public class TransAssembly_allProbPaths {
 
         	if (INFER_UNRESOLVED_XSTRUCTURE_PATHS) {
         		debugMes("## INFERRING UNRESOLVED X STRUCTURE PATHS ##", 10);
-        		infer_best_triplets_across_unresolved_Xstructure(combinedReadHash, graph, xStructuresResolvedByTriplets, tripletMapper);
+        		infer_best_triplets_across_unresolved_Xstructure(combinedReadHash, seqvertex_graph, xStructuresResolvedByTriplets, tripletMapper);
 				
 			}
         	
@@ -1136,7 +1140,7 @@ public class TransAssembly_allProbPaths {
         		
         		if (cufflinksOpt) {
 
-        			FinalPaths_all = cuffMinPaths(graph, componentReadHash,dijkstraDis);
+        			FinalPaths_all = cuffMinPaths(seqvertex_graph, componentReadHash,dijkstraDis);
 
         		}
         		else if (pasaFlyOpt) {
@@ -1146,7 +1150,7 @@ public class TransAssembly_allProbPaths {
                 	HashMap<Integer, List<List<Integer>>> extendedTripletMapper = extractComplexPathPrefixesFromReads(componentReadHash);
 
         			
-        			FinalPaths_all = pasafly(graph, componentReadHash,dijkstraDis, tripletMapper, extendedTripletMapper);
+        			FinalPaths_all = pasafly(seqvertex_graph, componentReadHash,dijkstraDis, tripletMapper, extendedTripletMapper);
 
 
         		}
@@ -1158,7 +1162,7 @@ public class TransAssembly_allProbPaths {
             	HashMap<Integer, List<List<Integer>>> extendedTripletMapper = extractComplexPathPrefixesFromReads(componentReadHash);
 
         		
-        		FinalPaths_all = pasaflyunique(graph, componentReadHash,dijkstraDis, tripletMapper, extendedTripletMapper);
+        		FinalPaths_all = pasaflyunique(seqvertex_graph, componentReadHash,dijkstraDis, tripletMapper, extendedTripletMapper);
         		
         	}
         	
@@ -1175,9 +1179,9 @@ public class TransAssembly_allProbPaths {
             		}
             	}
             	
-        		addSandT(graph,comp,componentReadHash);
+        		addSandT(seqvertex_graph,comp,componentReadHash);
         		
-        		FinalPaths_all = butterfly(graph, comp, componentReadHash, totalNumReads, 
+        		FinalPaths_all = butterfly(seqvertex_graph, comp, componentReadHash, totalNumReads, 
         				pout_all, dijkstraDis, dijkstraDisWoVer,
         				tripletMapper, extendedTripletMapper, xStructuresResolvedByTriplets);
         		//pathName = get_pathName_string(path, graph);
@@ -1193,7 +1197,7 @@ public class TransAssembly_allProbPaths {
         	
 
         	// remove short paths
-        	FinalPaths_all = remove_short_seqs(FinalPaths_all, graph);
+        	FinalPaths_all = remove_short_seqs(FinalPaths_all, seqvertex_graph);
         	
         	
         	if (FinalPaths_all.isEmpty()) {
@@ -1251,7 +1255,7 @@ public class TransAssembly_allProbPaths {
         	//////////////////////////////////////
         	
         	
-        	HashMap<List<Integer>,Integer> separate_gene_ids = group_paths_into_genes(FinalPaths_all, graph);
+        	HashMap<List<Integer>,Integer> separate_gene_ids = group_paths_into_genes(FinalPaths_all, seqvertex_graph);
         
         	
         	//////////////////////////////////////
@@ -1264,7 +1268,7 @@ public class TransAssembly_allProbPaths {
         	
         	if ( (! NO_EM_REDUCE) && FinalPaths_all.size() > 1) {
 
-        		HashMap<List<Integer>, Pair<Integer>> EM_reduced_paths = run_EM_REDUCE(FinalPaths_all, graph, finalPathsToContainedReads, separate_gene_ids);
+        		HashMap<List<Integer>, Pair<Integer>> EM_reduced_paths = run_EM_REDUCE(FinalPaths_all, seqvertex_graph, finalPathsToContainedReads, separate_gene_ids);
 
         		filtered_paths_to_keep.putAll(EM_reduced_paths);
         		
@@ -1281,7 +1285,7 @@ public class TransAssembly_allProbPaths {
         		debugMes("SECTION\n========= CD-HIT -like Removal of Too-Similar Sequences with Lesser Read Support =========\n\n", 5);
 
         		// alignment-based removal of lesser-supported paths that are too similar in sequence.
-        		FinalPaths_all = reduce_cdhit_like(FinalPaths_all, graph, finalPathsToContainedReads);
+        		FinalPaths_all = reduce_cdhit_like(FinalPaths_all, seqvertex_graph, finalPathsToContainedReads);
 
         	}
         	
@@ -1314,7 +1318,7 @@ public class TransAssembly_allProbPaths {
         	// Output the fasta sequences
         	//----------------------------
         	
-        	printFinalPaths(FinalPaths_all, graph, pout_all, component_name, totalNumReads, 
+        	printFinalPaths(FinalPaths_all, seqvertex_graph, pout_all, component_name, totalNumReads, 
         			final_paths_to_long_read_content, xStructuresResolvedByTriplets, separate_gene_ids);
     		
         	
@@ -1324,7 +1328,7 @@ public class TransAssembly_allProbPaths {
         		 calcExpressionOfFinalPaths(FinalPaths_all, finalPathsToContainedReads);
         	}
        
-        	int numXstructsResolved = countNumOfXstructuresResolved(graph,comp,FinalPaths_all);
+        	int numXstructsResolved = countNumOfXstructuresResolved(seqvertex_graph,comp,FinalPaths_all);
         	if (numXstructs>0)
         		debugMes("number X structures resolved = "+numXstructsResolved + " / " + numXstructs,10);
         	
@@ -1332,7 +1336,7 @@ public class TransAssembly_allProbPaths {
        
 
 
-		removeAllEdgesOfSandT(graph);
+		removeAllEdgesOfSandT(seqvertex_graph);
 
 		pout_all.close();
 		if (FIND_ALSO_DIFF_PATHS)

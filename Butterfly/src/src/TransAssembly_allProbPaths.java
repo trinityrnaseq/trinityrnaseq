@@ -1360,6 +1360,11 @@ public class TransAssembly_allProbPaths {
 
 		for (List<Integer> path : finalPaths_all.keySet()) {
 
+			if (finalPathsToContainedReads.get(path) == null) {
+				//FIXME: why does this happen? very rare.
+				continue;
+			}
+			
 			for (PairPath pp : finalPathsToContainedReads.get(path).keySet()) {
 
 				if (LONG_READ_PATH_MAP_local.containsKey(pp)) {

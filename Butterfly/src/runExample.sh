@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cmd="./run_butterfly_nonJar.sh -N 10000 -L 300 -F 300 -C sample_data/RawComps.0/comp0 --stderr -V 20 "
+cmd="./run_butterfly_nonJar.sh -N 10000 -L 300 -F 300 -C sample_data/c1.graph --stderr -V 20 "
 
 eval $cmd
 

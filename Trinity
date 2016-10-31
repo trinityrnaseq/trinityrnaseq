@@ -1675,8 +1675,8 @@ sub run_chrysalis {
         $pipeliner->add_commands( new Command($cmd, "$iworm_min100_fa_file.ok"));
         $pipeliner->run();
         
-        $pipeliner = new Pipeliner(-verbose => $VERBOSE);
-        $cmd = "bowtie2-build -o 3 $iworm_min100_fa_file $iworm_min100_fa_file"; #-o 3 / defaut is 5, less use more ram but is faster when mapping the reads
+        $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
+        $cmd = "bowtie2-build -o 3 $iworm_min100_fa_file $iworm_min100_fa_file 1>/dev/null"; #-o 3 / defaut is 5, less use more ram but is faster when mapping the reads
         
         if (-s "$iworm_min100_fa_file") {
             $pipeliner->add_commands( new Command($cmd, "$iworm_min100_fa_file.bowtie2-build.ok"));
@@ -1715,7 +1715,7 @@ sub run_chrysalis {
         ## map inchworm contigs to the long reads.
         my $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
         
-        $pipeliner->add_commands( new Command("makeblastdb -in $fa_file_only_LR -dbtype nucl", "LR_makeblastdb.ok"));
+        $pipeliner->add_commands( new Command("makeblastdb -in $fa_file_only_LR -dbtype nucl 1>/dev/null", "LR_makeblastdb.ok"));
         
 
         $pipeliner->add_commands( new Command("blastn -db $fa_file_only_LR -query $inchworm_file -outfmt 6 -perc_identity 98 -evalue 1e-5 > $LR_blast_pairs_file", "LR_blastn.ok"));

@@ -1709,7 +1709,7 @@ sub run_chrysalis {
     }
     
     ## back to long reads
-    my $LR_blast_pairs_file = "$inchworm_file.LR_blastn.outfmt6";
+
     if ($LONG_READS_MODE && -s $fa_file_only_LR) {
         
         ## map inchworm contigs to the long reads.
@@ -1717,10 +1717,10 @@ sub run_chrysalis {
         
         $pipeliner->add_commands( new Command("makeblastdb -in $fa_file_only_LR -dbtype nucl 1>/dev/null", "LR_makeblastdb.ok"));
         
-
+        my $LR_blast_pairs_file = "$inchworm_file.LR_blastn.outfmt6";
         $pipeliner->add_commands( new Command("blastn -db $fa_file_only_LR -query $inchworm_file -outfmt 6 -perc_identity 98 -evalue 1e-5 > $LR_blast_pairs_file", "LR_blastn.ok"));
         
-        
+        $pipeliner->add_commands( new Command("$ROOTDIR/util/support_scripts/outfmt6_add_percent_match_length.pl $LR_blast_pairs_file $inchworm_file $fa_file_only_LR > $LR_blast_pairs_file.wLen", "LR_blastn_outfmt6_wLen.ok"));
         
         my $new_pair_links_file = "$iworm_scaffolds_file.wLR";
         if (-s $iworm_scaffolds_file) {
@@ -1728,7 +1728,7 @@ sub run_chrysalis {
         }
         $iworm_scaffolds_file = $new_pair_links_file; # reset for future use
         
-        $pipeliner->add_commands(new Command("$UTILDIR/support_scripts/iworm_LR_to_scaff_pairs.pl $LR_blast_pairs_file $inchworm_file $min_glue >> $iworm_scaffolds_file", 
+        $pipeliner->add_commands(new Command("$UTILDIR/support_scripts/iworm_LR_to_scaff_pairs.pl $LR_blast_pairs_file.wLen $inchworm_file $min_glue >> $iworm_scaffolds_file", 
                                              "add_LR_scaff_links.ok"));
         
         

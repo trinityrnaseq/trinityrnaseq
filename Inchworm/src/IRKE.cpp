@@ -204,7 +204,7 @@ void IRKE::populate_Kmers_from_fasta(const string& fasta_filename, bool reassemb
 			
 			string seq = fe.get_sequence();
 			
-			if (seq.length() < kmer_length + 1) {
+			if (seq.length() < kmer_length) {
 				continue;
 			}
 			

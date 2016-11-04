@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use List::Util qw(min);
 
-my $usage = "\n\n\tusage: $0 LR_blastn.outfmt6 iworm.fasta min_containment=98 KMER_LENGTH=25\n\n";
+my $usage = "\n\n\tusage: $0 LR_blastn.outfmt6.wLen iworm.fasta min_containment=98 KMER_LENGTH=25\n\n";
 
 my $blast_outfile = $ARGV[0] or die $usage;
 my $iworm_fasta = $ARGV[1];
@@ -24,22 +24,20 @@ main: {
                 $iworm_end5, $iworm_end3,
                 $LR_end5, $LR_end3,
                 $bitscore,
-                $max_either_containment,
+                $iworm_containment,
                 ) = ($x[0], $x[1], 
                      $x[6], $x[7], 
                      $x[8], $x[9],
                      $x[11],
-                     $x[16],
+                     $x[13],
                     );
             
-            unless ($max_either_containment >= $MIN_CONTAINMENT) { next; }
-            
-
             my ($LR_lend, $LR_rend) = sort {$a<=>$b} ($LR_end5, $LR_end3);
 
             push (@{$LR_to_iworm_hits{$LR_acc}}, { iworm_acc => $iworm_acc,
                                                    lend => $LR_lend,
                                                    rend => $LR_rend,
+                                                   iworm_containment => $iworm_containment,
                   });
             
             
@@ -69,8 +67,11 @@ main: {
                 if ($iworm_j->{lend} > $iworm_i->{rend}) {
                     last; 
                 }
-
-                if (&overlap_by_Kminus1($iworm_i, $iworm_j, $KMER_LENGTH)) {
+                
+                if (&overlap_by_Kminus1($iworm_i, $iworm_j, $KMER_LENGTH)
+                    &&
+                    ($iworm_i->{iworm_containment} >= $MIN_CONTAINMENT || $iworm_j->{iworm_containment} >= $MIN_CONTAINMENT)
+                    ) {
                     
                     my $pair_token = join("$;", sort ($iworm_i->{iworm_acc}, $iworm_j->{iworm_acc}));
                     $iworm_pairs{$pair_token}++;

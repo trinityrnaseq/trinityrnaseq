@@ -16,6 +16,7 @@
 #include <omp.h>
 #include "analysis/DeBruijnGraph.h"
 #include "analysis/sequenceUtil.h"
+#include "analysis/Pool.h"
 
 static float MIN_KMER_ENTROPY = 1.3;
 static float MIN_WELD_ENTROPY = MIN_KMER_ENTROPY;  // min entropy for each half of a welding mer (kk)
@@ -27,7 +28,6 @@ static int MAX_CLUSTER_SIZE = 100;
 static int MIN_CONTIG_LENGTH = 24;
 
 static bool DISABLE_REPEAT_CHECK = false;
-static bool __DEBUG_WELD_ALL = false;
 static bool __NO_GLUE_REQUIRED = false;
 
 
@@ -42,97 +42,6 @@ void PrintSeq(const DNAVector & d) {
     cout << "\n";
 }
 
-
-// wrapper around an integer vector
-class Pool
-{
-public:
-        
-
-    Pool() {
-        m_id = -1;
-    }
-    
-    Pool(int id) {
-        m_id = id;
-    }
-
-    Pool(const Pool& p) {
-        m_id = p.m_id;
-        m_index = p.m_index;
-    }
-    
-    void push_back(int i) { add(i); }
-    void add(int i) {m_index.push_back(i);}
-    
-    void add (Pool& p) {
-        for (int i = 0; i < p.size(); i++) {
-            if (! contains(p[i])) {
-                add(p[i]);
-            }
-        }
-    }
-    
-    void clear () {
-        svec<int> newvec;
-        m_index = newvec;
-    }
-    
-    void exclude (Pool& p) {
-        
-        for (int i = 0; i < p.size(); i++) {
-            if (p.contains(i)) {
-                exclude(i);
-            }
-        }
-    }
-    
-    void exclude (int i) {
-        //FIXME:  there must be a more efficient way to do this.
-        svec<int> new_mvec;
-        for (size_t j = 0; j < m_index.size(); j++) {
-            int val = m_index[j];
-            if (val != i) {
-                new_mvec.push_back(val);
-            }
-        }
-        m_index = new_mvec;
-    }
-            
-
-    int size() const {return m_index.isize();}
-    int isize() const { return(size()); }
-    
-    int get(int i) const {return m_index[i];}
-
-    int get_id() {
-        return(m_id);
-    }
-
-    int operator [] (const int& i) {
-        return(get(i));
-    }
-
-    bool contains(int id) {
-        for (int i = 0; i < size(); i++) {
-            if (get(i) == id) {
-                return(true);
-            }
-        }
-        return(false);
-    }
-    
-    
-    void sortvec() {
-        sort(m_index.begin(), m_index.end());
-    }
-    
-
-private:
-    svec<int> m_index;
-    int m_id;
-
-};
 
 // some prototypes
 void add_iworm_link(map<int,Pool>& weld_reinforced_iworm_clusters, int iworm_index, int iworm_pool_addition);
@@ -677,30 +586,7 @@ bool sort_pool_sizes_ascendingly(const Pool& a, const Pool& b) {
 }
 
 
-svec<Pool> bubble_up_cluster_growth(map<int,Pool>& pool, map<int,bool>& ) {
-    
-
-    /* 
-       Algorithm:
-       
-       A graph is provided as a list of 'node' -> (list of adjacent nodes)
-       
-       The list is sorted from smallest to largest sets of nodes.
-       
-       Starting from the smallest entry of {x}  -> { a, b, c}
-    
-       we start clustering nodes by 'bubbling' up from the smaller clusters to the larger hubs
-       by building containment lists and performing node substitutions with containment lists.
-
-       For example, we take 'a' and assign it a containment list [x] and then replace all incoming and outgoing
-       edges to x with connections to 'a'.  Now, 'a' represents both 'a' and 'x'.
-
-       We cycle through the lists until there is no more 'bubbling' that is possible.  The 'bubbles' end up representing
-       the final cluster memberships.  We put a cap on how big a bubble can grow in order to prevent overclustering.
-
-    */
-    
-    
+void report_iworm_graph(map<int,Pool>& pool, map<int,bool>& toasted) {
 
     vector<Pool> pool_vec;
     for (map<int,Pool>::iterator it = pool.begin(); it != pool.end(); it++) {
@@ -724,180 +610,33 @@ svec<Pool> bubble_up_cluster_growth(map<int,Pool>& pool, map<int,bool>& ) {
     
     for (size_t i = 0; i < pool_vec.size(); i++) {
         int pool_id = pool_vec[i].get_id();
-        Pool tmp(pool_id);
-        pool_idx_to_containment[pool_id] = tmp;
-        pool_idx_to_vec_idx[pool_id] = i;
-    }
-    
-    
-    cerr << "now bubbling: " << "\n" << "\n";
-    bool bubbling = true;
-    
-    int bubble_round = 0;
-    while (bubbling) {
-        bubble_round++;
-        bubbling = false;
-        
-        if (DEBUG) {
-            describe_bubblings(pool_vec, pool_idx_to_containment, bubble_round);
-            cerr << "bubbling up graph, round: " << bubble_round << "\n";
+
+        if (toasted.find(pool_id) != toasted.end()) {
+            // skip toasted entry
+            continue;
         }
-        
-        
-        // iterate through pools from smaller to larger ones.
-        for (size_t i = 0; i < pool_vec.size(); i++) {
-                        
-            Pool& p = pool_vec[i];
-            int id = p.get_id();
-            
-            // cerr << "Bubble_round: " << bubble_round << ", processing pool(" << i << "), with id: " << id << " and size: " << p.size() << "\n";
-            
-            if (pool_idx_to_containment[id].size()) {
-                // remove any entries in the pool that are already stored in the containment list.
-                p.exclude(pool_idx_to_containment[id]);
-            }
-            
-            if (p.size() > 0) {
-                
-                // cerr << "Processing pool: " << p.get_id() << " with size: " << p.size() << "\n";
-                
-                // bubble upward
-                // get other id:
-                bool local_bubbled = false;
-                int other_id = -1;
-                
-                for (int j = 0; j < p.size(); j++) {
-                    
 
-                    // find another larger pool we can merge with
-
-                    other_id = p[j];
-                    if (other_id == id) { continue; }  // shouldn't happen since id isn't stored in its own pool.
-                    
-                    if (pool_idx_to_containment[other_id].size() + pool_idx_to_containment[id].size() + 2 <= MAX_CLUSTER_SIZE) {  // + 2 since neither self is included in its containment list
-
-                        /////////////////////////////////////////////////////////////////////
-                        // begin bubbling of 'id's pool contents to 'other_id's pool contents.
-                        /////////////////////////////////////////////////////////////////////
-
-                        // move this id to the containment list of the 'other' 
-                        pool_idx_to_containment[other_id].add(id);
-                        
-                        // add this id's containment list to the 'other'
-                        pool_idx_to_containment[other_id].add(pool_idx_to_containment[id]);
-                        
-                        // remove 'other_id' from its own containment list.  (it's self-evident)
-                        pool_idx_to_containment[other_id].exclude(other_id);
-
-                        // remove 'id' from the other_id's pool
-                        pool_vec[ pool_idx_to_vec_idx[ other_id ] ].exclude( id ); 
-                        
-                        local_bubbled = true;
-                        break;
-                    }
-                }
-                if (local_bubbled) {
-
-                    ///////////////////////////////////////////////////////////////////////
-                    //  'other_id' is now a proxy for 'id' and all 'id's earlier contents.
-                    //   update links previously to (id) over to (other_id)
-                    ///////////////////////////////////////////////////////////////////////
-
-
-                    for (int j = 0; j < p.size(); j++) {
-                        if (p[j] != other_id) {
-                            // p[j] should contain id, since id linked to p[j] and all should be reciprocal
-                            
-                            int p_j_pool_vec_idx = pool_idx_to_vec_idx[ p[j] ];
-                            
-                            if (! pool_vec[ p_j_pool_vec_idx ].contains( id )) {
-                                
-
-                                describe_bubblings(pool_vec, pool_idx_to_containment, -2);
-                                cerr << "Error, " << p[j] << " doesn't contain: " << id << " but vice-versa was true." << "\n";
-                                exit(4);
-                            }
-                            
-                            
-                            pool_vec[ p_j_pool_vec_idx ].exclude( id );
-                            // replace it with a link to the other_id, if not already linked.
-                            if (! pool_vec[ p_j_pool_vec_idx ].contains( other_id )) {
-                                pool_vec[ pool_idx_to_vec_idx[ p[j] ] ].add( other_id );
-                            }
-                            
-                            // links must be reciprocal
-                            int other_id_pool_vec_idx = pool_idx_to_vec_idx[ other_id ];
-                            if (! pool_vec[ other_id_pool_vec_idx ].contains( p[j] )) {
-                                pool_vec[ other_id_pool_vec_idx ].add( p[j] );
-                            } 
-                            
-                        }
-                    } // end of for j iteration through 'id' pool contents.
-                    
-                    
-                    // clear out this pool
-                    p.clear();
-                    
-                    // clear out the containment for this pool since fully covered by other_id's pool now.
-                    pool_idx_to_containment[id].clear();
-                    
-                    
-                    bubbling = true;
-                }
-            }
-            
-        }
-        
-    }
-    
-    cerr << "done bubbling.\n";
-
-
-    // Some entries might be linked but not contained, or exist as singletons.
-    map<int,bool> found_contained;
-    for (map<int,Pool>::iterator it = pool_idx_to_containment.begin(); it != pool_idx_to_containment.end(); it++) {
-        Pool& p = it->second;
-        if (p.size() > 0) {
-            found_contained[ p.get_id() ] = true; // include self since not in its own containment list.
-            for (int i = 0; i < p.size(); i++) {
-                int id = p.get(i);
-                found_contained[id] = true;
+        vector<int> adjacent_nodes;
+        Pool& members = pool_vec[i];
+        for (int j = 0; j < members.size(); j++) {
+            int member = members[j];
+            if (toasted.find(member) == toasted.end()) {
+                // not toasted
+                adjacent_nodes.push_back(member);
             }
         }
-    }
-
-    
-
-    
-    svec<Pool> bubbled_up_pools;
-    for (size_t i = 0; i < pool_vec.size(); i++) {
-                
-        Pool& p = pool_vec[i];
-        int id = p.get_id();
-        
-        map<int,Pool>::iterator it = pool_idx_to_containment.find(id);
-
-        if (it != pool_idx_to_containment.end() && (it->second).size() > 0 ) {
-            // Entry (id) has a containment list.
-
-            Pool containment_pool = it->second;
-            // add (id) and its containment list to the final pool
-            containment_pool.add(id);
-            bubbled_up_pools.push_back(containment_pool);
+        if (adjacent_nodes.size()) {
+            stringstream s;
+            s << pool_id << " ->";
+            for (int j = 0; j < adjacent_nodes.size(); j++) {
+                s << " " << adjacent_nodes[j];
+            }
+            cout << s.str() << endl;
         }
-        else if (found_contained.find(id) == found_contained.end()) { // not part of any containment list
-            
-            if (DEBUG) 
-                cerr << id << " is a loner, not contained." << "\n";
         
-            Pool loner;
-            loner.add(id);
-            bubbled_up_pools.push_back(loner);
-        }
     }
-
-        
-    return(bubbled_up_pools);
+    
+    return;
 
 }
 
@@ -1243,7 +982,6 @@ int main(int argc,char** argv)
     commandArg<bool> noWeldsCmmd("-no_welds", "no clustering based on weld-reading", false);
     commandArg<int>  maxClusterSizeCmmd("-max_cluster_size", "max size for an inchworm cluster", MAX_CLUSTER_SIZE);
     commandArg<int>  minContigLengthCmmd("-min_contig_length", "min sum cluster contig length", MIN_CONTIG_LENGTH);
-    commandArg<bool>  debugWeldAllCmmd("-debug_weld_all", "creates a single cluster of all contigs, for debugging only", false);
     
     commandArg<bool> noGlueRequiredCmmd("-no_glue_required", "no glue required, only a kmer match required", false);
     commandArg<int> maxGlueCmmd("-max_glue_required", "maximum amount of glue required (default off=-1) When computed min_glue > max_glue, use max_glue setting", -1);
@@ -1274,7 +1012,6 @@ int main(int argc,char** argv)
     
 
     P.registerArg(debugCmmd);
-    P.registerArg(debugWeldAllCmmd);
     P.registerArg(noGlueRequiredCmmd);
     P.registerArg(maxGlueCmmd);
     P.registerArg(disableRepeatCheckCmmd);
@@ -1311,7 +1048,6 @@ int main(int argc,char** argv)
     MIN_CONTIG_LENGTH = P.GetIntValueFor(minContigLengthCmmd);
     
     DEBUG = P.GetBoolValueFor(debugCmmd);
-    __DEBUG_WELD_ALL = P.GetBoolValueFor(debugWeldAllCmmd);
     __NO_GLUE_REQUIRED = P.GetBoolValueFor(noGlueRequiredCmmd);
 
     DISABLE_REPEAT_CHECK = P.GetBoolValueFor(disableRepeatCheckCmmd);
@@ -1413,188 +1149,33 @@ int main(int argc,char** argv)
 
     svec<Pool> clustered_pools;
     
-    if (__DEBUG_WELD_ALL) {
     
-        // making just one big cluster for testing purposes.
+    if (! bNoWeld) { // make this a function
+        cerr << "Phase 1: Collecting candidate weldmers between iworm contig pairs sharing k-1mers" << "\n";
         
-        Pool p;
-        
-        for (size_t i = 0; i < dna.size(); i++) {
-            p.add(i);
-        }
-        
-        clustered_pools.push_back(p);
-    }
-
-    else {
-
-        if (! bNoWeld) { // make this a function
-            cerr << "Phase 1: Collecting candidate weldmers between iworm contig pairs sharing k-1mers" << "\n";
-            
-            iworm_counter = 0;
-            
-            #pragma omp parallel for schedule(dynamic, schedule_chunksize) private(j)
-            for (i=0; i<dna.size(); i++) {
-                DNAVector & d = dna[i]; // inchworm contig [i]
-                
-                #pragma omp atomic
-                iworm_counter++;
-                
-                if (iworm_counter % 1000 == 0 || iworm_counter == dna.size()-1) {
-                    #pragma omp critical
-                    cerr << "\rProcessed: " << iworm_counter/(double)dna.size()*100 << " % of iworm contigs.    ";
-                }
-                
-                for (j=0; j<=d.isize()-k; j++) {
-                    DNAVector sub; // a kmer
-                    sub.SetToSubOf(d, j, k);
-                    
-                    if (IsSimple(sub))
-                        continue; // ignore kmers that are low complexity
-                    
-                    
-                    // find other inchworm contigs that have kmer matches
-                    svec<KmerAlignCoreRecord> matchesFW, matchesRC;   
-                    
-                    core.GetMatches(matchesFW, sub);
-                    if (!sStrand) {
-                        sub.ReverseComplement();
-                        core.GetMatches(matchesRC, sub);
-                    }
-                    
-                    int x;
-
-
-                    // create weldmers, and store them for later counting them among the reads.
-                    
-                    for (x=0; x<matchesFW.isize(); x++) {
-                        int c = matchesFW[x].GetContig();
-                        if (c == i)
-                            continue;  // matches itself
-                        
-                        DNAVector & dd = dna[c];        
-                        int start = matchesFW[x].GetPosition();
-                        
-                        if (DEBUG) {
-                            cerr << "(Phase1: FW kmer [" << sub.AsString() << "] match between " << dna.Name(i) << " and " << dna.Name(c)
-                                 << " at F positions: " << j << " and " << start << "\n";
-                        } 
-                        
-                        DNAVector add;
-                        
-                        weld.WeldableKmer(add, d, j, dd, start);
-                        if (add.isize() > 0 && (! IsSimple(add)) && (! SimpleHalves(add) )) {
-                            Add(crossover, add, counter);      
-                        }
-                        weld.WeldableKmer(add, dd, start, d, j);
-                        if (add.isize() > 0 && (! IsSimple(add)) && (! SimpleHalves(add) )) {
-                            Add(crossover, add, counter);
-                        }
-                    }
-                    for (x=0; x<matchesRC.isize(); x++) {
-                        int c = matchesRC[x].GetContig();
-                        if (c == i)
-                            continue;
-                        DNAVector dd = dna[c];
-                        dd.ReverseComplement();
-                        
-                        int start = dd.isize() - matchesRC[x].GetPosition() - k;
-
-                        if (DEBUG) {
-                            cerr << "(Phase1: RC kmer [" << sub.AsString() << "] match between " << dna.Name(i) << " and " << dna.Name(c)
-                                 << " at F positions: " << j << " and " << start << "\n";
-                        } 
-                        
-
-                        DNAVector add;
-                        
-                        weld.WeldableKmer(add, d, j, dd, start); 
-                        if (add.isize() > 0 && (! IsSimple(add)) && (! SimpleHalves(add))) {
-                            Add(crossover, add, counter);        
-                        }
-                        
-                        
-                        weld.WeldableKmer(add, dd, start, d, j);
-                        if (add.isize() > 0 && ! IsSimple(add) && (! SimpleHalves(add))) {
-                            Add(crossover, add, counter);        
-                        }
-                    }
-                }
-            }
-            
-            end_time = omp_get_wtime();
-            cerr << "\n" << "\n" << "...done Phase 1. (" << end_time - start_time << " seconds)" << "\n";
-            
-            //crossover.resize(counter);
-            
-        }
-        
-        
-        
-        //----------------------------------------------------
-        // -----  Counting the weldmers among the reads ------
-        // ---------------------------------------------------
-        
-        //cerr << "Setting up/sorting structure." << "\n";
-        cerr << "Captured: " << crossover.size() << " weldmer candidates." << "\n";
-        
-        
-        kmers.SetUp(crossover);
-        //cerr << "done setting up sorting structure." << "\n";
-                
-        
-        cerr << "Setting up reads for streaming..." << "\n";
-        DNAStringStreamFast seq;
-        seq.ReadStream(readString);  //readString is the name of the file containing the reads
-        
-        cerr << "Identifying reads that support welding of iworm contigs..." << "\n";
-        kmers.AddData(seq);
-        cerr << "\n" << "Done!" << "\n";
-        
-        weld.SetTable(&kmers);
-                
-        
-        //=================================================================
-        // Cluster the inchworm contigs based on read-weld support
-        //================================================================
-        
-        
-        cerr << "Phase 2: Reclustering iworm contigs using welds."  << "\n";
-        
-        iworm_counter = 0; // reset
+        iworm_counter = 0;
         
         #pragma omp parallel for schedule(dynamic, schedule_chunksize) private(j)
         for (i=0; i<dna.size(); i++) {
+            DNAVector & d = dna[i]; // inchworm contig [i]
             
-        
             #pragma omp atomic
             iworm_counter++;
             
-            if (i % 100 == 0) {
+            if (iworm_counter % 1000 == 0 || iworm_counter == dna.size()-1) {
                 #pragma omp critical
-                cerr << "\r[" << (iworm_counter/(float)dna.size()*100) << "% done]                ";
+                cerr << "\rProcessed: " << iworm_counter/(double)dna.size()*100 << " % of iworm contigs.    ";
             }
             
-            
-            int cutoff = 0;
-            DNAVector & d = dna[i];
-            if (d.isize() < k) {
-                
-                if (DEBUG) {
-                    cerr << "ignoring: " << dna.Name(i) << " since less than length: " << k << "\n";
-                }
-                
-                continue;
-            }
-            
-            
-            
-            // iterate through kmers of inchworm contig
             for (j=0; j<=d.isize()-k; j++) {
-                
-                DNAVector sub;
+                DNAVector sub; // a kmer
                 sub.SetToSubOf(d, j, k);
                 
+                if (IsSimple(sub))
+                    continue; // ignore kmers that are low complexity
+                
+                
+                // find other inchworm contigs that have kmer matches
                 svec<KmerAlignCoreRecord> matchesFW, matchesRC;   
                 
                 core.GetMatches(matchesFW, sub);
@@ -1603,319 +1184,404 @@ int main(int argc,char** argv)
                     core.GetMatches(matchesRC, sub);
                 }
                 
-                if (IsSimple(sub) && matchesFW.isize() + matchesRC.isize() > 1) {
-                    if (DEBUG) {
-                        cerr << "kmer: " << sub.AsString() << " ignored since either low complex and too many iworm matches"<< "\n";
-                    }
-                    
-                    continue;      
-                }
-                
                 int x;
                 
-                double coverage = Coverage(dna.Name(i));
                 
-                // Process forward matching kmers
+                // create weldmers, and store them for later counting them among the reads.
+                
                 for (x=0; x<matchesFW.isize(); x++) {
                     int c = matchesFW[x].GetContig();
-                    
-                    if (c == i) {
-                        continue;
-                    }
-                    
-                    
-                    if (DEBUG) {
-                        cerr << "kmer: " << sub.AsString() << " supports match between " << dna.Name(i) << " and " << dna.Name(c) << "\n";
-                    }
-                    
-                    
-                    double coverage_other = Coverage(dna.Name(c));
-                    
-                    
-                    double higher_coverage_val = (coverage > coverage_other) ? coverage : coverage_other;
-                    int minCov = (int) (higher_coverage_val * glue_factor);
-                    if (minCov < min_glue_required) {
-                        minCov = min_glue_required;
-                    }
-                    if (max_glue_required > 0 && minCov > max_glue_required) {
-                        minCov = max_glue_required;
-                    }
+                    if (c == i)
+                        continue;  // matches itself
                     
                     DNAVector & dd = dna[c];        
                     int start = matchesFW[x].GetPosition();
                     
+                    if (DEBUG) {
+                        cerr << "(Phase1: FW kmer [" << sub.AsString() << "] match between " << dna.Name(i) << " and " << dna.Name(c)
+                             << " at F positions: " << j << " and " << start << "\n";
+                    } 
+                    
+                    DNAVector add;
+                    
+                    weld.WeldableKmer(add, d, j, dd, start);
+                    if (add.isize() > 0 && (! IsSimple(add)) && (! SimpleHalves(add) )) {
+                        Add(crossover, add, counter);      
+                    }
+                    weld.WeldableKmer(add, dd, start, d, j);
+                    if (add.isize() > 0 && (! IsSimple(add)) && (! SimpleHalves(add) )) {
+                        Add(crossover, add, counter);
+                    }
+                }
+                for (x=0; x<matchesRC.isize(); x++) {
+                    int c = matchesRC[x].GetContig();
+                    if (c == i)
+                        continue;
+                    DNAVector dd = dna[c];
+                    dd.ReverseComplement();
+                    
+                    int start = dd.isize() - matchesRC[x].GetPosition() - k;
                     
                     if (DEBUG) {
-                        cerr << "Phase2: FW kmer match [" << sub.AsString() << "] between " << dna.Name(i) << " and " << dna.Name(c)
+                        cerr << "(Phase1: RC kmer [" << sub.AsString() << "] match between " << dna.Name(i) << " and " << dna.Name(c)
                              << " at F positions: " << j << " and " << start << "\n";
                     } 
                     
                     
-                    //cout << "TEST_WELD: " << I << " " << J << " ";
-                    string welding_kmer;
-                    int welding_kmer_read_count = 0;
-
-                    if (__NO_GLUE_REQUIRED)  {
-
-                        #pragma omp critical
-                        {
-                            add_reciprocal_iworm_link(weld_reinforced_iworm_clusters, i, c);
-                        }
-                    }
-                    else {
-                        // glue required
-                        
-                        if ( (! bNoWeld) // welding is on && not weldable, continue
-                             && 
-                             
-                             !(weld.Weldable(d, j, dd, start, minCov, welding_kmer, welding_kmer_read_count) 
-                               || 
-                               weld.Weldable(dd, start, d, j, minCov, welding_kmer, welding_kmer_read_count))) {
-                            
-                            if (DEBUG) {
-                                cerr << "\t no welding kmer avail " << welding_kmer << ", count: " << welding_kmer_read_count 
-                                     << ", min count required: " << minCov << "\n";
-                            }
-                            
-                            continue;
-                        }
-                        
-                        if (IsShadow(d, dd, j, start, k) && coverage > 2*coverage_other) {
-                            cerr << "Toasting shadow: " << dna.Name(c) << "\n";
-                            
-                            #pragma omp critical
-                            toasted[c] = true;
-                            
-                            continue;
-                            
-                        } else if (min_glue_required > 0 && !IsGoodCoverage(coverage, coverage_other, min_iso_ratio)) {
-
-                            if (DEBUG) {
-                                cerr << "Rejecting fw merge between " << dna.Name(i)
-                                     << " and " << dna.Name(c) << " due to coverage and min_iso_ratio check\n";
-                            }
-                            
-                            continue;
-                        }
-                        // cerr << "Accept (fw)!!" << "\n";
-                        
-                        #pragma omp critical
-                        {
-                            
-                            add_reciprocal_iworm_link(weld_reinforced_iworm_clusters, i, c);
-                            
-                            
-                        }
-                      
-                    } // end of glue check
+                    DNAVector add;
                     
-                    if (REPORT_WELDS || DEBUG) {
-                        #pragma omp critical
-                        cout << "#Welding: " << dna.Name(i) << " to " << dna.Name(c) 
-                             << " with kmer:[" << sub.AsString() << "], weldmer:["  << welding_kmer << "] found in " << welding_kmer_read_count << " reads" << "\n";
+                    weld.WeldableKmer(add, d, j, dd, start); 
+                    if (add.isize() > 0 && (! IsSimple(add)) && (! SimpleHalves(add))) {
+                        Add(crossover, add, counter);        
                     }
                     
                     
-                } // end of iteration through matches
-                
-                if (sStrand) {
-                    // only doing the forward matches
-                    
-                    if (DEBUG) {
-                        // cerr << " only procesing forward strand " << "\n";
-                        // too noisy here.
+                    weld.WeldableKmer(add, dd, start, d, j);
+                    if (add.isize() > 0 && ! IsSimple(add) && (! SimpleHalves(add))) {
+                        Add(crossover, add, counter);        
                     }
-                    
-                    
-                    continue; // superfluous since we didn't capture any rc matches
                 }
-                
-                // Process the RC matches now
-                for (x=0; x<matchesRC.isize(); x++) {
-                    int c = matchesRC[x].GetContig();
-                    
-                    
-                    if (c == i) {
-                        // ignore self matches
-                        continue;
-                    }
-                    
-                    
-                    if (DEBUG) {
-                        cerr << "RCkmer: " << sub.AsString() << " supports match between " << dna.Name(i) << " and " << dna.Name(c) << "\n";
-                    }
-                    
-                    
-                    
-                    double coverage_other = Coverage(dna.Name(c));
-                    
-                    double higher_coverage_val = (coverage > coverage_other) ? coverage : coverage_other;
-                    int minCov = (int) (higher_coverage_val * glue_factor);
-                    if (minCov < min_glue_required) {
-                        minCov = min_glue_required;
-                    }
-                    if (max_glue_required > 0 && minCov > max_glue_required) {
-                        minCov = max_glue_required;
-                    }
-                    
-                    
-                    DNAVector dd = dna[c];
-                    dd.ReverseComplement();  // revcomp a copy of the iworm[c] sequence
-                    
-                    int start = dd.isize() - matchesRC[x].GetPosition() - k;  // reverse-complement the match coordinate
-                    
-                    
-                    if (DEBUG) {
-                        cerr << "Phase 2: RC kmer match between " << dna.Name(i) << " and " << dna.Name(c)
-                             << " at R positions: " << j << " and " << start << "\n";
-                    } 
-                    
-                    
-                    string welding_kmer;
-                    int welding_kmer_read_count = 0;
-
-
-                    if (__NO_GLUE_REQUIRED)  {
-
-                        #pragma omp critical
-                        {
-                            
-                            add_reciprocal_iworm_link(weld_reinforced_iworm_clusters, i, c);
-                            
-                            
-                        }
-                        
-                    }
-                    else {
-                        
-                        
-                        
-                        if (!bNoWeld 
-                            && 
-                            !(weld.Weldable(d, j, dd, start, minCov, welding_kmer, welding_kmer_read_count) 
-                              || 
-                              weld.Weldable(dd, start, d, j, minCov, welding_kmer, welding_kmer_read_count))) {
-                            
-                            
-                            if (DEBUG) {
-                                cerr << "\t no welding kmer avail " << welding_kmer << ", count: " << welding_kmer_read_count 
-                                     << ", min count required: " << minCov << "\n";
-                            }
-                            
-                            continue;
-                        }
-                        
-                        if (IsShadow(d, dd, j, start, k) && coverage > 2*coverage_other) {
-                            cerr << "Toasting shadow: " << dna.Name(c) << "\n";
-                            
-                            #pragma omp critical
-                            toasted[c] = true;
-                            
-                            continue;
-                            
-                        } else if (min_glue_required > 0 && !IsGoodCoverage(coverage, coverage_other, min_iso_ratio)) {
-
-                            if (DEBUG) {
-                                
-                                cerr << "Rejecting rc merge between " << dna.Name(i)
-                                     << " and " << dna.Name(c) << " due to coverage and min_iso_ratio check\n";
-                                
-                            }
-                            
-                            continue;
-                        }
-                        //cerr << "Accept (rc)!!" << "\n";
-                        
-                        
-                        
-                        #pragma omp critical
-                        {
-                            
-                            add_reciprocal_iworm_link(weld_reinforced_iworm_clusters, i, c);
-                            
-                            
-                        }
-                    }
-                    
-                    if (REPORT_WELDS || DEBUG) {
-                        #pragma omp critical
-                        cout << "#Welding: " << dna.Name(i) << " to " << dna.Name(c) 
-                             << " with kmer:[" << sub.AsString() << "], weldmer:["  << welding_kmer << "] found in " << welding_kmer_read_count << " reads" << "\n";
-                    }
-                    
-                    //cout << "Mapped sequence " << dna.NameClean(c) << " to pool " << mapped[c] << " -" << "\n";
-                }
-                
             }
         }
         
-        
         end_time = omp_get_wtime();
+        cerr << "\n" << "\n" << "...done Phase 1. (" << end_time - start_time << " seconds)" << "\n";
         
-        cerr << "\n"; // end of progress monitoring.
+        //crossover.resize(counter);
         
-        
-        
-        // sl_clustered_pools = sl_cluster_pools(weld_reinforced_iworm_clusters, toasted);
-        
-        clustered_pools = bubble_up_cluster_growth(weld_reinforced_iworm_clusters, toasted);
-        
-        if (1) { // (DEBUG) {
-            cerr << "Final pool description: " << "\n";
-            describe_poolings(clustered_pools);
-        }
-        
-        
-        add_unclustered_iworm_contigs(clustered_pools, dna);
-                
-    
     }
     
     
-    //-----------------------------------------------------------------------------------
-    // Generate final output
+    
+    //----------------------------------------------------
+    // -----  Counting the weldmers among the reads ------
+    // ---------------------------------------------------
+    
+    //cerr << "Setting up/sorting structure." << "\n";
+    cerr << "Captured: " << crossover.size() << " weldmer candidates." << "\n";
     
     
+    kmers.SetUp(crossover);
+    //cerr << "done setting up sorting structure." << "\n";
+    
+    
+    cerr << "Setting up reads for streaming..." << "\n";
+    DNAStringStreamFast seq;
+    seq.ReadStream(readString);  //readString is the name of the file containing the reads
+    
+    cerr << "Identifying reads that support welding of iworm contigs..." << "\n";
+    kmers.AddData(seq);
+    cerr << "\n" << "Done!" << "\n";
+    
+    weld.SetTable(&kmers);
+    
+    
+    //=================================================================
+    // Cluster the inchworm contigs based on read-weld support
+    //================================================================
+    
+    
+    cerr << "Phase 2: Reclustering iworm contigs using welds."  << "\n";
+    
+    iworm_counter = 0; // reset
+    
+    #pragma omp parallel for schedule(dynamic, schedule_chunksize) private(j)
+    for (i=0; i<dna.size(); i++) {
         
-    int component_count = 0;
-    
-    for (i=0; i<clustered_pools.isize(); i++) {
-        Pool & p = clustered_pools[i];
         
-        if (p.size() == 0) { continue; }
-
-        p.sortvec();
-    
-        int sum_iworm_length = 0;
-        for (size_t j = 0; j < p.size(); j++) {
-            int z = p.get(j);
-            sum_iworm_length += dna[z].isize();
+        #pragma omp atomic
+        iworm_counter++;
+        
+        if (i % 100 == 0) {
+            #pragma omp critical
+            cerr << "\r[" << (iworm_counter/(float)dna.size()*100) << "% done]                ";
         }
-
-        if (sum_iworm_length < MIN_CONTIG_LENGTH) {
+        
+        
+        int cutoff = 0;
+        DNAVector & d = dna[i];
+        if (d.isize() < k) {
+            
+            if (DEBUG) {
+                cerr << "ignoring: " << dna.Name(i) << " since less than length: " << k << "\n";
+            }
+            
             continue;
         }
         
-        stringstream pool_info;                
-        pool_info << "#POOL_INFO\t" << component_count << ":" << "\t";
-
-        cout << "COMPONENT " << component_count << "\t" << p.size() << "\n";
-        for (size_t j = 0; j < p.size(); j++) {
-            int z = p.get(j);
-            
-            pool_info << z << " ";
-            cout << ">Component_" << component_count << " " << p.size() << " " << z << " [iworm" << dna.Name(z) << "]" << "\n";
-            PrintSeq(dna[z]);
-        }
-        pool_info << "\n";
-        cout << pool_info.str();
         
-        cout << "END" << "\n";
-    
-        component_count++;
-
+        
+        // iterate through kmers of inchworm contig
+        for (j=0; j<=d.isize()-k; j++) {
+            
+            DNAVector sub;
+            sub.SetToSubOf(d, j, k);
+            
+            svec<KmerAlignCoreRecord> matchesFW, matchesRC;   
+            
+            core.GetMatches(matchesFW, sub);
+            if (!sStrand) {
+                sub.ReverseComplement();
+                core.GetMatches(matchesRC, sub);
+            }
+            
+            if (IsSimple(sub) && matchesFW.isize() + matchesRC.isize() > 1) {
+                if (DEBUG) {
+                    cerr << "kmer: " << sub.AsString() << " ignored since either low complex and too many iworm matches"<< "\n";
+                }
+                
+                continue;      
+            }
+            
+            int x;
+            
+            double coverage = Coverage(dna.Name(i));
+            
+            // Process forward matching kmers
+            for (x=0; x<matchesFW.isize(); x++) {
+                int c = matchesFW[x].GetContig();
+                
+                if (c == i) {
+                    continue;
+                }
+                
+                
+                if (DEBUG) {
+                    cerr << "kmer: " << sub.AsString() << " supports match between " << dna.Name(i) << " and " << dna.Name(c) << "\n";
+                }
+                
+                
+                double coverage_other = Coverage(dna.Name(c));
+                
+                
+                double higher_coverage_val = (coverage > coverage_other) ? coverage : coverage_other;
+                int minCov = (int) (higher_coverage_val * glue_factor);
+                if (minCov < min_glue_required) {
+                    minCov = min_glue_required;
+                }
+                if (max_glue_required > 0 && minCov > max_glue_required) {
+                    minCov = max_glue_required;
+                }
+                
+                DNAVector & dd = dna[c];        
+                int start = matchesFW[x].GetPosition();
+                
+                
+                if (DEBUG) {
+                    cerr << "Phase2: FW kmer match [" << sub.AsString() << "] between " << dna.Name(i) << " and " << dna.Name(c)
+                         << " at F positions: " << j << " and " << start << "\n";
+                } 
+                
+                
+                //cout << "TEST_WELD: " << I << " " << J << " ";
+                string welding_kmer;
+                int welding_kmer_read_count = 0;
+                
+                if (__NO_GLUE_REQUIRED)  {
+                    
+                    #pragma omp critical
+                    {
+                        add_reciprocal_iworm_link(weld_reinforced_iworm_clusters, i, c);
+                    }
+                }
+                else {
+                    // glue required
+                    
+                    if ( (! bNoWeld) // welding is on && not weldable, continue
+                         && 
+                         
+                         !(weld.Weldable(d, j, dd, start, minCov, welding_kmer, welding_kmer_read_count) 
+                           || 
+                           weld.Weldable(dd, start, d, j, minCov, welding_kmer, welding_kmer_read_count))) {
+                        
+                        if (DEBUG) {
+                            cerr << "\t no welding kmer avail " << welding_kmer << ", count: " << welding_kmer_read_count 
+                                 << ", min count required: " << minCov << "\n";
+                        }
+                        
+                        continue;
+                    }
+                    
+                    if (IsShadow(d, dd, j, start, k) && coverage > 2*coverage_other) {
+                        cerr << "Toasting shadow: " << dna.Name(c) << "\n";
+                        
+                        #pragma omp critical
+                        toasted[c] = true;
+                        
+                        continue;
+                        
+                    } else if (min_glue_required > 0 && !IsGoodCoverage(coverage, coverage_other, min_iso_ratio)) {
+                        
+                        if (DEBUG) {
+                            cerr << "Rejecting fw merge between " << dna.Name(i)
+                                     << " and " << dna.Name(c) << " due to coverage and min_iso_ratio check\n";
+                        }
+                        
+                        continue;
+                    }
+                    // cerr << "Accept (fw)!!" << "\n";
+                    
+                    #pragma omp critical
+                    {
+                        
+                        add_reciprocal_iworm_link(weld_reinforced_iworm_clusters, i, c);
+                        
+                        
+                    }
+                    
+                } // end of glue check
+                
+                if (REPORT_WELDS || DEBUG) {
+                    #pragma omp critical
+                    cout << "#Welding: " << dna.Name(i) << " to " << dna.Name(c) 
+                         << " with kmer:[" << sub.AsString() << "], weldmer:["  << welding_kmer << "] found in " << welding_kmer_read_count << " reads" << "\n";
+                }
+                
+                
+            } // end of iteration through matches
+            
+            if (sStrand) {
+                // only doing the forward matches
+                
+                if (DEBUG) {
+                    // cerr << " only procesing forward strand " << "\n";
+                    // too noisy here.
+                }
+                
+                
+                continue; // superfluous since we didn't capture any rc matches
+            }
+            
+            // Process the RC matches now
+            for (x=0; x<matchesRC.isize(); x++) {
+                int c = matchesRC[x].GetContig();
+                
+                
+                if (c == i) {
+                    // ignore self matches
+                    continue;
+                }
+                
+                
+                if (DEBUG) {
+                    cerr << "RCkmer: " << sub.AsString() << " supports match between " << dna.Name(i) << " and " << dna.Name(c) << "\n";
+                }
+                
+                
+                
+                double coverage_other = Coverage(dna.Name(c));
+                
+                double higher_coverage_val = (coverage > coverage_other) ? coverage : coverage_other;
+                int minCov = (int) (higher_coverage_val * glue_factor);
+                if (minCov < min_glue_required) {
+                    minCov = min_glue_required;
+                }
+                if (max_glue_required > 0 && minCov > max_glue_required) {
+                    minCov = max_glue_required;
+                }
+                
+                
+                DNAVector dd = dna[c];
+                dd.ReverseComplement();  // revcomp a copy of the iworm[c] sequence
+                
+                int start = dd.isize() - matchesRC[x].GetPosition() - k;  // reverse-complement the match coordinate
+                
+                
+                if (DEBUG) {
+                    cerr << "Phase 2: RC kmer match between " << dna.Name(i) << " and " << dna.Name(c)
+                         << " at R positions: " << j << " and " << start << "\n";
+                } 
+                
+                
+                string welding_kmer;
+                int welding_kmer_read_count = 0;
+                
+                
+                if (__NO_GLUE_REQUIRED)  {
+                    
+                    #pragma omp critical
+                    {
+                        
+                        add_reciprocal_iworm_link(weld_reinforced_iworm_clusters, i, c);
+                        
+                        
+                    }
+                    
+                }
+                else {
+                    
+                    
+                    
+                    if (!bNoWeld 
+                        && 
+                        !(weld.Weldable(d, j, dd, start, minCov, welding_kmer, welding_kmer_read_count) 
+                          || 
+                          weld.Weldable(dd, start, d, j, minCov, welding_kmer, welding_kmer_read_count))) {
+                        
+                        
+                        if (DEBUG) {
+                            cerr << "\t no welding kmer avail " << welding_kmer << ", count: " << welding_kmer_read_count 
+                                 << ", min count required: " << minCov << "\n";
+                        }
+                        
+                        continue;
+                    }
+                    
+                    if (IsShadow(d, dd, j, start, k) && coverage > 2*coverage_other) {
+                        cerr << "Toasting shadow: " << dna.Name(c) << "\n";
+                        
+                        #pragma omp critical
+                        toasted[c] = true;
+                        
+                        continue;
+                        
+                    } else if (min_glue_required > 0 && !IsGoodCoverage(coverage, coverage_other, min_iso_ratio)) {
+                        
+                        if (DEBUG) {
+                            
+                            cerr << "Rejecting rc merge between " << dna.Name(i)
+                                 << " and " << dna.Name(c) << " due to coverage and min_iso_ratio check\n";
+                            
+                        }
+                        
+                        continue;
+                    }
+                    //cerr << "Accept (rc)!!" << "\n";
+                    
+                    
+                    
+                    #pragma omp critical
+                    {
+                        
+                        add_reciprocal_iworm_link(weld_reinforced_iworm_clusters, i, c);
+                        
+                        
+                    }
+                }
+                
+                if (REPORT_WELDS || DEBUG) {
+                    #pragma omp critical
+                    cout << "#Welding: " << dna.Name(i) << " to " << dna.Name(c) 
+                         << " with kmer:[" << sub.AsString() << "], weldmer:["  << welding_kmer << "] found in " << welding_kmer_read_count << " reads" << "\n";
+                }
+                
+                //cout << "Mapped sequence " << dna.NameClean(c) << " to pool " << mapped[c] << " -" << "\n";
+            }
+            
+        }
     }
     
+    
+    end_time = omp_get_wtime();
+    
+    cerr << "\n"; // end of progress monitoring.
+    
+    
+    
+    // sl_clustered_pools = sl_cluster_pools(weld_reinforced_iworm_clusters, toasted);
+    
+    report_iworm_graph(weld_reinforced_iworm_clusters, toasted);
+        
     return 0;
     
 }

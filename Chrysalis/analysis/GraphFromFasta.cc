@@ -47,8 +47,7 @@ void PrintSeq(const DNAVector & d) {
 class Pool
 {
 public:
-    
-    
+        
 
     Pool() {
         m_id = -1;
@@ -614,7 +613,7 @@ void Add(vecDNAVector & all, DNAVector & add, int & counter)
 }
 
 
-void describe_poolings (svec<Pool>& pool_vec) {
+void describe_poolings (vector<Pool>& pool_vec) {
     
     cerr << "\n" << "Pools described as follows:" << "\n";
     
@@ -680,6 +679,29 @@ bool sort_pool_sizes_ascendingly(const Pool& a, const Pool& b) {
 
 svec<Pool> bubble_up_cluster_growth(map<int,Pool>& pool, map<int,bool>& ) {
     
+
+    /* 
+       Algorithm:
+       
+       A graph is provided as a list of 'node' -> (list of adjacent nodes)
+       
+       The list is sorted from smallest to largest sets of nodes.
+       
+       Starting from the smallest entry of {x}  -> { a, b, c}
+    
+       we start clustering nodes by 'bubbling' up from the smaller clusters to the larger hubs
+       by building containment lists and performing node substitutions with containment lists.
+
+       For example, we take 'a' and assign it a containment list [x] and then replace all incoming and outgoing
+       edges to x with connections to 'a'.  Now, 'a' represents both 'a' and 'x'.
+
+       We cycle through the lists until there is no more 'bubbling' that is possible.  The 'bubbles' end up representing
+       the final cluster memberships.  We put a cap on how big a bubble can grow in order to prevent overclustering.
+
+    */
+    
+    
+
     vector<Pool> pool_vec;
     for (map<int,Pool>::iterator it = pool.begin(); it != pool.end(); it++) {
         pool_vec.push_back(it->second);
@@ -687,20 +709,24 @@ svec<Pool> bubble_up_cluster_growth(map<int,Pool>& pool, map<int,bool>& ) {
     
     sort (pool_vec.begin(), pool_vec.end(), sort_pool_sizes_ascendingly);
     
-    //cerr << "After sorting: " << "\n";
-    //describe_poolings(pool_vec);
-    
+    if (1) {  // local debugging.
+        cerr << "After sorting: " << "\n";
+        describe_poolings(pool_vec);
+    }
 
     //TODO: nothing ignored ends up as a containment.
 
     map<int,Pool> pool_idx_to_containment;
     map<int,int>  pool_idx_to_vec_idx;
     // init 
+    
+    cerr << "bubble_up_cluster_growth(): got " << pool_vec.size() << " pools." << endl;
+    
     for (size_t i = 0; i < pool_vec.size(); i++) {
-        int id = pool_vec[i].get_id();
-        Pool tmp(id);
-        pool_idx_to_containment[id] = tmp;
-        pool_idx_to_vec_idx[id] = i;
+        int pool_id = pool_vec[i].get_id();
+        Pool tmp(pool_id);
+        pool_idx_to_containment[pool_id] = tmp;
+        pool_idx_to_vec_idx[pool_id] = i;
     }
     
     
@@ -717,10 +743,10 @@ svec<Pool> bubble_up_cluster_growth(map<int,Pool>& pool, map<int,bool>& ) {
             cerr << "bubbling up graph, round: " << bubble_round << "\n";
         }
         
+        
+        // iterate through pools from smaller to larger ones.
         for (size_t i = 0; i < pool_vec.size(); i++) {
-            
-            
-            
+                        
             Pool& p = pool_vec[i];
             int id = p.get_id();
             
@@ -743,10 +769,16 @@ svec<Pool> bubble_up_cluster_growth(map<int,Pool>& pool, map<int,bool>& ) {
                 for (int j = 0; j < p.size(); j++) {
                     
 
+                    // find another larger pool we can merge with
+
                     other_id = p[j];
-                    if (other_id == id) { continue; }
+                    if (other_id == id) { continue; }  // shouldn't happen since id isn't stored in its own pool.
                     
                     if (pool_idx_to_containment[other_id].size() + pool_idx_to_containment[id].size() + 2 <= MAX_CLUSTER_SIZE) {  // + 2 since neither self is included in its containment list
+
+                        /////////////////////////////////////////////////////////////////////
+                        // begin bubbling of 'id's pool contents to 'other_id's pool contents.
+                        /////////////////////////////////////////////////////////////////////
 
                         // move this id to the containment list of the 'other' 
                         pool_idx_to_containment[other_id].add(id);
@@ -756,19 +788,29 @@ svec<Pool> bubble_up_cluster_growth(map<int,Pool>& pool, map<int,bool>& ) {
                         
                         // remove 'other_id' from its own containment list.  (it's self-evident)
                         pool_idx_to_containment[other_id].exclude(other_id);
+
+                        // remove 'id' from the other_id's pool
                         pool_vec[ pool_idx_to_vec_idx[ other_id ] ].exclude( id ); 
-                    
+                        
                         local_bubbled = true;
                         break;
                     }
                 }
                 if (local_bubbled) {
-                    // update links previously to (id) over to (other_id)
+
+                    ///////////////////////////////////////////////////////////////////////
+                    //  'other_id' is now a proxy for 'id' and all 'id's earlier contents.
+                    //   update links previously to (id) over to (other_id)
+                    ///////////////////////////////////////////////////////////////////////
+
 
                     for (int j = 0; j < p.size(); j++) {
                         if (p[j] != other_id) {
                             // p[j] should contain id, since id linked to p[j] and all should be reciprocal
-                            if (! pool_vec[ pool_idx_to_vec_idx[ p[j] ] ].contains( id )) {
+                            
+                            int p_j_pool_vec_idx = pool_idx_to_vec_idx[ p[j] ];
+                            
+                            if (! pool_vec[ p_j_pool_vec_idx ].contains( id )) {
                                 
 
                                 describe_bubblings(pool_vec, pool_idx_to_containment, -2);
@@ -776,23 +818,27 @@ svec<Pool> bubble_up_cluster_growth(map<int,Pool>& pool, map<int,bool>& ) {
                                 exit(4);
                             }
                             
-                            pool_vec[ pool_idx_to_vec_idx[ p[j] ] ].exclude( id );
+                            
+                            pool_vec[ p_j_pool_vec_idx ].exclude( id );
                             // replace it with a link to the other_id, if not already linked.
-                            if (! pool_vec[ pool_idx_to_vec_idx[ p[j] ] ].contains( other_id )) {
+                            if (! pool_vec[ p_j_pool_vec_idx ].contains( other_id )) {
                                 pool_vec[ pool_idx_to_vec_idx[ p[j] ] ].add( other_id );
                             }
+                            
                             // links must be reciprocal
-                            if (! pool_vec[ pool_idx_to_vec_idx[ other_id ] ].contains( p[j] )) {
-                                pool_vec[ pool_idx_to_vec_idx[ other_id ] ].add( p[j] );
+                            int other_id_pool_vec_idx = pool_idx_to_vec_idx[ other_id ];
+                            if (! pool_vec[ other_id_pool_vec_idx ].contains( p[j] )) {
+                                pool_vec[ other_id_pool_vec_idx ].add( p[j] );
                             } 
                             
                         }
-                    }
+                    } // end of for j iteration through 'id' pool contents.
+                    
                     
                     // clear out this pool
                     p.clear();
                     
-                    // clear out the containment for this pool
+                    // clear out the containment for this pool since fully covered by other_id's pool now.
                     pool_idx_to_containment[id].clear();
                     
                     
@@ -1286,6 +1332,8 @@ int main(int argc,char** argv)
         min_glue_required = 0;
         glue_factor = 0;
     }
+
+
     
 
     if (num_threads > 0) {
@@ -1385,15 +1433,15 @@ int main(int argc,char** argv)
             
             iworm_counter = 0;
             
-#pragma omp parallel for schedule(dynamic, schedule_chunksize) private(j)
+            #pragma omp parallel for schedule(dynamic, schedule_chunksize) private(j)
             for (i=0; i<dna.size(); i++) {
                 DNAVector & d = dna[i]; // inchworm contig [i]
                 
-#pragma omp atomic
+                #pragma omp atomic
                 iworm_counter++;
                 
                 if (iworm_counter % 1000 == 0 || iworm_counter == dna.size()-1) {
-#pragma omp critical
+                    #pragma omp critical
                     cerr << "\rProcessed: " << iworm_counter/(double)dna.size()*100 << " % of iworm contigs.    ";
                 }
                 
@@ -1515,15 +1563,15 @@ int main(int argc,char** argv)
         
         iworm_counter = 0; // reset
         
-#pragma omp parallel for schedule(dynamic, schedule_chunksize) private(j)
+        #pragma omp parallel for schedule(dynamic, schedule_chunksize) private(j)
         for (i=0; i<dna.size(); i++) {
             
         
-#pragma omp atomic
+            #pragma omp atomic
             iworm_counter++;
             
             if (i % 100 == 0) {
-#pragma omp critical
+                #pragma omp critical
                 cerr << "\r[" << (iworm_counter/(float)dna.size()*100) << "% done]                ";
             }
             
@@ -1609,7 +1657,7 @@ int main(int argc,char** argv)
 
                     if (__NO_GLUE_REQUIRED)  {
 
-#pragma omp critical
+                        #pragma omp critical
                         {
                             add_reciprocal_iworm_link(weld_reinforced_iworm_clusters, i, c);
                         }
@@ -1635,7 +1683,7 @@ int main(int argc,char** argv)
                         if (IsShadow(d, dd, j, start, k) && coverage > 2*coverage_other) {
                             cerr << "Toasting shadow: " << dna.Name(c) << "\n";
                             
-#pragma omp critical
+                            #pragma omp critical
                             toasted[c] = true;
                             
                             continue;
@@ -1651,7 +1699,7 @@ int main(int argc,char** argv)
                         }
                         // cerr << "Accept (fw)!!" << "\n";
                         
-#pragma omp critical
+                        #pragma omp critical
                         {
                             
                             add_reciprocal_iworm_link(weld_reinforced_iworm_clusters, i, c);
@@ -1662,7 +1710,7 @@ int main(int argc,char** argv)
                     } // end of glue check
                     
                     if (REPORT_WELDS || DEBUG) {
-#pragma omp critical
+                        #pragma omp critical
                         cout << "#Welding: " << dna.Name(i) << " to " << dna.Name(c) 
                              << " with kmer:[" << sub.AsString() << "], weldmer:["  << welding_kmer << "] found in " << welding_kmer_read_count << " reads" << "\n";
                     }
@@ -1729,7 +1777,7 @@ int main(int argc,char** argv)
 
                     if (__NO_GLUE_REQUIRED)  {
 
-#pragma omp critical
+                        #pragma omp critical
                         {
                             
                             add_reciprocal_iworm_link(weld_reinforced_iworm_clusters, i, c);
@@ -1760,7 +1808,7 @@ int main(int argc,char** argv)
                         if (IsShadow(d, dd, j, start, k) && coverage > 2*coverage_other) {
                             cerr << "Toasting shadow: " << dna.Name(c) << "\n";
                             
-#pragma omp critical
+                            #pragma omp critical
                             toasted[c] = true;
                             
                             continue;
@@ -1780,7 +1828,7 @@ int main(int argc,char** argv)
                         
                         
                         
-#pragma omp critical
+                        #pragma omp critical
                         {
                             
                             add_reciprocal_iworm_link(weld_reinforced_iworm_clusters, i, c);
@@ -1790,7 +1838,7 @@ int main(int argc,char** argv)
                     }
                     
                     if (REPORT_WELDS || DEBUG) {
-#pragma omp critical
+                        #pragma omp critical
                         cout << "#Welding: " << dna.Name(i) << " to " << dna.Name(c) 
                              << " with kmer:[" << sub.AsString() << "], weldmer:["  << welding_kmer << "] found in " << welding_kmer_read_count << " reads" << "\n";
                     }
@@ -1812,7 +1860,7 @@ int main(int argc,char** argv)
         
         clustered_pools = bubble_up_cluster_growth(weld_reinforced_iworm_clusters, toasted);
         
-        if (DEBUG) {
+        if (1) { // (DEBUG) {
             cerr << "Final pool description: " << "\n";
             describe_poolings(clustered_pools);
         }
@@ -1820,8 +1868,8 @@ int main(int argc,char** argv)
         
         add_unclustered_iworm_contigs(clustered_pools, dna);
                 
-    }
     
+    }
     
     
     //-----------------------------------------------------------------------------------

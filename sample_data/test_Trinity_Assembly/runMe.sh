@@ -19,7 +19,7 @@ fi
               --left reads.left.fq.gz \
               --right reads.right.fq.gz \
               --SS_lib_type RF \
-              --CPU 4 
+              --CPU 4 $*
 
 ##### Done Running Trinity #####
 

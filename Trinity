@@ -1725,7 +1725,7 @@ sub run_chrysalis {
         $pipeliner->add_commands( new Command("makeblastdb -in $fa_file_only_LR -dbtype nucl 1>/dev/null", "LR_makeblastdb.ok"));
         
         my $LR_blast_pairs_file = "$inchworm_file.LR_blastn.outfmt6";
-        $pipeliner->add_commands( new Command("blastn -db $fa_file_only_LR -query $inchworm_file -outfmt 6 -perc_identity 98 -evalue 1e-5 > $LR_blast_pairs_file", "LR_blastn.ok"));
+        $pipeliner->add_commands( new Command("blastn -db $fa_file_only_LR -query $inchworm_file -outfmt 6 -perc_identity 98 -evalue 1e-5 -num_threads $CPU > $LR_blast_pairs_file", "LR_blastn.ok"));
         
         $pipeliner->add_commands( new Command("$ROOTDIR/util/support_scripts/outfmt6_add_percent_match_length.pl $LR_blast_pairs_file $inchworm_file $fa_file_only_LR > $LR_blast_pairs_file.wLen", "LR_blastn_outfmt6_wLen.ok"));
 

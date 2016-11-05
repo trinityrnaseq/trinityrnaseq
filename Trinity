@@ -1327,12 +1327,15 @@ sub run_Trinity {
     $inchworm_file .= ".fa";
     $inchworm_file = &create_full_path($inchworm_file, 0);
     
+
+    ## Read targets for the various utilities:  they differ depending on long read mode.
     my $trinity_target_fa = (@single_files) ? "single.fa" : "both.fa"; 
     $trinity_target_fa = &create_full_path($trinity_target_fa, 0);
     
     my $inchworm_target_fa = $trinity_target_fa; # change this later if we have long_reads
     my $bowtie_reads_fa = $trinity_target_fa; # dont include long reads in this... keep them separate.
-    
+    my $chrysalis_reads_fa = $trinity_target_fa;
+
     ## Don't prep the inputs if Inchworm already exists.... Resuming earlier operations.
     my $inchworm_finished_checkpoint_file = "$inchworm_file.finished";
     if (-s $inchworm_file && -e $inchworm_finished_checkpoint_file) {
@@ -1441,62 +1444,64 @@ sub run_Trinity {
             close $ofh;
         }
         
-        
+    }
          
-        if ($long_reads) {
+     
+    if ($long_reads) {
         
-            my $trinity_target_fa_wLR = "$trinity_target_fa.wLR";
-
+        my $trinity_target_fa_wLR = "$trinity_target_fa.wLR";
+        my $trinity_target_fa_wLR_checkpoint = "$trinity_target_fa_wLR.ok";
+        
+        if ( (! -s $trinity_target_fa_wLR) && ( ! -e $trinity_target_fa_wLR_checkpoint) ) {
             open (LONG_READS, $long_reads) or die "Error, cannot open file: $long_reads";
             if (<LONG_READS>!~/^>/){ #verify if it is fasta.
                 print "The long reads file does not look like FASTA.\n";
                 die;
             } 
             close (LONG_READS);
-                        
-            $count_of_reads += `grep -c '^>' $long_reads`; #AP we don't know if these will be one single line
-            if (!-e  "$trinity_target_fa_wLR.ok"){
-                &process_cmd("cp $trinity_target_fa $trinity_target_fa_wLR");
-                &process_cmd("cat $long_reads | sed 's/>/>LR\\\$\\\|/' >> $trinity_target_fa_wLR"); #  
-                
-                &process_cmd("touch $trinity_target_fa_wLR.ok");
-                {
-                    open (my $ofh, ">$trinity_target_fa_wLR.read_count") or die $!;
-                    print $ofh $count_of_reads."\n";
-                    close $ofh;
-                }
-            }
-
-            # make the full trinity target the one w/ LRs
-            $trinity_target_fa = $trinity_target_fa_wLR;
             
-        }
-        elsif ($LONG_READS_MODE) {
-            # create an inchworm target that lacks the LRs
-            my $num_long_reads =  `grep -c '^\>LR\\\$' $trinity_target_fa`;
-            #print STDERR "num long reads: $num_long_reads  :: $trinity_target_fa\n";
-            if ($num_long_reads > 0) {
-                my $inchworm_target_minus_LR = "$trinity_target_fa.minusLR";
-                my $inchworm_target_minus_LR_checkpoint = "$inchworm_target_minus_LR.ok";
-                unless (-s $inchworm_target_minus_LR && -e $inchworm_target_minus_LR_checkpoint) {
-                    open (my $ofh, ">$inchworm_target_minus_LR") or die "Error, cannot write to $inchworm_target_minus_LR";
-                    my $fasta_reader = new Fasta_reader($trinity_target_fa);
-                    while (my $seq_obj = $fasta_reader->next()) {
-                        my $acc = $seq_obj->get_accession();
-                        if ($acc !~ /^LR\$\|/) {
-                            my $fasta_entry = $seq_obj->get_FASTA_format();
-                            print $ofh $fasta_entry;
-                        }
-                    }
-                    close $ofh;
-                }
-
-                $inchworm_target_fa = $inchworm_target_minus_LR;
-                $bowtie_reads_fa = $inchworm_target_minus_LR;
-            }
+                        
+            &process_cmd("cp $trinity_target_fa $trinity_target_fa_wLR");
+            &process_cmd("cat $long_reads | sed 's/>/>LR\\\$\\\|/' >> $trinity_target_fa_wLR"); #  
+            
+            &process_cmd("touch $trinity_target_fa_wLR.ok");
+                        
         }
         
+        # The chrysalis read-to-graph mappings should include long reads.
+        $chrysalis_reads_fa = $trinity_target_fa_wLR;
+        
     }
+    elsif ($LONG_READS_MODE) {
+        # create an inchworm target that lacks the LRs
+        my $num_long_reads =  `grep -c '^\>LR\\\$' $trinity_target_fa`;
+        #print STDERR "num long reads: $num_long_reads  :: $trinity_target_fa\n";
+        if ($num_long_reads > 0) {
+            my $inchworm_target_minus_LR = "$trinity_target_fa.minusLR";
+            my $inchworm_target_minus_LR_checkpoint = "$inchworm_target_minus_LR.ok";
+            unless (-s $inchworm_target_minus_LR && -e $inchworm_target_minus_LR_checkpoint) {
+                open (my $ofh, ">$inchworm_target_minus_LR") or die "Error, cannot write to $inchworm_target_minus_LR";
+                my $fasta_reader = new Fasta_reader($trinity_target_fa);
+                while (my $seq_obj = $fasta_reader->next()) {
+                    my $acc = $seq_obj->get_accession();
+                    if ($acc !~ /^LR\$\|/) {
+                        my $fasta_entry = $seq_obj->get_FASTA_format();
+                        print $ofh $fasta_entry;
+                    }
+                }
+                close $ofh;
+            }
+            
+            ## the inchworm and bowtie PE weld step should NOT include the long reads.
+            
+            $inchworm_target_fa = $inchworm_target_minus_LR;
+            $bowtie_reads_fa = $inchworm_target_minus_LR;
+            
+            # keep chrysalis reads as the file including the LR.
+        }
+    }
+    
+    
     
     if ($prep_only){
         print "Data has been prepared. Exiting now as per user request\n";
@@ -1534,7 +1539,7 @@ sub run_Trinity {
             #$inchworm_file = &run_jaccard_clip_single_but_really_paired($inchworm_file, $single_file, $seqType, $SS_lib_type);
         }
     }
-        
+    
     if ($NO_RUN_CHRYSALIS_FLAG && ! $TRINITY_COMPLETE_FLAG) {
         print "\n\n\n";
         print "#########################################################################\n";
@@ -1547,13 +1552,13 @@ sub run_Trinity {
     ##################
     ## Chrysalis step:
     
-    if ($min_percent_read_iworm_kmers > 0) {
+    #if ($min_percent_read_iworm_kmers > 0) {
         
         ###  EXPERIMENTAL:  DO NOT USE!
         
-        $trinity_target_fa = &extract_reads_with_iworm_kmers($trinity_target_fa, $inchworm_file, $min_percent_read_iworm_kmers, $SS_lib_type);
+    #    $trinity_target_fa = &extract_reads_with_iworm_kmers($trinity_target_fa, $inchworm_file, $min_percent_read_iworm_kmers, $SS_lib_type);
         
-    }
+    #}
     
     ## butterfly commands can be reparameterized for exploring different assembly requirements
     ## chrysalis will just run or resume depending on what's already been processed.
@@ -1570,7 +1575,7 @@ sub run_Trinity {
 
     my $butterfly_cmds = &run_chrysalis($inchworm_file, $inchworm_target_fa,
                                         $min_contig_length, $group_pairs_distance, $SS_lib_type, 
-                                        $trinity_target_fa, $bowtie_reads_fa);
+                                        $chrysalis_reads_fa, $bowtie_reads_fa);
     $pm_chrysalis_end = `date +%s`;
     
 
@@ -1622,7 +1627,7 @@ sub run_Trinity {
 sub run_chrysalis {
     my ($inchworm_file, $inchworm_target_fa,
         $min_contig_length, $group_pairs_distance, $SS_lib_type, 
-        $trinity_target_fa, $bowtie_reads_fa) = @_;
+        $chrysalis_reads_fa, $bowtie_reads_fa) = @_;
     
 
 
@@ -1631,6 +1636,10 @@ sub run_chrysalis {
                . "-- (Contig Clustering & de Bruijn Graph Construction) --\n"
                . "--------------------------------------------------------\n\n" if (! $TRINITY_COMPLETE_FLAG);
 
+    print STDERR "inchworm_target: $inchworm_target_fa\n"
+        . "bowite_reads_fa: $bowtie_reads_fa\n"
+        . "chrysalis_reads_fa: $chrysalis_reads_fa\n";
+    
     
     my $butterfly_cmds = &create_full_path("$chrysalis_output_dir/butterfly_commands");
     
@@ -1638,7 +1647,7 @@ sub run_chrysalis {
     
     
 
-    my $fa_file_only_LR = "$bowtie_reads_fa.onlyLR";
+    my $fa_file_only_LR = "$chrysalis_reads_fa.onlyLR";
     if ($LONG_READS_MODE) {
         
         ########################################
@@ -1646,14 +1655,14 @@ sub run_chrysalis {
         
         ## the bowtie_reads_fa file might contain long reads...  If it does, need to get rid of them for the bowtie alignment step.
         
-        my $long_read_count = `grep '>LR' $trinity_target_fa | wc -l `;
+        my $long_read_count = `grep '>LR' $chrysalis_reads_fa | wc -l `;
         chomp $long_read_count;
         if ($long_read_count > 0) {
             
             my $only_LR_fa_checkpoint = "$fa_file_only_LR.ok";
             unless (-e $fa_file_only_LR && -e $only_LR_fa_checkpoint) {
                 open (my $ofh_LR, ">$fa_file_only_LR") or die "Error, cannot write to file $fa_file_only_LR";
-                my $fasta_reader = new Fasta_reader($trinity_target_fa);
+                my $fasta_reader = new Fasta_reader($chrysalis_reads_fa);
                 while (my $seq_obj = $fasta_reader->next()) {
                     my $acc = $seq_obj->get_accession();
                     my $sequence = $seq_obj->get_sequence();
@@ -1763,10 +1772,10 @@ sub run_chrysalis {
     
     { # GraphFromFasta
 
-
+        
         my $welds_to_cluster_file = "$chrysalis_output_dir/iworm_cluster_welds_graph.txt";
         
-        my $graphFromFasta_cmd = "$CHRYSALIS_DIR/GraphFromFasta -i $inchworm_file -r $trinity_target_fa -min_contig_length $min_contig_length -min_glue $min_glue -glue_factor $glue_factor -min_iso_ratio $min_iso_ratio -t $CPU -k " . ($KMER_SIZE-1) . " -kk $GRAPH_FROM_FASTA_KK $GRAPH_FROM_FASTA_CUSTOM_PARAMS";
+        my $graphFromFasta_cmd = "$CHRYSALIS_DIR/GraphFromFasta -i $inchworm_file -r $inchworm_target_fa -min_contig_length $min_contig_length -min_glue $min_glue -glue_factor $glue_factor -min_iso_ratio $min_iso_ratio -t $CPU -k " . ($KMER_SIZE-1) . " -kk $GRAPH_FROM_FASTA_KK $GRAPH_FROM_FASTA_CUSTOM_PARAMS";
        
         if ($SS_lib_type) {
             $graphFromFasta_cmd .= " -strand ";
@@ -1812,13 +1821,8 @@ sub run_chrysalis {
         
         
         my $cmd = ($BOWTIE_COMP) ? "$CHRYSALIS_DIR/ReadsToComponents.pl" : "$CHRYSALIS_DIR/ReadsToTranscripts";
-        if ("$cmd" eq "$CHRYSALIS_DIR/ReadsToTranscripts" ) {
-            if ($np > 1) {
-                $cmd = "$mpiexec -np $np $CHRYSALIS_DIR/ReadsToTranscripts_MPI"
-            }
-        }
         
-        $cmd .= " -i $trinity_target_fa -f $iworm_bundles_fasta_file -o $reads_to_components_output_file -t $CPU -max_mem_reads $max_reads_per_loop ";
+        $cmd .= " -i $chrysalis_reads_fa -f $iworm_bundles_fasta_file -o $reads_to_components_output_file -t $CPU -max_mem_reads $max_reads_per_loop ";
         if ($SS_lib_type) {
             $cmd .= " -strand ";
         }

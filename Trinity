@@ -1649,33 +1649,42 @@ sub run_chrysalis {
 
     my $fa_file_only_LR = "$chrysalis_reads_fa.onlyLR";
     if ($LONG_READS_MODE) {
-        
-        ########################################
-        ## separate the long and the short reads
-        
-        ## the bowtie_reads_fa file might contain long reads...  If it does, need to get rid of them for the bowtie alignment step.
-        
-        my $long_read_count = `grep '>LR' $chrysalis_reads_fa | wc -l `;
-        chomp $long_read_count;
-        if ($long_read_count > 0) {
+    
+        if ($long_reads) {
+            # use existing file.
+            $fa_file_only_LR = $long_reads;
+        }
+        else {
+            print STDERR "-extracting the long reads for separate study.\n" if $VERBOSE;
+
+            ########################################
+            ## separate the long and the short reads
             
-            my $only_LR_fa_checkpoint = "$fa_file_only_LR.ok";
-            unless (-e $fa_file_only_LR && -e $only_LR_fa_checkpoint) {
-                open (my $ofh_LR, ">$fa_file_only_LR") or die "Error, cannot write to file $fa_file_only_LR";
-                my $fasta_reader = new Fasta_reader($chrysalis_reads_fa);
-                while (my $seq_obj = $fasta_reader->next()) {
-                    my $acc = $seq_obj->get_accession();
-                    my $sequence = $seq_obj->get_sequence();
-                    if ($acc =~ /^LR\$/) {
-                        print $ofh_LR ">$acc\n$sequence\n";
+            ## the bowtie_reads_fa file might contain long reads...  If it does, need to get rid of them for the bowtie alignment step.
+            
+            my $long_read_count = `grep '>LR' $chrysalis_reads_fa | wc -l `;
+            chomp $long_read_count;
+            if ($long_read_count > 0) {
+                
+                my $only_LR_fa_checkpoint = "$fa_file_only_LR.ok";
+                unless (-e $fa_file_only_LR && -e $only_LR_fa_checkpoint) {
+                    open (my $ofh_LR, ">$fa_file_only_LR") or die "Error, cannot write to file $fa_file_only_LR";
+                    my $fasta_reader = new Fasta_reader($chrysalis_reads_fa);
+                    while (my $seq_obj = $fasta_reader->next()) {
+                        my $acc = $seq_obj->get_accession();
+                        my $sequence = $seq_obj->get_sequence();
+                        if ($acc =~ /^LR\$/) {
+                            print $ofh_LR ">$acc\n$sequence\n";
+                        }
                     }
+                    close $ofh_LR;
+                    &process_cmd("touch $only_LR_fa_checkpoint");
                 }
-                close $ofh_LR;
-                &process_cmd("touch $only_LR_fa_checkpoint");
+                
             }
-                        
         }
     }
+    
     
     my $iworm_scaffolds_file = "$chrysalis_output_dir/iworm_scaffolds.txt";
     if ( $PAIRED_MODE && -s $bowtie_reads_fa && ! $NO_BOWTIE) {

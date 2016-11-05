@@ -1638,7 +1638,7 @@ sub run_chrysalis {
 
     print STDERR "inchworm_target: $inchworm_target_fa\n"
         . "bowite_reads_fa: $bowtie_reads_fa\n"
-        . "chrysalis_reads_fa: $chrysalis_reads_fa\n";
+        . "chrysalis_reads_fa: $chrysalis_reads_fa\n" if ($VERBOSE || ! $TRINITY_COMPLETE_FLAG);
     
     
     my $butterfly_cmds = &create_full_path("$chrysalis_output_dir/butterfly_commands");

@@ -60,16 +60,9 @@ void describe_poolings (vector<Pool>& pool_vec) {
         stringstream old_pool_info;
         
         Pool& oldpool = pool_vec[oldpool_id];
+
+        cerr << oldpool.str() << endl;
         
-        old_pool_info << "Pool [" << i << "] info: "; 
-        for (int j=0; j<oldpool.size(); j++) {
-            int iworm_id = oldpool.get(j);
-            
-            old_pool_info << iworm_id << " ";
-        }
-        old_pool_info << "\n";
-        
-        cerr << old_pool_info.str();
     }
     
 }
@@ -146,7 +139,7 @@ svec<Pool> bubble_up_cluster_growth(map<int,Pool>& pool) {
     
     sort (pool_vec.begin(), pool_vec.end(), sort_pool_sizes_ascendingly);
     
-    if (1) {  // local debugging.
+    if (DEBUG) {
         cerr << "After sorting: " << "\n";
         describe_poolings(pool_vec);
     }
@@ -209,7 +202,11 @@ svec<Pool> bubble_up_cluster_growth(map<int,Pool>& pool) {
                     // find another larger pool we can merge with
 
                     other_id = p[j];
-                    if (other_id == id) { continue; }  // shouldn't happen since id isn't stored in its own pool.
+                    if (other_id == id) {
+                        // shouldn't happen since id isn't stored in its own pool.
+                        cerr << "Error, other_id: " << other_id << " was stored in its own pool: " << id << endl;
+                        exit(3);
+                    } 
                     
                     if (pool_idx_to_containment[other_id].size() + pool_idx_to_containment[id].size() + 2 <= MAX_CLUSTER_SIZE) {  // + 2 since neither self is included in its containment list
 
@@ -217,6 +214,8 @@ svec<Pool> bubble_up_cluster_growth(map<int,Pool>& pool) {
                         // begin bubbling of 'id's pool contents to 'other_id's pool contents.
                         /////////////////////////////////////////////////////////////////////
 
+                        if (DEBUG) cerr << "bubbling at id: " << id << ", using " << other_id << " as proxy bubble" << endl;
+                        
                         // move this id to the containment list of the 'other' 
                         pool_idx_to_containment[other_id].add(id);
                         
@@ -277,8 +276,10 @@ svec<Pool> bubble_up_cluster_growth(map<int,Pool>& pool) {
                     
                     // clear out the containment for this pool since fully covered by other_id's pool now.
                     pool_idx_to_containment[id].clear();
-                    
-                    
+
+
+                    if (DEBUG) describe_bubblings(pool_vec, pool_idx_to_containment, -1);
+                                        
                     bubbling = true;
                 }
             }
@@ -569,20 +570,28 @@ void populate_weld_reinforced_iworm_clusters(string& weld_graph_file, map<int,Po
         token >> tok;
 
         int node_id = atoi(tok.c_str());
-        Pool p;
+        Pool p(node_id);
         
         token >> tok; // pointer '->' separator string.
-                
+
+        
         while (! token.eof()) {
+            token >> tok;
             int adjacent_node = atoi(tok.c_str());
             p.add(adjacent_node);
-            token >> tok;
             //cerr << "Tok: [" << tok << "]" << "\n";
         }
         
-        weld_reinforced_iworm_clusters[ node_id ] = p;
+        if (node_id >= 0 && p.size() > 0) {
+            weld_reinforced_iworm_clusters[ node_id ] = p;
+            if (DEBUG) {
+                cerr << "Assigning node_id [" << node_id << "] to pool: " << p.str() << endl;
+            }
+        }
     }
-
+    
+    
+    
     return;
 }
 
@@ -595,13 +604,15 @@ int main(int argc,char** argv)
     commandArg<string> aStringCmmd("-i","input fasta");
     commandArg<string> weldGraphCmmd("-weld_graph", "iworm index weld graph");
     commandArg<bool> debugCmmd("-debug", "verbosely describes operations", false);
-
+    commandArg<int>  minContigLengthCmmd("-min_contig_length", "min sum cluster contig length", MIN_CONTIG_LENGTH);
+    
+    
     commandLineParser P(argc,argv);
     P.SetDescription("Makes a graph out of a fasta");
     P.registerArg(aStringCmmd);
     P.registerArg(weldGraphCmmd);
     P.registerArg(debugCmmd);
-    
+    P.registerArg(minContigLengthCmmd);
     
     P.parse();
     
@@ -613,7 +624,9 @@ int main(int argc,char** argv)
     string iworm_contigs_filename = P.GetStringValueFor(aStringCmmd); //inchworm contigs file
     DEBUG = P.GetBoolValueFor(debugCmmd);
     string weld_graph_file = P.GetStringValueFor(weldGraphCmmd);
-        
+    MIN_CONTIG_LENGTH = P.GetIntValueFor(minContigLengthCmmd);
+    
+    
     if (! Exists(iworm_contigs_filename)) {
         cerr << "ERROR, cannot open iworm contigs file: " << iworm_contigs_filename << "\n";
         exit(2);
@@ -636,13 +649,12 @@ int main(int argc,char** argv)
     
     svec<Pool> clustered_pools = bubble_up_cluster_growth(weld_reinforced_iworm_clusters);
         
-    if (1) { // (DEBUG) {
+    if (DEBUG) {
         cerr << "Final pool description: " << "\n";
         describe_poolings(clustered_pools);
     }
 
-    exit(1);
-    
+        
     add_unclustered_iworm_contigs(clustered_pools, dna);
     
         

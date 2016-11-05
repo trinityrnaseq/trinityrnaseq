@@ -2,6 +2,11 @@
 
 #define __POOL_HPP__
 
+#include <string>
+#include <sstream>
+#include <algorithm>
+#include <vector>
+
 // wrapper around an integer vector
 class Pool
 {
@@ -86,6 +91,18 @@ public:
         sort(m_index.begin(), m_index.end());
     }
 
+    string str() {
+        stringstream ss;
+        ss << "[" << get_id() << "] :";
+
+        for (size_t j = 0; j < m_index.size(); j++) {
+            int val = m_index[j];
+            ss << " " << val;
+        }
+
+        return(ss.str());
+    }
+    
 
 private:
     svec<int> m_index;

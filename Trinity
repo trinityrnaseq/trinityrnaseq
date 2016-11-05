@@ -1762,15 +1762,12 @@ sub run_chrysalis {
     my $graphFromFasta_outfile = "$chrysalis_output_dir/GraphFromIwormFasta.out";
     
     { # GraphFromFasta
-    
-        my $graphFromFasta_cmd = "-i $inchworm_file -r $trinity_target_fa -min_contig_length $min_contig_length -min_glue $min_glue -glue_factor $glue_factor -min_iso_ratio $min_iso_ratio -t $CPU -k " . ($KMER_SIZE-1) . " -kk $GRAPH_FROM_FASTA_KK $GRAPH_FROM_FASTA_CUSTOM_PARAMS";
-        # use MPI if MPI Procs >1
-        if ($np > 1) {
-            $graphFromFasta_cmd = "$mpiexec -np $np $CHRYSALIS_DIR/GraphFromFasta_MPI $graphFromFasta_cmd"
-        }
-        else {
-            $graphFromFasta_cmd = "$CHRYSALIS_DIR/GraphFromFasta $graphFromFasta_cmd"
-        }
+
+
+        my $welds_to_cluster_file = "$chrysalis_output_dir/iworm_cluster_welds_graph.txt";
+        
+        my $graphFromFasta_cmd = "$CHRYSALIS_DIR/GraphFromFasta -i $inchworm_file -r $trinity_target_fa -min_contig_length $min_contig_length -min_glue $min_glue -glue_factor $glue_factor -min_iso_ratio $min_iso_ratio -t $CPU -k " . ($KMER_SIZE-1) . " -kk $GRAPH_FROM_FASTA_KK $GRAPH_FROM_FASTA_CUSTOM_PARAMS";
+       
         if ($SS_lib_type) {
             $graphFromFasta_cmd .= " -strand ";
         }
@@ -1780,12 +1777,19 @@ sub run_chrysalis {
         if ($CHRYSALIS_DEBUG_WELD_ALL) {
             $graphFromFasta_cmd .= " -debug_weld_all ";
         }
-        
-        $graphFromFasta_cmd .= " > $graphFromFasta_outfile";
-        
 
+        $graphFromFasta_cmd .= " > $welds_to_cluster_file";
+        $chrysalis_pipeliner->add_commands( new Command($graphFromFasta_cmd, "$welds_to_cluster_file.ok"));
+
+
+        ## now cluster into chrysalis components:
+        
+        my $bubble_cluster_cmd = "$CHRYSALIS_DIR/BubbleUpClustering -i $inchworm_file  -weld_graph $welds_to_cluster_file -min_contig_length $min_contig_length  > $graphFromFasta_outfile";
+
+        
         my $checkpoint = "$graphFromFasta_outfile.ok";
-        $chrysalis_pipeliner->add_commands( new Command($graphFromFasta_cmd, $checkpoint) );
+        $chrysalis_pipeliner->add_commands( new Command($bubble_cluster_cmd, $checkpoint) );
+        
     }
     
 

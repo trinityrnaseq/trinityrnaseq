@@ -205,7 +205,7 @@ svec<Pool> bubble_up_cluster_growth(map<int,Pool>& pool) {
                     if (other_id == id) {
                         // shouldn't happen since id isn't stored in its own pool.
                         cerr << "Error, other_id: " << other_id << " was stored in its own pool: " << id << endl;
-                        exit(3);
+                        continue;
                     } 
                     
                     if (pool_idx_to_containment[other_id].size() + pool_idx_to_containment[id].size() + 2 <= MAX_CLUSTER_SIZE) {  // + 2 since neither self is included in its containment list
@@ -241,12 +241,15 @@ svec<Pool> bubble_up_cluster_growth(map<int,Pool>& pool) {
 
 
                     for (int j = 0; j < p.size(); j++) {
-                        if (p[j] != other_id) {
+                        
+                        int adjacent_id = p[j];
+                        Pool& adjacent_pool = pool_vec[ pool_idx_to_vec_idx[ adjacent_id ] ];
+                        
+
+                        if (adjacent_id != other_id && adjacent_id != id) {
                             // p[j] should contain id, since id linked to p[j] and all should be reciprocal
-                            
-                            int p_j_pool_vec_idx = pool_idx_to_vec_idx[ p[j] ];
-                            
-                            if (! pool_vec[ p_j_pool_vec_idx ].contains( id )) {
+                                                        
+                            if (! adjacent_pool.contains( id )) {
                                 
 
                                 describe_bubblings(pool_vec, pool_idx_to_containment, -2);
@@ -255,16 +258,17 @@ svec<Pool> bubble_up_cluster_growth(map<int,Pool>& pool) {
                             }
                             
                             
-                            pool_vec[ p_j_pool_vec_idx ].exclude( id );
+                            adjacent_pool.exclude( id );
                             // replace it with a link to the other_id, if not already linked.
-                            if (! pool_vec[ p_j_pool_vec_idx ].contains( other_id )) {
-                                pool_vec[ pool_idx_to_vec_idx[ p[j] ] ].add( other_id );
+                            if (! adjacent_pool.contains( other_id )) {
+                                adjacent_pool.add( other_id );
                             }
                             
                             // links must be reciprocal
                             int other_id_pool_vec_idx = pool_idx_to_vec_idx[ other_id ];
-                            if (! pool_vec[ other_id_pool_vec_idx ].contains( p[j] )) {
-                                pool_vec[ other_id_pool_vec_idx ].add( p[j] );
+                            Pool& other_id_pool = pool_vec[ other_id_pool_vec_idx ];
+                            if (! other_id_pool.contains( adjacent_id )) {
+                                other_id_pool.add( adjacent_id );
                             } 
                             
                         }
@@ -278,7 +282,7 @@ svec<Pool> bubble_up_cluster_growth(map<int,Pool>& pool) {
                     pool_idx_to_containment[id].clear();
 
 
-                    if (DEBUG) describe_bubblings(pool_vec, pool_idx_to_containment, -1);
+                    // if (DEBUG) describe_bubblings(pool_vec, pool_idx_to_containment, -1);
                                         
                     bubbling = true;
                 }

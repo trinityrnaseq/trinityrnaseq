@@ -4,6 +4,7 @@ test:
 
 clean:
 	rm -rf ./glimma
+	rm -f ./cpm.DE_results.csv
 
 
 

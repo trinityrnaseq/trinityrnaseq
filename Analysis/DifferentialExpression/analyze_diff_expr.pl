@@ -43,6 +43,7 @@ my $usage = <<__EOUSAGE__;
 #       --GO_annots <string>              GO annotations file
 #       --gene_lengths <string>           lengths of genes file
 #
+#       --include_GOplot                  optional: will generate inputs to GOplot and attempt to make a preliminary pdf plot/report for it.
 #
 ##############################################################
 
@@ -74,7 +75,7 @@ my $order_columns_by_samples_file = 0;
 my $examine_GO_enrichment_flag;
 my $GO_annots_file;
 my $gene_lengths_file;
-
+my $RUN_GOPLOT = 0;
 
 
 &GetOptions (  'h' => \$help_flag,
@@ -93,11 +94,15 @@ my $gene_lengths_file;
                'examine_GO_enrichment' => \$examine_GO_enrichment_flag,
                'GO_annots=s' => \$GO_annots_file,
                'gene_lengths=s' => \$gene_lengths_file,
-                 
+               'include_GOplot' => \$RUN_GOPLOT,
+
+  
                'samples|s=s' => \$samples_file,
              
                "order_columns_by_samples_file" => \$order_columns_by_samples_file,
 
+               
+               
                );
 
 
@@ -421,15 +426,22 @@ sub parse_result_files_find_diffExp {
             
                 &process_cmd($cmd);
 
-                
-                $cmd = "$FindBin::RealBin/prep_n_run_GOplot.pl --GO_annots $GO_annots_file "
-                    . " --DE_subset $either_subset_file "
-                    . " --DE_GO_enriched $either_subset_file.GOseq.enriched "
-                    . " --tmpdir $either_subset_file.GOseq.enriched.GOplot_dat"
-                    . " --pdf_filename $either_subset_file.GOseq.enriched.GOplot_dat.pdf";
-                
-                &process_cmd($cmd);
-                
+
+                if ($RUN_GOPLOT) {
+                    $cmd = "$FindBin::RealBin/prep_n_run_GOplot.pl --GO_annots $GO_annots_file "
+                        . " --DE_subset $either_subset_file "
+                        . " --DE_GO_enriched $either_subset_file.GOseq.enriched "
+                        . " --tmpdir $either_subset_file.GOseq.enriched.GOplot_dat"
+                        . " --pdf_filename $either_subset_file.GOseq.enriched.GOplot_dat.pdf";
+
+                    eval {
+                        &process_cmd($cmd);
+                    };
+                    if ($@) {
+                        # can't afford for this to be fatal, so just reporting a failure message for this part.
+                        print STDERR "WARNING: GOplot failed to run successfully on $either_subset_file.GOseq.enriched\n";
+                    }
+                }
             }
             
             

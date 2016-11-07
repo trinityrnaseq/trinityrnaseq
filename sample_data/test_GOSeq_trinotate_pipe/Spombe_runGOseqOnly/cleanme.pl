@@ -20,6 +20,7 @@ my @files_to_keep = qw (
                         hs_induced_vs_log.factors
                         runMe.sh
                         Trinity.background
+                        Makefile
                         );
 
 

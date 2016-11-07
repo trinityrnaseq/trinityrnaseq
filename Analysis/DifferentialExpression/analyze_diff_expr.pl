@@ -411,12 +411,26 @@ sub parse_result_files_find_diffExp {
                 . " --background $background_file ";
             
             &process_cmd($cmd) if $countB;
-            
-            $cmd = "$FindBin::RealBin/run_GOseq.pl --GO_assignments $GO_annots_file "
-                . " --lengths $gene_lengths_file --genes_single_factor $either_subset_file"
-                . " --background $background_file ";
 
-            &process_cmd($cmd) if ($countA + $countB);
+
+            if ($countA + $countB) {
+                
+                $cmd = "$FindBin::RealBin/run_GOseq.pl --GO_assignments $GO_annots_file "
+                    . " --lengths $gene_lengths_file --genes_single_factor $either_subset_file"
+                    . " --background $background_file ";
+            
+                &process_cmd($cmd);
+
+                
+                $cmd = "$FindBin::RealBin/prep_n_run_GOplot.pl --GO_annots $GO_annots_file "
+                    . " --DE_subset $either_subset_file "
+                    . " --DE_GO_enriched $either_subset_file.GOseq.enriched "
+                    . " --tmpdir $either_subset_file.GOseq.enriched.GOplot_dat"
+                    . " --pdf_filename $either_subset_file.GOseq.enriched.GOplot_dat.pdf";
+                
+                &process_cmd($cmd);
+                
+            }
             
             
         }

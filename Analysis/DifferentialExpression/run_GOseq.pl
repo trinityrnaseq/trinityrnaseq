@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+use FindBin;
 
 use Getopt::Long qw(:config no_ignore_case bundling pass_through);
 

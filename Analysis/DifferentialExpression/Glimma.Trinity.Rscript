@@ -1,0 +1,87 @@
+#!/usr/bin/env Rscript
+
+### Glimma plots for results from 
+# $TRINITY_HOME/Analysis/DifferentialExpression/run_DE_analysis.pl
+# written by Ken Field, Bucknell University
+# based on Glimma vignette
+# https://bioconductor.org/packages/release/bioc/html/Glimma.html
+# by Shian Su, Matthew E. Ritchie
+
+# further modified by bhaas for incorporation into Trinity package.
+
+## ---------------------------------------------
+## in case you need to install Glimma:
+#  source("https://bioconductor.org/biocLite.R")
+#  biocLite("Glimma")
+## ---------------------------------------------
+
+
+suppressPackageStartupMessages(library("argparse"))
+parser = ArgumentParser()
+parser$add_argument("--samples_file", help="samples file", required=TRUE)
+parser$add_argument("--DE_results", help="DE_results file", required=TRUE)
+parser$add_argument("--counts_matrix", help="matrix of raw counts", required=TRUE)
+args = parser$parse_args()
+
+DE_results_file = args$DE_results
+counts_matrix_file = args$counts_matrix
+samples_file = args$samples_file
+
+library(edgeR)
+library(limma)
+library(Glimma)
+
+
+### Load DE_results file and sort by transcript names
+DE_results <- read.delim(DE_results_file, row.names=1, stringsAsFactors=FALSE)
+DE_results <- DE_results[order(row.names(DE_results)),]
+
+### Load cpm table and refactor
+### Make sure you load the correct genes or transcripts version
+rawcounts <- read.table(counts_matrix_file, header=T, row.names=1, com='')
+rawcounts <- rawcounts[order(row.names(rawcounts)),]
+
+samples <- read.delim(samples_file, header=FALSE, stringsAsFactors=FALSE)
+colnames(samples) <- c("Group","Sample")
+
+rawcounts <- rawcounts[,samples$Sample]
+
+rnaseqMatrix = round(rawcounts)
+rnaseqMatrix = rnaseqMatrix[rowSums(rnaseqMatrix)>=2,]
+conditions = factor(samples$Group)
+exp_study = DGEList(counts=rnaseqMatrix, group=conditions)
+exp_study = calcNormFactors(exp_study)
+exp_study = estimateCommonDisp(exp_study)
+exp_study = estimateTagwiseDisp(exp_study)
+cpm_table <- cpm(exp_study)
+
+cpm_table = cpm_table[rownames(DE_results),]
+
+
+### Optional, Merge the DE_results and cpm_table
+cpm.DE <- cbind(cpm_table, DE_results)
+write.csv(cpm.DE, file="cpm.DE_results.csv")
+
+### Set significance level for different colors on plot
+DE_results$GeneID <- rownames(DE_results)
+DE_results$logCPM <- DE_results$logCPM
+DE_results$Sig <- as.numeric(DE_results$FDR < 0.001)
+
+
+### Make the Glimma MA-plot
+glMDPlot(DE_results, counts=cpm_table, samples=samples$Sample, 
+         anno=cpm.DE, groups=samples$Group, 
+         xval="logCPM", yval="logFC", 
+         display.columns=colnames(cpm.DE), 
+         folder="glimma", html="MA-plot",
+         search.by="GeneID", status=DE_results$Sig, cols=c("red","gray","blue") )
+
+
+### Make the Glimma Volcano Plot
+
+DE_results$logFDR <- -log(DE_results$FDR+1e-100)
+
+glMDPlot(DE_results, xval="logFC", yval="logFDR", counts=cpm_table, 
+         anno=cpm.DE, groups=samples$Group, samples = samples$Sample,
+         status=DE_results$Sig, display.columns=colnames(cpm.DE), 
+         folder="glimma", html="volcano", launch=TRUE)

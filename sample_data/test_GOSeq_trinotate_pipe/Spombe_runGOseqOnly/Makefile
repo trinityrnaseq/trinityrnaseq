@@ -1,8 +1,6 @@
-
-
 test:
 	./runMe.sh
 
 clean:
-	./cleanMe.pl
+	rm -rf ./edgeR_out
 

@@ -307,9 +307,12 @@ sub parse_result_files_find_diffExp {
         
         my $condA_up_subset_file = "$result_file_out_prefix.$condA-UP.subset";
         my $condB_up_subset_file = "$result_file_out_prefix.$condB-UP.subset";
-
+        my $either_subset_file = "$result_file_out_prefix.DE.subset";
+        
+        
         open (my $condA_up_ofh, ">$condA_up_subset_file") or die "Error, cannot write to $condA_up_subset_file";
-        open (my $condB_up_ofh, ">$result_file_out_prefix.$condB-UP.subset") or die "Error, cannot write to $condB_up_subset_file";
+        open (my $condB_up_ofh, ">$condB_up_subset_file") or die "Error, cannot write to $condB_up_subset_file";
+        open (my $cond_either_up_ofh, ">$either_subset_file") or die "Error, cannot write to $either_subset_file";
         
         my $count = 0;
 
@@ -318,12 +321,14 @@ sub parse_result_files_find_diffExp {
         
         print $condA_up_ofh "$header\t$fpkm_matrix_header\n";
         print $condB_up_ofh "$header\t$fpkm_matrix_header\n";
-
+        print $cond_either_up_ofh "$header\t$fpkm_matrix_header\n";
+        
         my $countA = 0;
         my $countB = 0;
 
         my %condA_up_genes;
         my %condB_up_genes;
+        my %either_up_genes;
         
         my $rank = 0;
         while (<$fh>) {
@@ -353,6 +358,9 @@ sub parse_result_files_find_diffExp {
 
                     ######################################
                     # log fold changes should be log2(A/B)
+
+                    $either_up_genes{$id} = $rank;
+                    print $cond_either_up_ofh "$line\t$matrix_counts\n";
                     
                     if ($log_fold_change < 0) {
                         
@@ -380,6 +388,9 @@ sub parse_result_files_find_diffExp {
             
             # conditionB enriched heatmaps
             &write_matrix_generate_heatmap("$condB_up_subset_file.matrix", \%condB_up_genes, $read_fpkm_rows_href, $fpkm_matrix_header, $pairwise_samples_file);
+
+            # either enriched heatmaps
+            &write_matrix_generate_heatmap("$either_subset_file.matrix", \%either_up_genes, $read_fpkm_rows_href, $fpkm_matrix_header, $pairwise_samples_file);
             
         }
         
@@ -400,6 +411,13 @@ sub parse_result_files_find_diffExp {
                 . " --background $background_file ";
             
             &process_cmd($cmd) if $countB;
+            
+            $cmd = "$FindBin::RealBin/run_GOseq.pl --GO_assignments $GO_annots_file "
+                . " --lengths $gene_lengths_file --genes_single_factor $either_subset_file"
+                . " --background $background_file ";
+
+            &process_cmd($cmd) if ($countA + $countB);
+            
             
         }
         

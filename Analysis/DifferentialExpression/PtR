@@ -10,6 +10,8 @@ use File::Basename;
 my $min_rowSums = 0;
 my $min_colSums = 0;
 
+my $min_gene_expr_val = 1;
+
 my $usage = <<__EOUSAGE__;
 
 #################################################################################### 
@@ -115,27 +117,32 @@ my $usage = <<__EOUSAGE__;
 #  Data Filtering, in order of operation below:  #########################################################
 #
 #
+## Column filters:
+#
 #  --restrict_samples <string>   comma-delimited list of samples to restrict to (comma-delim list)
 #
 #  --top_rows <int>         only include the top number of rows in the matrix, as ordered.
 #
 #  --min_colSums <float>      min number of fragments, default: $min_colSums
 #
+#  --min_expressed_genes <int>           minimum number of genes (rows) for a column (replicate) having at least '--min_gene_expr_val'
+#       --min_gene_expr_val <float>   a gene must be at least this value expressed across all samples.  (default: $min_gene_expr_val)
+#
+#
+## Row Filters:
+#
 #  --min_rowSums <float>      min number of fragments, default: $min_rowSums
 #
 #  --gene_grep <string>     grep on string to restrict to genes
-#
-#
-#  --min_expressed_genes <int>        minimum number of genes (rows) for a column (replicate) having at least '--min_gene_expr_val'
-#       --min_gene_expr_val <float>   a gene must be at least this value expressed across all samples.  (default: 0)
 #
 #  --min_across_ALL_samples_gene_expr_val <int>   a gene must have this minimum expression value across ALL samples to be retained.
 #
 #  --min_across_ANY_samples_gene_expr_val <int>   a gene must have at least this expression value across ANY single sample to be retained.
 #
+#  --min_gene_prevalence <int>   gene must be found expressed in at least this number of columns
+#       --min_gene_expr_val <float>   a gene must be at least this value expressed across all samples.  (default: $min_gene_expr_val)
+#
 #  --minValAltNA <float>    minimum cell value after above transformations, otherwise convert to NA
-#
-#
 #
 #  --top_genes <int>        use only the top number of most highly expressed transcripts
 #
@@ -218,6 +225,8 @@ my $top_rows;
 
 my $minValAltNA = undef;
 
+my $min_colAny = 0;
+
 my $CENTER = 0;
 my $CPM = 0;
 my $top_genes;
@@ -270,7 +279,6 @@ my $sample_cor = 'pearson';
 my $gene_heatmaps;
 
 my $min_expressed_genes;
-my $min_gene_expr_val = 0;
 
 my $min_across_ALL_samples_gene_expr_val = 0;
 my $min_across_ANY_samples_gene_expr_val = 0;
@@ -282,6 +290,8 @@ my $heatmap_scale_limits = "";
 my $sample_cor_scale_limits = "";
 my $sample_cor_subset_matrix = "";
 my $sample_cor_sum_gene_factor_expr = "";
+
+my $min_gene_prevalence = 0;
 
 my $gene_grep;
 
@@ -370,6 +380,7 @@ my $NO_REUSE = 0;
     'restrict_samples=s' => \$restrict_samples,
     'top_rows=i' => \$top_rows,
     'min_colSums=f' => \$min_colSums,
+    'min_colAny=i' => \$min_colAny,
     'min_rowSums=f' => \$min_rowSums,
 
     'binary' => \$MAKE_BINARY_FLAG,
@@ -379,6 +390,9 @@ my $NO_REUSE = 0;
     'min_expressed_genes=i' => \$min_expressed_genes,
     'min_gene_expr_val=f' => \$min_gene_expr_val,
     
+    'min_gene_prevalence=i' => \$min_gene_prevalence, # single cell parlance
+    
+
     'min_across_ALL_samples_gene_expr_val=f' => \$min_across_ALL_samples_gene_expr_val,
     'min_across_ANY_samples_gene_expr_val=f' => \$min_across_ANY_samples_gene_expr_val,
     'minValAltNA=f' => \$minValAltNA,
@@ -726,12 +740,39 @@ main: {
     ## Filtering data
     #################
     
-
+    ## Filtering out columns (samples)
+    
     if ($min_expressed_genes && $min_gene_expr_val) {
         ## remove columns (samples) having less than specified number of expressed genes.
-        $Rscript .= "gene_count = apply(data, 2, function(x) sum(x>$min_gene_expr_val))\n";
+        $Rscript .= "gene_count = apply(data, 2, function(x) sum(x>=$min_gene_expr_val))\n";
         $Rscript .= "data = data[,gene_count>=$min_expressed_genes,drop=F]\n";
         $output_prefix .= ".min_${min_expressed_genes}_expr_genes";
+        $Rscript .= "write.table(data, file=\"$output_prefix.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
+    }
+
+    if ($min_colSums > 0) {
+        $Rscript .= "data = data\[,colSums\(data)>=" . $min_colSums . "]\n";
+        $output_prefix .= ".minCol$min_colSums";
+        $Rscript .= "write.table(data, file=\"$output_prefix.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
+    }
+    
+    if ($min_colAny > 0) {
+        $Rscript .= "# apply min_colAny filter\n"
+                  . "colAnyCount = apply(data, 2, function(x) { sum(x>0) } )\n"
+                  . "data = data\[,colAnyCount >= $min_colAny]\n";
+        $output_prefix .= ".minColAny_$min_colAny";
+        $Rscript .= "write.table(data, file=\"$output_prefix.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
+    }
+    
+
+    ############################################
+    ## Filtering out rows (genes or transcripts)
+    
+
+        
+    if ($min_rowSums > 0) {
+        $Rscript .= "data = data\[rowSums\(data)>=" . $min_rowSums . ",]\n";
+        $output_prefix .= ".minRow$min_rowSums";
         $Rscript .= "write.table(data, file=\"$output_prefix.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
     }
 
@@ -748,26 +789,21 @@ main: {
     # at least one sample must express the gene at this value.
     if ($min_across_ANY_samples_gene_expr_val) {
         $Rscript .= "max_gene_expr_per_row = apply(data, 1, max)\n";
-        $Rscript .= "data = data[max_gene_expr_per_row >= $min_across_ANY_samples_gene_expr_val,,drop=F ]\n";
+        $Rscript .= "data = data[max_gene_expr_per_row >= $min_across_ANY_samples_gene_expr_val, ,drop=F ]\n";
         $output_prefix .= ".min_gene_expr_${min_across_ANY_samples_gene_expr_val}_ANY_samples_required";
         
         $Rscript .= "write.table(data, file=\"$output_prefix.dat\", quote=F, sep=\"\t\")\n"; # if $write_intermediate_data_tables_flag;
 
     }
+
+    if ($min_gene_prevalence && $min_gene_expr_val) {
+        ## remove columns (samples) having less than specified number of expressed genes.
+        $Rscript .= "gene_prevalence_among_cols = apply(data, 1, function(x) sum(x>=$min_gene_expr_val))\n";
+        $Rscript .= "data = data[gene_prevalence_among_cols>=$min_gene_prevalence, ,drop=F]\n";
+        $output_prefix .= ".min_${min_gene_prevalence}_gene_prevalence";
+        $Rscript .= "write.table(data, file=\"$output_prefix.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
+    }
     
-
-
-    if ($min_colSums > 0) {
-        $Rscript .= "data = data\[,colSums\(data)>=" . $min_colSums . "]\n";
-        $output_prefix .= ".minCol$min_colSums";
-        $Rscript .= "write.table(data, file=\"$output_prefix.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
-    }
-        
-    if ($min_rowSums > 0) {
-        $Rscript .= "data = data\[rowSums\(data)>=" . $min_rowSums . ",]\n";
-        $output_prefix .= ".minRow$min_rowSums";
-        $Rscript .= "write.table(data, file=\"$output_prefix.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
-    }
 
     if ($gene_grep) {
         $Rscript .= "data = data[grep(\"$gene_grep\", rownames(data)),,drop=F]\n";

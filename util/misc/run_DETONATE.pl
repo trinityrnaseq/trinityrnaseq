@@ -61,15 +61,20 @@ my $species;
     );
 
 
+unless ($reads && $target && $frag_len && $species) {
+    die $usage;
+}
+
+
 main: {
 
     my $detonate_home_dir = $ENV{DETONATE_HOME} or die "Error, must set env var DETONATE_HOME to its installation directory";
 
-    unless ($species =~ /$species_opts/) {
+    unless (defined($species) && $species =~ /$species_opts/) {
         die "Error, species $species not supported, only $species_opts";
     }
 
-    my $cmd = "$detonate_home_dir/rsem-eval-calculate-score -p $CPU "
+    my $cmd = "$detonate_home_dir/rsem-eval/rsem-eval-calculate-score -p $CPU "
      . " --transcript-length-parameters $detonate_home_dir/rsem-eval/true_transcript_length_distribution/$species.txt "
      . " $reads $target $output_dir $frag_len ";
 

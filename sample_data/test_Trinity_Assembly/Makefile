@@ -2,6 +2,7 @@
 test_trinity:
 	./runMe.sh
 
+test_full: test
 
 test:
 	./runMe.sh

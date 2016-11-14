@@ -57,7 +57,7 @@ test_gg_trinity:
 
 test_all:
 	cd sample_data/ && make test
-	cd sample_data/test_Trinity_Assembly && make test_full
+
 
 test_clean:
 	cd sample_data/ && make clean

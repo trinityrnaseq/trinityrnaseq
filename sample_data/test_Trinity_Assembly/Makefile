@@ -2,8 +2,6 @@
 test_trinity:
 	./runMe.sh
 
-test_full: test
-
 test:
 	./runMe.sh
 	./misc_run_tests/__test_runMe_NO_normalization.sh

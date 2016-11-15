@@ -1957,7 +1957,7 @@ sub run_chrysalis {
             { # butterfly command
                 
 
-                my $bfly_cmd = "java -Xmx$bflyHeapSpaceMax -Xms$bflyHeapSpaceInit ";
+                my $bfly_cmd = "java -Xmx$bflyHeapSpaceMax -Xms$bflyHeapSpaceInit -Xss$bflyHeapSpaceInit";
         
                 if (defined($bflyGCThreads)) {
                     $bfly_cmd .= " -XX:ParallelGCThreads=$bflyGCThreads ";

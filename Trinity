@@ -1303,7 +1303,7 @@ main: {
         }
         else {
             
-            die "ERROR, no butterfly assemblies reported." unless $TRINITY_COMPLETE_FLAG;
+            die "ERROR, no butterfly assemblies reported. Perhaps there were too few reads to assemble anything? " unless $TRINITY_COMPLETE_FLAG;
         }
         
     }

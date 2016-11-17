@@ -82,8 +82,8 @@ my $usage = <<__EOUSAGE__;
 #  
 #
 #  if alignment_based est_method:
-#       --aln_method <string>            bowtie|bowtie2|(path to bam file) alignment method.  (note: RSEM requires bowtie)
-#                                       (if you already have a bam file, you can use it here instead of rerunning bowtie)
+#       --aln_method <string>            bowtie|bowtie2 alignment method.  (note: RSEM requires bowtie)
+#                                       
 #
 # Optional:
 # 
@@ -174,7 +174,6 @@ my $output_dir;
 my $help_flag;
 my $transcripts;
 my $bam_file;
-my $paired_flag = "";
 my $DEBUG_flag = 0;
 my $SS_lib_type;
 my $thread_count = 4;
@@ -203,6 +202,8 @@ my $trinity_mode;
 my $include_rsem_bam;
 my $coordsort_bam_flag = 0;
 
+my $samples_file = "";
+
 &GetOptions ( 'help|h' => \$help_flag,
               'transcripts=s' => \$transcripts,
               'name_sorted_bam=s' => \$bam_file,
@@ -219,6 +220,8 @@ my $coordsort_bam_flag = 0;
               'right=s' => \$right,
               'single=s' => \$single,
               'max_ins_size=i' => \$max_ins_size,
+              'samples_file=s' => \$samples_file,
+              
               
               'output_dir=s' => \$output_dir,
       
@@ -275,37 +278,22 @@ my %ALIGNMENT_BASED_EST_METHODS = map { + $_ => 1 } qw (RSEM express eXpress);
 my %ALIGNMENT_FREE_EST_METHODS = map { + $_ => 1 } qw (kallisto salmon);
 
 
-unless ($output_dir) {
-    die "Error, must specify output directory name via: --output_dir   ";
-}
 
-unless (($est_method && $prep_reference && $transcripts && (! ($single||$left||$right)) ) ## just prep reference
+unless (($est_method && $prep_reference && $transcripts && (! ($single||$left||$right||$samples_file)) ) ## just prep reference
 
-        || ($transcripts && $est_method && $seqType && ($single || ($left && $right))) # do alignment
+        || ($transcripts && $est_method && $seqType && ($single || ($left && $right) || $samples_file)) # do alignment
     
     ) {
 
     die "Error, missing parameter. See example usage options below.\n" . $usage;
 }
 
-my $PROCESSING_EXISTING_BAM_FLAG = 0;
 
 if  ($ALIGNMENT_FREE_EST_METHODS{$est_method}) {
     $aln_method = "none";
 }
-else {
-    if ($aln_method =~ /\.bam$/) {
-        if (-s $aln_method) {
-            # no problem, using the bam file
-            $PROCESSING_EXISTING_BAM_FLAG = 1;
-        }
-        else {
-            die "Error, file $aln_method does not exist or is empty.  ";
-        }
-    }
-    elsif ($aln_method !~ /bowtie2?/) {
-        die "Error, --aln_method must be either 'bowtie' or 'bowtie2' ";
-    }
+elsif ($aln_method !~ /bowtie2?/) {
+    die "Error, --aln_method must be either 'bowtie' or 'bowtie2' ";
 }
 
 
@@ -314,31 +302,36 @@ unless ($est_method =~ /^(RSEM|express|kallisto|salmon|none)$/i) {
 }
 
 
-$left = &create_full_path($left) if $left;
-$right = &create_full_path($right) if $right;
+my @samples_to_process;
+if ($samples_file) {
+    @samples_to_process = &parse_samples_file($samples_file);
 
-if ($single) {
-    $single = &create_full_path($single);
+}
+else {
+
+    unless ($output_dir) {
+        die "Error, must specify output directory name via: --output_dir   ";
+    }
+    @samples_to_process = &create_sample_definition($output_dir, $left, $right, $single);
+    
+}
+
+
+my $PE_mode = 1;
+
+if ($single || $samples_to_process[0]->{single}) {
+    
     unless ($fragment_length) {
         die "Error, specify --fragment_length for single-end reads (note, not the length of the read but the mean fragment length)\n\n";
     }
+
+    $PE_mode = 0;
 }
 
+    
 $transcripts = &create_full_path($transcripts);
 
 $gene_trans_map_file = &create_full_path($gene_trans_map_file) if $gene_trans_map_file;
-
-
-
-if ($left && $left =~ /\.gz$/) {
-    $left = &add_zcat_gz($left);
-}
-if ($right && $right =~ /\.gz$/) {
-    $right = &add_zcat_gz($right);
-}
-if ($single && $single =~ /\.gz$/) {
-    $single = &add_zcat_gz($single);
-}
 
 
 
@@ -346,7 +339,7 @@ if ($SS_lib_type) {
     unless ($SS_lib_type =~ /^(RF|FR|R|F)$/) {
         die "Error, do not recognize SS_lib_type: [$SS_lib_type]\n";
     }
-    if ($left && $right && length($SS_lib_type) != 2 ) {
+    if ($PE_mode && length($SS_lib_type) != 2 ) {
         die "Error, SS_lib_type [$SS_lib_type] is not compatible with paired reads";
     }
 }
@@ -356,7 +349,7 @@ if ( $thread_count !~ /^\d+$/ ) {
 }
 
 
-{  # check for RSEM installation in PATH 
+{  # check for required tools in PATH 
     
     my $missing = 0;
     my @tools = ('samtools');
@@ -393,23 +386,25 @@ if ( $thread_count !~ /^\d+$/ ) {
     }
 }
 
+
+
 main: {
-
-
 
     if ($trinity_mode && ! $gene_trans_map_file) {
         $gene_trans_map_file = "$transcripts.gene_trans_map";
         my $cmd = "$FindBin::RealBin/support_scripts/get_Trinity_gene_to_trans_map.pl $transcripts > $gene_trans_map_file";
         &process_cmd($cmd) unless (-e $gene_trans_map_file);
     }
+
+
     
     if ($ALIGNMENT_BASED_EST_METHODS{$est_method}) {
         
-        &run_alignment_BASED_estimation();
+        &run_alignment_BASED_estimation(@samples_to_process);
 
     }
     else {
-        &run_alignment_FREE_estimation();
+        &run_alignment_FREE_estimation(@samples_to_process);
     }
 
     exit(0);
@@ -419,12 +414,14 @@ main: {
 
 ####
 sub run_alignment_FREE_estimation {
+    my @samples = @_;
+
     
     if ($est_method eq "kallisto") {
-        &run_kallisto();
+        &run_kallisto(@samples);
     }
     elsif ($est_method eq "salmon") {
-        &run_salmon();
+        &run_salmon(@samples);
     }
     else {
         die "Error, not recognizing est_method: $est_method";
@@ -436,49 +433,48 @@ sub run_alignment_FREE_estimation {
 
 ####
 sub run_alignment_BASED_estimation {
+    my @samples = @_;
+
     
     my $db_index_name = "$transcripts.${aln_method}";
     
 
-    unless ($PROCESSING_EXISTING_BAM_FLAG) {
+    ###############################################
+    ## Prepare transcript database for alignments
+    ###############################################
+    
+    
+    if ($prep_reference) {
         
-        ###############################################
-        ## Prepare transcript database for alignments
-        ###############################################
+        my $cmd = "${aln_method}-build $transcripts $db_index_name";
         
-                    
-        if ($prep_reference) {
+        unless (-e "$db_index_name.ok") { 
             
-            my $cmd = "${aln_method}-build $transcripts $db_index_name";
-                    
-            unless (-e "$db_index_name.ok") { 
-             
-                if (-e "$db_index_name.started") {
-                    print STDERR "WARNING - looks like the prep for $db_index_name was already started by another process.  Proceeding with caution.\n";
-                }
-                
-                &process_cmd("touch $db_index_name.started");
-                
-                &process_cmd($cmd);
-                
-                rename("$db_index_name.started", "$db_index_name.ok");
-            
+            if (-e "$db_index_name.started") {
+                print STDERR "WARNING - looks like the prep for $db_index_name was already started by another process.  Proceeding with caution.\n";
             }
             
-
-        }
-
-        if (! -e "$db_index_name.ok") {
-            die "Error, index $db_index_name not prepared.  Be sure to include parameter '--prep_reference' to first prepare the reference for alignment.";
+            &process_cmd("touch $db_index_name.started");
+            
+            &process_cmd($cmd);
+            
+            rename("$db_index_name.started", "$db_index_name.ok");
+            
         }
         
+        
     }
+
+    if (! -e "$db_index_name.ok") {
+        die "Error, index $db_index_name not prepared.  Be sure to include parameter '--prep_reference' to first prepare the reference for alignment.";
+    }
+        
     
     
     my $rsem_prefix = &create_full_path("$transcripts.RSEM");
     
     if ($est_method eq 'RSEM') {
-
+                
         if ($prep_reference) {
             
             if (-e "$rsem_prefix.rsem.prepped.started") {
@@ -512,78 +508,81 @@ sub run_alignment_BASED_estimation {
     }
     
     
-    unless ( ($left && $right) || $single) {
+    unless (@samples) {
         print STDERR "Only prepping reference. Stopping now.\n";
         exit(0);
     }
 
+    my $curr_workdir = cwd();
+    foreach my $sample_href (@samples) {
+        chdir $curr_workdir or die "Error, cannot cd to $curr_workdir";
+        # process below will cd into output dir
+        &run_alignment_do_quant($sample_href, $db_index_name, $rsem_prefix);
+    }
+
+}
+
+####
+sub run_alignment_do_quant {
+    my ($sample_href, $db_index_name, $rsem_prefix) = @_;
+
+    my $output_dir = $sample_href->{output_dir};
     
     #####################
     ## Run alignments
     #####################
+    
+    unless (-d $output_dir) {
+        system("mkdir -p $output_dir");
+    }
+    chdir $output_dir or die "Error, cannot cd to output directory $output_dir";
+    
     my $prefix = $output_prefix;
     if ($prefix) {
         $prefix .= "."; # add separator in filename
     }
     my $bam_file = "${prefix}${aln_method}.bam";
     my $bam_file_ok = "$bam_file.ok";
-    if ($PROCESSING_EXISTING_BAM_FLAG) {
-        $bam_file = $aln_method;
-        $bam_file = &create_full_path($bam_file);
-        unless (-e $bam_file_ok) {
-            &process_cmd("touch $bam_file_ok");
-        }
-    }
-    
-    
-    unless (-d $output_dir) {
-        system("mkdir -p $output_dir");
-    }
-    chdir $output_dir or die "Error, cannot cd to output directory $output_dir";
         
-
 
     my $read_type = ($seqType eq "fq") ? "-q" : "-f";
-
-    if ($left && $right) {
-        $paired_flag = 1;
+        
+    ##############
+    ## Align reads
+    
+    my $bowtie_cmd;
+    
+    if ($aln_method eq 'bowtie') {
+        if ($PE_mode) {
+            my ($left_file, $right_file) = ($sample_href->{left}, $sample_href->{right});
+            ## PE alignment
+            $bowtie_cmd = "set -o pipefail && bowtie $read_type " . $aligner_params{"${aln_method}_${est_method}"} . " -X $max_ins_size -S -p $thread_count $db_index_name -1 $left_file -2 $right_file | samtools view -F 4 -S -b -o $bam_file -";
+            
+        }
+        else {
+            my $single_file = $sample_href->{single};
+            # SE alignment
+            $bowtie_cmd = "set -o pipefail && bowtie $read_type " . $aligner_params{"${aln_method}_${est_method}"} . " -S -p $thread_count $db_index_name $single_file | samtools view -F 4 -S -b -o $bam_file -";
+        }
+    }
+    elsif ($aln_method eq 'bowtie2') {
+        
+        if ($PE_mode) {
+            ## PE alignment
+            my ($left_file, $right_file) = ($sample_href->{left}, $sample_href->{right});
+            $bowtie_cmd = "set -o pipefail && bowtie2 " . $aligner_params{"${aln_method}_${est_method}"} . " $read_type -X $max_ins_size -x $db_index_name -1 $left_file -2 $right_file -p $thread_count | samtools view -F 4 -S -b -o $bam_file -";
+        }
+        else {
+            # SE alignment
+            my $single_file = $sample_href->{single};
+            $bowtie_cmd = "set -o pipefail && bowtie2 " . $aligner_params{"${aln_method}_${est_method}"} . " $read_type -x $db_index_name -U $single_file -p $thread_count | samtools view -F 4 -S -b -o $bam_file -";
+        }
     }
     
-    if (! $PROCESSING_EXISTING_BAM_FLAG) {
-        ## run bowtie
-        
-        ##############
-        ## Align reads
-                
-        my $bowtie_cmd;
-            
-        if ($aln_method eq 'bowtie') {
-            if ($left && $right) {
-                ## PE alignment
-                $bowtie_cmd = "set -o pipefail && bowtie $read_type " . $aligner_params{"${aln_method}_${est_method}"} . " -X $max_ins_size -S -p $thread_count $db_index_name -1 $left -2 $right | samtools view -F 4 -S -b -o $bam_file -";
-                
-            }
-            else {
-                # SE alignment
-                $bowtie_cmd = "set -o pipefail && bowtie $read_type " . $aligner_params{"${aln_method}_${est_method}"} . " -S -p $thread_count $db_index_name $single | samtools view -F 4 -S -b -o $bam_file -";
-            }
-        }
-        elsif ($aln_method eq 'bowtie2') {
-            
-            if ($left && $right) {
-                ## PE alignment
-                $bowtie_cmd = "set -o pipefail && bowtie2 " . $aligner_params{"${aln_method}_${est_method}"} . " $read_type -X $max_ins_size -x $db_index_name -1 $left -2 $right -p $thread_count | samtools view -F 4 -S -b -o $bam_file -";
-            }
-            else {
-                # SE alignment
-                $bowtie_cmd = "set -o pipefail && bowtie2 " . $aligner_params{"${aln_method}_${est_method}"} . " $read_type -x $db_index_name -U $single -p $thread_count | samtools view -F 4 -S -b -o $bam_file -";
-            }
-        }
-        
-        &process_cmd($bowtie_cmd) unless (-s $bam_file && -e $bam_file_ok);
-        
-        &process_cmd("touch $bam_file_ok") unless (-e $bam_file_ok);
-    }
+    &process_cmd($bowtie_cmd) unless (-s $bam_file && -e $bam_file_ok);
+    
+    &process_cmd("touch $bam_file_ok") unless (-e $bam_file_ok);
+    
     
     if ($est_method =~ /express/i) {
         &run_eXpress($bam_file);
@@ -702,7 +701,7 @@ sub run_RSEM {
         $no_qualities_string = "--no-qualities";
     }
 
-    my $paired_flag_text = ($paired_flag) ? "--paired-end" : "";
+    my $paired_flag_text = ($PE_mode) ? "--paired-end" : "";
 
     my $rsem_bam_flag = ($include_rsem_bam) ? "" : "--no-bam-output";
 
@@ -796,6 +795,7 @@ sub add_zcat_gz {
 
 ####
 sub run_kallisto {
+    my @samples = @_;
     
     my $kallisto_index = "$transcripts.kallisto_idx";
     
@@ -808,23 +808,31 @@ sub run_kallisto {
         &process_cmd($cmd);
     }
 
-    if ($left && $right) {
 
-        my $cmd = "kallisto quant -i $kallisto_index $kallisto_add_opts -o $output_dir $left $right";
-        &process_cmd($cmd);
-    }
-    elsif ($single) {
-        my $cmd = "kallisto quant -l $fragment_length -s $fragment_std -i $kallisto_index -o $output_dir $kallisto_add_opts --single $single";
-        &process_cmd($cmd);
-    }
-    
-    
-    if ( ($left || $single) && $gene_trans_map_file) {
+    foreach my $sample_href (@samples) {
+     
+        my ($output_dir, $left_file, $right_file, $single_file) = ($sample_href->{output_dir},
+                                                                   $sample_href->{left},
+                                                                   $sample_href->{right},
+                                                                   $sample_href->{single});
+   
+        if ($left_file && $right_file) {
+            
+            my $cmd = "kallisto quant -i $kallisto_index $kallisto_add_opts -o $output_dir $left_file $right_file";
+            &process_cmd($cmd);
+        }
+        elsif ($single) {
+            my $cmd = "kallisto quant -l $fragment_length -s $fragment_std -i $kallisto_index -o $output_dir $kallisto_add_opts --single $single_file";
+            &process_cmd($cmd);
+        }
         
-        my $cmd = "$FindBin::RealBin/support_scripts/kallisto_trans_to_gene_results.pl $output_dir/abundance.tsv $gene_trans_map_file > $output_dir/abundance.tsv.genes";
-        &process_cmd($cmd);
+        
+        if ( ($left || $single) && $gene_trans_map_file) {
+            
+            my $cmd = "$FindBin::RealBin/support_scripts/kallisto_trans_to_gene_results.pl $output_dir/abundance.tsv $gene_trans_map_file > $output_dir/abundance.tsv.genes";
+            &process_cmd($cmd);
+        }
     }
-
 
     return;
 }
@@ -833,6 +841,7 @@ sub run_kallisto {
 
 ####
 sub run_salmon {
+    my (@samples) = @_;
     
     my $salmon_index = "$transcripts.salmon_${salmon_idx_type}.idx";
     
@@ -857,52 +866,163 @@ sub run_salmon {
         &process_cmd($cmd);
     }
 
-    my $outdir = $output_dir; #"$output_dir.$salmon_idx_type";
-    
-    
-    if ($left && $right) {
-        ## PE mode
-        my $cmd;
-        my $libtype = ($SS_lib_type) ? "IS" . substr($SS_lib_type, 0, 1) : "IU";
+    foreach my $sample_href (@samples) {
+        
+        my ($output_dir, $left_file, $right_file, $single_file) = ($sample_href->{output_dir},
+                                                                   $sample_href->{left},
+                                                                   $sample_href->{right},
+                                                                   $sample_href->{single});
+        
+
+        
+        my $outdir = $output_dir; #"$output_dir.$salmon_idx_type";
+        
+        
+        if ($left_file && $right_file) {
+            ## PE mode
+            my $cmd;
+            my $libtype = ($SS_lib_type) ? "IS" . substr($SS_lib_type, 0, 1) : "IU";
             
-        if ($salmon_idx_type eq 'quasi') {
-            $cmd = "salmon quant -i $salmon_index -l $libtype -1 $left -2 $right -o $outdir $salmon_add_opts -p $thread_count";
+            if ($salmon_idx_type eq 'quasi') {
+                $cmd = "salmon quant -i $salmon_index -l $libtype -1 $left_file -2 $right_file -o $outdir $salmon_add_opts -p $thread_count";
+            }
+            elsif ($salmon_idx_type eq 'fmd') {
+                $cmd = "salmon quant -i $salmon_index -l $libtype -1 $left_file -2 $right_file -k $salmon_fmd_kmer_length -o $outdir $salmon_add_opts -p $thread_count";
+            }
+            else {
+                die "Error, not recognizing salmon_idx_type: $salmon_idx_type";
+            }
+            
+            &process_cmd($cmd);
+            
         }
-        elsif ($salmon_idx_type eq 'fmd') {
-            $cmd = "salmon quant -i $salmon_index -l $libtype -1 $left -2 $right -k $salmon_fmd_kmer_length -o $outdir $salmon_add_opts -p $thread_count";
-        }
-        else {
-            die "Error, not recognizing salmon_idx_type: $salmon_idx_type";
+        elsif ($single_file) {
+            my $libtype = ($SS_lib_type) ? "S" . substr($SS_lib_type, 0, 1) : "U";
+            my $cmd;
+            
+            if ($salmon_idx_type eq 'quasi') {
+                $cmd = "salmon quant -i $salmon_index -l $libtype -r $single_file -o $outdir $salmon_add_opts -p $thread_count";
+            }
+            elsif ($salmon_idx_type eq 'fmd') {
+                $cmd = "salmon quant -i $salmon_index -l $libtype -r $single_file -k $salmon_fmd_kmer_length -o $outdir $salmon_add_opts -p $thread_count";
+            }
+            else {
+                die "Error, not recognizing salmon_idx_type: $salmon_idx_type";
+            }
+            
+            &process_cmd($cmd);
+            
         }
         
-        &process_cmd($cmd);
-        
-    }
-    elsif ($single) {
-        my $libtype = ($SS_lib_type) ? "S" . substr($SS_lib_type, 0, 1) : "U";
-        my $cmd;
-        
-        if ($salmon_idx_type eq 'quasi') {
-            $cmd = "salmon quant -i $salmon_index -l $libtype -r $single -o $outdir $salmon_add_opts -p $thread_count";
+        if ($gene_trans_map_file) {
+            
+            my $cmd = "$FindBin::RealBin/support_scripts/salmon_trans_to_gene_results.pl $output_dir/quant.sf $gene_trans_map_file > $output_dir/quant.sf.genes";
+            &process_cmd($cmd);
         }
-        elsif ($salmon_idx_type eq 'fmd') {
-            $cmd = "salmon quant -i $salmon_index -l $libtype -r $single -k $salmon_fmd_kmer_length -o $outdir $salmon_add_opts -p $thread_count";
-        }
-        else {
-            die "Error, not recognizing salmon_idx_type: $salmon_idx_type";
-        }
-        
-        &process_cmd($cmd);
-
     }
     
-    if ( ($left || $single) && $gene_trans_map_file) {
-        
-        my $cmd = "$FindBin::RealBin/support_scripts/salmon_trans_to_gene_results.pl $output_dir/quant.sf $gene_trans_map_file > $output_dir/quant.sf.genes";
-        &process_cmd($cmd);
-    }
-    
-
     return;
 }
 
+
+
+####
+sub parse_samples_file {
+    my ($samples_file) = @_; 
+
+    my @samples_to_process;
+    
+    open (my $fh, $samples_file) or die "Error, cannot open file: $samples_file";
+    while (<$fh>) {
+        chomp;
+        if (/^\#/) { next; }
+        unless (/\w/) { next; }
+        if (/^\-/) { next; } 
+        s/^\s+|\s+$//g; # trim trailing ws
+        my @x = split(/\s+/);
+
+        my $sample_name = $x[0];
+        my $rep_name = $x[1];
+
+        my $output_dir = join("__", $sample_name, $rep_name, $est_method);
+        $output_dir =~ s/\W/_/g;
+        
+        my $left_fq = $x[2];
+        my $right_fq = $x[3];
+        
+        if ($left_fq) {
+            unless (-s $left_fq) {
+                die "Error, cannot locate file: $left_fq as specified in samples file: $samples_file";
+            }
+            $left_fq = &create_full_path($left_fq);
+            if ($left_fq =~ /\.gz$/) {
+                $left_fq = &add_zcat_gz($left_fq);
+            }
+        }
+        else {
+            die "Error, cannot parse line $_ of samples file: $samples_file . See usage info for samples file formatting requirements.";
+            
+        }
+        if ($right_fq) {
+            unless (-s $right_fq) {
+                die "Error, cannot locate file $right_fq as specified in samples file: $samples_file";
+            }
+            $right_fq = &create_full_path($right_fq);
+            if ($right_fq =~ /\.gz$/) {
+                $right_fq = &add_zcat_gz($right_fq);
+            } 
+        }
+
+        if ($left_fq && $right_fq) {
+
+            push (@samples_to_process, { left => $left_fq,
+                                         right => $right_fq,
+                                         output_dir => $output_dir,
+                  } );
+        }
+        else {
+            push (@samples_to_process, { single => $left_fq,
+                                         output_dir => $output_dir,
+                  } );
+        }
+        
+    }
+   
+    
+    return (@samples_to_process);
+}
+
+
+####
+sub create_sample_definition {
+    my ($output_dir, $left, $right, $single) = @_;
+
+    $left = &create_full_path($left) if $left;
+    $right = &create_full_path($right) if $right;
+    $single = &create_full_path($single) if $single;
+
+    if ($left && $left =~ /\.gz$/) {
+        $left = &add_zcat_gz($left);
+    }
+    if ($right && $right =~ /\.gz$/) {
+        $right = &add_zcat_gz($right);
+    }
+    if ($single && $single =~ /\.gz$/) {
+        $single = &add_zcat_gz($single);
+    }
+    
+
+    
+    if ($left && $right) {
+        return ( { left => $left,
+                   right => $right,
+                   output_dir => $output_dir,
+                 } );
+    }
+    else {
+        return( { single => $single,
+                  output_dir => $output_dir,
+                } );
+    }
+
+}

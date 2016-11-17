@@ -821,13 +821,13 @@ sub run_kallisto {
             my $cmd = "kallisto quant -i $kallisto_index $kallisto_add_opts -o $output_dir $left_file $right_file";
             &process_cmd($cmd);
         }
-        elsif ($single) {
+        elsif ($single_file) {
             my $cmd = "kallisto quant -l $fragment_length -s $fragment_std -i $kallisto_index -o $output_dir $kallisto_add_opts --single $single_file";
             &process_cmd($cmd);
         }
         
         
-        if ( ($left || $single) && $gene_trans_map_file) {
+        if ($gene_trans_map_file) {
             
             my $cmd = "$FindBin::RealBin/support_scripts/kallisto_trans_to_gene_results.pl $output_dir/abundance.tsv $gene_trans_map_file > $output_dir/abundance.tsv.genes";
             &process_cmd($cmd);

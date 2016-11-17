@@ -1303,7 +1303,7 @@ main: {
         }
         else {
             
-            die "ERROR, no butterfly assemblies reported." unless $TRINITY_COMPLETE_FLAG;
+            die "ERROR, no butterfly assemblies reported. Perhaps there were too few reads to assemble anything? " unless $TRINITY_COMPLETE_FLAG;
         }
         
     }
@@ -1398,8 +1398,11 @@ sub run_Trinity {
             }
             
             foreach my $f ((@left_files,@right_files)){
-                if (-s $f.'.readcount'){
-                    open (IN,$f.'.readcount');
+                
+                my $readcount_file = $output_directory . "/" . basename($f) . ".readcount";
+
+                if (-s $readcount_file){
+                    open (IN, $readcount_file);
                     my $s = <IN>;
                     close IN;
                     $s=~/([0-9]+)$/;
@@ -1419,8 +1422,11 @@ sub run_Trinity {
             $pm_temp = $pm_temp / 1024 / 1024;
             $pm_single_fa_size = sprintf('%.0f', $pm_temp);
             foreach my $f (@single_files){
-                if (-s $f.'.readcount'){
-                    open (IN,$f.'.readcount');
+                
+                my $readcount_file = $output_directory . "/" . basename($f) . ".readcount";
+                
+                if (-s $readcount_file){
+                    open (IN, $readcount_file);
                     my $s = <IN>;
                     close IN;
                     $s=~/([0-9]+)$/;
@@ -1434,7 +1440,8 @@ sub run_Trinity {
         }
 
         if (!$count_of_reads){    
-            $count_of_reads = `wc -l < $inchworm_target_fa`;chomp($count_of_reads); #AP: grep is  expensive; one test took 2h...!
+            $count_of_reads = `wc -l < $inchworm_target_fa`;
+            chomp($count_of_reads); #AP: grep is  expensive; one test took 2h...!
             $count_of_reads/=2;
         }
 
@@ -1709,7 +1716,7 @@ sub run_chrysalis {
             my $bowtie_sam_file = "$chrysalis_output_dir/iworm.bowtie.nameSorted.bam";
             my $samtools_max_memory = int($jellyfish_ram/($CPU*2));
 
-            $cmd = "bash -c \" set -o pipefail;bowtie2 --local -a --threads $CPU -f $iworm_min100_fa_file $bowtie_reads_fa  | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort -m $samtools_max_memory $PARALLEL_SAMTOOLS_SORT_TOKEN -no - - > $bowtie_sam_file\" ";  
+            $cmd = "bash -c \" set -o pipefail;bowtie2 --local -a --threads $CPU -f -x $iworm_min100_fa_file $bowtie_reads_fa  | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort -m $samtools_max_memory $PARALLEL_SAMTOOLS_SORT_TOKEN -no - - > $bowtie_sam_file\" ";  
                         
             $pipeliner->add_commands( new Command($cmd, "$bowtie_sam_file.ok"));
             
@@ -2314,11 +2321,13 @@ sub prep_seqs {
             elsif ($file_prefix eq "right"){
                 $style = "--append /2";
             }
-            $fastool_cmd .= " $style --to-fasta >> $file_prefix.fa 2> $f.readcount ";
+            
+            my $readcount_file = $output_directory . "/" . basename($f) . ".readcount";
+            $fastool_cmd .= " $style --to-fasta >> $file_prefix.fa 2> $readcount_file";
             my $cmd = $fastool_cmd;
             &process_cmd($cmd);
             
-            &ensure_complete_FQtoFA_conversion($linecount_cmd, "$f.readcount");
+            &ensure_complete_FQtoFA_conversion($linecount_cmd, $readcount_file);
             
         }
     }

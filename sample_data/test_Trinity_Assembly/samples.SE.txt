@@ -1,0 +1,2 @@
+condA	repA1	reads.left.fq.gz
+condA	repA2	reads2.left.fq.gz

@@ -1,0 +1,3 @@
+condA	repA1	reads.left.fq.gz	reads.right.fq.gz
+condA	repA2	reads2.left.fq.gz	reads2.right.fq.gz
+

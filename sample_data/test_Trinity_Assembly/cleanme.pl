@@ -27,14 +27,14 @@ my @files_to_keep = qw (cleanme.pl
                         Makefile
  test_FL.sh
 
-                        __test_runMe_with_jaccard_clip.sh
-                        __test_runMe_with_SE_reads.sh
-
-   runRecTrinity.sh
 
 
 reads.left.fa.gz
 reads.right.fa.gz
+
+samples.SE.txt
+samples.PE.txt
+
 
                         );
 
@@ -67,6 +67,9 @@ my %keep = map { + $_ => 1 } @files_to_keep;
 `rm -rf ./RSEM_PE`;
 `rm -rf ./test_trinity_long_reads`;
 `rm -rf ./test_trinity_bowtie2`;
+`rm -rf ./trinity_test_samples_SE`;
+`rm -rf ./trinity_test_samples_PE`;
+
 
 foreach my $file (<*>) {
 	

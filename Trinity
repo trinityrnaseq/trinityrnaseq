@@ -237,6 +237,16 @@ my $basic_usage = qq^
 #  Or, if unpaired reads:
 #      --single <string>   :single reads, one or more file names, comma-delimited (note, if single file contains pairs, can use flag: --run_as_paired )
 #
+#  Or,
+#      --samples_file <string>         tab-delimited text file indicating biological replicate relationships.
+#                                   ex.
+#                                        cond_A    cond_A_rep1    A_rep1_left.fq    A_rep1_right.fq
+#                                        cond_A    cond_A_rep2    A_rep2_left.fq    A_rep2_right.fq
+#                                        cond_B    cond_B_rep1    B_rep1_left.fq    B_rep1_right.fq
+#                                        cond_B    cond_B_rep2    B_rep2_left.fq    B_rep2_right.fq
+#
+#                      # if single-end instead of paired-end, then leave the 4th column above empty.
+#
 ####################################
 ##  Misc:  #########################
 #
@@ -555,6 +565,7 @@ my $ANANAS_DIR = "";
 
 my $NO_VERSION_CHECK = 0;
 
+my $samples_file = "";
 
 &GetOptions( 
     
@@ -572,6 +583,8 @@ my $NO_VERSION_CHECK = 0;
     "left=s{,}" => \@left_files,
     "right=s{,}" => \@right_files,
     "single=s{,}" => \@single_files,
+
+    "samples_file=s" => \$samples_file,
     
     "SS_lib_type=s" => \$SS_lib_type,
 
@@ -778,7 +791,7 @@ genome_guided_just_prep
 trinity_complete
 bypass_java_version_check
 ananas_dir
-
+samples_file
 );   
 
 my %ACCEPTABLE_OPTS = map { + $_ => 1} @__ALL_TRINITY_PARAMS;
@@ -846,17 +859,6 @@ if ($TRINITY_COMPLETE_FLAG) {
     
     $PARALLEL_IWORM_FLAG = 0;
     
-    ## Chryaslis opts
-    #$NO_BOWTIE = 1;
-    #$GRAPH_FROM_FASTA_CUSTOM_PARAMS = "-no_glue_required -min_kmer_entropy 1 -min_weld_entropy 1";
-    #$GRAPH_FROM_FASTA_CUSTOM_PARAMS = "-max_glue_required 1 -min_kmer_entropy 1 -min_weld_entropy 1";
-    #$GRAPH_FROM_FASTA_CUSTOM_PARAMS = "-max_glue_required 1 -min_kmer_entropy 0.7 -min_weld_entropy 0.7";
-    #$GRAPH_FROM_FASTA_CUSTOM_PARAMS = "-min_iso_ratio 0.0000000001";
-    
-    #$min_iso_ratio = 0.0000000001;
-    
-    #$GRAPH_FROM_FASTA_KK = 26;
-
     $glue_factor = 0.03;
 
 
@@ -905,6 +907,14 @@ if ($NO_FASTOOL) {
 
 unless ($NO_NORMALIZE_READS_FLAG) {
     $NORMALIZE_READS_FLAG = 1;
+}
+
+if ($samples_file) {
+    &parse_samples_file($samples_file, \@single_files, \@left_files, \@right_files);
+}
+
+if (@left_files && @single_files) {
+    die "Error, cannot mix PE and SE reads by using --left, --right, and --single.  See Trinity FAQ for how to combine SE and PE data";
 }
 
 
@@ -969,16 +979,17 @@ else {
 
 ## Check Java version:
 unless ($NO_RUN_INCHWORM_FLAG || $NO_RUN_CHRYSALIS_FLAG || $bypass_java_version_check || $TRINITY_COMPLETE_FLAG) {
-  my $java_version = `java -Xmx64m -version 2>&1 `;
-  if ($java_version =~ /(java|openjdk) version \"1\.(\d)\./) {
+    my $java_version = `java -Xmx64m -version 2>&1 `;
+    my $JAVA_VERSION_REQUIRED = 8;
+    if ($java_version =~ /(java|openjdk) version \"1\.(\d)\./) {
       my $version_id = $2;
-      if ($version_id < 7) {
-          die "Error, Trinity requires access to Java version 1.7 or higher.  Currently installed version is: $java_version";
+      if ($version_id < $JAVA_VERSION_REQUIRED) {
+          die "Error, Trinity requires access to Java version 1.$JAVA_VERSION_REQUIRED or higher.  Currently installed version is: $java_version";
       }
   }
   else {
       print STDERR "\n\n\n********************************************************************\n"
-                       . "** Warning, Trinity cannot determine which version of Java is being used.  Version 1.7 is required. \n\nAttempting to continue in 30 seconds\n"
+                       . "** Warning, Trinity cannot determine which version of Java is being used.  Version 1.$JAVA_VERSION_REQUIRED is required. \n\nAttempting to continue in 30 seconds\n"
                        . "********************************************************************\n\n\n";
       sleep(30);
   }
@@ -1079,8 +1090,6 @@ if ($PASAFLY_MODE) {
 elsif ($CUFFFLY_MODE) {
     $butterfly_output_filename = "Trinity.Cufffly.fasta";
 }
-
-
 
 
 my $PARALLEL_SAMTOOLS_SORT_TOKEN = "-\@ $CPU";
@@ -3103,7 +3112,7 @@ sub write_trinity_partitioned_cmds {
         }
         
         # value specified options that aren't needed
-        if ($arg =~ /seqType|left|right|single|genome|SS_lib_type|quality_trimming|output|normalize_max_read_cov|grid_conf|max_mem|grid|long_reads|inchworm_cpu/
+        if ($arg =~ /seqType|left|right|single|genome|SS_lib_type|quality_trimming|output|normalize_max_read_cov|grid_conf|max_mem|grid|long_reads|inchworm_cpu|samples_file/
             ||
             # more precise identification of parameter
             $arg =~ /^(--CPU)$/
@@ -3407,4 +3416,45 @@ sub append_long_reads_to_iworm_contigs {
 
     &process_cmd("touch $new_inchworm_checkpoint_file");
     return($new_inchworm_file);
+}
+
+
+####
+sub parse_samples_file {
+    my ($samples_file, $single_files_aref, $left_files_aref, $right_files_aref) = @_;
+
+    open (my $fh, $samples_file) or die "Error, cannot open file: $samples_file";
+    while (<$fh>) {
+        chomp;
+        if (/^\#/) { next; }
+        unless (/\w/) { next; }
+        s/^\s+|\s+$//g; # trim trailing ws
+        my @x = split(/\s+/);
+        my $left_fq = $x[2];
+        my $right_fq = $x[3];
+
+        if ($left_fq) {
+            unless (-s $left_fq) {
+                die "Error, cannot locate file: $left_fq as specified in samples file: $samples_file";
+            }
+        }
+        else {
+            die "Error, cannot parse line $_ of samples file: $samples_file . See usage info for samples file formatting requirements.";
+        }
+        if ($right_fq) {
+            unless (-s $right_fq) {
+                die "Error, cannot locate file $right_fq as specified in samples file: $samples_file";
+            }
+        }
+        
+        if ($left_fq && $right_fq) {
+            push (@$left_files_aref, $left_fq);
+            push (@$right_files_aref, $right_fq);
+        }
+        else {
+            push (@$single_files_aref, $left_fq);
+        }
+    }
+
+    return;
 }

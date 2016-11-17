@@ -17,7 +17,7 @@ use Pipeliner;
 use Fasta_reader;
 use List::Util qw(min max);
 
-my $VERSION = "Trinity-v2.3.0_PRERELEASE"; 
+my $VERSION = "Trinity-v2.3.1_PRERELEASE"; 
 
 
 BEGIN {

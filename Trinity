@@ -824,13 +824,15 @@ if ($show_version_flag) {
 }
 
 ## basic options check:
-unless ($seqType && 
-        $seqType =~ /^(fq|fa)$/
-        && 
-        ($samples_file || (@left_files && @right_files) || @single_files)
-        &&
-        $max_memory) {
+unless ($max_memory &&
 
+        ($genome_guided_bam ||  
+             ($seqType && $seqType =~ /^(fq|fa)$/
+              && 
+              ($samples_file || (@left_files && @right_files) || @single_files) )
+         )
+    ) {
+    
     die "Must specify basic parameters:  ex. Trinity --seqType fq --single reads.fq --max_memory 10G ";
 }
 

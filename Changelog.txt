@@ -2,16 +2,16 @@
 
     -for submitting parallel computes on a computing grid, use the new --grid_exec parameter with your own script that handles grid submissions and performs job management.
     -a '--samples_file' option is now available for Trinity and abundance estimation to simplify the use of many RNA-Seq data sets across different samples and biological replicates.	
-    -in silico normalizationnow happens by default. Use --no_normalize_reads to turn it off.
+    -in silico normalization now happens by default. Use --no_normalize_reads to turn it off.
     -bowtie2 is used instead of bowtie1
     -Butterfly has improved support for longer reads and is more efficient. Also, isoform clustering and reconciling overly similar sequence paths were refined.
     -DE analysis reports include the names of the samples A vs. B in the output table and fold changes as A/B
     -GOseq is now provided with the list of expressed genes to use as the background for functional enrichment testing. Also, expression-weighted gene lengths are used. Finally, the list of genes identified as functionally enriched in a GO category are provided in the output file.  Basic support for GOplot integration is included.
     -added support for Glimma interactive volcano and MA plots (thanks Ken Field!!)
-    -chrysalis: separated the iworm graph from the iworm clustering step into separate utilities, easier to track and debug.
     -overhauled long read support. Currently, by default, long reads are used for iworm clustering and graph threading but not used for de Bruijn graph construction itself; only iworm contigs used there.
-    
-
+	-now requires Java-v1.8    
+	-Developer notes:
+	    -chrysalis: separated the iworm graph from the iworm clustering step into separate utilities, easier to track and debug.
 
 
 # Release v2.2.0  March 17, 2016

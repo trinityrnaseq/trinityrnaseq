@@ -77,7 +77,7 @@ clean:
 	rm -f ./fastool # rm symlink
 	rm -rf ./htslib
 	cd scaffold_iworm_contigs && $(MAKE) clean
-	cd parafly && $(MAKE) clean
+	cd parafly-code && $(MAKE) clean
 	rm -f ./parafly # rm symlink
 	rm -f ./Trimmomatic # rm symlink
 	cd slclust && $(MAKE) clean

@@ -74,6 +74,18 @@ my $usage = <<__EOUSAGE__;
 #
 #      --single <string>
 #
+#   or
+#      --samples_file <string>    tab-delimited text file indicating biological replicate relationships.
+#                                   ex.
+#                                        cond_A    cond_A_rep1    A_rep1_left.fq    A_rep1_right.fq
+#                                        cond_A    cond_A_rep2    A_rep2_left.fq    A_rep2_right.fq
+#                                        cond_B    cond_B_rep1    B_rep1_left.fq    B_rep1_right.fq
+#                                        cond_B    cond_B_rep2    B_rep2_left.fq    B_rep2_right.fq
+#
+#                      # if single-end instead of paired-end, then leave the 4th column above empty.
+#
+#
+#
 #  --est_method <string>           abundance estimation method.
 #                                        alignment_based:  RSEM|eXpress       
 #                                        alignment_free: kallisto|salmon
@@ -159,6 +171,10 @@ my $usage = <<__EOUSAGE__;
 ##  ## prep the reference and run the alignment/estimation
 #
 #    $0 --transcripts Trinity.fasta --seqType fq --left reads_1.fq --right reads_2.fq --est_method RSEM --aln_method bowtie --trinity_mode --prep_reference --output_dir rsem_outdir
+#
+#   ## Use a samples.txt file:
+#
+#    $0 --transcripts Trinity.fasta --est_method RSEM --aln_method bowtie2 --prep_reference --trinity_mode --samples_file samples.txt --seqType fq  
 #
 #########################################################################
 
@@ -931,7 +947,8 @@ sub parse_samples_file {
     my ($samples_file) = @_; 
 
     my @samples_to_process;
-    
+
+    my %seen;
     open (my $fh, $samples_file) or die "Error, cannot open file: $samples_file";
     while (<$fh>) {
         chomp;
@@ -943,9 +960,12 @@ sub parse_samples_file {
 
         my $sample_name = $x[0];
         my $rep_name = $x[1];
-
-        my $output_dir = join("__", $sample_name, $rep_name, $est_method);
-        $output_dir =~ s/\W/_/g;
+        if ($seen{$rep_name}) {
+            die "Error, replicate names must be unique.  Found $rep_name listed multiple times";
+        }
+        $seen{$rep_name}++;
+        
+        my $output_dir = $rep_name;
         
         my $left_fq = $x[2];
         my $right_fq = $x[3];

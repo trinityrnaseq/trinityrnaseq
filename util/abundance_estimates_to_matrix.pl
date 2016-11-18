@@ -29,7 +29,7 @@ my $usage = <<__EOUSAGE__;
 #
 #  --out_prefix <string>                default: 'matrix'
 #
-#  --samples_file <string>              file containing a list of all the target files.
+#  --quant_files <string>              file containing a list of all the target files.
 #
 ############################################################
 
@@ -46,7 +46,7 @@ my $cross_sample_norm = "TMM";
 my $name_sample_by_basedir = 0;
 my $out_prefix = "matrix";
 my $basedir_index = -2;
-my $samples_file = "";
+my $quant_files = "";
 
 &GetOptions('help|h' => \$help_flag,
             'est_method=s' => \$est_method,
@@ -56,11 +56,11 @@ my $samples_file = "";
             'out_prefix=s' => \$out_prefix,
             'basedir_index=i' => \$basedir_index,
             
-            'samples_file=s' => \$samples_file,
+            'quant_files=s' => \$quant_files,
             );
 
 
-unless ($est_method && @ARGV) {
+unless ($est_method && (@ARGV || $quant_files)) {
     die $usage;
 }
 
@@ -73,9 +73,9 @@ unless ($cross_sample_norm =~ /^(TMM|UpperQuartile|none)$/i) {
 
 my @files;
 
-if ($samples_file) {
+if ($quant_files) {
     # allow for a file listing the various files.
-    @files = `cat $samples_file`;
+    @files = `cat $quant_files`;
     chomp @files;
 }
 elsif (@ARGV) {

@@ -21,13 +21,6 @@ my @files_to_keep = qw (cleanme.pl
 
 my %keep = map { + $_ => 1 } @files_to_keep;
 
-`rm -rf edgeR_\*`;
-`rm -rf ./trinity_out_dir`;
-`rm -f rnaseq_reads/*fq`;
-`rm -rf collectl/`;
-`rm -rf *.stat/`;
-`rm -rf ./read_content_analysis/`;
-
 foreach my $file (<*>) {
 	
 	if (! $keep{$file}) {
@@ -36,5 +29,14 @@ foreach my $file (<*>) {
 	}
 }
 
+`rm -rf ./plat_rep1`;
+`rm -rf ./hs_rep1`;
+`rm -rf ./log_rep1`;
+`rm -rf ./ds_rep1`;
+`rm -rf ./trinity_out_dir`;
+`rm -rf ./edgeR_isoforms`;
+`rm -rf ./edgeR_genes`;
+
+    
 
 exit(0);

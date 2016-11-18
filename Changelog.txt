@@ -3,6 +3,11 @@
     -for submitting parallel computes on a computing grid, use the new --grid_exec parameter with your own script that handles grid submissions and performs job management.
     -a '--samples_file' option is now available for Trinity and abundance estimation to simplify the use of many RNA-Seq data sets across different samples and biological replicates.	
     -in silico normalizationnow happens by default. Use --no_normalize_reads to turn it off.
+    -bowtie2 is used instead of bowtie1
+    -Butterfly has improved support for longer reads and is more efficient.
+    -DE analysis reports include the names of the samples A vs. B in the output table and fold changes as A/B
+    -GOseq is now provided with the list of expressed genes to use as the background for functional enrichment testing. Also, expression-weighted gene lengths are used. Finally, the list of genes identified as functionally enriched in a GO category are provided in the output file.  Basic support for GOplot integration is included.
+    
     
 
 

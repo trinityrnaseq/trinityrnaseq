@@ -1,14 +1,5 @@
 #sample	replicate	left.reads	right.reads
-
 heatshock	hs_rep1	../test_DATA/Sp_hs.10k.left.fq.gz	../test_DATA/Sp_hs.10k.right.fq.gz
-
 plateau	plat_rep1	../test_DATA/Sp_plat.10k.right.fq.gz	../test_DATA/Sp_plat.10k.left.fq.gz
-
 log_growth	log_rep1	../test_DATA/Sp_log.10k.left.fq.gz	../test_DATA/Sp_log.10k.right.fq.gz
-
 diauxic_shift	ds_rep1	../test_DATA/Sp_ds.10k.right.fq.gz	../test_DATA/Sp_ds.10k.left.fq.gz
-
-
-## analyze_diff_expr.pl settings
-#-P=0.1
-#-C=1

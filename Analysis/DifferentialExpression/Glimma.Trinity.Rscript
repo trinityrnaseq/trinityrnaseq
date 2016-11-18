@@ -41,7 +41,7 @@ DE_results <- DE_results[order(row.names(DE_results)),]
 rawcounts <- read.table(counts_matrix_file, header=T, row.names=1, com='')
 rawcounts <- rawcounts[order(row.names(rawcounts)),]
 
-samples <- read.delim(samples_file, header=FALSE, stringsAsFactors=FALSE)
+samples <- read.delim(samples_file, header=FALSE, stringsAsFactors=FALSE, com='#')
 colnames(samples) <- c("Group","Sample")
 
 rawcounts <- rawcounts[,samples$Sample]

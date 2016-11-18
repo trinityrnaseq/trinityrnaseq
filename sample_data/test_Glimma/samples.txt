@@ -1,3 +1,4 @@
+#sample	replicate
 wt_37	wt_37_1
 wt_37	wt_37_2
 wt_37	wt_37_3

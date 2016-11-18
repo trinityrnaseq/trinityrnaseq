@@ -135,6 +135,8 @@ my $usage = <<__EOUSAGE__;
 #
 #  --bowtie_RSEM <string>          if using 'bowtie', default: \"$aligner_params{bowtie_RSEM}\"
 #  --bowtie2_RSEM <string>         if using 'bowtie2', default: \"$aligner_params{bowtie2_RSEM}\"
+#                                ** if you change the defaults, specify the full set of parameters to use! **
+#
 #  --include_rsem_bam              provide the RSEM enhanced bam file including posterior probabilities of read assignments.
 #  --rsem_add_opts <string>        additional parameters to pass on to rsem-calculate-expression
 #

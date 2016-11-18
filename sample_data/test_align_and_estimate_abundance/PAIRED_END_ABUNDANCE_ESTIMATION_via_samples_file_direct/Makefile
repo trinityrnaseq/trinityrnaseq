@@ -35,5 +35,5 @@ endif
 
 
 clean:
-	./cleanMe.pl
+	./cleanme.pl
 

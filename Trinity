@@ -12,7 +12,7 @@ use Time::localtime;
 use Cwd;
 use Carp;
 use COMMON;
-use Getopt::Long qw(:config posix_default no_ignore_case pass_through gnu_compat); 
+use Getopt::Long qw(:config posix_default no_ignore_case pass_through gnu_compat no_auto_abbrev); 
 use Pipeliner;
 use Fasta_reader;
 use List::Util qw(min max);
@@ -62,21 +62,6 @@ my ($seqType, @left_files, @right_files, @single_files, $SS_lib_type, $min_conti
     $output_directory, $prep_only
     );
 
-# What is allowed for the options. Put string to be displayed in '%allowed'; this
-#   will be showed to the user via  help and on error.   Keys are the variable names.
-#   Actual hash to be used for checking is auto-generated. Fancy regex inside map 
-#   is just to get rid of the syntaxical sugar 'or' in the display string.
-
-my %allowed = 
-    ( seqType       => 'fa, or fq'
-    , kmer_method   => 'jellyfish, meryl, or inchworm'
-    );
-
-my %allowed_check;
-foreach my $all (keys %allowed) {
-    my %h = map { (my $s = $_) =~ s/^or //; $s => 1 } split ', ', $allowed{$all};
-    $allowed_check{$all} = \%h;
-}
 
 # defaults:
 
@@ -225,7 +210,7 @@ my $basic_usage = qq^
 #
 # Required:
 #
-#  --seqType <string>      :type of reads: ( $allowed{seqType} )
+#  --seqType <string>      :type of reads: ('fa' or 'fq')
 #
 #  --max_memory <string>      :suggested max memory to use by Trinity where limiting can be enabled. (jellyfish, sorting, etc)
 #                            provied in Gb of RAM, ie.  '--max_memory 10G'
@@ -836,6 +821,17 @@ if ($show_version_flag) {
     &version_check();
     
     exit(1);
+}
+
+## basic options check:
+unless ($seqType && 
+        $seqType =~ /^(fq|fa)$/
+        && 
+        ($samples_file || (@left_files && @right_files) || @single_files)
+        &&
+        $max_memory) {
+
+    die "Must specify basic parameters:  ex. Trinity --seqType fq --single reads.fq --max_memory 10G ";
 }
 
 

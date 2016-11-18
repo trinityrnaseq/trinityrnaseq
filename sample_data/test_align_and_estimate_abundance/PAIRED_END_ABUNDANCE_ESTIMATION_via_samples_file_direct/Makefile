@@ -34,3 +34,6 @@ else
 endif
 
 
+clean:
+	./cleanMe.pl
+

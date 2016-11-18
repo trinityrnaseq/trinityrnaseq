@@ -420,7 +420,7 @@ my $full_usage = qq^
 #
 #            The --grid_node_CPU and --grid_node_max_memory are applied as 
 #              the --CPU and --max_memory parameters for the Trinity jobs run in 
-#              Trinity Phase 2 (assemlby of read clusters)
+#              Trinity Phase 2 (assembly of read clusters)
 #
     ^;
 

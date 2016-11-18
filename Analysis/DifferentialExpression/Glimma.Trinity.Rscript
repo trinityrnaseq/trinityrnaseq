@@ -73,7 +73,7 @@ glMDPlot(DE_results, counts=cpm_table, samples=samples$Sample,
          anno=cpm.DE, groups=samples$Group, 
          xval="logCPM", yval="logFC", 
          display.columns=colnames(cpm.DE), 
-         folder="glimma", html="MA-plot",
+         folder="glimma_MA", html="MA-plot",
          search.by="GeneID", status=DE_results$Sig, cols=c("red","gray","blue") )
 
 
@@ -84,4 +84,4 @@ DE_results$logFDR <- -log(DE_results$FDR+1e-100)
 glMDPlot(DE_results, xval="logFC", yval="logFDR", counts=cpm_table, 
          anno=cpm.DE, groups=samples$Group, samples = samples$Sample,
          status=DE_results$Sig, display.columns=colnames(cpm.DE), 
-         folder="glimma", html="volcano", launch=TRUE)
+         folder="glimma_volcano", html="volcano", launch=TRUE)

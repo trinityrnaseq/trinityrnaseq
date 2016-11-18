@@ -1,3 +1,12 @@
+# Release v2.3
+
+    -for submitting parallel computes on a computing grid, use the new --grid_exec parameter with your own script that handles grid submissions and performs job management.
+    -a '--samples_file' option is now available for Trinity and abundance estimation to simplify the use of many RNA-Seq data sets across different samples and biological replicates.	
+    -in silico normalizationnow happens by default. Use --no_normalize_reads to turn it off.
+    
+
+
+
 # Release v2.2.0  March 17, 2016
 
 	-Butterfly update: bugfix related to polynucleotide runs.

@@ -121,6 +121,9 @@ def parse_trans_lengths_file(trans_lengths_file):
     with open(trans_lengths_file) as f:
         for line in f:
             line = line.rstrip()
+            if line[0] == '#':
+                continue
+            
             (trans_id, length) = line.split("\t")
 
             trans_id_to_length[trans_id] = int(length)

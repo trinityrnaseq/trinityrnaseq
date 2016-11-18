@@ -582,7 +582,7 @@ sub run_jellyfish {
         my $jelly_hash_size = int( ($max_memory - $read_file_size)/7); # decided upon by Rick Westerman
         
         
-        if ($jelly_hash_size < 100e6) {
+        if ($jelly_hash_size < 100e6 || $read_file_size < 5e9) {
             $jelly_hash_size = 100e6; # seems reasonable for a min hash size as 100M
         }
 

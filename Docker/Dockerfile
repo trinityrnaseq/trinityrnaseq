@@ -32,9 +32,11 @@ ENV BIN /usr/local/bin
 
 WORKDIR $SRC
 
-RUN curl https://cran.r-project.org/src/base/R-3/R-3.2.1.tar.gz -o R-3.2.1.tar.gz && \
-        tar xvf R-3.2.1.tar.gz && \
-        cd R-3.2.1 && \
+ENV R_VERSION=R-3.3.2
+
+RUN curl https://cran.r-project.org/src/base/R-3/$R_VERSION.tar.gz -o $R_VERSION.tar.gz && \
+        tar xvf $R_VERSION.tar.gz && \
+        cd $R_VERSION && \
 	./configure && make && make install
 	    
 
@@ -46,6 +48,8 @@ RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstall
 RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("Biobase", dep = TRUE)'
 RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("qvalue", dep = TRUE)'
 RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("goseq", dep = TRUE)'
+RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("Glimma", dep = TRUE)'
+RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("ROTS", dep = TRUE)'
 
 
 ## bowtie
@@ -100,12 +104,16 @@ RUN wget ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.5.0/ncbi-blast-2.
 ## Trinity
 
 
+RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("argparse", dep = TRUE)'
+
 WORKDIR $SRC
 
-ENV TRINITY_CO=3953dd1
+# Version Trinity 3.2-pre_unofficial
+ENV TRINITY_CO=354ebf9  
+
 RUN git clone https://github.com/trinityrnaseq/trinityrnaseq.git && \
     cd trinityrnaseq && \
-    git checkout 3953dd1
+    git checkout $TRINITY_CO
     
 
 ENV TRINITY_HOME $SRC/trinityrnaseq

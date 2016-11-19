@@ -1,0 +1,5 @@
+
+
+trinityrnaseq/trinityrnaseq:2.3.2
+	-first official Docker release of Trinity, Nov-19-2016
+	

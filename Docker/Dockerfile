@@ -110,7 +110,7 @@ RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstall
 WORKDIR $SRC
 
 # Version Trinity 3.2-pre_unofficial
-ENV TRINITY_CO=cc3194f
+ENV TRINITY_CO=b54dc4d
 
 RUN git clone https://github.com/trinityrnaseq/trinityrnaseq.git && \
     cd trinityrnaseq && \

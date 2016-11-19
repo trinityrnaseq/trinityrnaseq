@@ -1,6 +1,8 @@
 SAMPLES="samples.txt"
 TRINITY_FASTA="../../test_DATA/Trinity.fasta"
 
+test: test_RSEM test_eXpress test_kallisto test_salmon
+
 test_RSEM:
 ifeq ("", "$(shell which rsem-calculate-expression)")
 	echo WARNING: skipping RSEM test, cannot locate rsem-calculate-expression tool in PATH

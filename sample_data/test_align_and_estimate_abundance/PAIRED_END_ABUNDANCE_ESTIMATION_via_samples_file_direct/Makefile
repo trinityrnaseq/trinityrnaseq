@@ -1,6 +1,9 @@
 SAMPLES="samples.txt"
 TRINITY_FASTA="../../test_DATA/Trinity.fasta"
 
+test: test_RSEM test_eXpress test_kallisto test_salmon 
+
+
 test_RSEM:
 ifeq ("", "$(shell which rsem-calculate-expression)")
 	echo WARNING: skipping RSEM test, cannot locate rsem-calculate-expression tool in PATH
@@ -30,7 +33,7 @@ ifeq ("", "$(shell which salmon)")
 	echo WARNING: cannot find salmon installed in PATH, skipping salmon test
 else
 	ln -sf ${TRINITY_FASTA}
-	../../../util/align_and_estimate_abundance.pl  --transcripts Trinity.fasta --est_method salmon --trinity_mode --prep_reference --samples_file samples.txt --SS_lib_type RF --seqType fq --salmon_idx_type salmon-quasi
+	../../../util/align_and_estimate_abundance.pl  --transcripts Trinity.fasta --est_method salmon --trinity_mode --prep_reference --samples_file samples.txt --SS_lib_type RF --seqType fq --salmon_idx_type quasi
 endif
 
 

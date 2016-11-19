@@ -1,0 +1,15 @@
+
+# build Trinity docker
+
+    docker build -t trinityrnaseq/trinityrnaseq:${VERSION} .
+
+
+# run Trinity via docker
+
+    docker run trinityrnaseq/trinityrnaseq:${VERSION} Trinity
+
+# pushing to dockerhub
+
+    docker push trinityrnaseq/trinityrnaseq:${VERSION}
+
+

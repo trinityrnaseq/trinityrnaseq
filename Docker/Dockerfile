@@ -109,7 +109,9 @@ RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstall
 
 WORKDIR $SRC
 
-# Version Trinity 3.2-pre_unofficial
+# Version Trinity 2.3.2
+
+ENV TRINITY_VERSION=Trinity-v2.3.2
 ENV TRINITY_CO=b54dc4d
 
 RUN git clone https://github.com/trinityrnaseq/trinityrnaseq.git && \
@@ -128,6 +130,8 @@ RUN cp $TRINITY_HOME/trinity-plugins/BIN/samtools $BIN
 RUN cp $TRINITY_HOME/trinity-plugins/htslib/tabix $BIN
 
 ENV PATH=${TRINITY_HOME}:${PATH}
+
+COPY Dockerfile $SRC/Dockerfile.$TRINITY_VERSION
 
 
 

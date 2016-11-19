@@ -50,6 +50,7 @@ RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstall
 RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("goseq", dep = TRUE)'
 RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("Glimma", dep = TRUE)'
 RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("ROTS", dep = TRUE)'
+RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("GOplot", dep = TRUE)'
 
 
 ## bowtie
@@ -109,7 +110,7 @@ RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstall
 WORKDIR $SRC
 
 # Version Trinity 3.2-pre_unofficial
-ENV TRINITY_CO=354ebf9  
+ENV TRINITY_CO=cc3194f
 
 RUN git clone https://github.com/trinityrnaseq/trinityrnaseq.git && \
     cd trinityrnaseq && \

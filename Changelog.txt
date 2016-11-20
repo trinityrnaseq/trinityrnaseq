@@ -1,4 +1,4 @@
-# Release v2.3  Nov ... 2016
+# Release v2.3  Nov 20, 2016
 
     -for submitting parallel computes on a computing grid, use the new --grid_exec parameter with your own script that handles grid submissions and performs job management.
     -a '--samples_file' option is now available for Trinity and abundance estimation to simplify the use of many RNA-Seq data sets across different samples and biological replicates.	

@@ -609,7 +609,7 @@ int main(int argc,char** argv)
     commandArg<string> weldGraphCmmd("-weld_graph", "iworm index weld graph");
     commandArg<bool> debugCmmd("-debug", "verbosely describes operations", false);
     commandArg<int>  minContigLengthCmmd("-min_contig_length", "min sum cluster contig length", MIN_CONTIG_LENGTH);
-    
+    commandArg<bool>  debugWeldAllCmmd("-debug_weld_all", "creates a single cluster of all contigs, for debugging only", false);
     
     commandLineParser P(argc,argv);
     P.SetDescription("Makes a graph out of a fasta");
@@ -617,6 +617,7 @@ int main(int argc,char** argv)
     P.registerArg(weldGraphCmmd);
     P.registerArg(debugCmmd);
     P.registerArg(minContigLengthCmmd);
+    P.registerArg(debugWeldAllCmmd);
     
     P.parse();
     
@@ -629,7 +630,8 @@ int main(int argc,char** argv)
     DEBUG = P.GetBoolValueFor(debugCmmd);
     string weld_graph_file = P.GetStringValueFor(weldGraphCmmd);
     MIN_CONTIG_LENGTH = P.GetIntValueFor(minContigLengthCmmd);
-    
+
+    bool DEBUG_WELD_ALL = P.GetBoolValueFor(debugWeldAllCmmd);
     
     if (! Exists(iworm_contigs_filename)) {
         cerr << "ERROR, cannot open iworm contigs file: " << iworm_contigs_filename << "\n";
@@ -648,19 +650,29 @@ int main(int argc,char** argv)
     
         
     map<int,Pool> weld_reinforced_iworm_clusters;
-
-    populate_weld_reinforced_iworm_clusters(weld_graph_file, weld_reinforced_iworm_clusters);
+    svec<Pool> clustered_pools;
     
-    svec<Pool> clustered_pools = bubble_up_cluster_growth(weld_reinforced_iworm_clusters);
-        
-    if (DEBUG) {
-        cerr << "Final pool description: " << "\n";
-        describe_poolings(clustered_pools);
+    if (DEBUG_WELD_ALL) {
+
+        // put all entries into a single pool.
+        Pool p;
+        for (size_t i = 0; i < dna.size(); i++) {
+            p.add(i);
+        }
+        clustered_pools.push_back(p);
     }
-
+    else {
+        populate_weld_reinforced_iworm_clusters(weld_graph_file, weld_reinforced_iworm_clusters);
+        clustered_pools = bubble_up_cluster_growth(weld_reinforced_iworm_clusters);
+            
+        if (DEBUG) {
+            cerr << "Final pool description: " << "\n";
+            describe_poolings(clustered_pools);
+        }
         
-    add_unclustered_iworm_contigs(clustered_pools, dna);
-    
+        
+        add_unclustered_iworm_contigs(clustered_pools, dna);
+    }
         
     //-----------------------------------------------------------------------------------
     // Generate final output

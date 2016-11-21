@@ -986,7 +986,7 @@ int main(int argc,char** argv)
     commandArg<bool> noGlueRequiredCmmd("-no_glue_required", "no glue required, only a kmer match required", false);
     commandArg<int> maxGlueCmmd("-max_glue_required", "maximum amount of glue required (default off=-1) When computed min_glue > max_glue, use max_glue setting", -1);
     commandArg<bool> disableRepeatCheckCmmd("-disable_repeat_check", "disable the repetitive kmer check", false);
-    
+    commandArg<bool>  debugWeldAllCmmd("-debug_weld_all", "creates a single cluster of all contigs, for debugging only", false);
     
     commandLineParser P(argc,argv);
     P.SetDescription("Makes a graph out of a fasta");
@@ -1015,6 +1015,7 @@ int main(int argc,char** argv)
     P.registerArg(noGlueRequiredCmmd);
     P.registerArg(maxGlueCmmd);
     P.registerArg(disableRepeatCheckCmmd);
+    P.registerArg(debugWeldAllCmmd);
     
     //P.registerArg(bStringCmmd);
     
@@ -1025,8 +1026,12 @@ int main(int argc,char** argv)
          << "-- (cluster related inchworm contigs) ---" << "\n"
          << "-----------------------------------------" << "\n" << "\n";
     
-
-
+    bool DEBUG_WELD_ALL = P.GetBoolValueFor(debugWeldAllCmmd);
+    if (DEBUG_WELD_ALL) {
+        cerr << "debug-weld-all param set. nothing to do here...  bubbling step will take care of clustering all given the same param setting." << endl;
+        exit(0);
+    }
+    
     string iworm_contigs_filename = P.GetStringValueFor(aStringCmmd); //inchworm contigs file
     bool sStrand = P.GetBoolValueFor(strandCmmd); // indicates strand-specific mode
     string readString = P.GetStringValueFor(readStringCmmd); // rna-seq reads file (strand-oriented if in strand-specific mode

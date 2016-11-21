@@ -1816,7 +1816,13 @@ sub run_chrysalis {
 
         ## now cluster into chrysalis components:
         
-        my $bubble_cluster_cmd = "$CHRYSALIS_DIR/BubbleUpClustering -i $inchworm_file  -weld_graph $welds_to_cluster_file -min_contig_length $min_contig_length  > $graphFromFasta_outfile";
+        my $bubble_cluster_cmd = "$CHRYSALIS_DIR/BubbleUpClustering -i $inchworm_file  -weld_graph $welds_to_cluster_file -min_contig_length $min_contig_length ";
+
+        if ($CHRYSALIS_DEBUG_WELD_ALL) {
+            $bubble_cluster_cmd .= " -debug_weld_all ";
+        }
+                
+        $bubble_cluster_cmd .= " > $graphFromFasta_outfile";
 
         
         my $checkpoint = "$graphFromFasta_outfile.ok";

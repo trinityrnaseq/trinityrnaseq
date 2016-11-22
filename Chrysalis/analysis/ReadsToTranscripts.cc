@@ -389,7 +389,7 @@ int main(int argc,char** argv)
     cerr << "Done" << endl;
 
     FILE * pReadCount = fopen(readCountFile.c_str(), "w");
-    fprintf(pReadCount, "%lu\n", readCount/2);
+    fprintf(pReadCount, "%lu\n", readCount);
     fclose(pReadCount);
 
     return 0;

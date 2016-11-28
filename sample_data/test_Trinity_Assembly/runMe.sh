@@ -16,8 +16,8 @@ fi
 #######################################################
 
 ../../Trinity --seqType fq --max_memory 2G \
-              --left reads.left.fq.gz \
-              --right reads.right.fq.gz \
+              --left reads.left.fq \
+              --right reads.right.fq \
               --SS_lib_type RF \
               --CPU 4 $*
 

@@ -1023,6 +1023,11 @@ public class TransAssembly_allProbPaths {
 		// Assemble transcript paths
         // --------------------------        
 		
+		
+		HashMap<List<Integer>, Pair<Integer>> FinalPaths_FinalCollection = new HashMap<List<Integer>, Pair<Integer>>();
+		HashMap<List<Integer>,HashMap<PairPath,Integer>> FinalCollection_ContainedReads = new HashMap<List<Integer>,HashMap<PairPath,Integer>>();
+		
+		
         for (Set<SeqVertex> comp : comps)
         {
         	compID++;
@@ -1261,113 +1266,119 @@ public class TransAssembly_allProbPaths {
         		}
         	}
         	
+        	// collect all results so far.  (yes, Final is not so Final after all ... revisit naming of vars)
+        	FinalPaths_FinalCollection.putAll(FinalPaths_all_orig_ids);
+        	
+        	FinalCollection_ContainedReads.putAll(finalPathsToContainedReads);
+        	
+        } // end of for each component
+       
 
-        	
-        	HashMap<List<Integer>, Pair<Integer>> filtered_paths_to_keep = new HashMap<List<Integer>,Pair<Integer>>();
-        	
-        	
-        	/*
-        	
-        	if (! NO_REMOVE_LOWER_RANKED_PATHS) {
-
-
-        		debugMes("SECTION\n======== Remove Lower Ranked Paths Without Unique Read Content ============\n\n", 5);
-
-        		HashMap<List<Integer>, Pair<Integer>> lower_ranked_paths_removed = remove_lower_ranked_paths_without_unique_read_content(graph, FinalPaths_all, finalPathsToContainedReads);
-
-        		filtered_paths_to_keep.putAll(lower_ranked_paths_removed);
-        		
-        	}
-
-			*/
-        	
-
-        	
-        	
-        	//////////////////////////////////////
-        	// Gene-level grouping of transcripts
-        	//////////////////////////////////////
-        	
-        	
-        	HashMap<List<Integer>,Integer> separate_gene_ids = group_paths_into_genes(FinalPaths_all_orig_ids, graph);
         
-        	
-        	//////////////////////////////////////
-        	// Filtering out lower-quality paths
-        	/////////////////////////////////////
-        	
-        	
-        	
-        	debugMes("Sep Gene IDs:" + separate_gene_ids, 10);
-        	
-        	if ( (! NO_EM_REDUCE) && FinalPaths_all.size() > 1) {
-
-        		HashMap<List<Integer>, Pair<Integer>> EM_reduced_paths = run_EM_REDUCE(FinalPaths_all_orig_ids, graph, finalPathsToContainedReads, separate_gene_ids);
-
-        		filtered_paths_to_keep.putAll(EM_reduced_paths);
-        		
-        	}
-        	
-        	// by default, running both lower ranking path removal and EM-reduction, and combining positively-filtered entries.
-        	if (! filtered_paths_to_keep.isEmpty()) {
-        		FinalPaths_all_orig_ids = filtered_paths_to_keep;
-        	}
-        	
-        	if ( (! NO_PATH_MERGING)  && FinalPaths_all.size() > 1) {
-
-        		// do CDHIT-like removal of highly similar but lesser supported paths.
-        		debugMes("SECTION\n========= CD-HIT -like Removal of Too-Similar Sequences with Lesser Read Support =========\n\n", 5);
-
-        		// alignment-based removal of lesser-supported paths that are too similar in sequence.
-        		FinalPaths_all_orig_ids = reduce_cdhit_like(FinalPaths_all_orig_ids, graph, finalPathsToContainedReads);
-
-        	}
-        	
-        	
-        	
-        	String component_name = pathName[pathName.length-1];
+        HashMap<List<Integer>, Pair<Integer>> filtered_paths_to_keep = new HashMap<List<Integer>,Pair<Integer>>();
+    	
+    	
+    	/*
+    	
+    	if (! NO_REMOVE_LOWER_RANKED_PATHS) {
 
 
-        	if (FinalPaths_all_orig_ids==null)
-        		continue;
+    		debugMes("SECTION\n======== Remove Lower Ranked Paths Without Unique Read Content ============\n\n", 5);
 
+    		HashMap<List<Integer>, Pair<Integer>> lower_ranked_paths_removed = remove_lower_ranked_paths_without_unique_read_content(graph, FinalPaths_all, finalPathsToContainedReads);
 
-        	if (BFLY_GLOBALS.VERBOSE_LEVEL >= 15) {
-        		for (List<Integer> path : FinalPaths_all_orig_ids.keySet()) {
-        			debugMes("FinalPath@AfterFiltering: " + path, 15);
-        		}
-        	}
-        	
-        	
-        	// get long read content:
-        	HashMap<List<Integer>,ArrayList<String>> final_paths_to_long_read_content = new HashMap<List<Integer>,ArrayList<String>>();
-        	if (! LONG_READ_PATH_MAP.isEmpty()) {
-        		
-        		assign_long_read_content_to_final_paths(FinalPaths_all_orig_ids, finalPathsToContainedReads,LONG_READ_PATH_MAP, final_paths_to_long_read_content);
-        		
-        	}
-        	
-        	
-        	//-----------------------------
-        	// Output the fasta sequences
-        	//----------------------------
-        	
-        	printFinalPaths(FinalPaths_all_orig_ids, graph, pout_all, component_name, totalNumReads, 
-        			final_paths_to_long_read_content, separate_gene_ids);
+    		filtered_paths_to_keep.putAll(lower_ranked_paths_removed);
     		
-        	
-        	totalNumPaths += FinalPaths_all_orig_ids.size();
+    	}
 
-        	if ( BFLY_GLOBALS.VERBOSE_LEVEL >= 20) {
-        		 debugMes("## ILLUSTRATING FINAL ASSEMBLIES", 20);
-        		 illustrateFinalPaths(FinalPaths_all_orig_ids, finalPathsToContainedReads);
-        	}
-       
-        	
-        	
-        }
-       
+		*/
+    	
 
+    	
+    	
+    	//////////////////////////////////////
+    	// Gene-level grouping of transcripts
+    	//////////////////////////////////////
+    	
+    	
+    	HashMap<List<Integer>,Integer> separate_gene_ids = group_paths_into_genes(FinalPaths_FinalCollection, graph);
+    
+    	
+    	//////////////////////////////////////
+    	// Filtering out lower-quality paths
+    	/////////////////////////////////////
+    	
+    	
+    	
+    	debugMes("Sep Gene IDs:" + separate_gene_ids, 10);
+    	
+    	if ( (! NO_EM_REDUCE) && FinalPaths_FinalCollection.size() > 1) {
+
+    		HashMap<List<Integer>, Pair<Integer>> EM_reduced_paths = run_EM_REDUCE(FinalPaths_FinalCollection, graph, FinalCollection_ContainedReads, separate_gene_ids);
+
+    		filtered_paths_to_keep.putAll(EM_reduced_paths);
+    		
+    	}
+    	
+    	// by default, running both lower ranking path removal and EM-reduction, and combining positively-filtered entries.
+    	if (! filtered_paths_to_keep.isEmpty()) {
+    		FinalPaths_FinalCollection = filtered_paths_to_keep;
+    	}
+    	
+    	if ( (! NO_PATH_MERGING)  && FinalPaths_FinalCollection.size() > 1) {
+
+    		// do CDHIT-like removal of highly similar but lesser supported paths.
+    		debugMes("SECTION\n========= CD-HIT -like Removal of Too-Similar Sequences with Lesser Read Support =========\n\n", 5);
+
+    		// alignment-based removal of lesser-supported paths that are too similar in sequence.
+    		FinalPaths_FinalCollection = reduce_cdhit_like(FinalPaths_FinalCollection, graph, FinalCollection_ContainedReads);
+
+    	}
+    	
+    	
+    	
+    	String component_name = pathName[pathName.length-1];
+
+
+    	if (FinalPaths_FinalCollection==null || FinalPaths_FinalCollection.size() == 0) {
+    		debugMes("No Butterfly Assemblies to report", 10);
+    		return;
+    	}
+    	
+
+    	if (BFLY_GLOBALS.VERBOSE_LEVEL >= 15) {
+    		for (List<Integer> path : FinalPaths_FinalCollection.keySet()) {
+    			debugMes("FinalPath@AfterFiltering: " + path, 15);
+    		}
+    	}
+    	
+    	
+    	// get long read content:
+    	HashMap<List<Integer>,ArrayList<String>> final_paths_to_long_read_content = new HashMap<List<Integer>,ArrayList<String>>();
+    	if (! LONG_READ_PATH_MAP.isEmpty()) {
+    		
+    		assign_long_read_content_to_final_paths(FinalPaths_FinalCollection, FinalCollection_ContainedReads, LONG_READ_PATH_MAP, final_paths_to_long_read_content);
+    		
+    	}
+    	
+    	
+    	//-----------------------------
+    	// Output the fasta sequences
+    	//----------------------------
+    	
+    	printFinalPaths(FinalPaths_FinalCollection, graph, pout_all, component_name, totalNumReads, 
+    			final_paths_to_long_read_content, separate_gene_ids);
+		
+    	
+    	totalNumPaths = FinalPaths_FinalCollection.size();
+
+    	if ( BFLY_GLOBALS.VERBOSE_LEVEL >= 20) {
+    		 debugMes("## ILLUSTRATING FINAL ASSEMBLIES", 20);
+    		 illustrateFinalPaths(FinalPaths_FinalCollection, FinalCollection_ContainedReads);
+    	}
+   
+    	
+        
 
 		removeAllEdgesOfSandT(graph);
 

@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use Carp;
 
+$ENV{LC_ALL} = 'C'; # needed for sorting order.
 
 ####
 sub get_sort_exec {

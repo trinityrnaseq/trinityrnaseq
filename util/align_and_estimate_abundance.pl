@@ -8,7 +8,7 @@ use Cwd;
 use Carp;
 
 use Getopt::Long qw(:config no_ignore_case bundling pass_through);
-
+use Data::Dumper;
 
 my %aligner_params = ( 
 
@@ -296,10 +296,13 @@ my %ALIGNMENT_BASED_EST_METHODS = map { + $_ => 1 } qw (RSEM express eXpress);
 my %ALIGNMENT_FREE_EST_METHODS = map { + $_ => 1 } qw (kallisto salmon);
 
 
-
-unless (($est_method && $prep_reference && $transcripts && (! ($single||$left||$right||$samples_file)) ) ## just prep reference
-
-        || ($transcripts && $est_method && $seqType && ($single || ($left && $right) || $samples_file)) # do alignment
+unless (
+    
+    ($est_method && $prep_reference && $transcripts && (! ($single||$left||$right||$samples_file)) ) ## just prep reference
+    
+        || 
+    
+    ($transcripts && $est_method && $seqType && ($single || ($left && $right) || $samples_file)) # do alignment
     
     ) {
 
@@ -325,7 +328,7 @@ if ($samples_file) {
     @samples_to_process = &parse_samples_file($samples_file);
 
 }
-else {
+elsif ( ($left && $right) || $single) {
 
     unless ($output_dir) {
         die "Error, must specify output directory name via: --output_dir   ";
@@ -335,9 +338,10 @@ else {
 }
 
 
+
 my $PE_mode = 1;
 
-if ($single || $samples_to_process[0]->{single}) {
+if ($single || (@samples_to_process && $samples_to_process[0]->{single})) {
     
     unless ($fragment_length) {
         die "Error, specify --fragment_length for single-end reads (note, not the length of the read but the mean fragment length)\n\n";
@@ -530,7 +534,9 @@ sub run_alignment_BASED_estimation {
         print STDERR "Only prepping reference. Stopping now.\n";
         exit(0);
     }
-
+    
+    print STDERR Dumper(\@samples);
+    
     my $curr_workdir = cwd();
     foreach my $sample_href (@samples) {
         chdir $curr_workdir or die "Error, cannot cd to $curr_workdir";

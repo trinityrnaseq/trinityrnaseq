@@ -1266,6 +1266,19 @@ public class TransAssembly_allProbPaths {
         		}
         	}
         	
+        	
+        	if ( (! NO_PATH_MERGING)  && FinalPaths_all_orig_ids.size() > 1) {
+
+        		// do CDHIT-like removal of highly similar but lesser supported paths.
+        		debugMes("SECTION\n========= CD-HIT -like Removal of Too-Similar Sequences with Lesser Read Support =========\n\n", 5);
+
+        		// alignment-based removal of lesser-supported paths that are too similar in sequence.
+        		FinalPaths_all_orig_ids = reduce_cdhit_like(FinalPaths_all_orig_ids, graph, finalPathsToContainedReads);
+
+        	}
+        	
+        	
+        	
         	// collect all results so far.  (yes, Final is not so Final after all ... revisit naming of vars)
         	FinalPaths_FinalCollection.putAll(FinalPaths_all_orig_ids);
         	
@@ -1274,56 +1287,7 @@ public class TransAssembly_allProbPaths {
         } // end of for each component
        
 
-        
-        HashMap<List<Integer>, Pair<Integer>> filtered_paths_to_keep = new HashMap<List<Integer>,Pair<Integer>>();
     	
-    	
-    	/*
-    	
-    	if (! NO_REMOVE_LOWER_RANKED_PATHS) {
-
-
-    		debugMes("SECTION\n======== Remove Lower Ranked Paths Without Unique Read Content ============\n\n", 5);
-
-    		HashMap<List<Integer>, Pair<Integer>> lower_ranked_paths_removed = remove_lower_ranked_paths_without_unique_read_content(graph, FinalPaths_all, finalPathsToContainedReads);
-
-    		filtered_paths_to_keep.putAll(lower_ranked_paths_removed);
-    		
-    	}
-
-		*/
-    	
-
-    	
-    	
-    	//////////////////////////////////////
-    	// Gene-level grouping of transcripts
-    	//////////////////////////////////////
-    	
-    	
-    	HashMap<List<Integer>,Integer> separate_gene_ids = group_paths_into_genes(FinalPaths_FinalCollection, graph);
-    
-    	
-    	//////////////////////////////////////
-    	// Filtering out lower-quality paths
-    	/////////////////////////////////////
-    	
-    	
-    	
-    	debugMes("Sep Gene IDs:" + separate_gene_ids, 10);
-    	
-    	if ( (! NO_EM_REDUCE) && FinalPaths_FinalCollection.size() > 1) {
-
-    		HashMap<List<Integer>, Pair<Integer>> EM_reduced_paths = run_EM_REDUCE(FinalPaths_FinalCollection, graph, FinalCollection_ContainedReads, separate_gene_ids);
-
-    		filtered_paths_to_keep.putAll(EM_reduced_paths);
-    		
-    	}
-    	
-    	// by default, running both lower ranking path removal and EM-reduction, and combining positively-filtered entries.
-    	if (! filtered_paths_to_keep.isEmpty()) {
-    		FinalPaths_FinalCollection = filtered_paths_to_keep;
-    	}
     	
     	if ( (! NO_PATH_MERGING)  && FinalPaths_FinalCollection.size() > 1) {
 
@@ -1334,9 +1298,54 @@ public class TransAssembly_allProbPaths {
     		FinalPaths_FinalCollection = reduce_cdhit_like(FinalPaths_FinalCollection, graph, FinalCollection_ContainedReads);
 
     	}
-    	
-    	
-    	
+
+    	//////////////////////////////////////
+    	// Gene-level grouping of transcripts
+    	//////////////////////////////////////
+
+
+    	HashMap<List<Integer>,Integer> separate_gene_ids = group_paths_into_genes(FinalPaths_FinalCollection, graph);
+
+
+    	//////////////////////////////////////
+    	// Filtering out lower-quality paths
+    	/////////////////////////////////////
+
+    	 HashMap<List<Integer>, Pair<Integer>> filtered_paths_to_keep = new HashMap<List<Integer>,Pair<Integer>>();
+     	
+     	
+     	/*
+     	
+     	if (! NO_REMOVE_LOWER_RANKED_PATHS) {
+
+
+     		debugMes("SECTION\n======== Remove Lower Ranked Paths Without Unique Read Content ============\n\n", 5);
+
+     		HashMap<List<Integer>, Pair<Integer>> lower_ranked_paths_removed = remove_lower_ranked_paths_without_unique_read_content(graph, FinalPaths_all, finalPathsToContainedReads);
+
+     		filtered_paths_to_keep.putAll(lower_ranked_paths_removed);
+     		
+     	}
+
+ 		*/
+     	
+
+    	debugMes("Sep Gene IDs:" + separate_gene_ids, 10);
+
+    	if ( (! NO_EM_REDUCE) && FinalPaths_FinalCollection.size() > 1) {
+
+    		HashMap<List<Integer>, Pair<Integer>> EM_reduced_paths = run_EM_REDUCE(FinalPaths_FinalCollection, graph, FinalCollection_ContainedReads, separate_gene_ids);
+
+    		filtered_paths_to_keep.putAll(EM_reduced_paths);
+
+    	}
+
+    	// by default, running both lower ranking path removal and EM-reduction, and combining positively-filtered entries.
+    	if (! filtered_paths_to_keep.isEmpty()) {
+    		FinalPaths_FinalCollection = filtered_paths_to_keep;
+    	}
+
+ 	
     	String component_name = pathName[pathName.length-1];
 
 

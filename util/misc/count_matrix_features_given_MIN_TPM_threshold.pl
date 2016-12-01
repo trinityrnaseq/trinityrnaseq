@@ -28,7 +28,7 @@ while (<$fh>) {
 
 @tpms = reverse sort {$a<=>$b} @tpms;
 
-my $min_tpm_thresh = int($tpms[0] + 0.5);
+my $min_tpm_thresh = int($tpms[0]);
 my $num_features = 1;
 
 print "neg_min_tpm\tnum_features\n";
@@ -37,11 +37,10 @@ shift @tpms;
 while (@tpms) {
 
     my $tpm = shift @tpms;
-    $tpm = int($tpm+0.5);
 
     if ($tpm < $min_tpm_thresh) {
         print "" . (-1*$min_tpm_thresh) . "\t$num_features\n";
-        $min_tpm_thresh = $tpm;
+        $min_tpm_thresh = int($tpm);
 
     }
     $num_features++;

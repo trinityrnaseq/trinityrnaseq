@@ -8,7 +8,7 @@ use Process_cmd;
 
 my $usage = "usage: $0  target.seq reads_1.fq [reads_2.fq]\n\n"
     . " and you can pipe it into samtools to make a bam file:\n\n"
-    . "\t  | samtools view -Sb - | samtools sort - myoutputbamMinusExtension\n\n";
+    . "\t  | samtools view -Sb - | samtools sort - {myoutputbamMinusExtension}\n\n";
 
 my $target_seq = $ARGV[0] or die $usage;
 my $reads_1_fq = $ARGV[1] or die $usage;

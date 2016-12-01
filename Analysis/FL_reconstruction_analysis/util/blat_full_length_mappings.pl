@@ -7,8 +7,11 @@ use lib ("$FindBin::RealBin/../../../PerlLib");
 
 use SingleLinkageClusterer;
 use PSL_parser;
+use Process_cmd;
+
 use Getopt::Long qw(:config no_ignore_case bundling);
 
+use DelimParser;
 use File::Basename;
 
 
@@ -245,17 +248,16 @@ sub resolve_overlaps {
 		my $key = join("$;", $gene_id, $trans_id);
 		my $struct = $mapping_info{$key} or die "Error, cannot find alignment for $key";
 		
-		print $ofh $struct->{psl}->get_line();
-		
-		
+		print $ofh $struct->{line} . "\n";
+        
 	}
 	
 	foreach my $asm (keys %asm_links) {
 		my @genes = @{$asm_links{$asm}};
-
+        
 		print join(",", @genes) . "\t$asm\n";
 	}
-
+    
 	return;
 }
 
@@ -299,48 +301,42 @@ sub examine_blat_mappings {
 	my ($blat_output) = @_;
 
 	my %mappings;
-	
-	my $psl_parser = new PSL_parser($blat_output);
-	
-	while (my $psl_entry = $psl_parser->get_next()) {
+
+    my $cmd = "$FindBin::Bin/blat_psl_to_align_summary_stats.pl $blat_output > $blat_output.stats";
+    &process_cmd($cmd);
+
+    open(my $fh, "$blat_output.stats") or die "Error, cannot open file $blat_output.stats";
+    my $tab_reader = new DelimParser::Reader($fh, "\t");
+
+    while (my $row = $tab_reader->get_row()) {
 		
         #print $psl_entry->toString();
 
-		my $trans_assembly = $psl_entry->get_Q_name();
-		my $gene_id = $psl_entry->get_T_name();
-		my $per_id = $psl_entry->get_per_id();
+        my $line = $tab_reader->reconstruct_line_from_row($row);
+        
+		my $trans_assembly = $row->{query};
+		my $gene_id = $row->{target};
+		my $per_id = $row->{per_id};
 		
-
-		my $num_gap_opens = $psl_entry->get_T_gap_count() + $psl_entry->get_Q_gap_count();
-		my $num_gap_bases = $psl_entry->get_T_gap_bases() + $psl_entry->get_Q_gap_bases();
-		my $num_matches = $psl_entry->get_match_count();
-		my $num_mismatches = $psl_entry->get_mismatch_count();
-		
-
-		my ($trans_end5, $trans_end3) = $psl_entry->get_Q_span();
-		my ($gene_end5, $gene_end3) = $psl_entry->get_T_span();
-		
-		my $orient = $psl_entry->get_strand();
-		
+        my $orient = $row->{strand};
+        
 		if ($forward_orient && $orient eq '-') { next; }
 		if ($per_id < $min_per_id) { next; }
 
-		my $gene_seq_len = $psl_entry->get_T_size();
-		
-		my $percent_gapped = ($num_gap_bases) / ($num_matches + $num_mismatches) * 100;
+		my $percent_gapped = $row->{per_gap};
+        
 		if ($percent_gapped > $max_per_gap ) {
 			#print STDERR "\%gapped = $percent_gapped, so skipping.\n";
             next;  # too gappy
 		}
 		
 
-		my ($gene_lend, $gene_rend) = sort {$a<=>$b} ($gene_end5, $gene_end3);
+		my ($gene_lend, $gene_rend) = ($row->{target_lend}, $row->{target_rend});
 
-		my ($trans_lend, $trans_rend) = sort {$a<=>$b} ($trans_end5, $trans_end3);
+		my ($trans_lend, $trans_rend) = ($row->{query_lend}, $row->{query_rend});
 
-		my $delta = ($gene_lend - 1) + ($gene_seq_len - $gene_rend);
-		my $pct_len = 100 - ($delta/$gene_seq_len * 100);
-
+		my $pct_len = $row->{per_len};
+        
 		#print STDERR "PERCENT_LEN: $pct_len (vs. $min_per_length)\n";
 
 		if ($pct_len >= $min_per_length) {
@@ -351,7 +347,7 @@ sub examine_blat_mappings {
 
 			
 			## score the alignment:
-			my $score = (5 * $num_matches) - (4 * $num_mismatches) - (20 * $num_gap_opens) - log($num_gap_bases + 1);
+			my $score = $row->{score};
 
 			
 			my $struct = $mapping_info{$pair};
@@ -377,17 +373,15 @@ sub examine_blat_mappings {
 										 score => $score,
 
 										 strand => $orient,
-										 
-										 psl => $psl_entry,
-										 
-									 };
+                                         
+                                         line => $line,
+                                         
+                };
 			}
-			
-
+			            
 		}
 	}
-
-
+    
 	return(%mappings);
 }
 

@@ -65,6 +65,37 @@ sub get_num_columns {
 }
 
 
+###
+sub reconstruct_header_line {
+    my $self = shift;
+    my @column_headers = $self->get_column_headers();
+
+    my $header_line = join("\t", @column_headers);
+    return($header_line);
+}
+
+###
+sub reconstruct_line_from_row {
+    my $self = shift;
+    my $row_href = shift;
+    unless ($row_href && ref $row_href) {
+        confess "Error, must set row_href as param";
+    }
+
+    my @column_headers = $self->get_column_headers();
+
+    my @vals;
+    foreach my $col_header (@column_headers) {
+        my $val = $row_href->{$col_header};
+        push (@vals, $val);
+    }
+
+    my $row_text = join("\t", @vals);
+
+    return($row_text);
+        
+}
+
 
 ##################################################
 package DelimParser::Reader;

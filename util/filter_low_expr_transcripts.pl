@@ -116,8 +116,8 @@ main: {
 
         my $keep_flag = 1;
 
-        my $info_struct = $expr_vals{$acc} or die "Error, no expression record stored for acc: [$acc]";
-
+        my $info_struct = $expr_vals{$acc} or die "Error, no expression record stored for acc: [$acc].  Be sure to provide the transcript expression matrix and all transcripts in the $transcripts_file must have records in the transcript expression matrix file.";
+        
         if ($min_expr_any && $info_struct->{max_expr} < $min_expr_any) {
             $keep_flag = 0;
             print STDERR "-excluding $acc, max_expr: $info_struct->{max_expr} < $min_expr_any\n";

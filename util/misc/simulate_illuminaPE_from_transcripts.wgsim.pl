@@ -9,6 +9,7 @@ use lib ("$FindBin::RealBin/../../PerlLib");
 use Fasta_reader;
 use Nuc_translator;
 use Getopt::Long qw(:config no_ignore_case bundling pass_through);
+use Cwd;
 
 my $usage = <<__EOUSAGE__;
 
@@ -68,6 +69,9 @@ unless ($transcripts) {
     die $usage;
 }
 
+unless ($out_prefix =~ /^\//) {
+    $out_prefix = cwd() . "/$out_prefix";
+}
 
 main: {
     
@@ -78,8 +82,13 @@ main: {
         . " -r 0 "
         . " -e 0 "
         ;
+
+    my $token = "wgsim_R${read_length}_F${frag_length}_D${depth_of_cov}";
     
     if ($SS_lib_type) {
+
+        $token .= "_${SS_lib_type}";
+        
         if ($SS_lib_type eq 'FR') {
             $cmd .= " -Z 1 ";
         }
@@ -90,15 +99,25 @@ main: {
             die "Error, don't recognize SS_lib_type: [$SS_lib_type] ";
         }
     }
+
+    my $left_prefix = "$out_prefix.$token.left";
+    my $right_prefix = "$out_prefix.$token.right";
     
-    $cmd .= " $transcripts $out_prefix.left.wgsim.fq $out_prefix.right.wgsim.fq";
+    $cmd .= " $transcripts $left_prefix.fq $right_prefix.fq";
     
     &process_cmd($cmd);
 
     # convert to fasta format
-    &process_cmd("$FindBin::Bin/../support_scripts/fastQ_to_fastA.pl -I $out_prefix.left.wgsim.fq > $out_prefix.left.wgsim.fa");
+    &process_cmd("$FindBin::Bin/../support_scripts/fastQ_to_fastA.pl -I $left_prefix.fq > $left_prefix.fa");
 
-    &process_cmd("$FindBin::Bin/../support_scripts/fastQ_to_fastA.pl -I $out_prefix.right.wgsim.fq > $out_prefix.right.wgsim.fa");
+    &process_cmd("$FindBin::Bin/../support_scripts/fastQ_to_fastA.pl -I $right_prefix.fq > $right_prefix.fa");
+
+    unlink("$left_prefix.fq", "$right_prefix.fq");
+
+    open(my $ofh, ">$out_prefix.$token.info") or die "Error, cannot write to file: $out_prefix.$token.info";
+    print $ofh join("\t", $transcripts, "$left_prefix.fa", "$right_prefix.fa");
+    close $ofh;
+    
     
     exit(0);
 

@@ -9,6 +9,8 @@ use lib ("$FindBin::RealBin/../../PerlLib");
 use Fasta_reader;
 use Nuc_translator;
 use Getopt::Long qw(:config no_ignore_case bundling pass_through);
+use Cwd;
+
 
 my $usage = <<__EOUSAGE__;
 
@@ -104,8 +106,22 @@ main: {
     my $counter = 0;
     
     my $ext = ($make_fastq_flag) ? "fq" : "fa";
-    open (my $left_ofh, ">$out_prefix.left.simPE.$ext") or die $!;
-    open (my $right_ofh, ">$out_prefix.right.simPE.$ext") or die $!;
+
+    unless ($out_prefix =~ /^\//) {
+        $out_prefix = cwd() . "/$out_prefix";
+    }
+    
+    $out_prefix = "$out_prefix.simPE_R${read_length}_F${frag_length}_FR";
+    
+    open (my $left_ofh, ">$out_prefix.left.$ext") or die $!;
+    open (my $right_ofh, ">$out_prefix.right.$ext") or die $!;
+    
+    {
+        # write info file
+        open (my $ofh, ">$out_prefix.info") or die "Error, cannot write to $out_prefix.info";
+        print $ofh join("\t", $transcripts, "$out_prefix.left.$ext", "$out_prefix.right.$ext") . "\n";
+        close $ofh;
+    }
     
     my $FRAG_LENGTH = $frag_length;
 

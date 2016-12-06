@@ -78,14 +78,13 @@ main: {
     &process_cmd($cmd);
 
     # convert to fasta format
-    &process_cmd("$FindBin::Bin/../support_scripts/fastQ_to_fastA.pl -I $out_prefix.left.wgsim.fq > $out_prefix.left.simPE.fa");
+    &process_cmd("$FindBin::Bin/../support_scripts/fastQ_to_fastA.pl -I $out_prefix.left.wgsim.fq > $out_prefix.left.wgsim.fa");
 
-    &process_cmd("$FindBin::Bin/../support_scripts/fastQ_to_fastA.pl -I $out_prefix.right.wgsim.fq > $out_prefix.right.simPE.fa");
+    &process_cmd("$FindBin::Bin/../support_scripts/fastQ_to_fastA.pl -I $out_prefix.right.wgsim.fq > $out_prefix.right.wgsim.fa");
     
     exit(0);
 
     
-
 }
 
 

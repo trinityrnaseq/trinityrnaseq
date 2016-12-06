@@ -28,6 +28,8 @@ my $usage = <<__EOUSAGE__;
 #
 #  --depth_of_cov <int>         default: 100  (100x targeted base coverage)
 #
+#  --SS_lib_type <string>       RF or FR
+#
 #################################################################
 
 __EOUSAGE__
@@ -45,6 +47,7 @@ my $frag_length = 300;
 my $help_flag;
 my $out_prefix = "reads";
 my $depth_of_cov = 100;
+my $SS_lib_type = "";
 
 &GetOptions ( 'h' => \$help_flag,
               'transcripts=s' => \$transcripts,
@@ -52,6 +55,7 @@ my $depth_of_cov = 100;
               'frag_length=i' => \$frag_length,
               'out_prefix=s' => \$out_prefix,
               'depth_of_cov=i' => \$depth_of_cov,
+              'SS_lib_type=s' => \$SS_lib_type,
               
     );
 
@@ -67,13 +71,27 @@ unless ($transcripts) {
 
 main: {
     
-    
     my $number_reads = &estimate_total_read_count($transcripts, $depth_of_cov, $read_length);
     
-    my $cmd = "wgsim -N $number_reads -1 $read_length -2 $read_length "
+    my $cmd = "wgsim-trans -N $number_reads -1 $read_length -2 $read_length "
         . " -d $frag_length "
-        . " $transcripts "
-        . " $out_prefix.left.wgsim.fq $out_prefix.right.wgsim.fq";
+        . " -r 0 "
+        . " -e 0 "
+        ;
+    
+    if ($SS_lib_type) {
+        if ($SS_lib_type eq 'FR') {
+            $cmd .= " -Z 1 ";
+        }
+        elsif ($SS_lib_type eq 'RF') {
+            $cmd .= " -Z 2 ";
+        }
+        else {
+            die "Error, don't recognize SS_lib_type: [$SS_lib_type] ";
+        }
+    }
+    
+    $cmd .= " $transcripts $out_prefix.left.wgsim.fq $out_prefix.right.wgsim.fq";
     
     &process_cmd($cmd);
 
@@ -83,8 +101,6 @@ main: {
     &process_cmd("$FindBin::Bin/../support_scripts/fastQ_to_fastA.pl -I $out_prefix.right.wgsim.fq > $out_prefix.right.simPE.fa");
     
     exit(0);
-
-    
 
 }
 

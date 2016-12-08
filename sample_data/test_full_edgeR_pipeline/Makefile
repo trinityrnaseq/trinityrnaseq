@@ -1,5 +1,5 @@
 test:
-	../../Trinity --samples_file samples_n_reads_decribed.txt --seqType fq --SS_lib_type RF --max_memory 1G
+	../../Trinity --samples_file samples_n_reads_decribed.txt --seqType fq --SS_lib_type RF --max_memory 1G --trimmomatic
 	../../util/align_and_estimate_abundance.pl --transcripts trinity_out_dir/Trinity.fasta --est_method RSEM --aln_method bowtie2 --prep_reference --trinity_mode --samples_file samples_n_reads_decribed.txt --seqType fq
 	find . -maxdepth 2  -name '*RSEM.genes.results' > rsem.genes.files
 	../../util/abundance_estimates_to_matrix.pl  --est_method RSEM --name_sample_by_basedir --quant_files rsem.genes.files --out_prefix genes

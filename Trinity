@@ -16,6 +16,7 @@ use Getopt::Long qw(:config posix_default no_ignore_case pass_through gnu_compat
 use Pipeliner;
 use Fasta_reader;
 use List::Util qw(min max);
+use Data::Dumper;
 
 my $VERSION = "__BLEEDING_EDGE__"; 
 
@@ -949,12 +950,19 @@ unless ($genome_guided_bam) {
 
 if (@left_files) {
     @left_files = split(",", join(",", @left_files));
+
+    print STDERR "Left read files: " . Dumper(\@left_files);
+    
 }
 if (@right_files) {
     @right_files = split(",", join(",", @right_files));
+
+    print STDERR "Right read files: " . Dumper(\@right_files);
 }
 if (@single_files) {
     @single_files = split(",", join(",", @single_files));
+
+    print STDERR "Single read files: " . Dumper(\@single_files);
 }
 
 
@@ -1206,7 +1214,7 @@ main: {
         if (@left_files && @right_files) {
             my @trimmed_left_files;
             my @trimmed_right_files;
-            
+
             while (@left_files) {
                 my $left_file = shift @left_files;
                 my $right_file = shift @right_files;
@@ -2773,7 +2781,9 @@ sub collectl_stop {
 ####
 sub run_trimmomatic_PE {
     my ($left_fq_file, $right_fq_file, $trimmomatic_params) = @_;
-
+    
+    print STDERR "\n## Running Trimmomatic on read files: $left_fq_file, $right_fq_file\n";
+    
     my $trimmed_left_file_base = basename($left_fq_file);
     my $trimmed_right_file_base = basename($right_fq_file);
 
@@ -2823,7 +2833,8 @@ sub run_trimmomatic_PE {
 ####
 sub run_trimmomatic_SE {
     my ($single_fq, $trimmomatic_params) = @_;
-
+        
+    print STDERR "\n## Running Trimmomatic on read file: $single_fq\n";
     
     my $trimmed_fq = basename($single_fq) . ".qtrim.fq";
 
@@ -2854,7 +2865,15 @@ sub run_trimmomatic_SE {
 sub run_normalization {
     my ($max_read_coverage, @read_files) = @_;
 
+    print STDERR "---------------------------------------------------------------\n"
+        . "------------ In silico Read Normalization ---------------------\n"
+        . "-- (Removing Excess Reads Beyond $max_read_coverage Coverage --\n"
+        . "---------------------------------------------------------------\n\n";
+    
+        
     if ($NORMALIZE_BY_READ_SET) {
+
+        print STDERR "\n## Running in silico normalization, processing each read set separately\n";
         
         my ($reads_left_or_single_aref, $right_reads_aref) = @read_files;
         
@@ -2905,14 +2924,8 @@ sub run_normalization {
 ####
 sub normalize {
     my ($normalize_outdir, $max_read_coverage, @read_files) = @_;
-
-    print STDERR "---------------------------------------------------------------\n"
-               . "------------ In silico Read Normalization ---------------------\n"
-               . "-- (Removing Excess Reads Beyond $max_read_coverage Coverage --\n"
-               . "-- $normalize_outdir --\n"
-               . "---------------------------------------------------------------\n\n";
-    
-    
+   
+    print STDERR "# running normalization on reads: " . Dumper(\@read_files) . "\n\n";
     
     my $cmd = "$UTILDIR/insilico_read_normalization.pl --seqType $seqType --JM $max_memory "
         . " --max_cov $max_read_coverage --CPU $CPU --output $normalize_outdir   --max_pct_stdev $normalize_max_pct_stdev ";
@@ -2926,8 +2939,7 @@ sub normalize {
     }
     
     #@read_files = &add_fifo_for_gzip(@read_files);
-
-
+    
     my @ret_files;    
     if (scalar @read_files == 2) {
         $cmd .= " --left " . join(",", @{$read_files[0]}) . " --right " . join(",", @{$read_files[1]})
@@ -3434,6 +3446,9 @@ sub parse_samples_file {
         unless (/\w/) { next; }
         s/^\s+|\s+$//g; # trim trailing ws
         my @x = split(/\s+/);
+        if (scalar @x > 4) {
+            die "Error, more than 4 fields found in samples file line: [$_] ";
+        }
         my $left_fq = $x[2];
         my $right_fq = $x[3];
 

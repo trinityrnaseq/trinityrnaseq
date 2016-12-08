@@ -61,6 +61,10 @@ my $SS_lib_type = "";
     );
 
 
+if (@ARGV) {
+    die "Error, dont understand params: @ARGV";
+}
+
 if ($help_flag) {
     die $usage;
 }

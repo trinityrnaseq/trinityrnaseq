@@ -1039,6 +1039,10 @@ if ($genome_guided_bam) {
     unless ($genome_guided_max_intron) {
         die "Error, must specifiy --genome_guided_max_intron <int>  for genome-guided mode.\n";
     }
+
+    # ensure the bam file is coordinate-sorted:
+    my $cmd = "$UTILDIR/support_scripts/ensure_coord_sorted_sam.pl $genome_guided_bam";
+    &process_cmd($cmd);
 }
 
 

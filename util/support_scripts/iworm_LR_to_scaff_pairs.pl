@@ -4,12 +4,67 @@ use strict;
 use warnings;
 use List::Util qw(min);
 
-my $usage = "\n\n\tusage: $0 LR_blastn.outfmt6.wLen iworm.fasta min_containment=98 KMER_LENGTH=25\n\n";
+use Carp;
+use Getopt::Long qw(:config posix_default no_ignore_case bundling pass_through);
+use Data::Dumper;
 
-my $blast_outfile = $ARGV[0] or die $usage;
-my $iworm_fasta = $ARGV[1];
-my $MIN_CONTAINMENT = $ARGV[2] || 98;
-my $KMER_LENGTH = $ARGV[3] || 25;
+use FindBin;
+use lib ("$FindBin::Bin/../../PerlLib");
+use Fasta_reader;
+
+my $MIN_CONTAINMENT = 96;
+my $KMER_LENGTH = 25;
+
+my $usage = <<__EOUSAGE__;
+
+##############################################################################
+#
+# Required:
+#
+#   --blast_outfmt6_wlen <string>   LR_blastn.outfmt6.wLen file
+#
+#   --iworm_fasta <string>          inchworm.K25.L25.fa
+#
+#   Optional:
+#
+#   --min_containment <int>         default: $MIN_CONTAINMENT
+#
+#   --kmer_len <int>                default: $KMER_LENGTH
+#
+#   --debug
+#
+###############################################################################
+
+
+__EOUSAGE__
+
+    ;
+
+my $help_flag;
+
+my $DEBUG;
+my $blast_outfile;
+my $iworm_fasta;
+
+&GetOptions ( 'h' => \$help_flag,
+              'blast_outfmt6_wlen=s' => \$blast_outfile,
+              'iworm_fasta=s' => \$iworm_fasta,
+              'min_containment=i' => \$MIN_CONTAINMENT,
+              'kmer_len=i' => \$KMER_LENGTH,
+              'debug' => \$DEBUG,
+    );
+
+if ($help_flag) {
+    die $usage;
+}
+
+unless ($blast_outfile && $iworm_fasta) {
+    die $usage;
+}
+
+
+my %ACC_TO_KMERS_CACHE;
+my %TRANS_SEQS;
 
 main: {
 
@@ -18,6 +73,7 @@ main: {
     {
         open (my $fh, $blast_outfile) or die "Error, cannot open file $blast_outfile";
         while (<$fh>) {
+            #print;
             chomp;
             my @x = split(/\t/);
             my ($iworm_acc, $LR_acc, 
@@ -47,6 +103,10 @@ main: {
     }
 
     
+    my $fasta_reader = new Fasta_reader($iworm_fasta);
+    %TRANS_SEQS = $fasta_reader->retrieve_all_seqs_hash();
+    
+
     my %iworm_pairs;
     
     foreach my $LR (keys %LR_to_iworm_hits) {
@@ -55,6 +115,15 @@ main: {
                                ||
                                    $a->{rend} <=> $b->{rend}} @{$LR_to_iworm_hits{$LR}};
 
+
+        if ($DEBUG) {
+            # simple report of iworm hits:
+            print STDERR "\n// Iworm matches for $LR\n";
+            foreach my $iworm_hit (@iworm_hits) {
+                print STDERR join("\t", $iworm_hit->{iworm_acc}, $iworm_hit->{lend}, 
+                                  $iworm_hit->{rend}, $iworm_hit->{iworm_containment}) . "\n";
+            }
+        }
         
         for (my $i = 0; $i < $#iworm_hits; $i++) {
 
@@ -64,17 +133,29 @@ main: {
 
                 my $iworm_j = $iworm_hits[$j];
 
+                if ($iworm_i->{iworm_acc} eq $iworm_j->{iworm_acc}) { next; }
+
                 if ($iworm_j->{lend} > $iworm_i->{rend}) {
                     last; 
                 }
+
+                unless ($iworm_i->{iworm_containment} >= $MIN_CONTAINMENT || $iworm_j->{iworm_containment} >= $MIN_CONTAINMENT) {
+                    next; 
+                }
                 
-                if (&overlap_by_Kminus1($iworm_i, $iworm_j, $KMER_LENGTH)
-                    &&
-                    ($iworm_i->{iworm_containment} >= $MIN_CONTAINMENT || $iworm_j->{iworm_containment} >= $MIN_CONTAINMENT)
-                    ) {
+                my $overlap_len = &get_overlap_len($iworm_i, $iworm_j);
+                
+                my $share_kmer_overlap_flag = &share_kmer($iworm_i->{iworm_acc}, $iworm_j->{iworm_acc}); 
+                
+                if ($DEBUG) {
+                    print STDERR join("\t", $iworm_i->{iworm_acc}, $iworm_j->{iworm_acc}, 
+                                      "overlap_len:$overlap_len", "share_kmer_overlap:$share_kmer_overlap_flag")  . "\n";
+                }
+                
+                if ($overlap_len && $share_kmer_overlap_flag) {
                     
                     my $pair_token = join("$;", sort ($iworm_i->{iworm_acc}, $iworm_j->{iworm_acc}));
-                    $iworm_pairs{$pair_token}++;
+                    $iworm_pairs{$pair_token} = &get_min_iworm_cov($iworm_i, $iworm_j);
                     
                 }
             }
@@ -133,8 +214,28 @@ main: {
 
 
 ####
-sub overlap_by_Kminus1 {
-    my ($iworm_i, $iworm_j, $K) = @_;
+sub get_min_iworm_cov {
+    my ($iworm_i, $iworm_j) = @_;
+
+    my $acc_i = $iworm_i->{iworm_acc};
+    my ($pref_i, $cov_i) = split(/;/, $acc_i);
+    
+    my $acc_j = $iworm_j->{iworm_acc};
+    my ($pref_j, $cov_j) = split(/;/, $acc_j);
+
+    if ($cov_i < $cov_j) {
+        return($cov_i);
+    }
+    else {
+        return($cov_j);
+    }
+}
+    
+
+
+####
+sub get_overlap_len {
+    my ($iworm_i, $iworm_j) = @_;
 
     ## require:
     ##
@@ -151,15 +252,7 @@ sub overlap_by_Kminus1 {
     my $iworm_i_align_len = $iworm_i->{rend} - $iworm_i->{lend} + 1;
     my $iworm_j_align_len = $iworm_j->{rend} - $iworm_j->{lend} + 1;
 
-    my $min_align_len = 2 * ($K-1);
     
-    if ($iworm_i_align_len < $min_align_len 
-        ||
-        $iworm_j_align_len < $min_align_len) { 
-       
-        return(0);
-    }
-
     if ($iworm_i->{rend} > $iworm_j->{rend}) {
         return(0);
     }
@@ -167,13 +260,48 @@ sub overlap_by_Kminus1 {
     
     my $overlap_len = $iworm_i->{rend} - $iworm_j->{lend} + 1;
     
-    if ($overlap_len >= $K - 1) {
+    return($overlap_len);
+}
+
+
+####
+sub share_kmer {
+    my ($accA, $accB) = @_;
+
+    my $kmers_href_A = &get_kmers($accA);
         
-        return(1);
+    my $kmers_href_B = &get_kmers($accB);
+
+    foreach my $kmer (keys %$kmers_href_A) {
+        if (exists $kmers_href_B->{$kmer}) {
+            return(1); # YES
+        }
     }
-    else {
-        return(0);
-    }
+
+
+    return(0); # NO
     
 }
 
+####
+sub get_kmers {
+    my ($acc) = @_;
+    
+    if (my $href = $ACC_TO_KMERS_CACHE{$acc}) {
+        return($href);
+    }
+    else {
+        my $sequence = uc $TRANS_SEQS{$acc};
+        
+        my %kmers;
+        for (my $i = 0; $i <= length($sequence) - ($KMER_LENGTH-1); $i++) {
+
+            my $kmer = substr($sequence, $i, $KMER_LENGTH-1);
+            $kmers{$kmer} = 1;
+        }
+        $ACC_TO_KMERS_CACHE{$acc} = \%kmers;
+        
+        return($ACC_TO_KMERS_CACHE{$acc});
+    }
+
+}

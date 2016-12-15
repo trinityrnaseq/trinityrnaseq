@@ -1455,10 +1455,13 @@ public class TransAssembly_allProbPaths {
     			PairPath updated_pp = pp.setOrigIds();
     			Integer read_count = contained_reads.get(pp);
     			
+    			debugMes("pp: " + pp + ", updated_pp: " + updated_pp + ", count: " + read_count, 20);
+    			
     			if (finalPathsToContainedReads_all_orig_ids.containsKey(revised_path_orig_ids)) {
     				HashMap<PairPath, Integer> localContainedReads = finalPathsToContainedReads_all_orig_ids.get(revised_path_orig_ids);
     				if (localContainedReads.containsKey(updated_pp)) {
-    					localContainedReads.put(updated_pp, localContainedReads.get(pp) + read_count);
+    					int prev_count = localContainedReads.get(updated_pp);
+    					localContainedReads.put(updated_pp, prev_count  + read_count);
     				}
     				else {
     					localContainedReads.put(updated_pp, read_count);

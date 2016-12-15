@@ -2740,8 +2740,8 @@ sub perfmon_end {
 sub collectl_start {
     # install signal handler to stop collectl on interrupt
     $SIG{INT} = sub { print "Trinity interrupted\n"; &collectl_stop(); exit(1); };
-
-    if ($run_with_collectl){
+    
+    if ($run_with_collectl) {
         warn "STARTING COLLECTL\n";
         $collectl_output_directory = "$start_dir/collectl";
         `rm -rf $collectl_output_directory `;
@@ -2750,20 +2750,23 @@ sub collectl_start {
             mkdir $collectl_output_directory or die "Error, cannot mkdir $collectl_output_directory";
         }
         my $collectl_userid = qx(id --user --real);
-	chomp($collectl_userid);
+        chomp($collectl_userid);
         my $cmd = "cd $collectl_output_directory && exec ${COLLECTL_DIR}/collectl $collectl_param --procfilt u$collectl_userid -f $collectl_output_directory/y";
-	## fork a child to run collectl
-	$collectl_pid = fork();
-	if (not defined $collectl_pid) {	
-	    warn "FORK FAILED - NO COLLECTL PROCESS STARTED\n";
-	} elsif ($collectl_pid == 0) {
-	    warn "I'M THE CHILD RUNNING TRINITY\n";
-	    exec($cmd);
-	    warn "COLLECTL FINISHED BEVORE KILL WAS CALLED\n";
-	    exit(0);
-	} else {
-    	warn "I'M THE PARENT, COLLECTL_PID=$collectl_pid\n";
-	}
+        ## fork a child to run collectl
+        $collectl_pid = fork();
+        if (not defined $collectl_pid) {	
+            warn "FORK FAILED - NO COLLECTL PROCESS STARTED\n";
+        } 
+        elsif ($collectl_pid == 0) {
+            warn "I'M THE CHILD RUNNING TRINITY\n";
+            warn "Running CMD: $cmd\n";
+            exec($cmd);
+            warn "COLLECTL FINISHED BEVORE KILL WAS CALLED\n";
+            exit(0);
+        } 
+        else {
+            warn "I'M THE PARENT, COLLECTL_PID=$collectl_pid\n";
+        }
     }
 }
 
@@ -2771,13 +2774,13 @@ sub collectl_start {
 sub collectl_stop {
     if ($run_with_collectl && $collectl_pid>0) {
         warn "TERMINATING COLLECTL, PID = $collectl_pid\n";
-	# try to be nice here as a hard kill will result in broken/unusable raw.gz file
-	system("sync");
-	kill("INT", $collectl_pid);
-	kill("TERM", $collectl_pid);
-	waitpid($collectl_pid,0);
-	chdir($collectl_output_directory) or return;
-	system("$COLLECTL_DIR/collectl2html ${VERSION}");
+        # try to be nice here as a hard kill will result in broken/unusable raw.gz file
+        system("sync");
+        kill("INT", $collectl_pid);
+        kill("TERM", $collectl_pid);
+        waitpid($collectl_pid,0);
+        chdir($collectl_output_directory) or return;
+        system("$COLLECTL_DIR/collectl2html ${VERSION}");
 	}
 }
 

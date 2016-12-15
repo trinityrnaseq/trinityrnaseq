@@ -765,7 +765,6 @@ full_cleanup
 version
 monitoring
 no_distributed_trinity_exec
-KMER_SIZE
 jelly_s
 NO_PARALLEL_IWORM
 chrysalis_debug_weld_all

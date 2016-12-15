@@ -950,18 +950,18 @@ unless ($genome_guided_bam) {
 if (@left_files) {
     @left_files = split(",", join(",", @left_files));
 
-    print STDERR "Left read files: " . Dumper(\@left_files);
+    print STDERR "Left read files: " . Dumper(\@left_files) unless ($TRINITY_COMPLETE_FLAG);
     
 }
 if (@right_files) {
     @right_files = split(",", join(",", @right_files));
 
-    print STDERR "Right read files: " . Dumper(\@right_files);
+    print STDERR "Right read files: " . Dumper(\@right_files) unless ($TRINITY_COMPLETE_FLAG);
 }
 if (@single_files) {
     @single_files = split(",", join(",", @single_files));
 
-    print STDERR "Single read files: " . Dumper(\@single_files);
+    print STDERR "Single read files: " . Dumper(\@single_files) unless ($TRINITY_COMPLETE_FLAG);
 }
 
 

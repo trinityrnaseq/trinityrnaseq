@@ -887,7 +887,21 @@ public static  boolean individual_paths_are_compatible (List<Integer> pathA_in, 
 		
 	}
 
+	public PairPath setOrigIds() {
+		PairPath pp = new PairPath(updatePathToOrigIDs(this.getPath1()));
+		if (this.hasSecondPath()) {
+			pp.setPath2(updatePathToOrigIDs(this.getPath2()));
+		}
+		return pp;
+	}
 
-
+	private List<Integer> updatePathToOrigIDs(List<Integer> path) {
+		List<Integer> newPath = new ArrayList();
+		for (Integer vertex_id : path) {
+			Integer orig_id = SeqVertex.retrieveSeqVertexByID(vertex_id).getOrigButterflyID();
+			newPath.add(orig_id);
+		}
+		return newPath;
+	}
 	
 }

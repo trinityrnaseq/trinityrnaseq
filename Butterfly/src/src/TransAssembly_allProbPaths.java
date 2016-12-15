@@ -1216,24 +1216,10 @@ public class TransAssembly_allProbPaths {
         		debugMes("number X structures resolved = "+numXstructsResolved + " / " + numXstructs,10);
         	
         	
-        	// convert graph node IDs back to the original collapsed de Bruijn graph:
-        	
-        	HashMap<List<Integer>, Pair<Integer>> FinalPaths_all_orig_ids = new HashMap<List<Integer>, Pair<Integer>>();
-        	for (List<Integer> final_path : FinalPaths_all.keySet()) {
-        		List<Integer> revised_path_orig_ids = new ArrayList<Integer>();
-        		for (Integer seq_vertex_id : final_path ) {
-        			SeqVertex sv = SeqVertex.retrieveSeqVertexByID(seq_vertex_id);
-        			
-        			Integer orig_id = sv.getOrigButterflyID();
-        			revised_path_orig_ids.add(orig_id);
-        		}
-        		FinalPaths_all_orig_ids.put(revised_path_orig_ids, FinalPaths_all.get(final_path));
-        	}
+        	debugMes("ReadMappings BEFORE Path-to-orig_ID conversion:", 20);
+        	HashMap<List<Integer>,HashMap<PairPath,Integer>> finalPathsToContainedReads = assignCompatibleReadsToPaths(FinalPaths_all, componentReadHash);
         	
 
-        	HashMap<List<Integer>,HashMap<PairPath,Integer>> finalPathsToContainedReads = assignCompatibleReadsToPaths(FinalPaths_all_orig_ids, combinedReadHash);
-
-        	
         	if (BFLY_GLOBALS.VERBOSE_LEVEL >= 20) {
         		
         		// verbose dump of read support
@@ -1255,15 +1241,49 @@ public class TransAssembly_allProbPaths {
         	// remove those paths that didn't have reads assigned:
         	{
         		Set<List<Integer>> paths_to_remove = new HashSet<List<Integer>>();
-        		for (List<Integer> path : FinalPaths_all_orig_ids.keySet()) {
+        		for (List<Integer> path : FinalPaths_all.keySet()) {
         			if (! finalPathsToContainedReads.containsKey(path)) {
         				debugMes("-removing final path that was not assigned read support: " + path, 10);
         				paths_to_remove.add(path);
         			}
         		}
         		for (List<Integer> path : paths_to_remove) {
-        			FinalPaths_all_orig_ids.remove(path);
+        			FinalPaths_all.remove(path);
         		}
+        	}
+        	
+        	
+        	if ( BFLY_GLOBALS.VERBOSE_LEVEL >= 20) {
+        		debugMes("## ILLUSTRATING FINAL ASSEMBLIES", 20);
+        		illustrateFinalPaths(FinalPaths_all, finalPathsToContainedReads);
+        	}
+        	
+        	
+        	// convert graph node IDs back to the original collapsed de Bruijn graph:
+        	
+        	debugMes("Converting graph node IDs back to original IDs.", 15);
+        	
+        	HashMap<List<Integer>,HashMap<PairPath,Integer>> finalPathsToContainedReads_all_orig_ids = new HashMap<List<Integer>,HashMap<PairPath,Integer>>();
+        	HashMap<List<Integer>, Pair<Integer>> FinalPaths_all_orig_ids = convert_to_orig_ids(FinalPaths_all, finalPathsToContainedReads, finalPathsToContainedReads_all_orig_ids);
+        			
+        	
+
+        	if (BFLY_GLOBALS.VERBOSE_LEVEL >= 20) {
+        		
+        		// verbose dump of read support
+        		debugMes("** Post-original ID conversion, path support:", 20);
+        		for (List<Integer> final_path : finalPathsToContainedReads_all_orig_ids.keySet()) {
+        			HashMap<PairPath,Integer> contained_reads = finalPathsToContainedReads_all_orig_ids.get(final_path);
+        			debugMes("PRELIM_FINAL_PATH:\n" + final_path + "\ncontains:", 20);
+        			int sum_support = 0;
+        			for (PairPath pp : contained_reads.keySet()) {
+        				Integer read_support = contained_reads.get(pp);
+        				debugMes(pp + "\tcount: " + read_support, 20);
+        				sum_support += read_support;
+        			}
+        			debugMes("Total support: " + sum_support + "\n", 20);
+        		}
+        		
         	}
         	
         	
@@ -1273,7 +1293,7 @@ public class TransAssembly_allProbPaths {
         		debugMes("SECTION\n========= CD-HIT -like Removal of Too-Similar Sequences with Lesser Read Support =========\n\n", 5);
 
         		// alignment-based removal of lesser-supported paths that are too similar in sequence.
-        		FinalPaths_all_orig_ids = reduce_cdhit_like(FinalPaths_all_orig_ids, graph, finalPathsToContainedReads);
+        		FinalPaths_all_orig_ids = reduce_cdhit_like(FinalPaths_all_orig_ids, graph, finalPathsToContainedReads_all_orig_ids);
 
         	}
         	
@@ -1282,7 +1302,12 @@ public class TransAssembly_allProbPaths {
         	// collect all results so far.  (yes, Final is not so Final after all ... revisit naming of vars)
         	FinalPaths_FinalCollection.putAll(FinalPaths_all_orig_ids);
         	
-        	FinalCollection_ContainedReads.putAll(finalPathsToContainedReads);
+        	FinalCollection_ContainedReads.putAll(finalPathsToContainedReads_all_orig_ids);
+        	
+
+        	
+
+        	
         	
         } // end of for each component
        
@@ -1381,11 +1406,6 @@ public class TransAssembly_allProbPaths {
     	
     	totalNumPaths = FinalPaths_FinalCollection.size();
 
-    	if ( BFLY_GLOBALS.VERBOSE_LEVEL >= 20) {
-    		 debugMes("## ILLUSTRATING FINAL ASSEMBLIES", 20);
-    		 illustrateFinalPaths(FinalPaths_FinalCollection, FinalCollection_ContainedReads);
-    	}
-   
     	
         
 
@@ -1407,7 +1427,56 @@ public class TransAssembly_allProbPaths {
 		
 	}
 
-	
+
+
+
+	private static HashMap<List<Integer>, Pair<Integer>> convert_to_orig_ids(
+			HashMap<List<Integer>, Pair<Integer>> finalPaths_all, 
+			HashMap<List<Integer>, HashMap<PairPath, Integer>> finalPathsToContainedReads, 
+			HashMap<List<Integer>, HashMap<PairPath, Integer>> finalPathsToContainedReads_all_orig_ids) {
+		
+		HashMap<List<Integer>, Pair<Integer>> FinalPaths_all_orig_ids = new HashMap<List<Integer>, Pair<Integer>>();
+		
+    	for (List<Integer> final_path : finalPaths_all.keySet()) {
+    		List<Integer> revised_path_orig_ids = new ArrayList<Integer>();
+    		for (Integer seq_vertex_id : final_path ) {
+    			SeqVertex sv = SeqVertex.retrieveSeqVertexByID(seq_vertex_id);
+    			
+    			Integer orig_id = sv.getOrigButterflyID();
+    			revised_path_orig_ids.add(orig_id);
+    		}
+    		FinalPaths_all_orig_ids.put(revised_path_orig_ids, finalPaths_all.get(final_path));
+    		
+    		debugMes("-final_path: " + final_path + " now set to: " + revised_path_orig_ids, 15);
+    		debugMes("-and set to contents: " + finalPaths_all.get(final_path), 20);
+    		
+    		HashMap<PairPath, Integer> contained_reads = finalPathsToContainedReads.get(final_path);
+    		for (PairPath pp : contained_reads.keySet()) {
+    			PairPath updated_pp = pp.setOrigIds();
+    			Integer read_count = contained_reads.get(pp);
+    			
+    			if (finalPathsToContainedReads_all_orig_ids.containsKey(revised_path_orig_ids)) {
+    				HashMap<PairPath, Integer> localContainedReads = finalPathsToContainedReads_all_orig_ids.get(revised_path_orig_ids);
+    				if (localContainedReads.containsKey(updated_pp)) {
+    					localContainedReads.put(updated_pp, localContainedReads.get(pp) + read_count);
+    				}
+    				else {
+    					localContainedReads.put(updated_pp, read_count);
+    				}
+    			}
+    			else {
+    				HashMap<PairPath, Integer> localContainedReads = new HashMap<PairPath, Integer>();
+    				localContainedReads.put(updated_pp, read_count);
+    				finalPathsToContainedReads_all_orig_ids.put(revised_path_orig_ids, localContainedReads);
+    			}
+    		}
+    		
+    	}
+    	
+		return FinalPaths_all_orig_ids;
+	}
+
+
 	private static void assign_long_read_content_to_final_paths(
 			HashMap<List<Integer>, Pair<Integer>> finalPaths_all,
 			HashMap<List<Integer>, HashMap<PairPath, Integer>> finalPathsToContainedReads,
@@ -9879,13 +9948,18 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 
 		for (List<Integer> path : Paths.get(T_VERTEX))
 		{
-			if (getSeqPathLength(graph,path)>MIN_OUTPUT_SEQ)
+			int pathSeqLen = getSeqPathLength(graph,path);
+			if (pathSeqLen>MIN_OUTPUT_SEQ)
 			{
+				// adding to path collection
 				FinalPaths_all.put(path,new Pair<Integer>(getSuppCalculation(PathReads.get(path)),0));
 				if (path.get(0).intValue() == ROOT.getID())
 					debugMes("the finished path: "+ path+" was added to the final paths, with "+getSuppCalculation(PathReads.get(path))+" support",15);
 				else
 					debugMes("the finished (from middle unextended) path: "+ path+" was added to the final paths, with "+getSuppCalculation(PathReads.get(path)) +" support",15);
+			}
+			else {
+				debugMes("sequence for path: "  + path + " is too short: " + pathSeqLen, 15);
 			}
 		}
 

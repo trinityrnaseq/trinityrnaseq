@@ -1,11 +1,7 @@
 
 JELLYFISH_CODE="jellyfish-2.1.4"
 HTSLIB_CODE="htslib.github.Aug182015.tar.gz"
-
-#######################
-### Required by Trinity
-#######################
-
+COLLECTL_CODE="collectl-4.1.0"
 FASTOOL_CODE=fstrozzi-Fastool-7c3e034f05
 PARAFLY_CODE=parafly-code
 TRIMMOMATIC_CODE=Trimmomatic-0.32
@@ -68,7 +64,7 @@ slclust_target:
 	cd slclust && $(MAKE) install
 
 collectl_target:
-	cd collectl && ./build_collectl.sh
+	cd COLLECTL && tar xvf ${COLLECTL_CODE}.src.tar.gz && ln -sf ${COLLECTL_CODE} collectl
 
 clean:
 	rm -rf ${JELLYFISH_CODE} ./jellyfish # has tar.gz
@@ -81,7 +77,7 @@ clean:
 	rm -f ./parafly # rm symlink
 	rm -f ./Trimmomatic # rm symlink
 	cd slclust && $(MAKE) clean
-	cd collectl && rm -rf bin doc man
+	cd COLLECTL && rm -rf ${COLLECTL_CODE} && rm -f collectl
 	@echo "\n\n** Done cleaning plugins area **"
 
 

@@ -166,6 +166,7 @@ my $collectl_pid = 0;
 my $collectl_out = "";
 my $collectl_titlename = "";
 my $start_dir = cwd();
+my $COLLECTL_INTERVAL_SECONDS = 60;
 
 ## misc other opts, mostly for testing purposes
 my $run_as_paired_flag = 0;  ## in case we have paired reads in single fasta file, already oriented.
@@ -484,6 +485,7 @@ my $advanced_usage =  <<_ADVANCEDUSAGE_;
 #
 #  Other:
 #  --monitoring                    :use collectl to monitor all steps of Trinity
+#     --monitor_sec <int>          : number of seconds for each interval of runtime monitoring (default: $COLLECTL_INTERVAL_SECONDS)
 #  
 #  --bypass_java_version_check     : skip check for required java version 1.7
 #
@@ -664,6 +666,7 @@ my $samples_file = "";
     'full_cleanup' => \$FULL_CLEANUP,
     'version' => \$show_version_flag,
     'monitoring' => \$run_with_collectl,
+    'monitor_sec=i' => \$COLLECTL_INTERVAL_SECONDS,
     'no_distributed_trinity_exec' => \$NO_DISTRIBUTED_TRINITY_EXEC,
     
     # hidden (don't look here! ;) 
@@ -2744,17 +2747,18 @@ sub collectl_start {
     if ($run_with_collectl) {
         warn "STARTING COLLECTL\n";
         $collectl_output_directory = "$start_dir/collectl";
-        `rm -rf $collectl_output_directory `;
         $collectl_output_directory = &create_full_path($collectl_output_directory, 0);
-        unless (-d $collectl_output_directory) {
-            mkdir $collectl_output_directory or die "Error, cannot mkdir $collectl_output_directory";
+        if (-d $collectl_output_directory) {
+            &process_cmd("rm -rf $collectl_output_directory");
         }
+        mkdir $collectl_output_directory or die "Error, cannot mkdir $collectl_output_directory";
+        
         my $collectl_userid = qx(id --user --real);
         chomp($collectl_userid);
         #my $collectl_param = "-F1 -i5:5 -sZ";
         #my $cmd = "cd $collectl_output_directory && exec ${COLLECTL_DIR}/collectl $collectl_param --procfilt u$collectl_userid -f $collectl_output_directory/y";
         
-        my $cmd = "bash -c \"set -eou pipefail && cd $collectl_output_directory && exec nohup ${COLLECTL_DIR}/collectl --procfilt u$collectl_userid --interval :1 -sZ -oD | egrep 'Trinity|trinityrnaseq|samtools|sort' | egrep -v ParaFly > $collectl_output_directory/collectl.dat \" ";
+        my $cmd = "bash -c \"set -eou pipefail && cd $collectl_output_directory && exec nohup ${COLLECTL_DIR}/collectl --procfilt u$collectl_userid --interval :$COLLECTL_INTERVAL_SECONDS -sZ -oD | egrep 'Trinity|trinityrnaseq|samtools|sort' | egrep -v ParaFly > $collectl_output_directory/collectl.dat \" ";
         
         
         ## fork a child to run collectl
@@ -2766,7 +2770,7 @@ sub collectl_start {
             warn "I'M THE CHILD RUNNING TRINITY\n";
             warn "Running CMD: $cmd\n";
             exec($cmd);
-            warn "COLLECTL FINISHED BEVORE KILL WAS CALLED\n";
+            warn "COLLECTL FINISHED BEFORE KILL WAS CALLED\n";
             exit(0);
         } 
         else {
@@ -2784,9 +2788,14 @@ sub collectl_stop {
         kill("INT", $collectl_pid);
         kill("TERM", $collectl_pid);
         waitpid($collectl_pid,0);
-        #chdir($collectl_output_directory) or return;
-        #system("$COLLECTL_DIR/collectl2html ${VERSION}");
-	}
+        chdir($collectl_output_directory);
+        my $cmd = "$COLLECTL_DIR/../util/collectl_dat_to_time_matrix.py --dat collectl.dat";
+        &process_cmd($cmd);
+
+        $cmd = "$COLLECTL_DIR/../util/plot_time_vs_resource.Rscript collectl";
+        &process_cmd($cmd);
+        
+    }
 }
 
 ####

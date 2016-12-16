@@ -48,7 +48,7 @@ def main():
     mem_usage_ofh = open(mem_usage_output_filename, 'w')
 
     # print headers
-    header = "\t" + "\t".join(prognames)
+    header = "time\t" + "\t".join(prognames)
     cpu_usage_ofh.write(header + "\n")
     mem_usage_ofh.write(header + "\n")
     
@@ -122,7 +122,7 @@ def parse_collectl_dat(collectl_dat_file, cpu_usage_matrix, memory_usage_matrix,
             else:
                 progname_memory_hash[progname] += memory
             
-            print("progname: {}, memoryG: {}".format(progname, memory))
+            #print("progname: {}, memoryG: {}".format(progname, memory))
 
             prognames_dict[progname] = 1
 

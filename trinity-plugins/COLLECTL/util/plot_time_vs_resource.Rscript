@@ -1,0 +1,59 @@
+#!/usr/bin/env Rscript
+
+args<-commandArgs(TRUE)
+
+if (length(args) == 0) {
+        stop("require param: dat_filename")
+}
+
+
+dat_filename_prefix = args[1]
+
+pdf_filename = paste(dat_filename_prefix, '.plot.pdf', sep='')
+pdf(pdf_filename)
+
+cpu_usage_matrix = paste(dat_filename_prefix, ".cpu_usage.matrix", sep='')
+mem_usage_matrix = paste(dat_filename_prefix, ".mem_usage.matrix", sep='')
+
+
+make_plot = function(dat_filename, title, ylab) {
+	
+	data = read.table(dat_filename, header=T)
+
+	data.time = data[,1]
+	data = data[,-c(1)]
+
+	prognames = colnames(data)
+
+	colors = rainbow(length(prognames))
+	plot(data.time, data[,1], t='l', col=colors[1], ylim=c(0,max(data)),
+	     main=title, ylab=ylab)
+
+	for (i in 2:length(prognames)) {
+		points(data.time, data[,i], t='l', col=colors[i])
+
+	}
+	plot.new()
+	p = par(mar=(c(0,0,0,0))) # adjust the margins.
+	legend("topleft", legend=prognames, col=colors, pch=15)
+	par(p); # restore defaults
+}
+
+gridlayout = matrix(c(1:4),nrow=2,ncol=2, byrow=TRUE);
+layout(gridlayout, widths=c(4,1), heights=c(1,1))
+
+def_mar = par('mar')
+adj_mar = def_mar
+adj_mar[4] = 0
+par(mar=adj_mar)
+
+
+make_plot(cpu_usage_matrix, "CPU usage", "# CPU")
+make_plot(mem_usage_matrix, "Memory usage", "GB RAM")
+
+
+dev.off()
+
+
+
+quit(save = "no", status = 0, runLast = FALSE)

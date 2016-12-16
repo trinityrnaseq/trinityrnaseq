@@ -10,7 +10,7 @@ if (length(args) == 0) {
 dat_filename_prefix = args[1]
 
 pdf_filename = paste(dat_filename_prefix, '.plot.pdf', sep='')
-pdf(pdf_filename)
+pdf(pdf_filename, width=8, height=5)
 
 cpu_usage_matrix = paste(dat_filename_prefix, ".cpu_usage.matrix", sep='')
 mem_usage_matrix = paste(dat_filename_prefix, ".mem_usage.matrix", sep='')
@@ -34,19 +34,19 @@ make_plot = function(dat_filename, title, ylab) {
 
 	}
 	plot.new()
-	p = par(mar=(c(0,0,0,0))) # adjust the margins.
+	#	p = par(mar=(c(0,0,0,0))) # adjust the margins.
+	p = par(mar=c(0,0,0,0))
 	legend("topleft", legend=prognames, col=colors, pch=15)
 	par(p); # restore defaults
 }
 
 gridlayout = matrix(c(1:4),nrow=2,ncol=2, byrow=TRUE);
-layout(gridlayout, widths=c(4,1), heights=c(1,1))
+layout(gridlayout, widths=c(3,1), heights=c(1,1))
 
-def_mar = par('mar')
-adj_mar = def_mar
-adj_mar[4] = 0
-par(mar=adj_mar)
+# bottom, left, top and right
 
+#par(mar=c(2,4,2,0))
+par(mar=c(2,4,2,0))
 
 make_plot(cpu_usage_matrix, "CPU usage", "# CPU")
 make_plot(mem_usage_matrix, "Memory usage", "GB RAM")

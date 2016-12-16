@@ -10,11 +10,11 @@ if (length(args) == 0) {
 dat_filename_prefix = args[1]
 
 pdf_filename = paste(dat_filename_prefix, '.plot.pdf', sep='')
-pdf(pdf_filename, width=8, height=5)
+pdf(pdf_filename, width=8, height=6)
 
 cpu_usage_matrix = paste(dat_filename_prefix, ".cpu_usage.matrix", sep='')
 mem_usage_matrix = paste(dat_filename_prefix, ".mem_usage.matrix", sep='')
-
+IO_usage_matrix = paste(dat_filename_prefix, ".IO_usage.matrix", sep='')
 
 make_plot = function(dat_filename, title, ylab) {
 	
@@ -40,17 +40,16 @@ make_plot = function(dat_filename, title, ylab) {
 	par(p); # restore defaults
 }
 
-gridlayout = matrix(c(1:4),nrow=2,ncol=2, byrow=TRUE);
-layout(gridlayout, widths=c(3,1), heights=c(1,1))
+gridlayout = matrix(c(1:6),nrow=3,ncol=2, byrow=TRUE);
+layout(gridlayout, widths=c(3,1), heights=c(1,1,1))
 
 # bottom, left, top and right
 
-#par(mar=c(2,4,2,0))
 par(mar=c(2,4,2,0))
 
 make_plot(cpu_usage_matrix, "CPU usage", "# CPU")
 make_plot(mem_usage_matrix, "Memory usage", "GB RAM")
-
+make_plot(IO_usage_matrix, "I/O usage", "KB I/O")
 
 dev.off()
 

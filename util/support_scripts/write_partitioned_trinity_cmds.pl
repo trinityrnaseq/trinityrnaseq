@@ -43,8 +43,12 @@ if ($help_flag) {
     die $usage;
 }
 
-unless ($reads_file && -s $reads_file) {
+unless ($reads_file && -e $reads_file) {
     die $usage;
+}
+
+unless (-s $reads_file) {
+    die "Error, reads file listing: $reads_file is empty.  This tends to happen when there were too few reads to assemble. ";
 }
 
 

@@ -39,7 +39,7 @@ my $CHRYSALIS_DIR = "$ROOTDIR/Chrysalis";
 my $BUTTERFLY_DIR = "$ROOTDIR/Butterfly";
 my $JELLYFISH_DIR = "$ROOTDIR/trinity-plugins/jellyfish";
 my $FASTOOL_DIR = "$ROOTDIR/trinity-plugins/fastool";
-my $COLLECTL_DIR = "$ROOTDIR/trinity-plugins/collectl/bin";
+my $COLLECTL_DIR = "$ROOTDIR/trinity-plugins/COLLECTL/collectl";
 my $PARAFLY = "$ROOTDIR/trinity-plugins/parafly/bin/ParaFly";
 my $TRIMMOMATIC = "$ROOTDIR/trinity-plugins/Trimmomatic/trimmomatic.jar";
 my $TRIMMOMATIC_DIR = "$ROOTDIR/trinity-plugins/Trimmomatic";
@@ -160,7 +160,7 @@ my $pm_read_count=0;
 
 my $run_with_collectl = 0;
 # flush each second, record procs+rest every 5 secs, use only process subsystem
-my $collectl_param = "-F1 -i5:5 -sZ";
+
 my $collectl_output_directory = "collectl";
 my $collectl_pid = 0;
 my $collectl_out = "";
@@ -2751,7 +2751,12 @@ sub collectl_start {
         }
         my $collectl_userid = qx(id --user --real);
         chomp($collectl_userid);
-        my $cmd = "cd $collectl_output_directory && exec ${COLLECTL_DIR}/collectl $collectl_param --procfilt u$collectl_userid -f $collectl_output_directory/y";
+        #my $collectl_param = "-F1 -i5:5 -sZ";
+        #my $cmd = "cd $collectl_output_directory && exec ${COLLECTL_DIR}/collectl $collectl_param --procfilt u$collectl_userid -f $collectl_output_directory/y";
+        
+        my $cmd = "bash -c \"set -eou pipefail && cd $collectl_output_directory && exec nohup ${COLLECTL_DIR}/collectl --procfilt u$collectl_userid --interval :1 -sZ -oD | egrep 'Trinity|trinityrnaseq|samtools|sort' | egrep -v ParaFly > $collectl_output_directory/collectl.dat \" ";
+        
+        
         ## fork a child to run collectl
         $collectl_pid = fork();
         if (not defined $collectl_pid) {	
@@ -2779,8 +2784,8 @@ sub collectl_stop {
         kill("INT", $collectl_pid);
         kill("TERM", $collectl_pid);
         waitpid($collectl_pid,0);
-        chdir($collectl_output_directory) or return;
-        system("$COLLECTL_DIR/collectl2html ${VERSION}");
+        #chdir($collectl_output_directory) or return;
+        #system("$COLLECTL_DIR/collectl2html ${VERSION}");
 	}
 }
 

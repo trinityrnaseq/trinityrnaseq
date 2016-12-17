@@ -182,10 +182,10 @@ def parse_collectl_dat(collectl_dat_file, cpu_usage_matrix, memory_usage_matrix,
             #print("progname: {}, memoryG: {}".format(progname, memory))
 
 
-            RKB = int(vals[15])
-            WKB = int(vals[16])
+            RKB = compute_GB(vals[15]) * (1024**3)
+            WKB = compute_GB(vals[16]) * (1024**3)
             sumKB = RKB + WKB
-
+            
             IO_usage_hash = IO_usage_matrix[timeval_key_str]
             if progname not in IO_usage_hash:
                 IO_usage_hash[progname] = sumKB
@@ -205,13 +205,18 @@ def parse_collectl_dat(collectl_dat_file, cpu_usage_matrix, memory_usage_matrix,
 def compute_GB(memory_val):
 
     r = re.search("^(\d+)([MKG])$", memory_val)
-    numG = int(r.group(1))
-    metric = r.group(2)
 
-    if metric == 'M':
-        numG /= 1e3
-    elif metric == 'K':
-        numG /= 1e6
+    if r:
+        numG = int(r.group(1))
+        metric = r.group(2)
+
+        if metric == 'M':
+            numG /= 1024
+        elif metric == 'K':
+            numG /= 1024**2
+    else:
+        memory_val = int(memory_val)
+        numG = memory_val / (1024**3)
 
     return numG 
     

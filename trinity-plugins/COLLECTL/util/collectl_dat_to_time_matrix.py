@@ -78,12 +78,13 @@ def main():
         memvals = list()
         cpuvals = list()
         IOvals = list()
-        
+
+        timeval_in_hr = str(timeval / 60 / 60)
         timeval = str(timeval)
 
-        memvals.append(timeval)
-        cpuvals.append(timeval)
-        IOvals.append(timeval)
+        memvals.append(timeval_in_hr)
+        cpuvals.append(timeval_in_hr)
+        IOvals.append(timeval_in_hr)
         
         for progname in prognames:
             memory_hash = memory_usage_matrix[timeval]
@@ -150,6 +151,7 @@ def parse_collectl_dat(collectl_dat_file, cpu_usage_matrix, memory_usage_matrix,
     19      Command
     """
 
+    init_time = -1
 
     with open(collectl_dat_file) as f:
         for line in f:
@@ -158,6 +160,13 @@ def parse_collectl_dat(collectl_dat_file, cpu_usage_matrix, memory_usage_matrix,
             timeval_str = vals[1]
             timestruct = datetime.datetime.strptime("{} {}".format(day, timeval_str), "%Y%m%d %H:%M:%S")
             timeval_numeric = time.mktime(timestruct.timetuple())
+
+            if init_time < 0:
+                init_time = timeval_numeric
+                timeval_numeric = 1
+            else:
+                timeval_numeric -= init_time
+            
 
             timeval_key_str = str(timeval_numeric)
             if timeval_numeric > prev_time:
@@ -182,15 +191,15 @@ def parse_collectl_dat(collectl_dat_file, cpu_usage_matrix, memory_usage_matrix,
             #print("progname: {}, memoryG: {}".format(progname, memory))
 
 
-            RKB = compute_GB(vals[15]) * (1024**3)
-            WKB = compute_GB(vals[16]) * (1024**3)
-            sumKB = RKB + WKB
+            RMB = compute_GB(vals[15]) * (1024**2)
+            WMB = compute_GB(vals[16]) * (1024**2)
+            sumMB = RMB + WMB
             
             IO_usage_hash = IO_usage_matrix[timeval_key_str]
             if progname not in IO_usage_hash:
-                IO_usage_hash[progname] = sumKB
+                IO_usage_hash[progname] = sumMB
             else:
-                IO_usage_hash[progname] += sumKB
+                IO_usage_hash[progname] += sumMB
             
 
 

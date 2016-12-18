@@ -16,5 +16,5 @@ fi
 #######################################################
 
 # monitoring at 1 second intervals because this test runs very quick.  You might monitor on the order of minutes rather than seconds for 'regular' runs.
-../../Trinity --seqType fq --max_memory 1G --left reads.left.fq --right reads.right.fq --SS_lib_type RF --CPU 4 --monitoring --monitor_sec 1
+../../Trinity --seqType fq --max_memory 1G --left reads.left.fq --right reads.right.fq --SS_lib_type RF --CPU 4 --monitoring --monitor_sec 1 --output trinity_out_dir_monitored
 

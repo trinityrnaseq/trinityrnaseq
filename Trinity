@@ -2786,10 +2786,12 @@ sub collectl_stop {
         # try to be nice here as a hard kill will result in broken/unusable raw.gz file
         system("sync");
         kill("INT", $collectl_pid);
+        system("sleep 10");
         kill("TERM", $collectl_pid);
         waitpid($collectl_pid,0);
         chdir($collectl_output_directory);
-        my $cmd = "$COLLECTL_DIR/../util/collectl_dat_to_time_matrix.py --dat collectl.dat";
+        
+        my $cmd = "$COLLECTL_DIR/../util/collectl_dat_to_time_matrix.py --dat ./collectl.dat";
         &process_cmd($cmd);
 
         $cmd = "$COLLECTL_DIR/../util/plot_time_vs_resource.Rscript collectl";

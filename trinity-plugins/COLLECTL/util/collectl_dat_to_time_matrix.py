@@ -156,6 +156,9 @@ def parse_collectl_dat(collectl_dat_file, cpu_usage_matrix, memory_usage_matrix,
     with open(collectl_dat_file) as f:
         for line in f:
             vals = re.split("\s+", line)
+            if len(vals) < 20:
+                continue
+            
             day = vals[0]
             timeval_str = vals[1]
             timestruct = datetime.datetime.strptime("{} {}".format(day, timeval_str), "%Y%m%d %H:%M:%S")

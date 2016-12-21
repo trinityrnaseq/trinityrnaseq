@@ -136,6 +136,28 @@ sub get_genome_span {
 
 
 ####
+sub get_read_span {
+    my $self = shift;
+    
+    my ($genome_aref, $read_aref) = $self->get_alignment_coords();
+
+    my @coords;
+    foreach my $read_coordset (@$read_aref) {
+        push (@coords, @$read_coordset);
+    }
+
+    @coords = sort {$a<=>$b} @coords;
+
+    my $min_coord = shift @coords;
+    my $max_coord = pop @coords;
+
+    return($min_coord, $max_coord);
+
+}
+
+
+
+####
 sub get_alignment_length {
     my $self = shift;
    

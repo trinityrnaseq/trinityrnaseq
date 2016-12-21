@@ -3,6 +3,10 @@
 use strict;
 use warnings;
 
+use FindBin;
+use lib ("$FindBin::Bin/../../PerlLib");
+use SAM_entry;
+
 my $usage = "\n\nusage: $0 nameSorted.sam iworm_fasta_file\n\n";
 
 my $name_sorted_sam_file = $ARGV[0] or die $usage;
@@ -184,25 +188,100 @@ sub examine_frags {
     my @iworm_left = keys %{$end_to_iworm_href->{1}};
     my @iworm_right = keys %{$end_to_iworm_href->{2}};
 
+    
     if (scalar(@iworm_left) == 1 && scalar(@iworm_right) == 1
         &&
         $iworm_left[0] ne $iworm_right[0]) {
-
-        my $pair = join("\t", sort (@iworm_left, @iworm_right));
         
+        ## simplest case, pairs each aligning to different contigs.
+    
+        my $i_left = $iworm_left[0];
+        my $i_right = $iworm_right[0];
 
+        my $pair = join("\t", sort ($i_left, $i_right));
         #print STDERR "Got pairing: $pair\n";
         $paired_iworm_contigs_href->{$pair}++;
-
-        foreach my $sam_line (values %{$end_to_iworm_href->{1}}, values %{$end_to_iworm_href->{2}}) {
-            print $SAM_OFH $sam_line;
-        }
-
+    
+    }
+    else {
+        # examine split reads
+        
+        &check_for_split_reads($end_to_iworm_href->{1}, $paired_iworm_contigs_href);
+        &check_for_split_reads($end_to_iworm_href->{2}, $paired_iworm_contigs_href);
+        
         
     }
-    
+        
+    ## output all alignments for these reads.
+    foreach my $sam_line (values %{$end_to_iworm_href->{1}}, values %{$end_to_iworm_href->{2}}) {
+        print $SAM_OFH $sam_line;
+    }
+        
     
     return;
 }
 
         
+####
+sub check_for_split_reads {
+    my ($read_mappings_href, $paired_iworm_contigs_href) = @_;
+
+    my @iworm_names = keys %$read_mappings_href;
+
+    if (scalar(@iworm_names) < 2) {
+        # nothing to do here.
+        return;
+    }
+    
+    ## see if we have a read where different parts of the read are aligning to different iworm contigs.
+    for (my $i = 0; $i < $#iworm_names; $i++) {
+        my $iworm_name_i = $iworm_names[$i];
+        my $align_i = new SAM_entry($read_mappings_href->{$iworm_name_i});
+        
+        for (my $j = $i + 1; $j <= $#iworm_names; $j++) {
+            my $iworm_name_j = $iworm_names[$j];
+            my $align_j = new SAM_entry($read_mappings_href->{$iworm_name_j});
+
+            if (&overlap_not_involving_containment($align_i, $align_j)) {
+                ## store pair
+                
+                my $pair = join("\t", sort($iworm_name_i, $iworm_name_j));
+                $paired_iworm_contigs_href->{$pair}++;
+                
+            }
+        }
+    }
+
+    return;
+}
+    
+####
+sub overlap_not_involving_containment {
+    my ($align_i, $align_j) = @_;
+        
+    my ($read_i_lend, $read_i_rend) = $align_i->get_read_span();
+            
+    my ($read_j_lend, $read_j_rend) = $align_j->get_read_span();
+    
+    #print join("\t", "$read_i_lend-$read_i_rend", "$read_j_lend-$read_j_rend") . "\n";
+    
+    if (  ($read_i_lend <= $read_j_lend && $read_i_rend >= $read_j_rend) # i encapsulates j
+          ||
+          ($read_j_lend <= $read_i_lend && $read_j_rend >= $read_i_rend)  # j encapsulates i
+        ) {
+        ## containment
+        #print "\t* containment\n";
+        return(0);
+    }
+    elsif ( $read_i_lend < $read_j_rend && $read_i_rend > $read_j_lend) {
+        #print "\t OVERLAP\n";
+        return(1);
+    }
+    else {
+        #print "\tok\n";
+        
+        return(1);
+    }
+        
+}
+    

@@ -49,7 +49,7 @@ $ENV{PATH} = "$ROOTDIR/trinity-plugins/BIN:$ENV{PATH}";
 
 # Site specific setup
 
-my $USE_PERL_SCAFFOLDER = 0;  # for testing purposes in chrysalis stage
+my $USE_PERL_SCAFFOLDER = 1;  # for testing purposes in chrysalis stage
 
 
 my $KMER_SIZE = 25;
@@ -1724,7 +1724,7 @@ sub run_chrysalis {
         
         # generate the pair links.
         my $iworm_min100_fa_file = "$chrysalis_output_dir/" . basename("$inchworm_file.min100");
-        my $cmd = "$MISCDIR/fasta_filter_by_min_length.pl $inchworm_file 100 > $iworm_min100_fa_file";
+        my $cmd = "$UTILDIR/support_scripts/filter_iworm_by_min_length_or_cov.pl $inchworm_file 100 10 > $iworm_min100_fa_file";
         $pipeliner->add_commands( new Command($cmd, "$iworm_min100_fa_file.ok"));
         $pipeliner->run();
         

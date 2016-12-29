@@ -50,7 +50,8 @@ sub generate_ascii_illustration {
         #$ascii_illustration->add_feature($ref_acc, 1, $length, "=");
         
         my @matches = grep { $_->{ref_acc} eq $ref_acc } @hits;
-        @matches = reverse sort {$a->{bitscore}<=>$b->{bitscore}} @matches;
+        #@matches = reverse sort {$a->{bitscore}<=>$b->{bitscore}} @matches;
+        @matches = sort {$a->{ref_start}<=>$b->{ref_start}} @matches;
 
 
         foreach my $match (@matches) {

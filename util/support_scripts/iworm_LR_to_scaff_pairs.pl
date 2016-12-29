@@ -124,6 +124,9 @@ main: {
                                   $iworm_hit->{rend}, $iworm_hit->{iworm_containment}) . "\n";
             }
         }
+
+
+        my %full_containments;
         
         for (my $i = 0; $i < $#iworm_hits; $i++) {
 
@@ -142,6 +145,13 @@ main: {
                 unless ($iworm_i->{iworm_containment} >= $MIN_CONTAINMENT || $iworm_j->{iworm_containment} >= $MIN_CONTAINMENT) {
                     next; 
                 }
+            
+                if ($iworm_i->{iworm_containment} >= $MIN_CONTAINMENT) {
+                    $full_containments{ $iworm_i->{iworm_acc} } = 1;
+                }
+                if ($iworm_j->{iworm_containment} >= $MIN_CONTAINMENT) {
+                    $full_containments{ $iworm_j->{iworm_acc} } = 1;
+                }
                 
                 my $overlap_len = &get_overlap_len($iworm_i, $iworm_j);
                 
@@ -155,12 +165,24 @@ main: {
                 if ($overlap_len && $share_kmer_overlap_flag) {
                     
                     my $pair_token = join("$;", sort ($iworm_i->{iworm_acc}, $iworm_j->{iworm_acc}));
-                    $iworm_pairs{$pair_token} = &get_min_iworm_cov($iworm_i, $iworm_j);
+                    $iworm_pairs{$pair_token} = &get_min_iworm_cov($iworm_i->{iworm_acc}, $iworm_j->{iworm_acc});
                     
                 }
             }
-        }
+        } # end of i-vs-j comparisons.
 
+        my @fully_contained_iworms = keys %full_containments;
+        if (scalar(@fully_contained_iworms) > 1) {
+            # make all pairwise links
+            for (my $i = 0; $i < $#fully_contained_iworms; $i++) {
+                my $iworm_i_acc = $fully_contained_iworms[$i];
+                for (my $j = $i + 1; $j <= $#fully_contained_iworms; $j++) {
+                    my $iworm_j_acc = $fully_contained_iworms[$j];
+                    my $pair_token = join("$;", sort ($iworm_i_acc, $iworm_j_acc));
+                    $iworm_pairs{$pair_token} = &get_min_iworm_cov($iworm_i_acc, $iworm_j_acc);
+                }
+            }
+        }
     }
     
 
@@ -215,12 +237,10 @@ main: {
 
 ####
 sub get_min_iworm_cov {
-    my ($iworm_i, $iworm_j) = @_;
+    my ($acc_i, $acc_j) = @_;
 
-    my $acc_i = $iworm_i->{iworm_acc};
     my ($pref_i, $cov_i) = split(/;/, $acc_i);
     
-    my $acc_j = $iworm_j->{iworm_acc};
     my ($pref_j, $cov_j) = split(/;/, $acc_j);
 
     if ($cov_i < $cov_j) {
@@ -230,7 +250,7 @@ sub get_min_iworm_cov {
         return($cov_j);
     }
 }
-    
+
 
 
 ####

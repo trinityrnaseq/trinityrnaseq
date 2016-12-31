@@ -83,26 +83,38 @@ bool KmerCounter::prune_kmer_extensions( float min_ratio_non_error) {
             continue;
         }
         
+        string kmer_str = get_kmer_string(kmer_val); 
+        
+
     	vector<Kmer_Occurence_Pair> candidates = get_forward_kmer_candidates(kmer_val);
-
-    	int dominant_count = 0;
-
-    	for (unsigned int i = 0; i < candidates.size(); i++)
-    	{
-    		if (candidates[i].second)
-    		{
-    			int candidate_count = candidates[i].second;
-    			if (dominant_count == 0)
-    			{
-    				dominant_count = candidate_count;
-    			}
-    			else if (dominant_count > 0 && (float) candidate_count/dominant_count < min_ratio_non_error)
-    			{
-    				Kmer_counter_map_iterator kmer_candidate = find_kmer(candidates[i].first);
-    				deletion_list.push_back(kmer_candidate->first);
-    				kmer_candidate->second = 0; // disable when encountered in further iterations.
-    			}
-            }
+        
+        if (candidates.size() > 1) {
+            
+            int dominant_count = candidates[0].second;
+            
+            for (unsigned int i = 1; i < candidates.size(); i++)
+                {
+                    if (candidates[i].second)
+                        {
+                            int candidate_count = candidates[i].second;
+                            float ratio_dominant_count = (float) candidate_count/dominant_count;
+                            
+                            if (dominant_count > 0 && ratio_dominant_count < min_ratio_non_error) {
+                                
+                                Kmer_counter_map_iterator kmer_candidate = find_kmer(candidates[i].first);
+                                
+                                if (IRKE_COMMON::MONITOR >= 2) {
+                                    string kmer_ext_str = get_kmer_string(kmer_candidate->first);
+                                    cerr << "Pruning kmer: " << kmer_ext_str << " extension of: " <<  describe_kmer(kmer_str)
+                                         << " with ratio dominant count: " << ratio_dominant_count << endl;
+                    }
+                                
+                                deletion_list.push_back(kmer_candidate->first);
+                                kmer_candidate->second = 0; // disable when encountered in further iterations.
+                                
+                            }
+                        }
+                }
         }
     }
     
@@ -135,6 +147,8 @@ bool KmerCounter::prune_some_kmers(unsigned int min_count, float min_entropy, bo
         if (count == 0)
         	continue;
 
+        string kmer_str = get_kmer_string(kmer);
+
         if (count < min_count)
         {
         	// deletion_list.push_back(it->first);
@@ -153,39 +167,52 @@ bool KmerCounter::prune_some_kmers(unsigned int min_count, float min_entropy, bo
 
         if (prune_error_kmers)
         {
-        	vector<Kmer_Occurence_Pair> candidates = get_forward_kmer_candidates(kmer);
+        	vector<Kmer_Occurence_Pair> candidates = get_forward_kmer_candidates(kmer); //sorted descendingly
 
-        	int dominant_count = 0;
-
-        	for (unsigned int i = 0; i < candidates.size(); i++)
-        	{
-        		if (candidates[i].second)
-        		{
-        			int candidate_count = candidates[i].second;
-        			if (dominant_count == 0)
-        			{
-        				dominant_count = candidate_count;
-        			}
-        			else if (dominant_count > 0 && (float) candidate_count/dominant_count < min_ratio_non_error)
-        			{
-        				Kmer_counter_map_iterator kmer_candidate = find_kmer(candidates[i].first);
-        				// deletion_list.push_back(kmer_candidate->first);
-        				kmer_candidate->second = 0; // disable when encountered in further iterations.
-                        count_pruned++;
+            if (candidates.size() > 1) {
+                
+                int dominant_count = candidates[0].second;
+                
+                for (unsigned int i = 1; i < candidates.size(); i++)
+                    {
+                        if (candidates[i].second)
+                            {
+                                int candidate_count = candidates[i].second;
+                                
+                                float ratio_dominant_count = (float) candidate_count/dominant_count;
+                                
+                                if (dominant_count > 0 && ratio_dominant_count < min_ratio_non_error) {
+                                    
+                                    Kmer_counter_map_iterator kmer_candidate = find_kmer(candidates[i].first);
+                                    
+                                    if (IRKE_COMMON::MONITOR >= 2) {
+                                        string kmer_ext_str = get_kmer_string(kmer_candidate->first);
+                                        cerr << "Pruning kmer: " << kmer_ext_str << " extension of: " <<  describe_kmer(kmer_str)
+                                             << " with ratio dominant count: " << ratio_dominant_count << endl;
+                                    }
+                                    
+                                    // deletion_list.push_back(kmer_candidate->first);
+                                    kmer_candidate->second = 0; // disable when encountered in further iterations.
+                                    count_pruned++;
+                                    
+                                    
+                                }
+                            }
                     }
-                }
             }
         }
     }
-
+    
+    
+    
     if (count_pruned > 0) {  //deletion_list.size() > 0) {
-
+        
         cerr << "Pruned " << count_pruned << " kmers from catalog." << endl;
         
         /* dont waste time shrinking hashtable
-        for (unsigned int i=0; i<deletion_list.size(); i++) {
-        	prune_kmer(deletion_list[i]);
-        }
+           for (unsigned int i=0; i<deletion_list.size(); i++) {
+           prune_kmer(deletion_list[i]);
+           }
         */
         
         return(true);

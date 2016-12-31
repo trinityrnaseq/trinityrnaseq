@@ -19,6 +19,7 @@ void print_kmer_count_histogram(KmerCounter& kcounter);
 
 // various devel params
 bool IRKE_COMMON::__DEVEL_no_kmer_sort = false;
+unsigned int IRKE_COMMON::MONITOR = 0;
 
 int main (int argc, char* argv[]) {
     

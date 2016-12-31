@@ -50,7 +50,7 @@ public class TransAssembly_allProbPaths {
 	private static int LAST_REAL_ID = -1;
 	private static int MAX_DEPTH = 0;
 
-	private static double EDGE_THR = 0.05; // compares between each edge and its sister edges (u->v; vs all output of u, or all input of v)
+	private static double EDGE_THR = 0.02; // compares between each edge and its sister edges (u->v; vs all output of u, or all input of v)
 	private static double FLOW_THR = 0.02;// compares between each edge and its flow of its vertices (u->v; vs all input of u, or all output of v)
 	private static boolean NO_GRAPH_PRUNING = false; 
 	

@@ -82,7 +82,7 @@ main: {
     
 
     print $ofh "\n\n# get gene lengths\n";
-    print $ofh "gene_lengths = read.table(\"$lengths_file\", header=T, row.names=1)\n";
+    print $ofh "gene_lengths = read.table(\"$lengths_file\", header=T, row.names=1, com='')\n";
     print $ofh "gene_lengths = as.matrix(gene_lengths[,1,drop=F])\n";
 
     print $ofh "\n\n# get background gene list\n";

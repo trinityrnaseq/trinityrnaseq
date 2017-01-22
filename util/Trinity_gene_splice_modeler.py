@@ -16,7 +16,7 @@ class Node:
 
     node_cache = dict()
 
-    # class method
+    @classmethod
     def get_node(self, transcript_name, loc_node_id, node_seq):
         node_id = get_node_id(transcript_name, loc_node_id, node_seq)
         if node_id in node_cache:
@@ -30,8 +30,8 @@ class Node:
             node_cache[ node_id ] = node_obj
             return node_obj
 
-    # class method
-    def get_node_id(self, transcript_name, loc_node_id, node_seq):
+    @staticmethod
+    def get_node_id(transcript_name, loc_node_id, node_seq):
         node_id = "::".join([transcript_name, loc_node_id, str(len(node_seq))])
         return node_id
 
@@ -51,7 +51,7 @@ class Node:
     def add_prev_node(self, prev_node_obj):
         self.prev.add(prev_node_obj)
 
-    def __str__(self):
+    def __repr__(self):
         return(self.get_node_id(self.transcript_name, self.loc_node_id, self.seq))
     
         
@@ -76,7 +76,15 @@ class Node_path:
 
             self.node_obj_list.append(node_obj)
 
-    def __str__(self):
+
+    def get_transcript_name(self):
+        return self.transcript_name
+
+    def get_path(self):
+        return self.node_obj_list
+    
+
+    def __repr__(self):
         node_str_list = list()
         for node in self.node_obj_list:
             node_str_list.append(str(node))
@@ -155,6 +163,53 @@ class Trinity_fasta_parser:
         return self.trinity_gene_to_isoform_seqs
 
 
+class Node_alignment:
+
+    GAP = None
+
+    def __init__(self):
+        self.transcript_names = list()
+        self.aligned_nodes = list()
+
+    @staticmethod
+    def get_single_seq_node_alignment(transcript_name, path_obj):
+
+        self = Node_alignment()
+        self.transcript_names = [ transcript_name ]
+        self.aligned_nodes = [ [] ]
+        for node_obj in  path_obj.get_path():
+            self.aligned_nodes[0].append(node_obj)
+
+        return self
+    
+    def __repr__(self):
+
+        ret_text = ""
+        for i in range(0,len(self.transcript_names)):
+            transcript_name = self.transcript_names[ i ]
+            aligned_nodes_entry = self.aligned_nodes[ i ]
+
+            ret_text += "{} : {}".format(transcript_name, str(aligned_nodes_entry)) + "\n"
+
+        return ret_text
+    
+    
+
+class Gene_splice_modeler:
+
+    def __init__(self, node_path_obj_list):
+
+        self.alignments = list()
+        
+        for node_path_obj in node_path_obj_list:
+            transcript_name = node_path_obj.get_transcript_name()
+            alignment_obj = Node_alignment.get_single_seq_node_alignment(transcript_name, node_path_obj)
+
+            print(alignment_obj)
+        
+
+
+
 
 def main():
 
@@ -187,9 +242,13 @@ def main():
         for iso_struct in iso_struct_list:
             n_path = Node_path(iso_struct['transcript_name'], iso_struct['path'], iso_struct['seq'])
             node_path_obj_list.append(n_path)
-            print(str(n_path))
+            #print(str(n_path))
         
-    
+        # generate multiple alignment
+        logger.info("Processing Gene: {} having {} isoforms".format(gene_name, len(node_path_obj_list)))
+
+        gene_splice_modeler = Gene_splice_modeler(node_path_obj_list)
+        
 
     sys.exit(0)
 

@@ -7,6 +7,7 @@ import os, sys, re
 import logging
 import argparse
 import collections
+import numpy
 
 logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -15,6 +16,16 @@ logger = logging.getLogger(__name__)
 class Node:
 
     node_cache = dict()
+
+    def __init__(self, transcript_name, loc_node_id, node_seq):
+        self.transcript_name = transcript_name
+        self.loc_node_id = loc_node_id
+        self.seq = node_seq
+        self.len = len(node_seq)
+
+        self.prev = set()
+        self.next = set()
+
 
     @classmethod
     def get_node(self, transcript_name, loc_node_id, node_seq):
@@ -35,15 +46,16 @@ class Node:
         node_id = "::".join([transcript_name, loc_node_id, str(len(node_seq))])
         return node_id
 
+    
+    def get_loc_id(self):
+        return self.loc_node_id
+    
+    def get_seq(self):
+        return self.seq
 
-    def __init__(self, transcript_name, loc_node_id, node_seq):
-        self.transcript_name = transcript_name
-        self.loc_node_id = loc_node_id
-        self.seq = node_seq
-        self.len = len(node_seq)
-
-        self.prev = set()
-        self.next = set()
+    def get_transcript_name(self):
+        return self.transcript_name
+        
 
     def add_next_node(self, next_node_obj):
         self.next.add(next_node_obj)
@@ -181,6 +193,57 @@ class Node_alignment:
             self.aligned_nodes[0].append(node_obj)
 
         return self
+
+    @staticmethod
+    def compute_number_common_nodes(align_A, align_B):
+        node_set_a = Node_alignment.get_node_set(align_A)
+        node_set_b = Node_alignment.get_node_set(align_B)
+
+        node_set_a = Node_alignment.get_node_loc_ids(node_set_a)
+        node_set_b = Node_alignment.get_node_loc_ids(node_set_b)
+                
+        common_nodes = set.intersection(node_set_a, node_set_b)
+
+        return common_nodes
+
+    @staticmethod
+    def get_node_loc_ids(node_set):
+        loc_ids_set = set()
+        for node in node_set:
+            loc_id = node.get_loc_id()
+            loc_ids_set.add(loc_id)
+
+        return loc_ids_set
+    
+
+    @staticmethod
+    def get_node_set(align_obj):
+        num_trans = len(align_obj)
+        alignment_width = align_obj.width()
+
+        node_set = set()
+        
+        for align_num in range(0,num_trans):
+            for align_pos in range(0,alignment_width):
+                node_obj = align_obj.aligned_nodes[ align_num ][ align_pos ]
+                if node_obj is not None:
+                    node_set.add(node_obj)
+
+        return node_set
+                    
+    def __len__(self):
+        """
+        number of transcripts represented in the alignment
+        """
+        
+        return(len(self.transcript_names))
+
+    def width (self):
+        """
+        width of the alignment (number of columns)
+        """
+        return(len(self.aligned_nodes[0])) 
+
     
     def __repr__(self):
 
@@ -205,7 +268,33 @@ class Gene_splice_modeler:
             transcript_name = node_path_obj.get_transcript_name()
             alignment_obj = Node_alignment.get_single_seq_node_alignment(transcript_name, node_path_obj)
 
-            print(alignment_obj)
+            self.alignments.append(alignment_obj)
+
+            #print(alignment_obj)
+
+        # determine initial path similarity
+        similarity_matrix = Gene_splice_modeler.compute_similarity_matrix(self.alignments)
+        print(similarity_matrix)
+
+
+    @staticmethod
+    def compute_similarity_matrix(alignments_list):
+        num_alignments = len(alignments_list)
+        sim_matrix = numpy.zeros( (num_alignments, num_alignments) )
+
+        for i in range(0, num_alignments-1):
+            align_i = alignments_list[i]
+            for j in range(i+1, num_alignments):
+                align_j = alignments_list[j]
+
+                common_nodes = Node_alignment.compute_number_common_nodes(align_i, align_j)
+                num_common_nodes = len(common_nodes)
+
+                sim_matrix[ i ][ j ] = num_common_nodes
+                sim_matrix[ j ][ i ] = num_common_nodes
+
+
+        return sim_matrix
         
 
 

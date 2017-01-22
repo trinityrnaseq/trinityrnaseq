@@ -22,7 +22,7 @@ class Node:
         if node_id in node_cache:
             node_obj = node_cache[ node_id ]
             if node_obj.seq != node_seq:
-                raise RuntimeException("Error, have conflicting node sequences for node_id: {}".format(node_id)
+                raise RuntimeException("Error, have conflicting node sequences for node_id: {}".format(node_id))
             return node_obj
         else:
             # instantiate a new one
@@ -32,7 +32,7 @@ class Node:
 
     # class method
     def get_node_id(self, transcript_name, loc_node_id, node_seq):
-        node_id = "::".join(transcript_name, loc_node_id, len(node_seq))
+        node_id = "::".join([transcript_name, loc_node_id, str(len(node_seq))])
         return node_id
 
 
@@ -51,30 +51,49 @@ class Node:
     def add_prev_node(self, prev_node_obj):
         self.prev.add(prev_node_obj)
 
+    def __str__(self):
+        return(self.get_node_id(self.transcript_name, self.loc_node_id, self.seq))
+    
+        
 
 
 class Node_path:
 
-    transcript_name = ""
-    node_obj_list = list()
-
     def __init__(self, transcript_name, path_string, sequence):
         self.transcript_name = transcript_name
-        int_node_list = re.findall("\d+", path_string)
+        self.node_obj_list = list()
+
+        node_descr_list = re.findall("\d+:\d+\-\d+", path_string)
 
         obj_node_list = list()
-        for int_value in int_node_list:
-            int_value = int(int_value)
-            node_obj = node(transcript_name, int_value)
+        for node_descr in node_descr_list:
+            (loc_node_id, node_coord_range) = node_descr.split(":")
+            (lend,rend) = node_coord_range.split("-")
+            lend = int(lend)
+            rend = int(rend)
+            
+            node_obj = Node(transcript_name, loc_node_id, sequence[lend:rend+1]) # coords in path were already zero-based
 
-            obj_node_list.append(node_obj)
+            self.node_obj_list.append(node_obj)
+
+    def __str__(self):
+        node_str_list = list()
+        for node in self.node_obj_list:
+            node_str_list.append(str(node))
+
+        path_str = "--".join(node_str_list)
+
+        return path_str
+        
 
 
 class Trinity_fasta_parser:
 
-    trinity_gene_to_isoform_seqs = collections.defaultdict(list)
+    
 
     def __init__(self, trinity_fasta_filename):
+
+        self.trinity_gene_to_isoform_seqs = collections.defaultdict(list)
 
         with open(trinity_fasta_filename) as fh:
             header = ""
@@ -124,7 +143,7 @@ class Trinity_fasta_parser:
         if gene_id == accession:
             raise RuntimeException("Error, couldn't remove isoform ID from Trinity accession: {}".format(accession))
 
-        isoform_list = trinity_gene_to_isoform_seqs[ gene_id ]
+        isoform_list = self.trinity_gene_to_isoform_seqs[ gene_id ]
 
         iso_struct = { 'transcript_name' : accession,
                        'path' : path_str,
@@ -132,7 +151,9 @@ class Trinity_fasta_parser:
 
         isoform_list.append(iso_struct)
         
-    
+    def get_trinity_gene_to_isoform_info(self):
+        return self.trinity_gene_to_isoform_seqs
+
 
 
 def main():
@@ -149,9 +170,28 @@ def main():
         logger.setLevel(logging.DEBUG)      
 
 
-    gene_to_isoform_paths = parse_gene_to_iso_paths(args.trinity_fasta)
+    trin_parser = Trinity_fasta_parser(args.trinity_fasta)
 
+    gene_to_isoform_info = trin_parser.get_trinity_gene_to_isoform_info()
 
+    ## examine the alt spliced isoforms.
+    for gene_name in gene_to_isoform_info:
+        iso_struct_list = gene_to_isoform_info[ gene_name ]
+
+        if len(iso_struct_list) < 2:
+            # only want alt splice entries
+            continue
+
+        # convert to Node_path objects
+        node_path_obj_list = list()
+        for iso_struct in iso_struct_list:
+            n_path = Node_path(iso_struct['transcript_name'], iso_struct['path'], iso_struct['seq'])
+            node_path_obj_list.append(n_path)
+            print(str(n_path))
+        
+    
+
+    sys.exit(0)
 
  
 ####################

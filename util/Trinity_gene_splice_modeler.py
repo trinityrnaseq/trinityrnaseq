@@ -64,8 +64,8 @@ class Node:
         self.prev.add(prev_node_obj)
 
     def __repr__(self):
-        return(self.get_node_id(self.transcript_name, self.loc_node_id, self.seq))
-    
+        #return(self.get_node_id(self.transcript_name, self.loc_node_id, self.seq))
+        return(self.loc_node_id)
         
 
 
@@ -179,20 +179,27 @@ class Node_alignment:
 
     GAP = None
 
-    def __init__(self):
-        self.transcript_names = list()
-        self.aligned_nodes = list()
+    def __init__(self, transcript_name_list, node_obj_matrix):
+        self.transcript_names = transcript_name_list
+        self.aligned_nodes = node_obj_matrix
+
+    def get_transcript_names(self):
+        return self.transcript_names
+
+    def get_aligned_nodes(self):
+        return self.aligned_nodes
 
     @staticmethod
     def get_single_seq_node_alignment(transcript_name, path_obj):
-
-        self = Node_alignment()
-        self.transcript_names = [ transcript_name ]
-        self.aligned_nodes = [ [] ]
+        node_list = list()
         for node_obj in  path_obj.get_path():
-            self.aligned_nodes[0].append(node_obj)
+            node_list.append(node_obj)
+
+        self = Node_alignment([transcript_name], [node_list])
 
         return self
+
+
 
     @staticmethod
     def compute_number_common_nodes(align_A, align_B):
@@ -214,6 +221,8 @@ class Node_alignment:
             loc_ids_set.add(loc_id)
 
         return loc_ids_set
+
+
     
 
     @staticmethod
@@ -230,6 +239,28 @@ class Node_alignment:
                     node_set.add(node_obj)
 
         return node_set
+
+
+    def get_node_set_at_column_pos(self, col_pos):
+
+        node_objs = set()
+        for i in range(0, len(self)):
+            node_obj = self.aligned_nodes[ i ][ col_pos ]
+            if node_obj is not None:
+                node_objs.add(node_obj)
+        
+        return node_objs
+
+    def get_node_LIST_at_column_pos(self, col_pos):
+
+        node_objs = list()
+        for i in range(0, len(self)):
+            node_obj = self.aligned_nodes[ i ][ col_pos ]
+            node_objs.append(node_obj)
+        
+        return node_objs
+
+    
                     
     def __len__(self):
         """
@@ -247,12 +278,33 @@ class Node_alignment:
     
     def __repr__(self):
 
-        ret_text = ""
-        for i in range(0,len(self.transcript_names)):
-            transcript_name = self.transcript_names[ i ]
-            aligned_nodes_entry = self.aligned_nodes[ i ]
+        num_transcripts = len(self.transcript_names)
+        ret_text = "\n# Alignment obj contains: {} transcripts: {}\n\n".format(num_transcripts, ",".join(self.transcript_names))
 
-            ret_text += "{} : {}".format(transcript_name, str(aligned_nodes_entry)) + "\n"
+        align_width = self.width()
+
+        NODES_PER_LINE = 10
+
+        # each alignment block
+        for i in range(0, align_width, NODES_PER_LINE):
+
+            # report alignment for each entry
+            for j in range(0,num_transcripts):
+                transcript_name = self.transcript_names[ j ]
+                aligned_nodes_entry = self.aligned_nodes[ j ]
+
+                ret_text += "{}".format(transcript_name)
+                for x in range(i, i+NODES_PER_LINE):
+                    if x >= align_width:
+                        break
+                    
+                    ret_text += "\t{}".format(aligned_nodes_entry[ x ])
+
+                ret_text += "\n" # end of current line
+
+            ret_text += "\n" # spacer between alignment blocks
+                        
+            #ret_text += "Align [{}] trans {} : path {}".format(i, transcript_name, str(aligned_nodes_entry)) + "\n"
 
         return ret_text
     
@@ -262,6 +314,7 @@ class Gene_splice_modeler:
 
     def __init__(self, node_path_obj_list):
 
+        ## create alignments
         self.alignments = list()
         
         for node_path_obj in node_path_obj_list:
@@ -274,13 +327,45 @@ class Gene_splice_modeler:
 
         # determine initial path similarity
         similarity_matrix = Gene_splice_modeler.compute_similarity_matrix(self.alignments)
-        print(similarity_matrix)
+        logger.debug("Similarity matrix:\n" + str(similarity_matrix))
+
+        ## build multiple alignment in a hierarchical way
+        while len(similarity_matrix) > 1:
+
+            ## find best pair
+            best_pair_idx = int(numpy.argmax(similarity_matrix))
+            num_alignments = len(similarity_matrix)
+            best_pair_idx_1 = int(best_pair_idx / num_alignments)
+            best_pair_idx_2 = best_pair_idx % num_alignments
+            
+            ## merge pair into single alignment
+            align_a = self.alignments[ best_pair_idx_1 ]
+            align_b = self.alignments[ best_pair_idx_2 ]
+
+            align_merged = Gene_splice_modeler.merge_alignments(align_a, align_b)
+            
+            ## recompute matrix
+            new_alignment_list = list()
+            for i in range(0, len(self.alignments)):
+                if i not in (best_pair_idx_1, best_pair_idx_2):
+                    new_alignment_list.append(self.alignments[ i ])
+            new_alignment_list.append(align_merged)
+
+            self.alignments = new_alignment_list
+
+            logger.info("\nUpdated alignments:\n" + str(self.alignments))
+            
+            similarity_matrix = Gene_splice_modeler.compute_similarity_matrix(self.alignments)
+            logger.debug("Similarity matrix:\n" + str(similarity_matrix))
+
+            
+            # sys.exit(1) ##DEBUG
 
 
     @staticmethod
     def compute_similarity_matrix(alignments_list):
         num_alignments = len(alignments_list)
-        sim_matrix = numpy.zeros( (num_alignments, num_alignments) )
+        sim_matrix = numpy.zeros( (num_alignments, num_alignments), dtype='int_' )
 
         for i in range(0, num_alignments-1):
             align_i = alignments_list[i]
@@ -291,13 +376,192 @@ class Gene_splice_modeler:
                 num_common_nodes = len(common_nodes)
 
                 sim_matrix[ i ][ j ] = num_common_nodes
-                sim_matrix[ j ][ i ] = num_common_nodes
+                
 
 
         return sim_matrix
         
 
+    @staticmethod
+    def merge_alignments(align_a, align_b):
 
+        logger.info("Merging alignments {} and {}".format(align_a, align_b))
+
+        width_a = align_a.width()
+        width_b = align_b.width()
+
+        # do global alignments w/o penalizing end gaps
+        dp_matrix = DP_matrix.build_DP_matrix(width_a, width_b)
+
+        # put align B across top (cols) and align A at side (row)
+        # init the matrix zero rows
+        for i in range(1, width_a+1):
+            dp_matrix[ i ][ 0 ]['bt'] = 'DEL_B' # UP
+        for j in range(1, width_b+1):
+            dp_matrix[ 0 ][ j ]['bt'] = 'DEL_A' # LEFT
+        
+        # score the DP matrix
+        for i in range(1, width_a+1):
+            for j in range(1, width_b+1):
+
+                score_cell_match = Gene_splice_modeler.get_match_score(align_a, i-1, align_b, j-1) # score matrix is 1-based, align is 0-based
+                
+                score_diag = dp_matrix[ i-1 ][ j-1 ]['score'] + score_cell_match
+
+                score_del_a = dp_matrix[ i ][ j-1 ]['score']
+
+                score_del_b = dp_matrix[ i-1 ][ j ]['score']
+
+
+                if score_cell_match > 0 and score_diag >= score_del_a and score_diag >= score_del_b:
+                    dp_matrix[ i ][ j ]['score'] = score_diag
+                    dp_matrix[ i ][ j ]['bt'] = 'DIAG'
+                elif score_del_a >= score_del_b:
+                    dp_matrix[ i ][ j ]['score'] = score_del_a
+                    dp_matrix[ i ][ j ]['bt'] = 'DEL_A'
+                else:
+                    dp_matrix[ i ][ j ]['score'] = score_del_b
+                    dp_matrix[ i ][ j ]['bt'] = 'DEL_B'
+
+
+        #logger.debug("DP_matrix:\n" + DP_matrix.toString(dp_matrix))
+
+        """
+        # get max score
+        max_score = 0
+        max_i = -1
+        max_j = -1
+        for i in range(0,width_a+1):
+            score = dp_matrix[ i ][ width_b ]['score']
+            if score > max_score:
+                max_score = score
+                max_i = i
+                max_j = width_b
+        for j in range(0, width_b+1):
+            score = dp_matrix[ width_a ][ j ]['score']
+            if score > max_score:
+                max_score = score
+                max_i = width_a
+                max_j = j
+        
+        logger.info("found max score {} at position: ({},{})".format(max_score, max_i, max_j))
+        """
+
+        # keep as global alignment
+        max_i = width_a
+        max_j = width_b
+        
+        # backtrack
+        i = max_i
+        j = max_j
+        all_merged_alignment_nodes_list = list()
+        while i > 0 and j > 0:
+            score_struct = dp_matrix[ i ][ j ]
+
+            nodes_align_a = align_a.get_node_LIST_at_column_pos(i-1) # again, remember align has zero-based coords, whereas dp_matrix is 1-based
+            nodes_align_b = align_b.get_node_LIST_at_column_pos(j-1)
+
+            align_nodes = list()
+                        
+            bt_dir = score_struct['bt']
+
+            #logger.debug("backtrack-dir: " + bt_dir)
+
+            if bt_dir == 'DIAG':
+                i -= 1
+                j -= 1
+                align_nodes = nodes_align_a + nodes_align_b
+            
+
+            elif bt_dir == 'DEL_B':   # UP
+                i -= 1
+
+                align_nodes += nodes_align_a
+                for x in range(0,len(nodes_align_b)):
+                    align_nodes.append(None)
+            
+            elif bt_dir == 'DEL_A':  # LEFT
+                j -= 1
+
+                for x in range(0,len(nodes_align_a)):
+                    align_nodes.append(None)
+                align_nodes += nodes_align_b
+
+            all_merged_alignment_nodes_list.append(align_nodes)
+
+        all_merged_alignment_nodes_list.reverse()
+        logger.debug("Merged alignment nodes list: " + str(all_merged_alignment_nodes_list) )        
+
+        # prep merged alignment obj
+        merged_transcript_name_list = align_a.get_transcript_names() + align_b.get_transcript_names()
+        node_obj_matrix = list()
+        # interate through each node list, reorganize into a matrix
+        for i in range(0,len(merged_transcript_name_list)):
+            row = list()
+            for node_obj_list in all_merged_alignment_nodes_list:
+                row.append(node_obj_list[i])
+            node_obj_matrix.append(row)
+
+
+        logger.debug("merged alignment node matrix:\n" + str(node_obj_matrix))
+
+        merged_alignment_obj = Node_alignment(merged_transcript_name_list, node_obj_matrix)
+
+        logger.debug("merged alignment obj:\n" + str(merged_alignment_obj))
+
+        #sys.exit(1) # DEBUG
+        
+        return merged_alignment_obj
+
+    
+                
+    @staticmethod
+    def get_match_score(align_a, idx_a, align_b, idx_b):
+        
+        node_set_a = align_a.get_node_set_at_column_pos(idx_a)
+        node_set_b = align_b.get_node_set_at_column_pos(idx_b)
+    
+        node_set_a = Node_alignment.get_node_loc_ids(node_set_a)
+        node_set_b = Node_alignment.get_node_loc_ids(node_set_b)
+            
+        if (set.intersection(node_set_a, node_set_b)):
+            return 1 # match
+        else:
+            return 0 # no match
+    
+            
+class DP_matrix:
+
+    @staticmethod
+    def build_DP_matrix(num_rows, num_cols):
+        dp_matrix = list()
+        for i in range(0, num_rows+1):
+            row = []
+            for j in range(0, num_cols+1):
+                struct = { 'i' : i,
+                           'j' : j,
+                           'bt' : -1,
+                           'score' : 0,
+                           }
+                row.append(struct)
+            dp_matrix.append(row)
+        
+        return dp_matrix    
+
+
+    @staticmethod
+    def toString(dp_matrix):
+        nrow = len(dp_matrix)
+        ncol = len(dp_matrix[0])
+
+        logger.debug("Matrix is {} X {}".format(nrow, ncol))
+
+        ret_text = ""
+        for row in dp_matrix:
+            str_row = [ str(x['score']) for x in row ]
+            ret_text += "\t".join(str_row) + "\n"
+
+        return ret_text
 
 
 def main():

@@ -17,6 +17,8 @@ class Node:
 
     node_cache = dict()
 
+    merged_nodeset_counter = 0
+
     def __init__(self, transcript_name, loc_node_id, node_seq):
         self.transcript_name = transcript_name
         self.loc_node_id = loc_node_id
@@ -67,6 +69,20 @@ class Node:
         #return(self.get_node_id(self.transcript_name, self.loc_node_id, self.seq))
         return(self.loc_node_id)
         
+    @classmethod
+    def merge_nodes(cls, node_list):
+        merged_node_seq = ""
+        Node.merged_nodeset_counter += 1
+        merged_loc_node_id = "M{}".format(Node.merged_nodeset_counter)
+
+        for node_obj in node_list:
+            seq = node_obj.get_seq()
+            merged_node_seq += seq
+
+        merged_node = Node("trinity", merged_loc_node_id, merged_node_seq)
+
+        return merged_node
+
 
 
 class Node_path:
@@ -251,6 +267,13 @@ class Node_alignment:
         
         return node_objs
 
+    def get_representative_column_node(self, col_pos):
+
+        node_list = list(self.get_node_set_at_column_pos(col_pos))
+
+        return node_list[ 0 ]
+    
+
     def get_node_LIST_at_column_pos(self, col_pos):
 
         node_objs = list()
@@ -260,7 +283,44 @@ class Node_alignment:
         
         return node_objs
 
-    
+    def get_node_occupancy_at_column_pos(self, col_pos):
+
+        node_list = self.get_node_LIST_at_column_pos(col_pos)
+
+        occupancy_list = list()
+        for node in node_list:
+            if node is None:
+                occupancy_list.append(False)
+            else:
+                occupancy_list.append(True)
+
+        return occupancy_list
+
+
+    def append_node_to_each_entry(self, node_obj):
+
+        for i in range(0, len(self)):
+            self.aligned_nodes[ i ].append(node_obj)
+
+    def append_node_according_to_occupancy_pattern(self, node_obj, occupancy_pattern):
+
+        for i in range(0, len(self)):
+            if occupancy_pattern[i] is True:
+                self.aligned_nodes[ i ].append(node_obj)
+            else:
+                self.aligned_nodes[ i ].append(None)
+
+        
+
+
+    def add_column(self, column_node_list):
+        num_alignments = len(self)
+        if len(column_node_list) != num_alignments:
+            raise RuntimeException("Error, column size differs from num_alignments")
+
+        for i in range(0,num_alignments):
+            self.aligned_nodes[ i ].append(column_node_list[ i ])
+        
                     
     def __len__(self):
         """
@@ -308,6 +368,58 @@ class Node_alignment:
 
         return ret_text
     
+
+    def squeeze(self):
+        """
+        merge unbranched nodes into single nodes
+        """
+        
+        num_transcripts = len(self)
+        width = self.width()
+
+        node_obj_matrix = list()
+        for i in range(0,num_transcripts):
+            node_obj_matrix.append([])
+
+        squeezed_alignment = Node_alignment(self.get_transcript_names(), node_obj_matrix)
+
+        # walk the node list and merge unbranched stretches into single nodes
+        block_breakpoints = []
+        prev_col_node_set = self.get_node_occupancy_at_column_pos(0)
+        for i in range(1,width):
+            node_column_set = self.get_node_occupancy_at_column_pos(i)
+
+            #print("Comparing {} to {} == {}".format(prev_col_node_set, node_column_set, prev_col_node_set == node_column_set))
+
+            if node_column_set != prev_col_node_set:
+                block_breakpoints.append(i)
+            prev_col_node_set = node_column_set
+
+        block_breakpoints.append(width)
+
+        print("Block_breakpoints: {}".format(block_breakpoints))
+
+        blocked_nodes = list()
+        for i in range(0, width+1):
+            if i in block_breakpoints:
+                # found block terminator
+                node_to_add = None
+                if len(blocked_nodes) > 1:
+                    node_to_add = Node.merge_nodes(blocked_nodes)
+                else:
+                    node_to_add = blocked_nodes[ 0 ]
+
+                blocked_node_occupancy = self.get_node_occupancy_at_column_pos(i-1)
+                squeezed_alignment.append_node_according_to_occupancy_pattern(node_to_add, blocked_node_occupancy)
+
+                blocked_nodes = list() # reinit
+            
+            # add to running block
+            if i < width:
+                blocked_nodes.append(self.get_representative_column_node(i))
+        
+        return squeezed_alignment
+
     
 
 class Gene_splice_modeler:
@@ -324,6 +436,10 @@ class Gene_splice_modeler:
             self.alignments.append(alignment_obj)
 
             #print(alignment_obj)
+            
+    def build_splice_model(self):
+
+        alignments = self.alignments
 
         # determine initial path similarity
         similarity_matrix = Gene_splice_modeler.compute_similarity_matrix(self.alignments)
@@ -339,27 +455,30 @@ class Gene_splice_modeler:
             best_pair_idx_2 = best_pair_idx % num_alignments
             
             ## merge pair into single alignment
-            align_a = self.alignments[ best_pair_idx_1 ]
-            align_b = self.alignments[ best_pair_idx_2 ]
+            align_a = alignments[ best_pair_idx_1 ]
+            align_b = alignments[ best_pair_idx_2 ]
 
             align_merged = Gene_splice_modeler.merge_alignments(align_a, align_b)
             
             ## recompute matrix
             new_alignment_list = list()
-            for i in range(0, len(self.alignments)):
+            for i in range(0, len(alignments)):
                 if i not in (best_pair_idx_1, best_pair_idx_2):
-                    new_alignment_list.append(self.alignments[ i ])
+                    new_alignment_list.append(alignments[ i ])
             new_alignment_list.append(align_merged)
 
-            self.alignments = new_alignment_list
+            alignments = new_alignment_list
 
-            logger.info("\nUpdated alignments:\n" + str(self.alignments))
+            logger.info("\nUpdated alignments:\n" + str(alignments))
             
-            similarity_matrix = Gene_splice_modeler.compute_similarity_matrix(self.alignments)
+            similarity_matrix = Gene_splice_modeler.compute_similarity_matrix(alignments)
             logger.debug("Similarity matrix:\n" + str(similarity_matrix))
 
-            
-            # sys.exit(1) ##DEBUG
+
+        if len(alignments) > 1:
+            raise RuntimeException("Error, should only have one alignment but have {} alignments after merge".format(len(alignments)))
+        
+        return alignments[0]
 
 
     @staticmethod
@@ -601,6 +720,16 @@ def main():
         logger.info("Processing Gene: {} having {} isoforms".format(gene_name, len(node_path_obj_list)))
 
         gene_splice_modeler = Gene_splice_modeler(node_path_obj_list)
+
+        splice_model_alignment = gene_splice_modeler.build_splice_model()
+
+        logger.info("Final splice_model_alignment for Gene {} :\n{}\n".format(gene_name, str(splice_model_alignment)))
+
+
+        squeezed_splice_model = splice_model_alignment.squeeze()
+
+        logger.info("Squeezed splice model for Gene {}:\n{}\n".format(gene_name, str(squeezed_splice_model)))
+
         
 
     sys.exit(0)

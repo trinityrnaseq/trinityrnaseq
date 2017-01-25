@@ -3,6 +3,7 @@
 
 from __future__ import (absolute_import, division,
                         print_function, unicode_literals)
+
 import os, sys, re
 import logging
 import argparse
@@ -749,7 +750,10 @@ def main():
         iso_struct_list = gene_to_isoform_info[ gene_name ]
 
         if len(iso_struct_list) < 2:
-            # only want alt splice entries
+
+            ofh_fasta.write(">{}\n{}\n".format(gene_name, iso_struct_list[0]['seq']))
+
+            # only want alt splice entries in gtf for diff transcript isoform usage
             continue
 
         # convert to Node_path objects

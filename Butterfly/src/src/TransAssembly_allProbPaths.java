@@ -156,6 +156,7 @@ public class TransAssembly_allProbPaths {
 	
 	private static Integer GENE_COUNTER = 0;
 	
+	private static Float MIN_TOTAL_ISOFORM_EXPRESSION = 5f;
 	private static Float MIN_RELATIVE_ISOFORM_EXPRESSION = 5f;
 	
 	private static Integer READ_END_PATH_TRIM_LENGTH = 0;
@@ -297,6 +298,7 @@ public class TransAssembly_allProbPaths {
 		longopts[44] = new LongOpt("no_remove_lower_ranked_paths", LongOpt.OPTIONAL_ARGUMENT, null, 40);
 		longopts[45] = new LongOpt("NO_DP_READ_TO_VERTEX_ALIGN", LongOpt.NO_ARGUMENT, null, 41);
 		longopts[46] = new LongOpt("MAX_READ_SEQ_DIVERGENCE", LongOpt.OPTIONAL_ARGUMENT, null, 42);
+		longopts[47] = new LongOpt("MIN_TOTAL_ISOFORM_EXPRESSION", LongOpt.OPTIONAL_ARGUMENT, null, 43);
 		
 		Getopt g = new Getopt("TransAssembly", args, "L:F:N:C:V:SGDhO:R:",longopts);
 		int c;
@@ -466,7 +468,10 @@ public class TransAssembly_allProbPaths {
 				MAX_READ_SEQ_DIVERGENCE = Float.parseFloat(g.getOptarg());
 				break;
 				
-				
+			case 43:
+				MIN_TOTAL_ISOFORM_EXPRESSION = Float.parseFloat(g.getOptarg());
+				break;
+			
 			case 'S':
 				COLLAPSE_SNPs = false;
 				break;
@@ -657,6 +662,8 @@ public class TransAssembly_allProbPaths {
 			
 			System.err.println("#  --NO_EM_REDUCE                         run expectation maximization scheme to rank transcripts, remove lower ranking transcripts that yield no unique read content.");
 			System.err.println("#  --MIN_PCT_DOM_ISO_EXPR=<float>      min percent expression of a dominantly expressed isoform for a gene. Default: " + MIN_RELATIVE_ISOFORM_EXPRESSION);
+			System.err.println("#  --MIN_PCT_TOTAL_ISO_EXPR=<float>    min percent expression of total expression for that gene (sum of isoforms). Default: " + MIN_TOTAL_ISOFORM_EXPRESSION);
+			
 			System.err.println("#  ");
 
 			System.err.println("# Misc: ");
@@ -1264,7 +1271,8 @@ public class TransAssembly_allProbPaths {
         	debugMes("Converting graph node IDs back to original IDs.", 15);
         	
         	HashMap<List<Integer>,HashMap<PairPath,Integer>> finalPathsToContainedReads_all_orig_ids = new HashMap<List<Integer>,HashMap<PairPath,Integer>>();
-        	HashMap<List<Integer>, Pair<Integer>> FinalPaths_all_orig_ids = convert_to_orig_ids(FinalPaths_all, finalPathsToContainedReads, finalPathsToContainedReads_all_orig_ids);
+        	HashMap<List<Integer>, Pair<Integer>> FinalPaths_all_orig_ids = convert_to_orig_ids(FinalPaths_all, 
+        				finalPathsToContainedReads, finalPathsToContainedReads_all_orig_ids);
         			
         	
 
@@ -10006,6 +10014,8 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 		// determine max expr per gene
 		HashMap<Integer,Float> gene_to_max_expr = new HashMap<Integer,Float>();
 		
+		HashMap<Integer,List<Integer>> gene_to_highest_expr_isoform = new HashMap<Integer,List<Integer>>();
+		
 		for (List<Integer> path : all_paths) {
 			
 			if (separate_gene_ids.containsKey(path)) {
@@ -10013,13 +10023,16 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 				Integer gene_id = separate_gene_ids.get(path);
 				
 				float expr = pc.get_expr(path);
+				
 				if (gene_to_max_expr.containsKey(gene_id)) {
 					if (gene_to_max_expr.get(gene_id) < expr) {
 						gene_to_max_expr.put(gene_id, expr);
+						gene_to_highest_expr_isoform.put(gene_id, path);
 					}
 				}
 				else {
 					gene_to_max_expr.put(gene_id, expr);
+					gene_to_highest_expr_isoform.put(gene_id, path);
 				}
 			}
 		}
@@ -10041,16 +10054,24 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 				
 				float pct_iso_expr = expr / max_iso_expr * 100;
 				
-				if (pct_iso_expr >= MIN_RELATIVE_ISOFORM_EXPRESSION) {
-
+				if (path == gene_to_highest_expr_isoform.get(gene_id)) {  // always retain highest expressed isoform.
+				
 					// keep it.
-					debugMes("Keeping isoform: " + path + " as having " + pct_iso_expr + "% dom. iso expr for gene.", 15);
+					debugMes("Keeping TOP isoform: " + path + " as having _highest_ expr=" + expr + " and "+ pct_iso_expr + "% dom. iso expr for gene.", 15);
 
+				}
+				else if  (
+						expr * 100 >= MIN_TOTAL_ISOFORM_EXPRESSION
+						&&
+						pct_iso_expr >= MIN_RELATIVE_ISOFORM_EXPRESSION) {
+					
+					// keep it.
+					debugMes("Keeping isoform: " + path + " as having expr=" + expr + " and "+ pct_iso_expr + "% dom. iso expr for gene.", 15);
 
 				}
 				else {
 					keep = false;
-					debugMes("*Excluding isoform: " + path + " as having " + pct_iso_expr + "% dom. iso expr for gene.", 15);
+					debugMes("*Excluding isoform: " + path + " as having expr=" + expr + " and " + pct_iso_expr + "% dom. iso expr for gene.", 15);
 
 				}
 				

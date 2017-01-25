@@ -31,8 +31,7 @@ main: {
     }
 
     exit(0);
-    
-    
+        
 }
 
 ####
@@ -54,7 +53,7 @@ sub parse_stats {
         my $per_gap = $x[3];
         my $per_len = $x[10];
 
-        if ($per_len >= $MIN_PER_LEN && $per_gap >= $MAX_PER_GAP) {
+        if ($per_len >= $MIN_PER_LEN && $per_gap <= $MAX_PER_GAP) {
 
             $line .= "\t**";
         }

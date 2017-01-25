@@ -420,7 +420,42 @@ class Node_alignment:
         
         return squeezed_alignment
 
-    
+
+    def to_gene_fasta_and_gtf(self, gene_name):
+
+        transcript_names = self.get_transcript_names()
+
+        gene_seq = ""
+
+        # init transcript gtf records
+        transcript_to_gtf_lines = dict()
+        for transcript_name in transcript_names:
+            transcript_to_gtf_lines[ transcript_name ] = ""
+            
+
+        for i in range(0,self.width()):
+            node_obj = self.get_representative_column_node(i)
+            node_occupancy = self.get_node_occupancy_at_column_pos(i)
+
+            pos_start = len(gene_seq) + 1
+            gene_seq += node_obj.get_seq()
+            pos_end = len(gene_seq)
+
+            # include gtf record for transcripts
+            for j in range(0,len(transcript_names)):
+                transcript_name = transcript_names[ j ]
+                if node_occupancy[ j ] is True:
+                    # make gtf record
+                    transcript_to_gtf_lines[ transcript_name ] += "\t".join([gene_name, "Trinity_gene", "exon",
+                                                                            str(pos_start), str(pos_end), '.', '+', '.',
+                                                                            "gene_id \"{}\"; transcript_id \"{}\"\n".format(
+                                                                                gene_name, transcript_name) ] )
+        
+        # build mini-gtf section
+        gene_gtf = "\n".join(transcript_to_gtf_lines.values())
+
+        return (gene_seq, gene_gtf)
+        
 
 class Gene_splice_modeler:
 
@@ -689,6 +724,8 @@ def main():
     
     parser.add_argument("--trinity_fasta", dest="trinity_fasta", type=str, default="", required=True, help="Trinity.fasta file")
 
+    parser.add_argument("--out_prefix", dest="out_prefix", type=str, default="trinity_genes", required=False, help="output prefix for fasta and gtf outputs")
+
     parser.add_argument("--debug", required=False, action="store_true", default=False, help="debug mode")
 
     args = parser.parse_args()
@@ -701,6 +738,12 @@ def main():
 
     gene_to_isoform_info = trin_parser.get_trinity_gene_to_isoform_info()
 
+    out_fasta_filename = args.out_prefix + ".fasta"
+    out_gtf_filename = args.out_prefix + ".gtf"
+
+    ofh_fasta = open(out_fasta_filename, 'w')
+    ofh_gtf = open(out_gtf_filename, 'w')
+    
     ## examine the alt spliced isoforms.
     for gene_name in gene_to_isoform_info:
         iso_struct_list = gene_to_isoform_info[ gene_name ]
@@ -730,6 +773,10 @@ def main():
 
         logger.info("Squeezed splice model for Gene {}:\n{}\n".format(gene_name, str(squeezed_splice_model)))
 
+        (gene_seq, gtf_txt) = squeezed_splice_model.to_gene_fasta_and_gtf(gene_name)
+
+        ofh_fasta.write(">{}\n{}\n".format(gene_name, gene_seq))
+        ofh_gtf.write(gtf_txt + "\n")
         
 
     sys.exit(0)

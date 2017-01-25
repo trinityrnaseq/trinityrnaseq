@@ -17,8 +17,10 @@ my $usage = <<__EOUSAGE__;
 #
 #  Required:
 #  --genome <string>           target genome to align to
+#  and
 #  --reads  <string>           fastq files. If pairs, indicate both in quotes, ie. "left.fq right.fq"
-#
+#    or
+#  --samples_file <string>     samples.txt file (format: sample_name(tab)left.fq(tab)right.fq)
 #  Optional:
 #  -N <int>                    number of top hits (default: 1)
 #  -I <int>                    max intron length (default: 1000000)
@@ -48,6 +50,7 @@ my $out_prefix = "gsnap";
 my $gtf_file;
 my $no_sarray = "";
 my $proper_pairs_only_flag = 0;
+my $samples_file;
 
 &GetOptions( 'h' => \$help_flag,
              'genome=s' => \$genome,
@@ -59,10 +62,13 @@ my $proper_pairs_only_flag = 0;
              'G=s' => \$gtf_file,
              'no_sarray' => \$no_sarray,
              'proper_pairs_only' => \$proper_pairs_only_flag,
+             
+             'samples_file=s' => \$samples_file,
+             
     );
 
 
-unless ($genome && $reads) {
+unless ($genome && ($reads || $samples_file)) {
     die $usage;
 }
 
@@ -81,8 +87,6 @@ main: {
 	
 	unless (-d "$genomeBaseDir/$genomeDir") {
 		
-        
-
         my $cmd = "gmap_build -D $genomeBaseDir -d $genomeDir -T $genomeBaseDir -k 13 $no_sarray $genome >&2";
 		&process_cmd($cmd);
 	}
@@ -109,24 +113,45 @@ main: {
     
     my $gsnap_use_sarray = ($no_sarray) ? "--use-sarray=0" : "";
 
-    if ($reads =~ /\.gz$/) {
-        $reads .= " --gunzip";
+    my @reads_files;
+    if ($samples_file) {
+        open (my $fh, $samples_file) or die $!;
+        while (<$fh>) {
+            chomp;
+            my ($sample_name, $read_paths) = split(/\t/, $_, 2);
+            $read_paths =~ s/\t/ /g;
+            push (@reads_files, [$sample_name, $read_paths]);
+        }
+        close $fh;
+    }
+    else {
+        @reads_files = [$out_prefix, $reads];
     }
 
-    my $require_proper_pairs = "";
-    if ($proper_pairs_only_flag) {
-        $require_proper_pairs = " -f 2 ";
-    }
+    foreach my $read_set_aref (@reads_files) {
 
-    my $cmd = "bash -c \"set -o pipefail && gsnap -D $genomeBaseDir -d $genomeDir -A sam -N 1 -w $max_intron $gsnap_use_sarray -n $num_top_hits -t $CPU $reads $splice_param @ARGV | samtools view -bS -F 4 $require_proper_pairs - | samtools sort -@ $CPU - $out_prefix.cSorted \"";
-    &process_cmd($cmd);
-
-    if (-s "$out_prefix.cSorted.bam") {
-        $cmd = "samtools index $out_prefix.cSorted.bam";
+        my ($out_prefix, $reads) = @$read_set_aref;
+        
+        if ($reads =~ /\.gz$/) {
+            $reads .= " --gunzip";
+        }
+        
+        my $require_proper_pairs = "";
+        if ($proper_pairs_only_flag) {
+            $require_proper_pairs = " -f 2 ";
+        }
+        
+        my $cmd = "bash -c \"set -o pipefail && gsnap -D $genomeBaseDir -d $genomeDir -A sam -N 1 -w $max_intron $gsnap_use_sarray -n $num_top_hits -t $CPU $reads $splice_param @ARGV | samtools view -bS -F 4 $require_proper_pairs - | samtools sort -@ $CPU - $out_prefix.cSorted \"";
         &process_cmd($cmd);
+        
+        if (-s "$out_prefix.cSorted.bam") {
+            $cmd = "samtools index $out_prefix.cSorted.bam";
+            &process_cmd($cmd);
+        }
     }
     
-	exit(0);
+    
+    exit(0);
 }
 
 ####

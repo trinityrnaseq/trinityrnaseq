@@ -118,9 +118,9 @@ main: {
         open (my $fh, $samples_file) or die $!;
         while (<$fh>) {
             chomp;
-            my ($condition, $sample_name, $read_paths) = split(/\t/, $_, 2);
-            $read_paths =~ s/\t/ /g;
-            push (@reads_files, [$sample_name, $read_paths]);
+            my ($condition, $sample_name, @read_paths) = split(/\s+/);
+            my $read_paths_str = join(" ", @read_paths);
+            push (@reads_files, [$sample_name, $read_paths_str]);
         }
         close $fh;
     }

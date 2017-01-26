@@ -77,7 +77,7 @@ main: {
     foreach my $sample_info_aref (@samples_info) {
         my ($condition, $replicate) = @$sample_info_aref;
 
-        my $bam_file = "$condition.cSorted.bam";
+        my $bam_file = "$replicate.cSorted.bam";
         unless (-s $bam_file) {
             die "Error, cannot locate bam file: $bam_file";
         }
@@ -116,9 +116,11 @@ main: {
 
     my $dexseq_rscript = "$out_prefix.Rscript";
     {
+        
         open (my $ofh, ">$dexseq_rscript") or die "Error, cannot write to $dexseq_rscript";
+        print $ofh "library(DEXSeq)\n";
         print $ofh "samples_info = read.table(\"$samples_table_file\", header=T, row.names=1)\n";
-        print $ofh "dxd = DEXSeqDataSetFromHTSeq(as.vector(samples_info$counts_filename), sampleData=samples_info, design = ~ sample + exon + condition:exon, flattenedfile=\"$trinity_genes_gtf_file.dexseq.gff\")\n";
+        print $ofh "dxd = DEXSeqDataSetFromHTSeq(as.vector(samples_info\$counts_filename), sampleData=samples_info, design = ~ sample + exon + condition:exon, flattenedfile=\"$trinity_genes_gtf_file.dexseq.gff\")\n";
         print $ofh "pdf(\"$out_prefix.pdf\")\n";
         print $ofh "dxd = estimateSizeFactors( dxd )\n";
         print $ofh "dxd = estimateDispersions( dxd )\n";
@@ -129,7 +131,7 @@ main: {
         print $ofh "write.table(dxr1, file=\"$out_prefix.results.dat\", quote=F, sep=\"\t\")\n";
         print $ofh "plotMA( dxr1, cex=0.8 )\n";
         close $ofh;
-
+        
     }
     
     $cmd = "R --vanilla -q < $dexseq_rscript";

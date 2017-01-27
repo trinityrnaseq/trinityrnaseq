@@ -36,7 +36,7 @@ class Node:
         if node_id in node_cache:
             node_obj = node_cache[ node_id ]
             if node_obj.seq != node_seq:
-                raise RuntimeException("Error, have conflicting node sequences for node_id: {}".format(node_id))
+                raise RuntimeError("Error, have conflicting node sequences for node_id: {}".format(node_id))
             return node_obj
         else:
             # instantiate a new one
@@ -166,7 +166,7 @@ class Trinity_fasta_parser:
 
         m = re.search("^>(\S+)", header)
         if not m:
-            raise RuntimeException("Error, cannot parse accession from header: {}".format(header))
+            raise RuntimeError("Error, cannot parse accession from header: {}".format(header))
         accession = m.group(1)
 
         m = re.search("path=\[([^\]]+)\]", header)
@@ -178,7 +178,7 @@ class Trinity_fasta_parser:
         # get gene ID
         gene_id = re.sub("_i\d+$", "", accession)
         if gene_id == accession:
-            raise RuntimeException("Error, couldn't remove isoform ID from Trinity accession: {}".format(accession))
+            raise RuntimeError("Error, couldn't remove isoform ID from Trinity accession: {}".format(accession))
 
         isoform_list = self.trinity_gene_to_isoform_seqs[ gene_id ]
 
@@ -317,7 +317,7 @@ class Node_alignment:
     def add_column(self, column_node_list):
         num_alignments = len(self)
         if len(column_node_list) != num_alignments:
-            raise RuntimeException("Error, column size differs from num_alignments")
+            raise RuntimeError("Error, column size differs from num_alignments")
 
         for i in range(0,num_alignments):
             self.aligned_nodes[ i ].append(column_node_list[ i ])
@@ -464,6 +464,8 @@ class Gene_splice_modeler:
 
         ## create alignments
         self.alignments = list()
+
+        logger.info("Gene_splice_modeler inputs: {}".format(node_path_obj_list))
         
         for node_path_obj in node_path_obj_list:
             transcript_name = node_path_obj.get_transcript_name()
@@ -484,6 +486,10 @@ class Gene_splice_modeler:
         ## build multiple alignment in a hierarchical way
         while len(similarity_matrix) > 1:
 
+            # set diag to -1 to avoid any zero ties w/ self-vals
+            for i in range(0,len(alignments)):
+                similarity_matrix[ i ][ i ] = -1
+            
             ## find best pair
             best_pair_idx = int(numpy.argmax(similarity_matrix))
             num_alignments = len(similarity_matrix)
@@ -512,7 +518,7 @@ class Gene_splice_modeler:
 
 
         if len(alignments) > 1:
-            raise RuntimeException("Error, should only have one alignment but have {} alignments after merge".format(len(alignments)))
+            raise RuntimeError("Error, should only have one alignment but have {} alignments after merge".format(len(alignments)))
         
         return alignments[0]
 
@@ -542,6 +548,14 @@ class Gene_splice_modeler:
 
         logger.info("Merging alignments {} and {}".format(align_a, align_b))
 
+        ## ensure the transcripts are disjoint
+        transcript_names_align_A = set(align_a.get_transcript_names())
+        transcript_names_align_B = set(align_b.get_transcript_names())
+
+        if not set.isdisjoint(transcript_names_align_A, transcript_names_align_B):
+            raise RuntimeError("Error, transcripts in alignments to merge are not disjoint: {} and {}".format(transcript_names_align_A, transcript_names_align_B))
+
+        
         width_a = align_a.width()
         width_b = align_b.width()
 
@@ -610,9 +624,9 @@ class Gene_splice_modeler:
         i = max_i
         j = max_j
         all_merged_alignment_nodes_list = list()
-        while i > 0 and j > 0:
+        while i > 0 or j > 0:
             score_struct = dp_matrix[ i ][ j ]
-
+            
             nodes_align_a = align_a.get_node_LIST_at_column_pos(i-1) # again, remember align has zero-based coords, whereas dp_matrix is 1-based
             nodes_align_b = align_b.get_node_LIST_at_column_pos(j-1)
 
@@ -641,6 +655,9 @@ class Gene_splice_modeler:
                 for x in range(0,len(nodes_align_a)):
                     align_nodes.append(None)
                 align_nodes += nodes_align_b
+
+            else:
+                raise RuntimeError("bt: ({},{}), bt_dir not defined".format(i,j))
 
             all_merged_alignment_nodes_list.append(align_nodes)
 

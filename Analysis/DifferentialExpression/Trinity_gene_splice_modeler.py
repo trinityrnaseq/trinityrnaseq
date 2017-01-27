@@ -831,7 +831,7 @@ def main():
 
     ofh_fasta.close()
     ofh_gtf.close()
-    ofh.malign.close()
+    ofh_malign.close()
 
     sys.exit(0)
 

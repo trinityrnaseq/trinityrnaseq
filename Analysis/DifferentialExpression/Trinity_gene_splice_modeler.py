@@ -123,10 +123,7 @@ class Node_path:
         return path_str
         
 
-
 class Trinity_fasta_parser:
-
-    
 
     def __init__(self, trinity_fasta_filename):
 
@@ -217,7 +214,6 @@ class Node_alignment:
         return self
 
 
-
     @staticmethod
     def compute_number_common_nodes(align_A, align_B):
         node_set_a = Node_alignment.get_node_set(align_A)
@@ -230,6 +226,7 @@ class Node_alignment:
 
         return common_nodes
 
+
     @staticmethod
     def get_node_loc_ids(node_set):
         loc_ids_set = set()
@@ -238,8 +235,6 @@ class Node_alignment:
             loc_ids_set.add(loc_id)
 
         return loc_ids_set
-
-
     
 
     @staticmethod
@@ -259,7 +254,6 @@ class Node_alignment:
 
 
     def get_node_set_at_column_pos(self, col_pos):
-
         node_objs = set()
         for i in range(0, len(self)):
             node_obj = self.aligned_nodes[ i ][ col_pos ]
@@ -425,17 +419,23 @@ class Node_alignment:
     def to_gene_fasta_and_gtf(self, gene_name):
 
         transcript_names = self.get_transcript_names()
-
+        
         gene_seq = ""
 
         # init transcript gtf records
         transcript_to_gtf_lines = dict()
+
+        transcript_to_malign = dict()
+
         for transcript_name in transcript_names:
             transcript_to_gtf_lines[ transcript_name ] = ""
-            
+            transcript_to_malign[ transcript_name ] = ""
 
         for i in range(0,self.width()):
             node_obj = self.get_representative_column_node(i)
+
+            node_seq = node_obj.get_seq()
+
             node_occupancy = self.get_node_occupancy_at_column_pos(i)
 
             pos_start = len(gene_seq) + 1
@@ -451,11 +451,16 @@ class Node_alignment:
                                                                             str(pos_start), str(pos_end), '.', '+', '.',
                                                                             "gene_id \"{}\"; transcript_id \"{}\"\n".format(
                                                                                 gene_name, transcript_name) ] )
+                    transcript_to_malign[ transcript_name ] += node_seq
+                else:
+                    for x in range(0,len(node_seq)):
+                        transcript_to_malign[ transcript_name ] += '.'
+                
         
         # build mini-gtf section
         gene_gtf = "\n".join(transcript_to_gtf_lines.values())
 
-        return (gene_seq, gene_gtf)
+        return (gene_seq, gene_gtf, transcript_to_malign)
         
 
 class Gene_splice_modeler:
@@ -700,8 +705,29 @@ class Gene_splice_modeler:
             return 1 # match
         else:
             return 0 # no match
-    
-            
+
+
+    @staticmethod
+    def write_malign(gene_name, malign_dict, ofh, align_width=100):
+
+        transcript_names = malign_dict.keys()
+
+        alignment_length = len(malign_dict[ transcript_names[ 0 ] ])
+
+        align_start = 0
+
+        align_text = ""
+
+        while align_start < alignment_length:
+            for transcript_name in transcript_names:
+                align_region = malign_dict[ transcript_name ][ align_start : min(alignment_length, align_start + align_width) ]
+                align_text += transcript_name + "\t" + align_region + "\n"
+            align_text += "\n" # spacer between alignment blocks
+            align_start += align_width
+
+        ofh.write("// {}\n\n{}\n".format(gene_name, align_text))
+
+                
 class DP_matrix:
 
     @staticmethod
@@ -758,9 +784,11 @@ def main():
 
     out_fasta_filename = args.out_prefix + ".fasta"
     out_gtf_filename = args.out_prefix + ".gtf"
+    out_malign_filename = args.out_prefix + ".malign"
 
     ofh_fasta = open(out_fasta_filename, 'w')
     ofh_gtf = open(out_gtf_filename, 'w')
+    ofh_malign = open(out_malign_filename, 'w')
     
     ## examine the alt spliced isoforms.
     for gene_name in gene_to_isoform_info:
@@ -789,16 +817,21 @@ def main():
 
         logger.info("Final splice_model_alignment for Gene {} :\n{}\n".format(gene_name, str(splice_model_alignment)))
 
-
         squeezed_splice_model = splice_model_alignment.squeeze()
-
+        
         logger.info("Squeezed splice model for Gene {}:\n{}\n".format(gene_name, str(squeezed_splice_model)))
 
-        (gene_seq, gtf_txt) = squeezed_splice_model.to_gene_fasta_and_gtf(gene_name)
+        (gene_seq, gtf_txt, malign_dict) = squeezed_splice_model.to_gene_fasta_and_gtf(gene_name)
 
         ofh_fasta.write(">{}\n{}\n".format(gene_name, gene_seq))
         ofh_gtf.write(gtf_txt + "\n")
-        
+
+        Gene_splice_modeler.write_malign(gene_name, malign_dict, ofh_malign)
+
+
+    ofh_fasta.close()
+    ofh_gtf.close()
+    ofh.malign.close()
 
     sys.exit(0)
 

@@ -29,9 +29,9 @@ samtools:
 	mv samtools-0.1.19/samtools ./BIN/.
 
 seqtk_target:
-	tar xvf seqtk-v1.2.tar.gz
-	cd seqtk-1.2 && $(MAKE)
-	mv seqtk-1.2/seqtk ./BIN/.
+	tar xvf seqtk-trinity.v0.0.2.tar.gz
+	cd seqtk-trinity-0.0.2 && $(MAKE)
+	mv seqtk-trinity-0.0.2/seqtk-trinity ./BIN/.
 
 jellyfish:
 	tar -zxvf ${JELLYFISH_CODE}.tar.gz && ln -sf ${JELLYFISH_CODE} tmp.jellyfish
@@ -69,7 +69,7 @@ collectl_target:
 clean:
 	rm -rf ${JELLYFISH_CODE} ./jellyfish # has tar.gz
 	rm -rf ./samtools-0.1.19
-	rm -rf ./seqtk-1.2
+	rm -rf ./seqtk-trinity-0.0.2
 	rm -rf ./htslib
 	cd scaffold_iworm_contigs && $(MAKE) clean
 	cd parafly-code && $(MAKE) clean

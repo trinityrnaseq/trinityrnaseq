@@ -6,7 +6,6 @@ FASTOOL_CODE=fstrozzi-Fastool-7c3e034f05
 PARAFLY_CODE=parafly-code
 TRIMMOMATIC_CODE=Trimmomatic-0.32
 
-
 # set ltinfo use for samtools if on linux and it exists on the system.
 ifeq ($(shell uname -s),"Linux")
 	LTINFO_SEARCH=$(shell ldconfig -p |grep tinfo)
@@ -18,7 +17,7 @@ endif
 
 
 
-trinity_essentials: jellyfish scaffold_iworm_contigs_target fastool_target parafly_target trimmomatic_target samtools
+trinity_essentials: jellyfish scaffold_iworm_contigs_target seqtk_target parafly_target trimmomatic_target samtools
 
 trimmomatic_target:
 	ln -sf ${TRIMMOMATIC_CODE} Trimmomatic
@@ -28,6 +27,11 @@ samtools:
 	tar xvf samtools-0.1.19.tar.bz2
 	cd samtools-0.1.19 && $(MAKE) $(LTINFO)
 	mv samtools-0.1.19/samtools ./BIN/.
+
+seqtk_target:
+	tar xvf seqtk-v1.2.tar.gz
+	cd seqtk-1.2 && $(MAKE)
+	mv seqtk-1.2/seqtk ./BIN/.
 
 jellyfish:
 	tar -zxvf ${JELLYFISH_CODE}.tar.gz && ln -sf ${JELLYFISH_CODE} tmp.jellyfish
@@ -41,10 +45,6 @@ htslib_target:
 
 scaffold_iworm_contigs_target: htslib_target
 	cd scaffold_iworm_contigs && $(MAKE)
-
-fastool_target:
-	cd ${FASTOOL_CODE} && $(MAKE)
-	ln -sf ${FASTOOL_CODE} fastool
 
 
 parafly_target:
@@ -68,9 +68,8 @@ collectl_target:
 
 clean:
 	rm -rf ${JELLYFISH_CODE} ./jellyfish # has tar.gz
-	cd ${FASTOOL_CODE} && $(MAKE) clean
 	rm -rf ./samtools-0.1.19
-	rm -f ./fastool # rm symlink
+	rm -rf ./seqtk-1.2
 	rm -rf ./htslib
 	cd scaffold_iworm_contigs && $(MAKE) clean
 	cd parafly-code && $(MAKE) clean

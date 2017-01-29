@@ -23,3 +23,6 @@ fi
 
 ##### Done Running Trinity #####
 
+# check full-length reconstruction stats:
+./test_FL.sh --query trinity_out_dir/Trinity.fasta --target __indiv_ex_sample_derived/refSeqs.fa --no_reuse
+

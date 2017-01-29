@@ -2801,13 +2801,17 @@ sub collectl_stop {
         system("sleep 10");
         kill("TERM", $collectl_pid);
         waitpid($collectl_pid,0);
-        chdir($collectl_output_directory);
-        
-        my $cmd = "$COLLECTL_DIR/../util/collectl_dat_to_time_matrix.py --dat ./collectl.dat";
-        &process_cmd($cmd);
 
-        $cmd = "$COLLECTL_DIR/../util/plot_time_vs_resource.Rscript collectl";
-        &process_cmd($cmd);
+
+        ## run this step manually afterwards... or go back to waiting until the OS has finished writing the files.
+        
+        #chdir($collectl_output_directory);
+        #
+        #my $cmd = "$COLLECTL_DIR/../util/collectl_dat_to_time_matrix.py --dat ./collectl.dat";
+        #&process_cmd($cmd);
+        #
+        #$cmd = "$COLLECTL_DIR/../util/plot_time_vs_resource.Rscript collectl";
+        #&process_cmd($cmd);
         
     }
 }

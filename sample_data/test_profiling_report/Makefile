@@ -4,7 +4,8 @@ test:
 
 
 clean:
-	rm -f ex*/*matrix ex*/*pdf
+	rm -f ex1.* ex2.*
+
 
 
 

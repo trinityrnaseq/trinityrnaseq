@@ -111,13 +111,10 @@ my $ROOTDIR = "$FindBin::RealBin/../";
 my $UTILDIR = "$ROOTDIR/util/support_scripts/";
 my $INCHWORM_DIR = "$ROOTDIR/Inchworm";
 my $JELLYFISH_DIR = "$ROOTDIR/trinity-plugins/jellyfish";
-my $FASTOOL_DIR = "$ROOTDIR/trinity-plugins/fastool";
 
 unless (@ARGV) {
     die "$usage\n";
 }
-
-my $NO_FASTOOL = 0;
 
 my $NO_CLEANUP = 0;
 
@@ -145,8 +142,6 @@ my $TMP_DIR_NAME = "tmp_normalized_reads";
     'JM=s'          => \$max_memory, # in GB
 
     # misc
-    'no_fastool' => \$NO_FASTOOL,
-
     'KMER_SIZE=i' => \$KMER_SIZE,
     'CPU=i' => \$CPU,
     'PARALLEL_STATS' => \$PARALLEL_STATS,
@@ -172,12 +167,6 @@ if ($help_flag) {
 
 if (@ARGV) {
     die "Error, do not understand options: @ARGV\n";
-}
-
-
-my $USE_FASTOOL = 1; # by default, using fastool for fastq to fasta conversion
-if ($NO_FASTOOL) {
-    $USE_FASTOOL = 0;
 }
 
 
@@ -313,7 +302,6 @@ main: {
         my $thr1;
         my $thr2;
 
-                
         if (-s "left.fa" && -e "left.fa.ok") {
             $thr1 = threads->create(sub { print ("left file exists, nothing to do");});
         }
@@ -642,21 +630,15 @@ sub prep_seqs {
         ($initial_file) = &add_fifo_for_gzip($initial_file);
         $using_FIFO_flag = 1;
     }
+    
     if ($seqType eq "fq") {
         # make fasta
-        
-        my $perlcmd = "$UTILDIR/fastQ_to_fastA.pl -I $initial_file ";
-        my $fastool_cmd = "$FASTOOL_DIR/fastool";
+        my $cmd = "seqtk-trinity seq -A";
         if ($SS_lib_type && $SS_lib_type eq "R") {
-            $perlcmd .= " --rev ";
-            $fastool_cmd .= " --rev ";
+            $cmd  =~ s/trinity seq /trinity seq -r /;
         }
-        $fastool_cmd .= " --illumina-trinity --to-fasta $initial_file >> $file_prefix.fa";
-        $perlcmd .= " >> $file_prefix.fa";  
-        
-       
-        my $cmd = ($USE_FASTOOL) ? $fastool_cmd : $perlcmd;
-        
+        $cmd .= " $initial_file >> $file_prefix.fa";
+                        
         &process_cmd($cmd);
     }
     elsif ($seqType eq "fa") {
@@ -665,7 +647,7 @@ sub prep_seqs {
             &process_cmd($cmd);
         }
         else {
-
+            
             if ($using_FIFO_flag) {
                 # can't symlink it, so just cat it
                 my $cmd = "cat $initial_file > $file_prefix.fa";
@@ -678,15 +660,8 @@ sub prep_seqs {
             }
         }
     }
-    elsif (($seqType eq "cfa") | ($seqType eq "cfq")) {
-        # make double-encoded fasta
-        my $cmd = "$UTILDIR/csfastX_to_defastA.pl -I $initial_file ";
-        if ($SS_lib_type && $SS_lib_type eq "R") {
-            $cmd .= " --rev ";
-        }
-        $cmd .= ">> $file_prefix.fa";
-        &process_cmd($cmd);
-  }
+    
+    
     return;
 }
 
@@ -696,9 +671,19 @@ sub prep_seqs {
 sub prep_list_of_seqs {
     my ($files, $seqType, $file_prefix, $SS_lib_type) = @_;
 
+    # generates $file_prefix.fa by converting & concatenating $files of $seqType
+    
+    eval {
+        
+        for my $file ( @$files ) {
+            prep_seqs( $file,  $seqType, $file_prefix, $SS_lib_type);
+        }
+    };
 
-    for my $file ( @$files ) {
-        prep_seqs( $file,  $seqType, $file_prefix, $SS_lib_type);
+    if ($@) {
+        # remove faulty output file
+        unlink("$file_prefix.fa");
+        die $@;
     }
     
     return 0;

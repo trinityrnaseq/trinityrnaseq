@@ -1,7 +1,7 @@
 
 OS := $(shell uname)
 
-JELLYFISH_CODE="jellyfish-2.1.4"
+JELLYFISH_CODE="jellyfish-2.2.6"
 COLLECTL_CODE="collectl-4.1.0"
 PARAFLY_CODE=parafly-code
 TRIMMOMATIC_CODE=Trimmomatic-0.36

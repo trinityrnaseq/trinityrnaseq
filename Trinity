@@ -3161,12 +3161,12 @@ sub write_trinity_partitioned_cmds {
         my $arg = shift @potential_args;
         
         # single value options that aren't needed:
-        if ($arg =~ /run_as_paired|normalize_by_read_set|trimmomatic|normalize_reads|prep|recurs|clean/) {
+        if ($arg =~ /run_as_paired|normalize_by_read_set|trimmomatic|normalize_reads|prep|recurs|clean|monitoring/) {
             next;
         }
         
         # value specified options that aren't needed
-        if ($arg =~ /seqType|left|right|single|genome|SS_lib_type|quality_trimming|output|normalize_max_read_cov|grid_conf|max_mem|grid|long_reads|inchworm_cpu|samples_file/
+        if ($arg =~ /seqType|left|right|single|genome|SS_lib_type|quality_trimming|output|normalize_max_read_cov|grid_conf|max_mem|grid|long_reads|inchworm_cpu|samples_file|monitor_sec/
             ||
             # more precise identification of parameter
             $arg =~ /^(--CPU)$/

@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Findbin;
+use FindBin;
 use lib ("$FindBin::Bin/../../PerlLib");
 use Process_cmd;
 

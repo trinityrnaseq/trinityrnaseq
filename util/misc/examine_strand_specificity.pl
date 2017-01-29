@@ -6,6 +6,7 @@ use FindBin;
 use lib ("$FindBin::Bin/../../PerlLib");
 use SAM_reader;
 use SAM_entry;
+use Process_cmd;
 
 my $usage = "\n\n\tusage: $0 transcript_aligned.bam [out_prefix='ss_analysis']\n\n";
 
@@ -76,7 +77,8 @@ main: {
 
 
     ## plot it.
-
+    my $cmd  = "$FindBin::Bin/plot_strand_specificity_dist_by_quantile.Rscript $out_prefix.dat";
+    &process_cmd($cmd);
     
     
     exit(0);

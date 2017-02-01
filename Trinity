@@ -1052,7 +1052,7 @@ $ENV{OMP_NUM_THREADS} = $CPU; ## for Inchworm and Chrysalis
 
 
 my $PAIRED_MODE = ( (@left_files && @right_files)  || $run_as_paired_flag) ? 1:0;
-if ($PAIRED_MODE && (!$NO_RUN_CHRYSALIS_FLAG)  && (!$NO_BOWTIE)) {
+if (!$NO_BOWTIE) {
     ## be sure we can find 'bowtie', since we use it as part of the iworm pair scaffolding step
     my $bowtie2_path = `which bowtie2`;
     my $bowtie2_build_path = `which bowtie2-build`;
@@ -1062,25 +1062,25 @@ if ($PAIRED_MODE && (!$NO_RUN_CHRYSALIS_FLAG)  && (!$NO_BOWTIE)) {
     else {
         die "Error, cannot find path to bowtie2 ($bowtie2_path) or bowtie2-build ($bowtie2_build_path), which is now needed as part of Chrysalis' read scaffolding step.  If you should choose to not run bowtie, include the --no_bowtie in your Trinity command.\n\n";
     }
-    
-    my $samtools_path = `which samtools`;
-    if ($samtools_path =~ /\w/) {
-        print "Found samtools at: $samtools_path\n" if $VERBOSE;
-    }
-    else {
-        die "Error, cannot find samtools. Please be sure samtools is installed and included in your PATH setting.\n";
-    }
-
-    unless ($path_reinforcement_distance) {
-        $path_reinforcement_distance = $PE_path_reinforcement_distance;
-    }
+}
+ 
+my $samtools_path = `which samtools`;
+if ($samtools_path =~ /\w/) {
+    print "Found samtools at: $samtools_path\n" if $VERBOSE;
 }
 else {
-    unless ($path_reinforcement_distance) {
+    die "Error, cannot find samtools. Please be sure samtools is installed and included in your PATH setting.\n";
+}
+
+
+unless ($path_reinforcement_distance) {
+    if ($PAIRED_MODE) {
+        $path_reinforcement_distance = $PE_path_reinforcement_distance;
+    }
+    else {
         $path_reinforcement_distance = $SE_path_reinforcement_distance;
     }
 }
-
 
 my $MKDIR_OUTDIR_FLAG = 0; ## only purging output_directory if we create it in this run.
 

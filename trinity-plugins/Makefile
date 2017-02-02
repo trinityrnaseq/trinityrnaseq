@@ -16,7 +16,7 @@ trimmomatic_target:
 
 samtools_target:
 	tar xvf samtools-1.3.1.tar.bz2
-	cd samtools-1.3.1 && ./configure --prefix=`pwd`
+	cd samtools-1.3.1 && ./configure --without-curses --prefix=`pwd`
 ifeq ($(OS),Darwin)
 	sed -i.bak s/-rdynamic//g samtools-1.3.1/Makefile
 endif

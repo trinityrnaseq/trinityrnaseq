@@ -156,7 +156,7 @@ public class TransAssembly_allProbPaths {
 	
 	private static Integer GENE_COUNTER = 0;
 	
-	private static Float MIN_TOTAL_ISOFORM_EXPRESSION = 5f;
+	private static Float MIN_TOTAL_ISOFORM_EXPRESSION = 1f;
 	private static Float MIN_RELATIVE_ISOFORM_EXPRESSION = 5f;
 	
 	private static Integer READ_END_PATH_TRIM_LENGTH = 0;

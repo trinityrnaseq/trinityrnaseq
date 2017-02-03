@@ -40,9 +40,6 @@ Otherwise, left-only or right-only counts.
 =cut
 
 
-
-
-
 main: {
 
 
@@ -51,7 +48,21 @@ main: {
 
     my @reads;
 
-    my %counts;
+    my %counts = ( 'UPP' => 0, # unique proper pairs
+                   'MPP' => 0, # multi-mapped proper pairs
+                   
+                   'IP' => 0, # improper pairs
+                   
+                   'UL' => 0, # left unique reads
+                   'ML' => 0, # left multi-mapped reads
+                   
+                   'UR' => 0, # right unique reads
+                   'MR' => 0, # right multi-mapped reads
+
+                   'US' => 0, # single unique-reads
+                   'MS' => 0, # single multi-mapped reads
+        );
+         
 
     my $line_counter = 0;
 
@@ -102,19 +113,56 @@ main: {
         $sum_reads += $count;
     }
 
-    print "\n#read_type\tcount\tpct\n";
-    foreach my $count_type (reverse sort {$counts{$a}<=>$counts{$b}} keys %counts) {
-        my $count = $counts{$count_type};
-        print "$count_type\t$count\t" . sprintf("%.2f", $count/$sum_reads*100) . "\n";
-    }
-    print "\n";
-    print "Total aligned rnaseq fragments: $sum_reads\n\n";
-    
+=try_mirror_bowtie2_summary
 
+30575 reads; of these:
+  30575 (100.00%) were paired; of these:
+    2577 (8.43%) aligned concordantly 0 times
+    5766 (18.86%) aligned concordantly exactly 1 time
+    22232 (72.71%) aligned concordantly >1 times
+    ----
+    2577 pairs aligned concordantly 0 times; of these:
+      133 (5.16%) aligned discordantly 1 time
+    ----
+    2444 pairs aligned 0 times concordantly or discordantly; of these:
+      4888 mates make up the pairs; of these:
+        3588 (73.40%) aligned 0 times
+        322 (6.59%) aligned exactly 1 time
+        978 (20.01%) aligned >1 times
+94.13% overall alignment rate
+
+=cut
+    
+    print "\n\n$sum_reads reads; of these:\n";
+    print "  " . ($sum_reads - $counts{US} - $counts{MS}) . " were paired; of these:\n";
+    print "    " . ($counts{UL} + $counts{ML} + $counts{UR} + $counts{MR} + $counts{IP}) . " aligned concordantly 0 times\n";
+    print "    " . $counts{UPP} . " aligned concordantly exactly 1 time\n";
+    print "    " . $counts{MPP} . " aligned concordantly >1 times\n";
+    print "    ----\n";
+    print "    " . ($counts{UL} + $counts{ML} + $counts{UR} + $counts{MR} + $counts{IP}) . " pairs aligned concordantly 0 times; of these:\n";
+    print "    " . $counts{IP} . " aligned as improper pairs\n";
+    print "    " . ($counts{UL} + $counts{ML} + $counts{UR} + $counts{MR}) . " pairs had only one fragment end align to one or more contigs; of these:\n";
+    print "       " . ($counts{UL} + $counts{ML}) . " fragments had only the left /1 read aligned; of these:\n";
+    print "            " . $counts{UL} . " left reads mapped uniquely\n";
+    print "            " . $counts{ML} . " left reads mapped >1 times\n";
+    print "       " . ($counts{UR} + $counts{MR}) . " fragments had only the right /2 read aligned; of these:\n";
+    print "            " . $counts{UR} . " right reads mapped uniquely\n";
+    print "            " . $counts{MR} . " right reads mapped >1 times\n";
+    print "Overall,  " . sprintf("%.2f", ($counts{UPP} + $counts{MPP})/$sum_reads * 100) . "% of aligned fragments aligned as proper pairs\n\n\n";
+    
+    if ($counts{US} + $counts{MS}) {
+        print "  " . ($counts{US} + $counts{MS}) . " were single-end reads; of these:\n";
+        print "      " . $counts{US} . " single-end reads mapped uniquely\n";
+        print "      " . $counts{MS} . " single-end reads mapped >1 times\n";
+    }
+        
     close $DEBUG_OFH if $DEBUG;
     
     exit(0);
+
 }
+
+
 
 ####
 sub process_pairs {
@@ -140,51 +188,76 @@ sub process_pairs {
     
 
     ## check to see if we have proper pairs:
-    my $got_proper_pair = 0;
+    my @proper_pairs;
+    
     
   pair_search:
     foreach my $left_read (@left_reads) {
+
+        unless ($left_read->is_proper_pair()) { next; }
+        
         
         my $aligned_pos = $left_read->get_aligned_position();
-        
-        
+                
         foreach my $right_read (@right_reads) {
+
+            unless ($right_read->is_proper_pair()) { next; }
             
             if ($left_read->get_scaffold_name() eq $right_read->get_scaffold_name()
                 &&
                 $right_read->get_mate_scaffold_position() == $aligned_pos) {
                 
-                $got_proper_pair = 1;
+                push (@proper_pairs, [$left_read, $right_read]);
                 
-                last pair_search;
+                last;
             }
         }
     }
-
+    
 
     my $class = "";
     
-    if ($got_proper_pair) {
-        $counts_href->{proper_pairs}++;
-        $class = "PP";
-        
+    if (@proper_pairs) {
+
+        if (scalar(@proper_pairs) == 1) {
+            $class = "UPP";
+        }
+        else {
+            # multi ampped proper pairs
+            $class = "MPP";
+        }
     }
     elsif ($got_left_read && $got_right_read) {
-        $counts_href->{improper_pairs}++;
         $class = "IP";
     }
     elsif ($got_left_read) {
-        $counts_href->{left_only}++;
-        $class = "L";
+
+        if (scalar(@left_reads) == 1) {
+            $class = "UL";
+        }
+        else {
+            $class = "ML";
+        }
     }
     elsif ($got_right_read) {
-        $counts_href->{right_only}++;
-        $class = "R";
+        
+        if (scalar(@right_reads) == 1) {
+            $class = "UR";
+        }
+        else {
+            $class = "MR";
+        }
     }
     else {
-        $counts_href->{single}++;
-        $class = "S";
+        if (scalar(@reads) == 1) {
+            $class = "US";
+        }
+        else {
+            $class = "MS";
+        }
     }
+
+    $counts_href->{$class}++;
     
     if ($DEBUG) {
         my $core_read_name = $reads[0]->get_core_read_name();

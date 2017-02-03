@@ -1,0 +1,36 @@
+#!/usr/bin/env Rscript
+
+args<-commandArgs(TRUE)
+
+if (length(args) == 0) {
+	stop("\n\nusage: plot_strand_specificity_dist_by_quantile.Rscript ss_analysis.dat\n\n")
+}
+
+
+dat_filename = args[1]
+
+library(vioplot)
+
+data = read.table(dat_filename, header=T, row.names=1, com='', sep='\t')
+
+data = data[rev(order(data$total_reads)),] # just to be sure they're in descending order of total counts.
+
+sum_reads = sum(data$total_reads)
+c = cumsum(data$total_reads)
+
+
+cut5 = data$diff_ratio[c <= 0.05 * sum_reads]
+cut10 = data$diff_ratio[c <= 0.10 * sum_reads]
+cut25 = data$diff_ratio[c <= 0.25 * sum_reads]
+cut50 = data$diff_ratio[c <= 0.5 * sum_reads]
+cut100 = data$diff_ratio
+
+plot_filename = paste0(dat_filename, ".vioplot.pdf")
+pdf(plot_filename)
+
+vioplot(cut5, cut10, cut25, cut50, cut100, names=c('5%', '10%', '25%', '50%', '100%'))
+
+dev.off()
+
+quit(save = "no", status = 0, runLast = FALSE)
+

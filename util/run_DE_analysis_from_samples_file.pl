@@ -189,7 +189,7 @@ sub parse_sample_descriptions {
     my %samples_descr;
     
     
-    open (my $fh, $read_samples_descr_file) or die $!;
+    open (my $fh, $read_samples_descr_file) or die "Error, cannot open file: $read_samples_descr_file";
     while (<$fh>) {
         if (/^\#/) { next; }
         unless (/\w/) { next; }

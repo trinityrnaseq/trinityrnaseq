@@ -38,7 +38,6 @@ my $INCHWORM_DIR = "$ROOTDIR/Inchworm/bin/";
 my $CHRYSALIS_DIR = "$ROOTDIR/Chrysalis";
 my $BUTTERFLY_DIR = "$ROOTDIR/Butterfly";
 my $JELLYFISH_DIR = "$ROOTDIR/trinity-plugins/jellyfish";
-my $FASTOOL_DIR = "$ROOTDIR/trinity-plugins/fastool";
 my $COLLECTL_DIR = "$ROOTDIR/trinity-plugins/COLLECTL/collectl";
 my $PARAFLY = "$ROOTDIR/trinity-plugins/parafly/bin/ParaFly";
 my $TRIMMOMATIC = "$ROOTDIR/trinity-plugins/Trimmomatic/trimmomatic.jar";
@@ -511,7 +510,6 @@ foreach (@ARGV) {
 };
 
 
-my $NO_FASTOOL = 0;
 my $NO_CLEANUP = 0;
 my $FULL_CLEANUP = 0;
 my $NO_BOWTIE = 0;
@@ -661,7 +659,6 @@ my $samples_file = "";
                  
     # misc
     'run_as_paired' => \$run_as_paired_flag,
-    'no_fastool' => \$NO_FASTOOL,
     'no_cleanup' => \$NO_CLEANUP,
     'full_cleanup' => \$FULL_CLEANUP,
     'version' => \$show_version_flag,
@@ -762,7 +759,6 @@ no_run_chrysalis
 grid_exec
 show_advanced_options
 run_as_paired
-no_fastool
 no_cleanup
 full_cleanup
 version
@@ -900,11 +896,6 @@ unless ($BFLY_JAR) {
     $BFLY_JAR = "$BUTTERFLY_DIR/Butterfly.jar";
 }
 
-
-my $USE_FASTOOL = 1; # by default, using fastool for fastq to fasta conversion
-if ($NO_FASTOOL) {
-    $USE_FASTOOL = 0;
-}
 
 unless ($NO_NORMALIZE_READS_FLAG) {
     $NORMALIZE_READS_FLAG = 1;
@@ -1061,7 +1052,7 @@ $ENV{OMP_NUM_THREADS} = $CPU; ## for Inchworm and Chrysalis
 
 
 my $PAIRED_MODE = ( (@left_files && @right_files)  || $run_as_paired_flag) ? 1:0;
-if ($PAIRED_MODE && (!$NO_RUN_CHRYSALIS_FLAG)  && (!$NO_BOWTIE)) {
+if (!$NO_BOWTIE) {
     ## be sure we can find 'bowtie', since we use it as part of the iworm pair scaffolding step
     my $bowtie2_path = `which bowtie2`;
     my $bowtie2_build_path = `which bowtie2-build`;
@@ -1071,25 +1062,25 @@ if ($PAIRED_MODE && (!$NO_RUN_CHRYSALIS_FLAG)  && (!$NO_BOWTIE)) {
     else {
         die "Error, cannot find path to bowtie2 ($bowtie2_path) or bowtie2-build ($bowtie2_build_path), which is now needed as part of Chrysalis' read scaffolding step.  If you should choose to not run bowtie, include the --no_bowtie in your Trinity command.\n\n";
     }
-    
-    my $samtools_path = `which samtools`;
-    if ($samtools_path =~ /\w/) {
-        print "Found samtools at: $samtools_path\n" if $VERBOSE;
-    }
-    else {
-        die "Error, cannot find samtools. Please be sure samtools is installed and included in your PATH setting.\n";
-    }
-
-    unless ($path_reinforcement_distance) {
-        $path_reinforcement_distance = $PE_path_reinforcement_distance;
-    }
+}
+ 
+my $samtools_path = `which samtools`;
+if ($samtools_path =~ /\w/) {
+    print "Found samtools at: $samtools_path\n" if $VERBOSE;
 }
 else {
-    unless ($path_reinforcement_distance) {
+    die "Error, cannot find samtools. Please be sure samtools is installed and included in your PATH setting.\n";
+}
+
+
+unless ($path_reinforcement_distance) {
+    if ($PAIRED_MODE) {
+        $path_reinforcement_distance = $PE_path_reinforcement_distance;
+    }
+    else {
         $path_reinforcement_distance = $SE_path_reinforcement_distance;
     }
 }
-
 
 my $MKDIR_OUTDIR_FLAG = 0; ## only purging output_directory if we create it in this run.
 
@@ -2316,90 +2307,114 @@ sub prep_seqs {
  
     my @initial_files = @$initial_files_ref;
     
-    return if -e "$file_prefix.fa";
+    return if -e "$file_prefix.fa.ok";
    	
     my $initial_file_str = join(" ",@initial_files);
-    if ($seqType eq "fq") {
-        # make fasta
-        foreach my $f (@initial_files){
-            my $fastool_cmd = "cat $f | $FASTOOL_DIR/fastool";
-            my $linecount_cmd = "cat $f | wc -l";
-            if ($f=~/\.gz$/){
-                $fastool_cmd = "gunzip -c $f | $FASTOOL_DIR/fastool";
-                $linecount_cmd = "gunzip -c $f | wc -l";
-            } elsif ($f=~/\.bz2$/){
-                $fastool_cmd = "bunzip2 -dkc $f | $FASTOOL_DIR/fastool";
-                $linecount_cmd = "bunzip2 -dkc $f | wc -l";
-            } elsif ($f =~ /\.xz/) {
-                $fastool_cmd = "xz -dc ${f} | ${FASTOOL_DIR}/fastool";
-                $linecount_cmd = "xz -dc ${f} | wc -l";
-                ## I would like to suggest that these if statements are not necessary if one just does
-                ## qx"less ${f} |" because less has smart input filters in place and will automagically
-                ## handle all the likely compression formats.
-            }
-            
-            if ($SS_lib_type && $SS_lib_type eq "R") {
-                $fastool_cmd .= " --rev";
-            }
-            my $style = "--illumina-trinity";
-            if ($file_prefix eq "left"){
-                $style = "--append /1";
-            }
-            elsif ($file_prefix eq "right"){
-                $style = "--append /2";
-            }
-            
-            my $readcount_file = $output_directory . "/" . basename($f) . ".readcount";
-            $fastool_cmd .= " $style --to-fasta >> $file_prefix.fa 2> $readcount_file";
-            my $cmd = $fastool_cmd;
-            &process_cmd($cmd);
-            
-            &ensure_complete_FQtoFA_conversion($linecount_cmd, $readcount_file);
-            
-        }
-    }
-    elsif ($seqType eq "fa") {
-        if (scalar(@initial_files) == 1 && (!$SS_lib_type || $SS_lib_type ne "R")) {
-            ## just symlink it here:
-            my $cmd = "ln -s $initial_file_str $file_prefix.fa";
-            if ($initial_file_str=~/\.gz$/){
-                $cmd = "gunzip -c $initial_file_str >$file_prefix.fa";
-            }elsif ($initial_file_str=~/\.bz2$/){
-                $cmd = "bunzip2 -dkc $initial_file_str >$file_prefix.fa";
-            } elsif ($initial_file_str =~ /\.xz$/) {
-                $cmd = "xz -dc ${initial_file_str} > ${file_prefix}.fa";
-            }
-            &process_cmd($cmd);
-        }elsif(scalar(@initial_files) > 1 && (!$SS_lib_type || $SS_lib_type ne "R")){
-            foreach my $f (@initial_files){
-                my $cmd = "cat $f >> $file_prefix.fa";
-                if ($f=~/\.gz$/){
-                    $cmd = "gunzip -c $f >> $file_prefix.fa";
-                }elsif ($f=~/\.bz2$/){
-                    $cmd = "bunzip2 -dkc $f >> $file_prefix.fa";
-                } elsif ($f =~ /\.xz$/) {
-                    $cmd = "xz -dc ${f} >> ${file_prefix}.fa";
-                }
-                &process_cmd($cmd);
-          	}
-        }else {
-            #if ($SS_lib_type && $SS_lib_type eq "R") {
-            foreach my $f (@initial_files){
-                my $cmd = "$UTILDIR/support_scripts/revcomp_fasta.pl $f >> $file_prefix.fa";
-                if ($f=~/\.gz$/){
-                    $cmd = "gunzip -c $f | $UTILDIR/support_scripts/revcomp_fasta.pl >> $file_prefix.fa";
-                }elsif ($f=~/\.bz2$/){
-                    $cmd = "bunzip2 -dkc $f | $UTILDIR/support_scripts/revcomp_fasta.pl >> $file_prefix.fa";
-                } elsif ($f =~ /\.xz$/) {
-                    $cmd = "xz -dc ${f} | ${UTILDIR}/support_scripts/revcomp_fasta.pl >> ${file_prefix}.fa";
-                }
-                &process_cmd($cmd);
-          	}
-        }
-    }
-    elsif (($seqType eq "cfa") | ($seqType eq "cfq")) {
+
+    
+    if (($seqType eq "cfa") | ($seqType eq "cfq")) {
         confess "cfa, cfq not supported";
     }
+        
+    eval {
+        
+        if ($seqType eq "fq") {
+            
+            # make fasta
+            foreach my $f (@initial_files){
+                my $cmd = "cat $f | seqtk-trinity seq -A -";
+                my $linecount_cmd = "cat $f | wc -l";
+                if ($f=~/\.gz$/){
+                    $cmd = "gunzip -c $f | seqtk-trinity seq -A -";
+                    $linecount_cmd = "gunzip -c $f | wc -l";
+                } elsif ($f=~/\.bz2$/){
+                    $cmd = "bunzip2 -dkc $f | seqtk-trinity seq -A -";
+                    $linecount_cmd = "bunzip2 -dkc $f | wc -l";
+                } elsif ($f =~ /\.xz/) {
+                    $cmd = "xz -dc ${f} | seqtk-trinity seq -A -";
+                    $linecount_cmd = "xz -dc ${f} | wc -l";
+                    ## I would like to suggest that these if statements are not necessary if one just does
+                    ## qx"less ${f} |" because less has smart input filters in place and will automagically
+                    ## handle all the likely compression formats.
+                }
+                
+                if ($SS_lib_type && $SS_lib_type eq "R") {
+                    $cmd =~ s/trinity seq /trinity seq -r /;
+                }
+                
+                $cmd .= " >> $file_prefix.fa";
+                                
+                &process_cmd($cmd);
+                
+            }
+            
+        }
+        
+        elsif ($seqType eq "fa") {
+            
+            if (scalar(@initial_files) == 1 && (!$SS_lib_type || $SS_lib_type ne "R")) {
+                ## just symlink it here:
+                my $cmd = "ln -s $initial_file_str $file_prefix.fa";
+                if ($initial_file_str=~/\.gz$/) {
+                    $cmd = "gunzip -c $initial_file_str >$file_prefix.fa";
+                }
+                elsif ($initial_file_str=~/\.bz2$/ ){
+                    $cmd = "bunzip2 -dkc $initial_file_str >$file_prefix.fa";
+                } 
+                elsif ($initial_file_str =~ /\.xz$/) {
+                    $cmd = "xz -dc ${initial_file_str} > ${file_prefix}.fa";
+                }
+                &process_cmd($cmd);
+            }
+            elsif (scalar(@initial_files) > 1 && (!$SS_lib_type || $SS_lib_type ne "R")) {
+                foreach my $f (@initial_files) {
+                    my $cmd = "cat $f >> $file_prefix.fa";
+                    if ($f=~/\.gz$/){
+                        $cmd = "gunzip -c $f >> $file_prefix.fa";
+                    }
+                    elsif ($f=~/\.bz2$/) {
+                        $cmd = "bunzip2 -dkc $f >> $file_prefix.fa";
+                    } 
+                    elsif ($f =~ /\.xz$/) {
+                        $cmd = "xz -dc ${f} >> ${file_prefix}.fa";
+                    }
+                    &process_cmd($cmd);
+                }
+            }
+            else {
+                #if ($SS_lib_type && $SS_lib_type eq "R") {
+                foreach my $f (@initial_files) {
+                    my $cmd = "$UTILDIR/support_scripts/revcomp_fasta.pl $f >> $file_prefix.fa";
+                    if ($f=~/\.gz$/) {
+                        $cmd = "gunzip -c $f | $UTILDIR/support_scripts/revcomp_fasta.pl >> $file_prefix.fa";
+                    }
+                    elsif ($f=~/\.bz2$/) {
+                        $cmd = "bunzip2 -dkc $f | $UTILDIR/support_scripts/revcomp_fasta.pl >> $file_prefix.fa";
+                    } 
+                    elsif ($f =~ /\.xz$/) {
+                        $cmd = "xz -dc ${f} | ${UTILDIR}/support_scripts/revcomp_fasta.pl >> ${file_prefix}.fa";
+                    }
+                    &process_cmd($cmd);
+                }
+            }
+            
+        
+            
+        }
+
+        
+    }; # end of eval block
+    
+    if ($@) {
+        # remove the $file_prefix.fa so it can be regenerated after fixing the problem.
+        unlink("$file_prefix.fa");
+        
+        die $@;
+    }
+    else {
+        &process_cmd("touch $file_prefix.fa.ok"); # leave checkpoint
+    }
+        
     return \@initial_files;
 }
 
@@ -2647,9 +2662,6 @@ sub show_lit_citation {
 ----- Tools Below are Used Within Trinity Accordingly -----------------------------------
 -----------------------------------------------------------------------------------------
 
-* Fastool (for fast fastQ-to-fastA conversion)
-Francesco Strozzi
-Code: https://github.com/fstrozzi/Fastool
 
 * Jellyfish (for fast K-mer counting)
 A fast, lock-free approach for efficient parallel counting of occurrences of k-mers.
@@ -2789,13 +2801,17 @@ sub collectl_stop {
         system("sleep 10");
         kill("TERM", $collectl_pid);
         waitpid($collectl_pid,0);
-        chdir($collectl_output_directory);
-        
-        my $cmd = "$COLLECTL_DIR/../util/collectl_dat_to_time_matrix.py --dat ./collectl.dat";
-        &process_cmd($cmd);
 
-        $cmd = "$COLLECTL_DIR/../util/plot_time_vs_resource.Rscript collectl";
-        &process_cmd($cmd);
+
+        ## run this step manually afterwards... or go back to waiting until the OS has finished writing the files.
+        
+        #chdir($collectl_output_directory);
+        #
+        #my $cmd = "$COLLECTL_DIR/../util/collectl_dat_to_time_matrix.py --dat ./collectl.dat";
+        #&process_cmd($cmd);
+        #
+        #$cmd = "$COLLECTL_DIR/../util/plot_time_vs_resource.Rscript collectl";
+        #&process_cmd($cmd);
         
     }
 }
@@ -3145,12 +3161,12 @@ sub write_trinity_partitioned_cmds {
         my $arg = shift @potential_args;
         
         # single value options that aren't needed:
-        if ($arg =~ /run_as_paired|normalize_by_read_set|trimmomatic|normalize_reads|prep|recurs|clean/) {
+        if ($arg =~ /run_as_paired|normalize_by_read_set|trimmomatic|normalize_reads|prep|recurs|clean|monitoring/) {
             next;
         }
         
         # value specified options that aren't needed
-        if ($arg =~ /seqType|left|right|single|genome|SS_lib_type|quality_trimming|output|normalize_max_read_cov|grid_conf|max_mem|grid|long_reads|inchworm_cpu|samples_file/
+        if ($arg =~ /seqType|left|right|single|genome|SS_lib_type|quality_trimming|output|normalize_max_read_cov|grid_conf|max_mem|grid|long_reads|inchworm_cpu|samples_file|monitor_sec/
             ||
             # more precise identification of parameter
             $arg =~ /^(--CPU)$/
@@ -3328,30 +3344,6 @@ sub run_ANANAS {
     exit(0);
 }
 
-
-####
-sub ensure_complete_FQtoFA_conversion {
-    my ($linecount_cmd, $fastool_count_file) = @_;
-
-    my $fastool_count_info = `cat $fastool_count_file`;
-    $fastool_count_info =~ /Sequences parsed: (\d+)/ or confess "Error, cannot parse $fastool_count_file";
-    my $fastool_count = $1;
-
-    
-    my $num_fq_lines = `$linecount_cmd`;
-    chomp $num_fq_lines;
-
-    my $num_fq_entries = $num_fq_lines / 4;
-
-    if ($num_fq_entries == $fastool_count) {
-        print STDERR "-conversion of $num_fq_entries from FQ to FA format succeeded.\n";
-    }
-    else {
-        confess "Error, counts of reads in FQ: $num_fq_entries (as per $linecount_cmd) doesn't match fastool's report of FA records: $fastool_count ";
-    }
-
-    return;
-}
 
 ####
 sub append_long_reads_to_iworm_contigs {

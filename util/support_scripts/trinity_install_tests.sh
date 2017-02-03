@@ -61,7 +61,7 @@ fi
 
 if [ -e "trinity-plugins/BIN/samtools" ]
 then
-    echo "samtools-0.1.19          has been Installed Properly"
+    echo "samtools          has been Installed Properly"
 else
-    echo "samtools-0.1.19 Installation appears to have FAILED"
+    echo "samtools          Installation appears to have FAILED"
 fi

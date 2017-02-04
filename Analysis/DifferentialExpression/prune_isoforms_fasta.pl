@@ -195,7 +195,7 @@ sub parse_gene_trans_relationships {
 
     my %gene_to_trans;
 
-    open(my $fh, $gene_trans_map_file) or die $!;
+    open(my $fh, $gene_trans_map_file) or die "Error, cannot open file $gene_trans_map_file";
     while (<$fh>) {
         unless (/\w/) { next; }
         if (/^\#/) { next; }
@@ -233,7 +233,7 @@ sub parse_samples_file {
 sub parse_expr_matrix {
     my ($expr_matrix, $sample_to_replicates_href) = @_;
 
-    open(my $fh, $expr_matrix) or die $!;
+    open(my $fh, $expr_matrix) or die "Error, cannot open file $expr_matrix";
     
     my $header = <$fh>;
     chomp $header;

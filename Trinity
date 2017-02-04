@@ -72,7 +72,7 @@ $output_directory = &create_full_path("trinity_out_dir", 0);
 $min_contig_length = 200;
 $group_pairs_distance = 500;
 my $path_reinforcement_distance;
-my $PE_path_reinforcement_distance = 75;
+my $PE_path_reinforcement_distance = 25;
 my $SE_path_reinforcement_distance = 25;
 
 my $bfly_opts = "";

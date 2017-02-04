@@ -214,7 +214,7 @@ my $basic_usage = qq^
 #  --seqType <string>      :type of reads: ('fa' or 'fq')
 #
 #  --max_memory <string>      :suggested max memory to use by Trinity where limiting can be enabled. (jellyfish, sorting, etc)
-#                            provied in Gb of RAM, ie.  '--max_memory 10G'
+#                            provided in Gb of RAM, ie.  '--max_memory 10G'
 #
 #  If paired reads:
 #      --left  <string>    :left reads, one or more file names (separated by commas, no spaces)
@@ -364,7 +364,7 @@ my $full_usage = qq^
 #  --bflyHeapSpaceMax <string>     :java max heap space setting for butterfly
 #                                   (default: $bflyHeapSpaceMax) => yields command
 #                  'java -Xmx$bflyHeapSpaceMax -jar Butterfly.jar ... \$bfly_opts'
-#  --bflyHeapSpaceInit <string>    :java initial hap space settings for
+#  --bflyHeapSpaceInit <string>    :java initial heap space settings for
 #                                   butterfly (default: $bflyHeapSpaceInit) => yields command
 #                  'java -Xms$bflyHeapSpaceInit -jar Butterfly.jar ... \$bfly_opts'
 #  --bflyGCThreads <int>           :threads for garbage collection

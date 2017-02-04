@@ -23,6 +23,8 @@ my $usage = <<__EOUSAGE__;
 #
 #  --samples_file <string>            Trinity samples file
 #
+#    ## TODO: set read pairing and strand-specificity info
+#
 #  Optional:
 #
 #  --out_prefix <string>             default: 'dexseq'

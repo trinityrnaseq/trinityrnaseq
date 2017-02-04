@@ -358,7 +358,7 @@ my $full_usage = qq^
 #  --bflyHeapSpaceMax <string>     :java max heap space setting for butterfly
 #                                   (default: $bflyHeapSpaceMax) => yields command
 #                  'java -Xmx$bflyHeapSpaceMax -jar Butterfly.jar ... \$bfly_opts'
-#  --bflyHeapSpaceInit <string>    :java initial hap space settings for
+#  --bflyHeapSpaceInit <string>    :java initial heap space settings for
 #                                   butterfly (default: $bflyHeapSpaceInit) => yields command
 #                  'java -Xms$bflyHeapSpaceInit -jar Butterfly.jar ... \$bfly_opts'
 #  --bflyGCThreads <int>           :threads for garbage collection

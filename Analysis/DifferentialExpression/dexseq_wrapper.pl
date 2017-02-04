@@ -8,6 +8,9 @@ use FindBin;
 use lib "$FindBin::Bin/../../PerlLib";
 use Pipeliner;
 
+
+my $CPU = 2;
+
 my $usage = <<__EOUSAGE__;
 
 #################################################################
@@ -23,6 +26,8 @@ my $usage = <<__EOUSAGE__;
 #  Optional:
 #
 #  --out_prefix <string>             default: 'dexseq'
+#
+#  --CPU <int>                       default: $CPU
 #
 ################################################################
 
@@ -43,6 +48,7 @@ my $out_prefix = "dexseq";
               'trinity_genes_gtf=s' => \$trinity_genes_gtf_file,
               'samples_file=s' => \$samples_file,
               'out_prefix=s' => \$out_prefix,
+              'CPU=i' => \$CPU,
     );
 
 if ($help_flag) {
@@ -67,7 +73,7 @@ main: {
     $pipeliner->add_commands(new Command($cmd, "flatten_gtf.ok"));
     
     ## run gsnap
-    $cmd = "$TRINITY_HOME/util/misc/run_GSNAP.pl  --genome $trinity_genes_fasta_file -G $trinity_genes_gtf_file --samples $samples_file";
+    $cmd = "$TRINITY_HOME/util/misc/run_GSNAP.pl  --genome $trinity_genes_fasta_file -G $trinity_genes_gtf_file --samples $samples_file --CPU $CPU";
     $pipeliner->add_commands(new Command($cmd, "gsnap_each.ok"));
 
     $pipeliner->run();

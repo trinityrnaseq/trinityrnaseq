@@ -46,12 +46,7 @@ else
 	echo "ReadsToTranscripts Installation appears to have FAILED"
 fi
 
-if [ -e "trinity-plugins/fastool/fastool" ]
-then
-	echo "fastool:                 has been Installed Properly"
-else
-	echo "fastool Installation appears to have FAILED"
-fi
+
 if [ -e "trinity-plugins/parafly/bin/ParaFly" ]
 then
 	echo "parafly:                 has been Installed Properly"

@@ -12,7 +12,7 @@ test_all:
 	./misc_run_tests/__runMe_include_long_reads.sh
 	./misc_run_tests/__run_PE_samples_file.sh
 	./misc_run_tests/__run_SE_samples_file.sh
-	./misc_run_tests/__runMe_w_monitoring.sh
+
 
 clean:
 	./cleanme.pl

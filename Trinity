@@ -3096,7 +3096,7 @@ sub run_genome_guided_Trinity {
 
 ####
 sub run_partitioned_cmds {
-    my ($cmds_file) = @_;
+    my ($cmds_file) = "$output_directory/@_";
     
     
     print STDERR "\n\n";

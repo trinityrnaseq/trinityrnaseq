@@ -1,8 +1,8 @@
 
-test_trinity:
+test:
 	./runMe.sh
 
-test:
+test_all:
 	./runMe.sh
 	./misc_run_tests/__test_runMe_NO_normalization.sh
 	./misc_run_tests/__runMe_with_qual_trimming.sh

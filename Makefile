@@ -41,6 +41,7 @@ test:
 	@echo
 	@echo "Checking for plugins (built from 'make plugins'):"
 	sh ./util/support_scripts/plugin_install_tests.sh
+	@echo "Run 'make test_trinity' if you want to test Trinity execution on a small data set"
 
 clean:
 	cd Inchworm && make clean
@@ -50,14 +51,14 @@ clean:
 
 
 test_trinity:
-	cd sample_data/test_Trinity_Assembly && make test_trinity
+	cd sample_data/test_Trinity_Assembly && make test
 
 test_gg_trinity:
 	cd sample_data/test_GenomeGuidedTrinity && make test
 
+# note 'test_all': ** this is for a more advanced installation including devel features **
 test_all:
-	cd sample_data/ && make test
-
+	cd sample_data/ && make test_all
 
 test_clean:
 	cd sample_data/ && make clean

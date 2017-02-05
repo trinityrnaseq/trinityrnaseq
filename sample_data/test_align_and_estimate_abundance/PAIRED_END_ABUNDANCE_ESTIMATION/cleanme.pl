@@ -49,5 +49,8 @@ foreach my $file (<*>) {
 
 `rm -rf mm9_ucsc_genomeStudio_genes.gtf*`;
 `rm -rf SP2_GeneDB.290110.prot_coding.cds.nr*`;
+`rm -rf ./Drosoph_coding.cdna.salmon_fmd.idx`;
+`rm -rf ./Drosoph_coding.cdna.salmon_quasi.idx`;
+
 
 exit(0);

@@ -9,7 +9,7 @@ then
 else
 	echo "slclust Installation appears to have FAILED"
 fi
-if [ -e "trinity-plugins/collectl/bin/collectl" ]
+if [ -e "trinity-plugins/COLLECTL/collectl/collectl" ]
 then
 	echo "collectl:                has been Installed Properly"
 else

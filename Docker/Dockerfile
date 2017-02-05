@@ -77,6 +77,15 @@ RUN wget https://github.com/pachterlab/kallisto/releases/download/v0.42.5/kallis
     tar xvf kallisto_linux-v0.42.5.tar.gz && \
     cp kallisto_linux-v0.42.5/kallisto $BIN
 
+
+## Salmon
+WORKDIR $SRC
+RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v0.8.0/Salmon-0.8.0_linux_x86_64.tar.gz && \
+    tar xvf Salmon-0.8.0_linux_x86_64.tar.gz && \
+    ln -s $SRC/Salmon-latest_linux_x86_64/bin/salmon $BIN/.
+    
+
+
 ## FASTQC
 WORKDIR $SRC
 RUN wget http://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.5.zip && \

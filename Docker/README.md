@@ -1,9 +1,9 @@
 
 # build Trinity docker
 
-    docker build -t trinityrnaseq:v2.2.0 .
+    docker build -t trinityrnaseq/trinityrnaseq:${RELEASE_TAG} .
 
 
 # run Trinity via docker
 
-    docker run trinityrnaseq:v2.2.0 Trinity
+    docker run trinityrnaseq/trinityrnaseq:${RELEASE_TAG} Trinity

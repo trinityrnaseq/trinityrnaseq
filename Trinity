@@ -2745,9 +2745,7 @@ sub perfmon_end {
     print FILE "  Inchworm   $pm_inchworm_time seconds\n";
     my $pm_chrysalis_time = $pm_chrysalis_end - $pm_chrysalis_start;
     print FILE "  Chrysalis  $pm_chrysalis_time seconds\n";
-    my $pm_butterfly_time = $pm_butterfly_end - $pm_butterfly_start;
-    print FILE "  Butterfly  $pm_butterfly_time seconds\n";
-    my $pm_rest_time = $pm_trinity_time - $pm_butterfly_time - $pm_chrysalis_time - $pm_inchworm_time;
+    my $pm_rest_time = $pm_trinity_time - $pm_chrysalis_time - $pm_inchworm_time;
     print FILE "  Rest       $pm_rest_time seconds\n";
     close (FILE);
 }

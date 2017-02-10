@@ -139,23 +139,21 @@ my $grid_exec_toolname = "";
 
 ## Performance monitoring options 
 my $pm_logfile = "Trinity.timing";
-my $pm_trinity_startstring;
-my $pm_trinity_endstring;
-my $pm_trinity_start=0;
-my $pm_trinity_end=0;
-my $pm_inchworm_start=0;
-my $pm_inchworm_end=0;
-my $pm_chrysalis_start=0;
-my $pm_chrysalis_end=0;
-my $pm_butterfly_start=0;
-my $pm_butterfly_end=0;
-my $pm_left_fa_size=0;
-my $pm_right_fa_size=0;
-my $pm_single_fa_size=0;
-my $pm_trinity_fa_size=0;
+my $pm_trinity_startstring="NA";
+my $pm_trinity_endstring="NA";
+my $pm_trinity_start="NA";
+my $pm_trinity_end="NA";
+my $pm_inchworm_start="NA";
+my $pm_inchworm_end="NA";
+my $pm_chrysalis_start="NA";
+my $pm_chrysalis_end="NA";
+my $pm_left_fa_size="NA";
+my $pm_right_fa_size="NA";
+my $pm_single_fa_size="NA";
+my $pm_trinity_fa_size="NA";
 my $pm_trinity_arguments="";
 my $pm_inchworm_kmers=0;
-my $pm_read_count=0;
+my $pm_read_count="NA";
 
 my $run_with_collectl = 0;
 # flush each second, record procs+rest every 5 secs, use only process subsystem
@@ -1529,14 +1527,14 @@ sub run_Trinity {
     
     #################
     ## Inchworm step:
-    $pm_inchworm_start = `date +%s`;
+    $pm_inchworm_start = time();
     unless (-s $inchworm_file && -e $inchworm_finished_checkpoint_file) {
                     
 
         &run_inchworm($inchworm_file, $inchworm_target_fa, $SS_lib_type, $kmer_method);
         &process_cmd("touch $inchworm_finished_checkpoint_file");
     }
-    $pm_inchworm_end = `date +%s`;
+    $pm_inchworm_end = time();
     
     
     unless (-s $inchworm_file) {
@@ -1581,7 +1579,7 @@ sub run_Trinity {
     
     ## butterfly commands can be reparameterized for exploring different assembly requirements
     ## chrysalis will just run or resume depending on what's already been processed.
-    $pm_chrysalis_start = `date +%s`;
+    $pm_chrysalis_start = time();
 
     
     #if ($LONG_READS_MODE && $TRINITY_COMPLETE_FLAG) {
@@ -1595,7 +1593,7 @@ sub run_Trinity {
     my $butterfly_cmds = &run_chrysalis($inchworm_file, $inchworm_target_fa,
                                         $min_contig_length, $group_pairs_distance, $SS_lib_type, 
                                         $chrysalis_reads_fa, $bowtie_reads_fa);
-    $pm_chrysalis_end = `date +%s`;
+    $pm_chrysalis_end = time();
     
 
     if ($butterfly_cmds eq "RECURSIVE_TRINITY_COMPLETE") {
@@ -1618,16 +1616,14 @@ sub run_Trinity {
             . "-- (Reconstruct transcripts from reads and de Bruijn graphs) --\n"
             . "---------------------------------------------------------------\n\n" if $VERBOSE;
         
-        $pm_butterfly_start = `date +%s`;
-        
+                
         my $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
         my $cmd = "$PARAFLY -c $butterfly_cmds -shuffle -CPU $bflyCPU -failed_cmds failed_butterfly_commands.$$.txt ";  # shuffle them since the first ones are usually the longest-running ones.
         if ($VERBOSE) { $cmd .= " -v "; }
         $pipeliner->add_commands( new Command($cmd, ".butterfly.ok"));
         $pipeliner->run();
         
-        $pm_butterfly_end = `date +%s`;
-        
+                
         ## capture results:
         # my $cmd = 'find ./chrysalis -name "*allProbPaths.fasta" -exec cat {} + > Trinity.fasta.tmp';
         # no longer scan the file system... we know which files should exist
@@ -2152,6 +2148,10 @@ sub run_inchworm {
         open (my $ofh, ">$read_count_file") or die $!;
         print $ofh $count_of_reads."\n";
         close $ofh;
+    }
+    else {
+        $pm_read_count = `cat $read_count_file`;
+        chomp $pm_read_count;
     }
     
 
@@ -2696,19 +2696,19 @@ sub perfmon_start {
     my $tempp="";
     $tempp=`ldd $INCHWORM_DIR/inchworm 2>/dev/null | grep "libgomp"`;
     if  ($tempp eq "") {
-	print FILE "Compiler:             Intel\n";
+        print FILE "Compiler:             Intel\n";
     } else {
-	print FILE "Compiler:             GCC\n";
+        print FILE "Compiler:             GCC\n";
     }
     print FILE "Trinity Parameters:  $pm_trinity_arguments\n";
     $pm_trinity_startstring = `date`;
-    $pm_trinity_start = `date +%s`;
+    $pm_trinity_start = time();
     close (FILE);
 }
 
 sub perfmon_end {
     $pm_trinity_endstring = `date`;
-    $pm_trinity_end = `date +%s`;
+    $pm_trinity_end = time();
     my $timestamp = `date +%s`;
     if ( -e "$output_directory/$pm_logfile" ) {
         open (FILE, '>>', "$output_directory/$pm_logfile") or die;
@@ -2742,11 +2742,11 @@ sub perfmon_end {
     my $pm_trinity_time = $pm_trinity_end - $pm_trinity_start;
     print FILE "Trinity   $pm_trinity_time seconds\n";
     my $pm_inchworm_time = $pm_inchworm_end - $pm_inchworm_start;
-    print FILE "  Inchworm   $pm_inchworm_time seconds\n";
+    print FILE "  Inchworm (phase 1 - read clustering)  $pm_inchworm_time seconds\n";
     my $pm_chrysalis_time = $pm_chrysalis_end - $pm_chrysalis_start;
-    print FILE "  Chrysalis  $pm_chrysalis_time seconds\n";
+    print FILE "  Chrysalis (phase 1 - read clustering) $pm_chrysalis_time seconds\n";
     my $pm_rest_time = $pm_trinity_time - $pm_chrysalis_time - $pm_inchworm_time;
-    print FILE "  Rest       $pm_rest_time seconds\n";
+    print FILE "  Rest (phase 2 - parallel assembly)       $pm_rest_time seconds\n";
     close (FILE);
 }
 

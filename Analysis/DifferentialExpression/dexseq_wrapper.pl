@@ -96,10 +96,10 @@ main: {
 
         # quant
         $cmd = "$TRINITY_HOME/trinity-plugins/DEXseq_util/dexseq_count.py $trinity_genes_gtf_file.dexseq.gff $bam_file.sam $bam_file.counts";
-        $pipeliner->add_commands(new Command($cmd, "$bam_file.counts"));
-
+        $pipeliner->add_commands(new Command($cmd, "$bam_file.counts.ok"));
+        
         push (@counts_files, "$bam_file.counts");
-
+        
     }
 
     #############

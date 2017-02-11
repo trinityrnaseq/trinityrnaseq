@@ -40,8 +40,8 @@ my $BUTTERFLY_DIR = "$ROOTDIR/Butterfly";
 my $JELLYFISH_DIR = "$ROOTDIR/trinity-plugins/jellyfish";
 my $COLLECTL_DIR = "$ROOTDIR/trinity-plugins/COLLECTL/collectl";
 my $PARAFLY = "$ROOTDIR/trinity-plugins/parafly/bin/ParaFly";
-my $TRIMMOMATIC = "$ROOTDIR/trinity-plugins/Trimmomatic/trimmomatic.jar";
-my $TRIMMOMATIC_DIR = "$ROOTDIR/trinity-plugins/Trimmomatic";
+my $TRIMMOMATIC = "$ROOTDIR/trinity-plugins/Trimmomatic-0.36/trimmomatic.jar";
+my $TRIMMOMATIC_DIR = "$ROOTDIR/trinity-plugins/Trimmomatic-0.36";
 
 $ENV{PATH} = "$ROOTDIR/trinity-plugins/BIN:$ENV{PATH}";
 

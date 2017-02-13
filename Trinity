@@ -3116,7 +3116,7 @@ sub run_partitioned_cmds {
         
     }
     else {
-        my $cmd = "$PARAFLY -c $cmds_file -CPU $CPU -v ";
+        my $cmd = "$PARAFLY -c $cmds_file -CPU $CPU -v -shuffle ";
         &process_cmd($cmd);
     }
     

@@ -174,13 +174,13 @@ my $usage = <<__EOUSAGE__;
 #  --gene_dist <string>        Setting used for --heatmap (samples vs. genes)
 #                                  Options: euclidean, gene_cor
 #                                           maximum, manhattan, canberra, binary, minkowski
-#                                  (default: 'gene_cor')  Note: if using 'gene_cor', set method using '--gene_cor' below.
+#                                  (default: 'euclidean')  Note: if using 'gene_cor', set method using '--gene_cor' below.
 #
 #
 #  --sample_dist <string>      Setting used for --heatmap (samples vs. genes)
 #                                  Options: euclidean, gene_cor
 #                                           maximum, manhattan, canberra, binary, minkowski
-#                                  (default: 'sample_cor')  Note: if using 'sample_cor', set method using '--sample_cor' below.
+#                                  (default: 'euclidean')  Note: if using 'sample_cor', set method using '--sample_cor' below.
 #
 #
 #  --gene_clust <string>       ward, single, complete, average, mcquitty, median, centroid, none (default: complete)
@@ -236,10 +236,10 @@ my $restrict_samples = "";
 my $top_variable_genes;
 my $var_gene_method = "anova";
 
-my $gene_dist = "gene_cor";  # use --gene_cor setting (default: Pearson)
+my $gene_dist = "euclidean";  # use --gene_cor setting (default: Pearson)
 my $gene_clust = "complete";
 
-my $sample_dist = "sample_cor"; # use --sample_cor setting (default: Pearson)
+my $sample_dist = "euclidean"; # use --sample_cor setting (default: Pearson)
 my $sample_clust = "complete";
 
 my $prin_comp = "";

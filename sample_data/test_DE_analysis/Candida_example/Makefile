@@ -1,6 +1,6 @@
 
 
-test: test_edgeR test_DESeq2 test_voom test_ROTS test_PtR_PCA
+test: test_edgeR test_DESeq2 test_voom test_ROTS test_PtR_PCA test_PtR_heatmap
 
 test_edgeR:
 	../../../Analysis/DifferentialExpression/run_DE_analysis.pl  -m Trinity_trans.counts.matrix --method edgeR -s samples.txt -o edgeR_outdir
@@ -35,6 +35,10 @@ test_PtR_PCA:
 	../../../Analysis/DifferentialExpression/PtR -m Trinity_trans.TMM.EXPR.matrix -s samples.txt --prin_comp 3 --add_prin_comp_heatmaps 30
 	touch test_PtR_PCA
 
+test_PtR_heatmap:
+	../../../Analysis/DifferentialExpression/PtR -m Trinity_trans.TMM.EXPR.matrix -s samples.txt --heatmap --log2 --save
+	touch test_PtR_heatmap
+
 clean:
 	rm -rf ./edgeR_outdir
 	rm -rf ./DESeq2_outdir
@@ -43,7 +47,7 @@ clean:
 	rm -f ./Trinity_trans.counts.matrix.*
 	rm -f ./Trinity_trans.TMM.EXPR.matrix.*
 	rm -f ./*.pdf
-	rm -f test_edgeR test_DESeq2 test_voom test_ROTS
+	rm -f test_edgeR test_DESeq2 test_voom test_ROTS test_PtR_heatmap
 
 
 

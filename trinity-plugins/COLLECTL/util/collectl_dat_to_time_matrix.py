@@ -202,7 +202,7 @@ def parse_collectl_dat(collectl_dat_file, cpu_usage_matrix, memory_usage_matrix,
                 cpu_usage_timehash[progname] += 1
             
             
-            memory = compute_GB(vals[8])
+            memory = compute_GB(vals[9])
             progname_memory_hash = memory_usage_matrix[timeval_key_str]
             if progname not in progname_memory_hash:
                 progname_memory_hash[progname] = memory

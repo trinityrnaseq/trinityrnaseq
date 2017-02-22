@@ -2769,8 +2769,9 @@ sub collectl_start {
         #my $collectl_param = "-F1 -i5:5 -sZ";
         #my $cmd = "cd $collectl_output_directory && exec ${COLLECTL_DIR}/collectl $collectl_param --procfilt u$collectl_userid -f $collectl_output_directory/y";
         
-        my $cmd = "bash -c \"set -eou pipefail && cd $collectl_output_directory && exec nohup ${COLLECTL_DIR}/collectl --procfilt u$collectl_userid --interval :$COLLECTL_INTERVAL_SECONDS -sZ -oD | egrep 'Trinity|trinityrnaseq|samtools|sort' | egrep -v ParaFly > $collectl_output_directory/collectl.dat \" ";
         
+        my $cmd = "bash -c \"set -eou pipefail && cd $collectl_output_directory && exec nohup ${COLLECTL_DIR}/collectl --procopts w  --procfilt u$collectl_userid --interval :$COLLECTL_INTERVAL_SECONDS -sZ -oD | egrep 'Trinity|trinityrnaseq|Inchworm|Chrysalis|Butterfly|jellyfish|samtools|sort|bowtie' | egrep -v 'egrep' > $collectl_output_directory/collectl.dat \" ";
+                
         
         ## fork a child to run collectl
         $collectl_pid = fork();

@@ -14,6 +14,13 @@ logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+PROGS_OF_INTEREST = set(['Trinity', 'Butterfly', 'samtools', 'inchworm', 'QuantifyGraph',
+                         'BubbleUpClustering', 'jellyfish', 'GraphFromFasta', 'bowtie2'])
+                         
+
+
+
+
 """
 Formatting from collectl -sZ
 
@@ -177,6 +184,17 @@ def parse_collectl_dat(collectl_dat_file, cpu_usage_matrix, memory_usage_matrix,
                 prev_time = timeval_numeric
             
             progname = os.path.basename(vals[19])
+            if progname == 'perl':
+                progname = os.path.basename(vals[20])
+            elif progname == 'java':
+                if re.search("Butterfly.jar", line):
+                    progname = "Butterfly"
+            
+
+            if progname not in PROGS_OF_INTEREST:
+                continue
+
+
             cpu_usage_timehash = cpu_usage_matrix[timeval_key_str]
             if progname not in cpu_usage_timehash:
                 cpu_usage_timehash[progname] = 1
@@ -184,7 +202,7 @@ def parse_collectl_dat(collectl_dat_file, cpu_usage_matrix, memory_usage_matrix,
                 cpu_usage_timehash[progname] += 1
             
             
-            memory = compute_GB(vals[8])
+            memory = compute_GB(vals[9])
             progname_memory_hash = memory_usage_matrix[timeval_key_str]
             if progname not in progname_memory_hash:
                 progname_memory_hash[progname] = memory

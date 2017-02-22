@@ -36,7 +36,7 @@ test_PtR_PCA:
 	touch test_PtR_PCA
 
 test_PtR_heatmap:
-	../../../Analysis/DifferentialExpression/PtR -m Trinity_trans.TMM.EXPR.matrix -s samples.txt --heatmap --log2 --save
+	../../../Analysis/DifferentialExpression/PtR -m Trinity_trans.TMM.EXPR.matrix -s samples.txt --heatmap --sample_cor_matrix --log2 --save
 	touch test_PtR_heatmap
 
 clean:

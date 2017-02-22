@@ -295,6 +295,9 @@ my $full_usage = qq^
 #
 #  --no_version_check              :dont run a network check to determine if software updates are available.
 #
+#  --monitoring                    :use collectl to monitor all steps of Trinity
+#     --monitor_sec <int>          : number of seconds for each interval of runtime monitoring (default: $COLLECTL_INTERVAL_SECONDS)
+#  
 ####################################################
 # Inchworm and K-mer counting-related options: #####
 #
@@ -481,9 +484,7 @@ my $advanced_usage =  <<_ADVANCEDUSAGE_;
 #
 #
 #  Other:
-#  --monitoring                    :use collectl to monitor all steps of Trinity
-#     --monitor_sec <int>          : number of seconds for each interval of runtime monitoring (default: $COLLECTL_INTERVAL_SECONDS)
-#  
+#
 #  --bypass_java_version_check     : skip check for required java version 1.7
 #
 #  --long_reads_mode               : run in long reads mode (requires --single and the long reads integrated with LR$| accession prefixes.

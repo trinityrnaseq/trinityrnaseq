@@ -1337,10 +1337,7 @@ main: {
             print STDERR "-relocating $Trinity_tmp_fasta_file to $butterfly_output_filename\n";
             &process_cmd("mv $Trinity_tmp_fasta_file $butterfly_output_filename");
         }
-        else {
-            print STDERR "-missing file: $Trinity_tmp_fasta_file";
-        }
-        
+                
         if (-s $butterfly_output_filename) {
 
             if ($VERBOSE || ! $TRINITY_COMPLETE_FLAG) {

@@ -74,7 +74,7 @@ main: {
         my $outdir = "$method-$sample_name";
 
         if ($method eq 'RSEM') {
-            $cmd .= " --est_method RSEM --output_dir $outdir --aln_method bowtie2 ";
+            $cmd .= " --est_method RSEM --output_dir $outdir --aln_method bowtie2 --coordsort_bam ";
             
             push (@trans_results, "$outdir/RSEM.isoforms.results");
             push (@gene_results, "$outdir/RSEM.genes.results");

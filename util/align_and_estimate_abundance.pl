@@ -638,7 +638,7 @@ sub sort_bam_file {
     if (! -e "$sorted_bam_file.bam.ok") {
         ## sort the bam file
         
-        my $cmd = "samtools sort $bam_file $sorted_bam_file";
+        my $cmd = "samtools sort $bam_file -o $sorted_bam_file.bam";
         &process_cmd($cmd);
         $cmd = "samtools index $sorted_bam_file.bam";
         &process_cmd($cmd);

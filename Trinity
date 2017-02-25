@@ -841,6 +841,9 @@ unless ($max_memory &&
     die "Must specify basic parameters:  ex. Trinity --seqType fq --single reads.fq --max_memory 10G ";
 }
 
+
+$output_directory = &create_full_path($output_directory, 0);
+
 if ($WORKDIR) {
     $WORKDIR = &create_full_path($WORKDIR, 0);
 }
@@ -1318,9 +1321,6 @@ main: {
             # outputdir might be workdir
             if ($MKDIR_OUTDIR_FLAG && basename($output_directory) =~ /trinity/i) { # ensure outdirectory as trinity in the name, just to be sure we dont delete something non-trinity related!!!
                 system("rm -rf $output_directory");
-            }
-            else {
-                print STDERR "WARNING, cannot remove output directory $output_directory, since not created in this run. (safety precaution)\n";
             }
         }
         
@@ -2505,7 +2505,7 @@ sub process_cmd {
 
     if ($ret) {
         
-        die "Error, cmd: $cmd died with ret $ret";
+        confess "Error, cmd: $cmd died with ret $ret";
     }
     
     print STDERR "CMD finished (" . ($end_time - $start_time) . " seconds)\n" if $VERBOSE;

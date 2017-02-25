@@ -35,7 +35,8 @@ run_Schizo_TrinityGG.SE.sh
 __run_genome-guided_Trinity_use_existing_bam.use_LSF.sh
 __run_genome-guided_Trinity_use_existing_bam.use_SGE.sh
 __run_genome-guided_Trinity_use_existing_bam.use_PBS.sh
-                        );
+run_small_GG_mutliScaff_test.sh
+transAligns.cSorted.bam                        );
 
 
 my %keep = map { + $_ => 1 } @files_to_keep;

@@ -9,6 +9,11 @@ use threads;
 use File::Basename;
 use FindBin;
 use Getopt::Long qw(:config no_ignore_case bundling);
+use lib("$FindBin::Bin/../../PerlLib");
+use Thread_helper;
+
+
+my $CPU = 2;
 
 my $usage = <<_EOUSAGE_;
 
@@ -34,6 +39,8 @@ my $usage = <<_EOUSAGE_;
 #
 #  --sort_buffer <string>               default: '10G'  amount of RAM to allocate to sorting.
 #
+#  --CPU <int>                        number of threads
+#
 ########################################################################################################
 
 
@@ -55,7 +62,7 @@ my $min_coverage = 1;
 my $min_reads_per_partition = 10;
 my $parts_per_dir = 100;
 my $sort_buffer = '10G';
-my $CPU = 1;
+
 
 &GetOptions ( 'h' => \$help_flag,
 
@@ -94,6 +101,9 @@ my $UTIL_DIR = "$FindBin::RealBin/";
 
 main: {
 
+
+
+    
 	my @sam_info;
 
 	if ($SS_lib_type) {
@@ -112,29 +122,33 @@ main: {
 		push (@sam_info, [$SAM_file, '+']);
 	}
 			
-    my @threads;
+
+    my $thread_helper = new Thread_helper($CPU);
     
 	foreach my $sam_info_aref (@sam_info) {
 				
 		my ($sam, $strand) = @$sam_info_aref;
 				
 		my $thread = threads->create('prep_read_partitions', $sam, $strand);
-        push (@threads, $thread);
-		
+        #push (@threads, $thread);
+
+        $thread_helper->add_thread($thread);
+        
 	}
     
+    $thread_helper->wait_for_all_threads_to_complete();
 
+    my @failures = $thread_helper->get_failed_threads();
     my $ret = 0;
-    
-    foreach my $thread (@threads) {
-        $thread->join();
-        if (my $error = $thread->error()) {
-            print STDERR "Error, thread exited with error $error\n";
-            $ret++;
+    if (@failures) {
+        foreach my $thread (@failures) {
+            if (my $error = $thread->error()) {
+                print STDERR "Error, thread exited with error $error\n";
+                $ret++;
+            }
         }
     }
     
-
 	print "##\nDone\n##\n\n" unless($ret);
     
 	exit($ret);

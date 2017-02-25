@@ -11,7 +11,7 @@ use FindBin;
 use Getopt::Long qw(:config no_ignore_case bundling);
 use lib("$FindBin::Bin/../../PerlLib");
 use Thread_helper;
-
+use Cwd;
 
 my $CPU = 2;
 
@@ -101,13 +101,11 @@ my $UTIL_DIR = "$FindBin::RealBin/";
 
 main: {
 
-
-
-    
 	my @sam_info;
 
 	if ($SS_lib_type) {
-		my ($plus_strand_sam, $minus_strand_sam) = ("$SAM_file.+.sam", "$SAM_file.-.sam");
+        my $sam_basename = basename($SAM_file);
+		my ($plus_strand_sam, $minus_strand_sam) = ("$sam_basename.+.sam", "$sam_basename.-.sam");
 		if (-s $plus_strand_sam && $minus_strand_sam) {
 			print STDERR "-strand partitioned SAM files already exist, so using them instead of re-creating them.\n";
 		}
@@ -119,9 +117,13 @@ main: {
 		push (@sam_info, [$plus_strand_sam, '+'], [$minus_strand_sam, '-']);
 	}
 	else {
+        if (cwd() ne dirname($SAM_file)) {
+            &process_cmd("ln -sf $SAM_file");
+            $SAM_file = basename($SAM_file);
+        }
 		push (@sam_info, [$SAM_file, '+']);
 	}
-			
+    
 
     my $thread_helper = new Thread_helper($CPU);
     

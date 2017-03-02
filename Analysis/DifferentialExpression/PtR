@@ -1099,22 +1099,24 @@ main: {
 
 
         $Rscript .= "data = as.matrix(data)\n";
-        
-
-        
-        # Zscale the genes across samples for Prin Component analysis
-        
+            
         $Rscript .= "# Z-scale and center the genes across all the samples for PCA\n";
-        $Rscript .= "prin_comp_data = initial_matrix\n"
-            .  "prin_comp_data = log2(prin_comp_data+1)\n"
-            .  "prin_comp_data = scale(prin_comp_data)\n"
+        $Rscript .= "prin_comp_data = initial_matrix\n";
+
+        # if count data, convert to CPMs
+        if ($CPM) {
+            $Rscript .= "cs = colSums(prin_comp_data)\n";
+            $Rscript .= "prin_comp_data = t( t(prin_comp_data)/cs) * 1e6;\n";
+        }   
+                
+        # Zscale the genes across samples for Prin Component analysis
+        $Rscript .=  "prin_comp_data = log2(prin_comp_data+1)\n"
             .  "prin_comp_data = t(scale(t(prin_comp_data), center=TRUE, scale=F)) # just center trans expr level, retain original effect size.\n"
             .  "pca = prcomp(t(prin_comp_data), center = FALSE, scale. = FALSE)\n";
         
         
         $Rscript .= "write.table(prin_comp_data, file=\"$output_prefix.Princomp_log2_Zscale_centered.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
         
-        #$Rscript .= "pc = princomp(prin_comp_data, cor=TRUE)\n";
         $Rscript .= "pc_pct_variance = (pca\$sdev^2)/sum(pca\$sdev^2)\n";
         $Rscript .= "def.par <- par(no.readonly = TRUE) # save default, for resetting...\n"
             .  "gridlayout = matrix(c(1:4),nrow=2,ncol=2, byrow=TRUE);\n"

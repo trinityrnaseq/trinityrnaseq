@@ -96,6 +96,7 @@ my $usage = <<__EOUSAGE__;
 #      --add_prin_comp_heatmaps <int>  draw heatmaps for the top <int> features at each end of the prin. comp. axis.
 #                                      (requires '--prin_comp') 
 #      --add_top_loadings_pc_heatmap <int>  draw a heatmap containing the <int> top feature loadings across all PCs.
+#      --R_prin_comp_method <string>        options: princomp, prcomp (default: prcomp)
 #
 #  --mean_vs_sd               expression variability plot. (highlight specific genes by category via --gene_factors )
 #
@@ -317,6 +318,8 @@ my $per_gene_plot_width = 2.5;
 my $per_gene_plots_per_row = 1;
 my $per_gene_plots_per_col = 2;
 
+my $R_prin_comp_method = "prcomp";
+
 my $NO_REUSE = 0;
 
 &GetOptions (  
@@ -362,7 +365,8 @@ my $NO_REUSE = 0;
     'prin_comp=i' => \$prin_comp,
     'add_prin_comp_heatmaps=i' => \$prin_comp_heatmaps,           
     'add_top_loadings_pc_heatmap=i' => \$top_loadings_pc_heatmap,
-
+    'R_prin_comp_method=s' => \$R_prin_comp_method,
+    
     'mean_vs_sd' => \$mean_vs_sd_plot,
     
     'var_vs_count_hist=s' => \$var_vs_count_hist_plot,
@@ -1086,9 +1090,15 @@ main: {
 
     
     if ($prin_comp) {
+
+        unless ($R_prin_comp_method =~ /^(princomp|prcomp)$/) {
+            die "Error, --R_prin_comp_method can be only 'princomp' or 'prcomp', not allowed: $R_prin_comp_method ";
+        }
         
+        my $princomp_pdf_filename = ($R_prin_comp_method eq "princomp") ? "$output_prefix.princomp.principal_components.pdf" : "$output_prefix.prcomp.principal_components.pdf";
+                
         ## set up the pdf output
-        $Rscript .= "pdf(\"$output_prefix.principal_components.pdf\"";
+        $Rscript .= "pdf(\"$princomp_pdf_filename\"";
         if ($pdf_width) {
             $Rscript .= ", width=$pdf_width";
         }
@@ -1110,43 +1120,61 @@ main: {
         }   
                 
         # Zscale the genes across samples for Prin Component analysis
-        $Rscript .=  "prin_comp_data = log2(prin_comp_data+1)\n"
-            .  "prin_comp_data = t(scale(t(prin_comp_data), center=TRUE, scale=F)) # just center trans expr level, retain original effect size.\n"
-            .  "pca = prcomp(t(prin_comp_data), center = FALSE, scale. = FALSE)\n";
+        $Rscript .=  "prin_comp_data = log2(prin_comp_data+1)\n";
         
+        $Rscript .=  "prin_comp_data = t(scale(t(prin_comp_data), center=TRUE, scale=T))\n";
         
         $Rscript .= "write.table(prin_comp_data, file=\"$output_prefix.Princomp_log2_Zscale_centered.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
+
+        
+        if ($R_prin_comp_method eq "princomp") {
+            $Rscript .= "pca = princomp(prin_comp_data, cor=FALSE)\n";
+        }
+        else {
+            $Rscript .= "pca = prcomp(prin_comp_data, center = FALSE, scale. = FALSE)\n";
+        }
+        
+        
         
         $Rscript .= "pc_pct_variance = (pca\$sdev^2)/sum(pca\$sdev^2)\n";
         $Rscript .= "def.par <- par(no.readonly = TRUE) # save default, for resetting...\n"
             .  "gridlayout = matrix(c(1:4),nrow=2,ncol=2, byrow=TRUE);\n"
             .  "layout(gridlayout, widths=c(1,1));\n";
         
-        if (1) {
-            ## write out the PC info
-            $Rscript .= "write.table(pca\$rotation, file=\"$output_prefix.PCA.loadings\", quote=F, sep=\"\t\")\n";
-            $Rscript .= "write.table(pca\$x, file=\"$output_prefix.PCA.scores\", quote=F, sep=\"\t\")\n";
+        
+        if ($R_prin_comp_method eq "princomp") {
+            $Rscript .= "write.table(pca\$loadings, file=\"$output_prefix.PCA.princomp.loadings\", quote=F, sep=\"\t\")\n"
+                . "write.table(pca\$scores, file=\"$output_prefix.PCA.princomp.scores\", quote=F, sep=\"\t\")\n"
+                . "PCA.scores = pca\$loadings\n"
+                . "PCA.loadings = pca\$scores\n";
             
         }
-        
+        else {
+            ## write out the PC info
+            $Rscript .= "write.table(pca\$rotation, file=\"$output_prefix.PCA.prcomp.scores\", quote=F, sep=\"\t\")\n";
+            $Rscript .= "write.table(pca\$x, file=\"$output_prefix.PCA.prcomp.loadings\", quote=F, sep=\"\t\")\n";
+            $Rscript .= "PCA.loadings=pca\$x\n"
+                . "PCA.scores = pca\$rotation\n";
+        }
+                
         
 
         $Rscript .= "for (i in 1:(max($prin_comp,2)-1)) {\n" # one plot for each n,n+1 component comparison.
-            . "    xrange = range(pca\$x[,i])\n"
-            . "    yrange = range(pca\$x[,i+1])\n"
-            . "    samples_want = rownames(pca\$x) \%in\% sample_type_list[[sample_types[1]]]\n" # color according to sample
+            . "    xrange = range(PCA.scores[,i])\n"
+            . "    yrange = range(PCA.scores[,i+1])\n"
+            . "    samples_want = rownames(PCA.scores) \%in\% sample_type_list[[sample_types[1]]]\n" # color according to sample
             . "    pc_i_pct_var = sprintf(\"(%.2f%%)\", pc_pct_variance[i]*100)\n"
             . "    pc_i_1_pct_var = sprintf(\"(%.2f%%)\", pc_pct_variance[i+1]*100)\n"
-            . "    plot(pca\$x[samples_want,i], pca\$x[samples_want,i+1], xlab=paste('PC',i, pc_i_pct_var), ylab=paste('PC',i+1, pc_i_1_pct_var), xlim=xrange, ylim=yrange, col=sample_colors[1])\n"
+            . "    plot(PCA.scores[samples_want,i], PCA.scores[samples_want,i+1], xlab=paste('PC',i, pc_i_pct_var), ylab=paste('PC',i+1, pc_i_1_pct_var), xlim=xrange, ylim=yrange, col=sample_colors[1])\n"
             . "    for (j in 2:nsamples) {\n"
-            . "        samples_want = rownames(pca\$x) \%in\% sample_type_list[[sample_types[j]]]\n"
-            . "        points(pca\$x[samples_want,i], pca\$x[samples_want,i+1], col=sample_colors[j], pch=j)\n"
+            . "        samples_want = rownames(PCA.scores) \%in\% sample_type_list[[sample_types[j]]]\n"
+            . "        points(PCA.scores[samples_want,i], PCA.scores[samples_want,i+1], col=sample_colors[j], pch=j)\n"
             . "    }\n"
             . "    plot.new()\n"
             . "    legend('topleft', as.vector(sample_types), col=sample_colors, pch=1:nsamples, ncol=2)\n"
             . "}\n\n";
         
-                
+        
         #else {
         #    $Rscript .= "for (i in 1:($prin_comp-1)) {\n"
         #              . "    pc_i_pct_var = sprintf(\"(%.2f%%)\", pc_pct_variance[i]*100)\n"
@@ -1161,7 +1189,7 @@ main: {
         
         #$Rscript .= "dev.off();stop('debug')\n";
         
-        $Rscript .= "pcscore_mat_vals = pca\$rotation[,1:$prin_comp]\n";
+        $Rscript .= "pcscore_mat_vals = PCA.loadings[,1:$prin_comp]\n";
         $Rscript .= "pcscore_mat = matrix_to_color_assignments(pcscore_mat_vals, col=colorpanel(256,'purple','black','yellow'), by='row')\n";
         $Rscript .= "colnames(pcscore_mat) = paste('PC', 1:ncol(pcscore_mat))\n"; 
         

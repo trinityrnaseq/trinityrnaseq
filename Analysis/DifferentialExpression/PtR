@@ -154,6 +154,11 @@ my $usage = <<__EOUSAGE__;
 #            or
 #           --anova_maxP <float>    if set, over-rides anova_maxQ  (default, off, uses --anova_maxQ)
 #
+#  --top_variable_via_stdev_and_mean_expr    perform filtering based on the stdev vs. mean expression plot.
+#      Requires both:               (note, if you used --log2 and/or --Zscale, settings below should use those transformed values)
+#         --min_stdev_expr <float>       minimum standard deviation in expression
+#         --min_mean_expr  <float>       minimum mean expression value 
+#
 ######################################
 #  Data transformations:             #
 ######################################
@@ -322,6 +327,11 @@ my $R_prin_comp_method = "prcomp";
 
 my $NO_REUSE = 0;
 
+my $top_variable_via_stdev_and_mean_expr_flag = 0;
+my $min_stdev_expr = undef;
+my $min_mean_expr = undef;
+
+
 &GetOptions (  
     
     ## Inputs and outputs
@@ -395,12 +405,10 @@ my $NO_REUSE = 0;
     'min_gene_expr_val=f' => \$min_gene_expr_val,
     
     'min_gene_prevalence=i' => \$min_gene_prevalence, # single cell parlance
-    
 
     'min_across_ALL_samples_gene_expr_val=f' => \$min_across_ALL_samples_gene_expr_val,
     'min_across_ANY_samples_gene_expr_val=f' => \$min_across_ANY_samples_gene_expr_val,
     'minValAltNA=f' => \$minValAltNA,
-    
     
     'CPM' => \$CPM,
     'top_genes=i' => \$top_genes,
@@ -409,7 +417,11 @@ my $NO_REUSE = 0;
     'var_gene_method=s' => \$var_gene_method,
     'anova_maxFDR=f' => \$anova_maxFDR,  # note, this is a filter not a transformation, but tied to var_gene_method='anova'
     'anova_maxP=f' => \$anova_maxP,           
-               
+
+    'top_variable_via_stdev_and_mean_expr' => \$top_variable_via_stdev_and_mean_expr_flag,
+    'min_stdev_expr=f' => \$min_stdev_expr,
+    'min_mean_expr=f' => \$min_mean_expr,
+    
     'center_rows' => \$CENTER,
     'Zscale_rows' => \$ZSCALE_ROWS,
 
@@ -771,8 +783,6 @@ main: {
 
     ############################################
     ## Filtering out rows (genes or transcripts)
-    
-
         
     if ($min_rowSums > 0) {
         $Rscript .= "data = data\[rowSums\(data)>=" . $min_rowSums . ",]\n";
@@ -846,25 +856,6 @@ main: {
         $Rscript .= "data[data<$minValAltNA] = NA\n\n";
     }
     
-
-    if ($ZSCALE_ROWS) {
-        $Rscript .= "# Z-scale the genes across all the samples for PCA\n";
-        $Rscript .= "zscaled_data = data\n";
-        
-        $Rscript .= "for (i in 1:nrow(data)) {\n";
-        $Rscript .= "    d = data[i,]\n";
-        $Rscript .= "    d_mean = mean(d)\n";
-        $Rscript .= "    d  = d - d_mean\n";
-        $Rscript .= "    d = d / sd(d)\n";
-        $Rscript .= "    zscaled_data[i,] = d\n";
-        $Rscript .= "}\n\n";
-        $Rscript .= "data = zscaled_data\n";
-        
-        $output_prefix .= ".ZscaleRows";
-        $Rscript .= "write.table(data, file=\"$output_prefix.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
-        
-    }
-    
     ## Redo the sample factoring
     $Rscript .= "sample_factoring = colnames(data)\n";
     
@@ -925,8 +916,52 @@ main: {
         $Rscript .= "write.table(data, file=\"$output_prefix.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
         
     }
-        
 
+    
+    ##############################################
+    ## Min mean expression and min stdev filtering
+    ##############################################
+    if ($top_variable_via_stdev_and_mean_expr_flag) {
+
+        unless (defined($min_stdev_expr) && defined($min_mean_expr)) {
+            die "Error, for --top_variable_via_stdev_and_mean_expr, you must specify --min_stdev_expr and --min_mean_expr ";
+        }
+        
+        $Rscript .= "# filtering based on min_stdev $min_stdev_expr and min_mean_expr $min_mean_expr\n";
+        
+        $Rscript .= "data_mean = apply(data, 1, mean)\n"
+            . "data_sd = apply(data, 1, sd)\n"
+            . "data = data[data_mean >= $min_mean_expr & data_sd >= $min_stdev_expr, ]\n\n";
+    }
+    
+    ##############################
+    ## Zscale or Centering of Data
+    ##############################
+
+    if ($ZSCALE_ROWS) {
+        $Rscript .= "# Z-scale the genes across all the samples for PCA\n";
+        $Rscript .= "zscaled_data = data\n";
+        
+        $Rscript .= "for (i in 1:nrow(data)) {\n";
+        $Rscript .= "    d = data[i,]\n";
+        $Rscript .= "    d_mean = mean(d)\n";
+        $Rscript .= "    d  = d - d_mean\n";
+        $Rscript .= "    d = d / sd(d)\n";
+        $Rscript .= "    zscaled_data[i,] = d\n";
+        $Rscript .= "}\n\n";
+        $Rscript .= "data = zscaled_data\n";
+        
+        $output_prefix .= ".ZscaleRows";
+        $Rscript .= "write.table(data, file=\"$output_prefix.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
+        
+    }
+    elsif ($CENTER) {
+        $Rscript .= "\n# Centering rows\n"
+            . "data = t(scale(t(data), scale=F))\n\n";
+    }
+    
+    
+    
     if ($samples_file) {
         
         if ($compare_replicates_flag) {
@@ -1107,24 +1142,10 @@ main: {
         }
         $Rscript .= ")\n";
 
-
-        $Rscript .= "data = as.matrix(data)\n";
-            
-        $Rscript .= "# Z-scale and center the genes across all the samples for PCA\n";
-        $Rscript .= "prin_comp_data = initial_matrix\n";
-
-        # if count data, convert to CPMs
-        if ($CPM) {
-            $Rscript .= "cs = colSums(prin_comp_data)\n";
-            $Rscript .= "prin_comp_data = t( t(prin_comp_data)/cs) * 1e6;\n";
-        }   
-                
-        # Zscale the genes across samples for Prin Component analysis
-        $Rscript .=  "prin_comp_data = log2(prin_comp_data+1)\n";
+                    
+        $Rscript .= "prin_comp_data = data\n"; # all data operations including log2, scaling, centering, etc should be done beforehand as directed by parameters.
         
-        $Rscript .=  "prin_comp_data = t(scale(t(prin_comp_data), center=TRUE, scale=T))\n";
-        
-        $Rscript .= "write.table(prin_comp_data, file=\"$output_prefix.Princomp_log2_Zscale_centered.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
+        $Rscript .= "write.table(prin_comp_data, file=\"$output_prefix.Princomp.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
 
         
         if ($R_prin_comp_method eq "princomp") {
@@ -1360,36 +1381,7 @@ main: {
     if ($heatmap_flag) {
         
         $Rscript .= "myheatcol = colorpanel(75, $HEATMAP_COLORS)\n";
-        
-        if ($CENTER) {
-            
-            $Rscript .= "data = t(scale(t(data), scale=F)) # center rows, mean substracted\n";
-            ;
-            $output_prefix .= ".centered";
-            
-            $Rscript .= "write.table(data, file=\"$output_prefix.dat\", quote=F, sep='\t');\n";
-            
-            ##  Redo the distance calculations and clustering:
-
-            ## //TODO: make this a subroutine 
-            
-            ## cluster samples
-            if ($sample_dist !~ /sample_cor/ && $sample_clust ne 'none') {
-                $Rscript .= "# redo the sample clustering according to the centered distance values.\n";
-                $Rscript .= "sample_dist = dist(t(data), method=\'$sample_dist\')\n";
-                $Rscript .= "# redo the sample clustering\n";
-                $Rscript .= "hc_samples = hclust(sample_dist, method=\'$sample_clust\')\n";
-            }
-            if ($gene_dist !~ /gene_cor/ && $gene_clust ne 'none') {
-                $Rscript .= "# redo the gene clustering according to centered distance values.\n";
-                $Rscript .= "gene_dist = dist(data, method=\'$gene_dist\')\n";
-                $Rscript .= "# redo the gene clustering\n";
-                $Rscript .= "hc_genes = hclust(gene_dist, method=\'$gene_clust\')\n";
-            }
-            
-        }
-        
-                
+                        
         # sample vs. gene heatmap
         $Rscript .= "heatmap_data = data\n";
         
@@ -1519,7 +1511,8 @@ main: {
                  .  "data_mean_vs_sd_table = cbind(data_mean, data_sd)\n"
                  .  "data_mean_vs_sd_table = as.data.frame(data_mean_vs_sd_table)\n"
                  .  "write.table(data_mean_vs_sd_table, file=\"$output_prefix.mean_vs_sd.dat\", quote=F, sep=\"\t\")\n"
-                 .  "plot(data_mean_vs_sd_table)\n";
+                 #.  "plot(data_mean_vs_sd_table)\n";
+                 . "smoothScatter(data_mean_vs_sd_table)\n";
         
         if ($gene_factors_file) {
             $Rscript .= "gene_pt_colors = rainbow(length(gene_factors))\n"
@@ -1873,15 +1866,15 @@ sub add_prin_comp_heatmaps {
         . "uniq_genes = c()\n"
                 . "for (i in 1:$prin_comp) {\n"
                 . "    ## get genes with extreme vals\n"
-                . "    print(paste('range', range(pca\$rotation[,i])))\n"
-                . "    ordered_gene_indices = order(pca\$rotation[,i])\n"
+                . "    print(paste('range', range(PCA.loadings[,i])))\n"
+                . "    ordered_gene_indices = order(PCA.loadings[,i])\n"
                 . "    num_genes = length(ordered_gene_indices)\n"
                 . "    extreme_ordered_gene_indices = unique(c(1:$num_top_genes_PC_extreme, (num_genes-$num_top_genes_PC_extreme):num_genes))\n"
                 . "    print('extreme ordered gene indices')\n"
                 . "    print(extreme_ordered_gene_indices)\n"
                 . "    selected_gene_indices = ordered_gene_indices[extreme_ordered_gene_indices]\n"
                 . "    print('selected gene indices');print(selected_gene_indices);\n"
-                . "    print('PC scores:');print(pca\$rotation[selected_gene_indices,i])\n"
+                . "    print('PC scores:');print(PCA.loadings[selected_gene_indices,i])\n"
                 . "    selected_genes_matrix = prin_comp_data[selected_gene_indices,]\n"
                 #. "    print(selected_genes_matrix)\n"
                 . "    pc_color_bar_vals = pcscore_mat_vals[selected_gene_indices,i]\n"
@@ -1890,15 +1883,7 @@ sub add_prin_comp_heatmaps {
 
     $Rscript .= "uniq_genes = unique(c(uniq_genes, rownames(selected_genes_matrix)))\n";
 
-
-    #if (! $LOG2) {
-    #    $Rscript .= "    selected_genes_matrix = log2(selected_genes_matrix+1)\n";
-    #}
     $Rscript .=     "    write.table(selected_genes_matrix, file=paste(\"$output_prefix\", '.PC',i,'_extreme',$num_top_genes_PC_extreme,'.matrix', sep=''), quote=F, sep=\"\t\")\n";
-    
-    if ($CENTER) {
-        $Rscript .= "    selected_genes_matrix = t(scale(t(selected_genes_matrix), scale=F))\n";
-    }
     
     
     $Rscript .= "    heatmap.3(selected_genes_matrix, col=greenred(256), scale='none', density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=1, margins=c(10,10), cex.main=0.75, RowSideColors=pc_color_bar, cexRow=0.5, main=paste('heatmap for', $num_top_genes_PC_extreme, ' extreme of PC', i)";
@@ -1909,7 +1894,7 @@ sub add_prin_comp_heatmaps {
     $Rscript .= ")\n";
     $Rscript .= "}\n";
     
-
+    
     ##  Include a heatmap containing all selected genes across all PCs.
 
     $Rscript .= "all_selected_genes_matrix = prin_comp_data[uniq_genes,]\n";
@@ -1924,6 +1909,7 @@ sub add_prin_comp_heatmaps {
     
 
     return($Rscript);
+
 }
 
 
@@ -1973,64 +1959,6 @@ sub add_top_loadings_pc_heatmap {
 
 
     return($Rscript);
-}
-
-
-####
-sub print_pipeline_flowchart {
-    
-    print <<__EOTEXT__;
-
-    Start.
-
-    read data table
-    read samples file (optional)
-
-    ? plots: barplots for sum counts per replicate
-    ? plots: boxplots for feature count distribution and barplots for number of features mapped.
-    
-    ? filter: restrict to specified samples (columns)
-    ? filter: min expressed genes at min val
-    ? filter: min column sums
-    ? filter: min row sums
-
-    
-    ? data_transformation: CPM
-    ? data_transformation: log2
-
-    ? data_transformation: minValAltNA
-
-    ? data_annotation: sample factoring
-    ? data_annotation: sample coloring setup
-
-    ? filter: top expressed genes
-    ? filter: top variable genes (coeffvar|anova)
-
-    ? plots: sample replicate comparisons
-
-    ? output: resulting data table post-filtering and data transformations.
-
-    ? plots: sample correlation matrix
-    
-    ? plots: principal components analysis  (note: rows (aka genes) are Z-scaled across samples before PCA)
-    ?       plots: heatmaps for features assigned extreme values in PCA
-
-    ? plots: feature/gene correlation matrix
-
-    ? plots: individual gene correlation plots and heatmaps
-
-    ? plots: samples vs. features matrix
-
-    ? plots: mean expression vs. standard deviation
-
-    End.
-
-    
-__EOTEXT__
-
-    ;
-
-    return;
 }
 
 
@@ -2150,4 +2078,67 @@ sub gene_heatmaps {
 
     return($Rscript);
 }
+
     
+####
+sub print_pipeline_flowchart {
+    
+    print <<__EOTEXT__;
+
+    Start.
+
+    read data table
+    read samples file (optional)
+
+    ? plots: barplots for sum counts per replicate
+    ? plots: boxplots for feature count distribution and barplots for number of features mapped.
+    
+    ? filter: restrict to specified samples (columns)
+    ? filter: min expressed genes at min val
+    ? filter: min column sums
+    ? filter: min row sums
+
+    
+    ? data_transformation: CPM
+    ? data_transformation: log2
+    ? data_transformation: make binary
+    ? data_transformation: minValAltNA
+
+    ? data_annotation: sample factoring
+    ? data_annotation: sample coloring setup
+
+    ? filter: top expressed genes
+    ? filter: top variable genes (coeffvar|anova)
+    ? filter: min_mean_expr & min_stdev
+
+    ? data_transformation: Z-scale rows
+    ? data_transformation: row centering (if ! Z-scale, since already centered if Z-scale)
+    
+    ? plots: sample replicate comparisons
+
+    ? output: resulting data table post-filtering and data transformations.
+
+    ? plots: sample correlation matrix
+    
+    ? plots: principal components analysis  (note: rows (aka genes) are Z-scaled across samples before PCA)
+    ?       plots: heatmaps for features assigned extreme values in PCA
+
+    ? plots: feature/gene correlation matrix
+
+    ? plots: individual gene correlation plots and heatmaps
+
+    ? plots: samples vs. features matrix
+
+    ? plots: mean expression vs. standard deviation
+
+    End.
+
+    
+__EOTEXT__
+
+    ;
+
+    return;
+}
+
+

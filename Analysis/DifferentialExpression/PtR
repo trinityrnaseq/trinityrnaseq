@@ -200,8 +200,10 @@ my $usage = <<__EOUSAGE__;
 ####################
 #
 #
-#  --pdf_width <int>
-#  --pdf_height <int>
+#  --imgfmt <string>           image type (pdf,svg) with default: pdf
+#
+#  --img_width <int>           image width
+#  --img_height <int>          image height
 #
 ################
 # Misc. params #
@@ -254,8 +256,8 @@ my $top_loadings_pc_heatmap = 0;
 
 my $help_flag = 0;
 
-my $pdf_width;
-my $pdf_height;
+my $img_width;
+my $img_height;
 
 my $use_columns_as_samples = 0;
 
@@ -331,6 +333,7 @@ my $top_variable_via_stdev_and_mean_expr_flag = 0;
 my $min_stdev_expr = undef;
 my $min_mean_expr = undef;
 
+my $imgfmt = "pdf"; # alt is svg
 
 &GetOptions (  
     
@@ -437,8 +440,9 @@ my $min_mean_expr = undef;
     'sample_cor=s' => \$sample_cor,
         
     ## Image settings:
-    'pdf_width=i' => \$pdf_width,
-    'pdf_height=i' => \$pdf_height,
+    'imgfmt=s' => \$imgfmt,
+    'img_width=i' => \$img_width,
+    'img_height=i' => \$img_height,
     
     
     ## Misc params
@@ -486,6 +490,10 @@ if (my $var_method = $var_vs_count_hist_plot) {
     unless ($var_method =~ /^(sd|var|cv|fano)$/) {
         die "Error, don't recognize method $var_method for --var_vs_count_hist  ";
     }
+}
+
+if ($imgfmt !~ /^(pdf|svg)$/) {
+    die "Error, --imgfmt must be pdf or svg";
 }
 
 
@@ -687,13 +695,13 @@ main: {
 
     if ($barplot_sum_counts_flag) {
 
-        ## set up the pdf output
-        $Rscript .= "pdf(\"$output_prefix.barplot_sum_counts.pdf\"";
-        if ($pdf_width) {
-            $Rscript .= ", width=$pdf_width";
+        ## set up the img format for output
+        $Rscript .= "$imgfmt(\"$output_prefix.barplot_sum_counts.$imgfmt\"";
+        if ($img_width) {
+            $Rscript .= ", width=$img_width";
         }
-        if ($pdf_height) {
-            $Rscript .= ", height=$pdf_height";
+        if ($img_height) {
+            $Rscript .= ", height=$img_height";
         }
         $Rscript .= ")\n";
         
@@ -711,12 +719,12 @@ main: {
     if (defined $boxplot_log2_dist) {
 
         ## set up the pdf output
-        $Rscript .= "pdf(\"$output_prefix.boxplot_log2_dist.pdf\"";
-        if ($pdf_width) {
-            $Rscript .= ", width=$pdf_width";
+        $Rscript .= "$imgfmt(\"$output_prefix.boxplot_log2_dist.$imgfmt\"";
+        if ($img_width) {
+            $Rscript .= ", width=$img_width";
         }
-        if ($pdf_height) {
-            $Rscript .= ", height=$pdf_height";
+        if ($img_height) {
+            $Rscript .= ", height=$img_height";
         }
         $Rscript .= ")\n";
 
@@ -1007,12 +1015,12 @@ main: {
         # sample correlation matrix
         
         ## set up the pdf output
-        $Rscript .= "pdf(\"$output_prefix.sample_cor_matrix.pdf\"";
-        if ($pdf_width) {
-            $Rscript .= ", width=$pdf_width";
+        $Rscript .= "$imgfmt(\"$output_prefix.sample_cor_matrix.$imgfmt\"";
+        if ($img_width) {
+            $Rscript .= ", width=$img_width";
         }
-        if ($pdf_height) {
-            $Rscript .= ", height=$pdf_height";
+        if ($img_height) {
+            $Rscript .= ", height=$img_height";
         }
         $Rscript .= ")\n";
         
@@ -1081,12 +1089,12 @@ main: {
         
 
         ## set up the pdf output
-        $Rscript .= "pdf(\"$output_prefix.sample_cor_matrix.subsetted.pdf\"";
-        if ($pdf_width) {
-            $Rscript .= ", width=$pdf_width";
+        $Rscript .= "$imgfmt(\"$output_prefix.sample_cor_matrix.subsetted.$imgfmt\"";
+        if ($img_width) {
+            $Rscript .= ", width=$img_width";
         }
-        if ($pdf_height) {
-            $Rscript .= ", height=$pdf_height";
+        if ($img_height) {
+            $Rscript .= ", height=$img_height";
         }
         $Rscript .= ")\n";
         
@@ -1129,15 +1137,15 @@ main: {
             die "Error, --R_prin_comp_method can be only 'princomp' or 'prcomp', not allowed: $R_prin_comp_method ";
         }
         
-        my $princomp_pdf_filename = ($R_prin_comp_method eq "princomp") ? "$output_prefix.princomp.principal_components.pdf" : "$output_prefix.prcomp.principal_components.pdf";
+        my $princomp_img_filename = ($R_prin_comp_method eq "princomp") ? "$output_prefix.princomp.principal_components.$imgfmt" : "$output_prefix.prcomp.principal_components.$imgfmt";
                 
         ## set up the pdf output
-        $Rscript .= "pdf(\"$princomp_pdf_filename\"";
-        if ($pdf_width) {
-            $Rscript .= ", width=$pdf_width";
+        $Rscript .= "$imgfmt(\"$princomp_img_filename\"";
+        if ($img_width) {
+            $Rscript .= ", width=$img_width";
         }
-        if ($pdf_height) {
-            $Rscript .= ", height=$pdf_height";
+        if ($img_height) {
+            $Rscript .= ", height=$img_height";
         }
         $Rscript .= ")\n";
 
@@ -1269,12 +1277,12 @@ main: {
             $Rscript .= "write.table(gene_cor, file=\"$output_prefix.gene_cor.dat\", quote=F, sep=\"\t\")\n";
             
             ## set up the pdf output
-            $Rscript .= "pdf(\"$output_prefix.gene_cor_matrix.pdf\"";
-            if ($pdf_width) {
-                $Rscript .= ", width=$pdf_width";
+            $Rscript .= "$imgfmt(\"$output_prefix.gene_cor_matrix.$imgfmt\"";
+            if ($img_width) {
+                $Rscript .= ", width=$img_width";
             }
-            if ($pdf_height) {
-                $Rscript .= ", height=$pdf_height";
+            if ($img_height) {
+                $Rscript .= ", height=$img_height";
             }
             $Rscript .= ")\n";
             
@@ -1319,12 +1327,12 @@ main: {
     if ($indiv_gene_cor) {
         
         ## set up the pdf output
-        $Rscript .= "pdf(\"$output_prefix.indiv_gene_cors.pdf\"";
-        if ($pdf_width) {
-            $Rscript .= ", width=$pdf_width";
+        $Rscript .= "$imgfmt(\"$output_prefix.indiv_gene_cors.$imgfmt\"";
+        if ($img_width) {
+            $Rscript .= ", width=$img_width";
         }
-        if ($pdf_height) {
-            $Rscript .= ", height=$pdf_height";
+        if ($img_height) {
+            $Rscript .= ", height=$img_height";
         }
         $Rscript .= ")\n";
         
@@ -1357,12 +1365,12 @@ main: {
     if ($gene_heatmaps) {
     
         ## set up the pdf output
-        $Rscript .= "pdf(\"$output_prefix.indiv_gene_heatmaps.pdf\"";
-        if ($pdf_width) {
-            $Rscript .= ", width=$pdf_width";
+        $Rscript .= "$imgfmt(\"$output_prefix.indiv_gene_heatmaps.$imgfmt\"";
+        if ($img_width) {
+            $Rscript .= ", width=$img_width";
         }
-        if ($pdf_height) {
-            $Rscript .= ", height=$pdf_height";
+        if ($img_height) {
+            $Rscript .= ", height=$img_height";
         }
         $Rscript .= ")\n";
         
@@ -1385,12 +1393,12 @@ main: {
         $Rscript .= "heatmap_data = data\n";
         
         ## set up the pdf output
-        $Rscript .= "pdf(\"$output_prefix.genes_vs_samples_heatmap.pdf\"";
-        if ($pdf_width) {
-                $Rscript .= ", width=$pdf_width";
+        $Rscript .= "$imgfmt(\"$output_prefix.genes_vs_samples_heatmap.$imgfmt\"";
+        if ($img_width) {
+                $Rscript .= ", width=$img_width";
         }
-        if ($pdf_height) {
-            $Rscript .= ", height=$pdf_height";
+        if ($img_height) {
+            $Rscript .= ", height=$img_height";
         }
         $Rscript .= ")\n";
         
@@ -1504,7 +1512,7 @@ main: {
     
     if ($mean_vs_sd_plot) {
         
-        $Rscript .= "pdf(\"$output_prefix.mean_vs_sd.pdf\")\n"
+        $Rscript .= "$imgfmt(\"$output_prefix.mean_vs_sd.$imgfmt\")\n"
                  .  "data_mean = apply(data, 1, mean)\n"
                  .  "data_sd = apply(data, 1, sd)\n"
                  .  "data_mean_vs_sd_table = cbind(data_mean, data_sd)\n"
@@ -1580,7 +1588,7 @@ main: {
             $Rscript .= "count_hist_matrix[count_hist_matrix > $high] = $high\n";
         }
         
-        $Rscript .= "pdf(\"$output_prefix.${var_method}_vs_count_hist.pdf\")\n";
+        $Rscript .= "$imgfmt(\"$output_prefix.${var_method}_vs_count_hist.$imgfmt\")\n";
         $Rscript .= "heatmap.3(count_hist_matrix, Rowv=F, Colv=F, dendrogram='none', col=colorpanel(max(count_hist_matrix), low='black', high='yellow'), scale='none', symm=TRUE, key=TRUE,density.info='none', trace='none', symkey=FALSE, margins=c(10,10), cexCol=1, cexRow=1, cex.main=0.75, main=\"$var_method vs. count hist\", RowSideColors=t(cv_colors))\n";
         
         $Rscript .= "dev.off()\n";
@@ -1595,7 +1603,7 @@ main: {
 #    --per_gene_plots_per_col <int>   default: 2                                                                         
 #
         $Rscript .= "# per gene plots\n";
-        $Rscript .= "pdf(file=\"$output_prefix.per_gene_plots.pdf\")\n";
+        $Rscript .= "$imgfmt(file=\"$output_prefix.per_gene_plots.$imgfmt\")\n";
         $Rscript .= "par(mfrow=c($per_gene_plots_per_col, $per_gene_plots_per_row))\n";
         $Rscript .= "gene_names = rownames(data)\n";
 
@@ -1700,12 +1708,12 @@ sub add_sample_QC_analysis_R {
         #. "    print(samples_want)\n"
         
         . "    if (sum(samples_want) > 1) {\n"
-        . "        pdf(file=paste(sample_name, '.rep_compare.pdf', sep='')";
-    if ($pdf_width) {                                                                                                                                                                                          
-        $Rscript .= ", width=$pdf_width";                                                                                                                                                                      
+        . "        $imgfmt(file=paste(sample_name, \'.rep_compare.$imgfmt\', sep='')";
+    if ($img_width) {                                                                                                                                                                                          
+        $Rscript .= ", width=$img_width";                                                                                                                                                                      
     }                                                                                                                                                                                                          
-    if ($pdf_height) {                                                                                                                                                                                         
-        $Rscript .= ", height=$pdf_height";                                                                                                                                                                    
+    if ($img_height) {                                                                                                                                                                                         
+        $Rscript .= ", height=$img_height";                                                                                                                                                                    
     }                                                                                                                                                                                                          
     
     $Rscript .= ")\n";           
@@ -1942,7 +1950,7 @@ sub add_top_loadings_pc_heatmap {
     $Rscript .=     "write.table(top_loadings_pc_matrix, file=paste(\"$output_prefix\", '.PC.top_', $top_loadings_pc_heatmap, '_loadings.matrix', sep=''), quote=F, sep=\"\t\")\n";
     $Rscript .=     "write.table(pc\$scores[ordered_loadings[1:$top_loadings_pc_heatmap],1:$prin_comp], file=paste(\"$output_prefix\", '.PC.top_', $top_loadings_pc_heatmap, '_loadings.dat', sep=''), quote=F, sep=\"\t\")\n";
 
-    $Rscript .= "pdf(paste(\"$output_prefix\", '.PC.top_', $top_loadings_pc_heatmap, '_loadings.matrix.pdf', sep=''))\n";
+    $Rscript .= "$imgfmt(paste(\"$output_prefix\", '.PC.top_', $top_loadings_pc_heatmap, \'_loadings.matrix.$imgfmt\', sep=''))\n";
     
     if ($CENTER) {
         $Rscript .= "    top_loadings_pc_matrix = t(scale(t(top_loadings_pc_matrix), scale=F))\n";

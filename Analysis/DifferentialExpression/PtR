@@ -550,6 +550,8 @@ main: {
     $Rscript .= "library(Biobase)\n";
     $Rscript .= "library(qvalue)\n";
 
+    $Rscript .= "options(stringsAsFactors = FALSE)\n";
+    
     if ($NO_REUSE) {
         $Rscript .= "NO_REUSE = T\n";
     }
@@ -573,11 +575,12 @@ main: {
     $Rscript .= "source(\"$FindBin::RealBin/R/misc_rnaseq_funcs.R\")\n";
     $Rscript .= "source(\"$FindBin::RealBin/R/pairs3.R\")\n";
 
-
     
     $Rscript .= "data = primary_data\n";
     
     
+    $Rscript .= "myheatcol = colorpanel(75, $HEATMAP_COLORS)\n";  
+        
     if ($samples_file) {
 
         $Rscript .= "samples_data = read.table(\"$samples_file\", header=F, check.names=F, fill=T)\n";
@@ -783,7 +786,8 @@ main: {
 
     ############################################
     ## Filtering out rows (genes or transcripts)
-        
+
+    
     if ($min_rowSums > 0) {
         $Rscript .= "data = data\[rowSums\(data)>=" . $min_rowSums . ",]\n";
         $output_prefix .= ".minRow$min_rowSums";
@@ -940,24 +944,19 @@ main: {
 
     if ($ZSCALE_ROWS) {
         $Rscript .= "# Z-scale the genes across all the samples for PCA\n";
-        $Rscript .= "zscaled_data = data\n";
-        
-        $Rscript .= "for (i in 1:nrow(data)) {\n";
-        $Rscript .= "    d = data[i,]\n";
-        $Rscript .= "    d_mean = mean(d)\n";
-        $Rscript .= "    d  = d - d_mean\n";
-        $Rscript .= "    d = d / sd(d)\n";
-        $Rscript .= "    zscaled_data[i,] = d\n";
-        $Rscript .= "}\n\n";
+        $Rscript .= "zscaled_data = t(scale(t(data), scale=T))\n";
         $Rscript .= "data = zscaled_data\n";
-        
+        $Rscript .= "data = na.omit(data)\n";
         $output_prefix .= ".ZscaleRows";
+        
         $Rscript .= "write.table(data, file=\"$output_prefix.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
         
     }
     elsif ($CENTER) {
         $Rscript .= "\n# Centering rows\n"
             . "data = t(scale(t(data), scale=F))\n\n";
+        $output_prefix .= ".centered";
+        $Rscript .= "write.table(data, file=\"$output_prefix.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
     }
     
     
@@ -1034,8 +1033,8 @@ main: {
         #$Rscript .= "# for plotting, set self cor = NA\n";
         $Rscript .= "sample_cor_for_plot = sample_cor\n";
         #$Rscript .= "if (nrow(sample_cor_for_plot) > 2) diag(sample_cor_for_plot) = NA\n";  # changed my mind.
-        
-        $Rscript .= "heatmap.3(sample_cor_for_plot, dendrogram='both', Rowv=as.dendrogram(hc_samples), Colv=as.dendrogram(hc_samples), col = greenred(75), scale='none', symm=TRUE, key=TRUE,density.info='none', trace='none', symkey=FALSE, symbreaks=F, margins=c(10,10), cexCol=1, cexRow=1, cex.main=0.75, main=paste(\"sample correlation matrix\n\", \"$output_prefix\") ";
+
+        $Rscript .= "heatmap.3(sample_cor_for_plot, dendrogram='both', Rowv=as.dendrogram(hc_samples), Colv=as.dendrogram(hc_samples), col = myheatcol, scale='none', symm=TRUE, key=TRUE,density.info='none', trace='none', symkey=FALSE, symbreaks=F, margins=c(10,10), cexCol=1, cexRow=1, cex.main=0.75, main=paste(\"sample correlation matrix\n\", \"$output_prefix\") ";
         
         if ($samples_file || $use_columns_as_samples || $sample_cor_sum_gene_factor_expr) {
             
@@ -1144,7 +1143,7 @@ main: {
 
                     
         $Rscript .= "prin_comp_data = data\n"; # all data operations including log2, scaling, centering, etc should be done beforehand as directed by parameters.
-        
+                
         $Rscript .= "write.table(prin_comp_data, file=\"$output_prefix.Princomp.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
 
         
@@ -1210,9 +1209,11 @@ main: {
         
         #$Rscript .= "dev.off();stop('debug')\n";
         
-        $Rscript .= "pcscore_mat_vals = PCA.loadings[,1:$prin_comp]\n";
-        $Rscript .= "pcscore_mat = matrix_to_color_assignments(pcscore_mat_vals, col=colorpanel(256,'purple','black','yellow'), by='row')\n";
-        $Rscript .= "colnames(pcscore_mat) = paste('PC', 1:ncol(pcscore_mat))\n"; 
+        $Rscript .= "pcloadings_mat_vals = PCA.loadings[,1:$prin_comp]\n";
+        $Rscript .= "print(dim(pcloadings_mat_vals))\n"; #DEBUG
+        $Rscript .= "pcloadings_mat = matrix_to_color_assignments(pcloadings_mat_vals, col=colorpanel(256,'purple','black','yellow'), by='col')\n";
+        $Rscript .= "print(dim(pcloadings_mat))\n"; #DEBUG
+        $Rscript .= "colnames(pcloadings_mat) = paste('PC', 1:ncol(pcloadings_mat))\n"; 
         
         if ($prin_comp_heatmaps) {
             
@@ -1380,8 +1381,6 @@ main: {
 
     if ($heatmap_flag) {
         
-        $Rscript .= "myheatcol = colorpanel(75, $HEATMAP_COLORS)\n";
-                        
         # sample vs. gene heatmap
         $Rscript .= "heatmap_data = data\n";
         
@@ -1874,19 +1873,20 @@ sub add_prin_comp_heatmaps {
                 . "    print(extreme_ordered_gene_indices)\n"
                 . "    selected_gene_indices = ordered_gene_indices[extreme_ordered_gene_indices]\n"
                 . "    print('selected gene indices');print(selected_gene_indices);\n"
-                . "    print('PC scores:');print(PCA.loadings[selected_gene_indices,i])\n"
-                . "    selected_genes_matrix = prin_comp_data[selected_gene_indices,]\n"
-                #. "    print(selected_genes_matrix)\n"
-                . "    pc_color_bar_vals = pcscore_mat_vals[selected_gene_indices,i]\n"
-                . "    print(pc_color_bar_vals)\n"
-                . "    pc_color_bar = as.matrix(pcscore_mat[selected_gene_indices,i])\n";
+                . "    print('PC loadings:');print(PCA.loadings[selected_gene_indices,i])\n"
+                . "    selected_genes_matrix = prin_comp_data[names(PCA.loadings[selected_gene_indices,i]),]\n"
+                . "    print(selected_genes_matrix)\n"
+                . "    print(dim(pcloadings_mat_vals)); print(dim(pcloadings_mat))\n"
+                . "    pc_color_bar_vals = pcloadings_mat_vals[selected_gene_indices,i]\n"
+                . "    print('pc_color_bar_vals:'); print(pc_color_bar_vals)\n"
+                . "    pc_color_bar = as.matrix(pcloadings_mat[selected_gene_indices,i])\n";
 
     $Rscript .= "uniq_genes = unique(c(uniq_genes, rownames(selected_genes_matrix)))\n";
 
     $Rscript .=     "    write.table(selected_genes_matrix, file=paste(\"$output_prefix\", '.PC',i,'_extreme',$num_top_genes_PC_extreme,'.matrix', sep=''), quote=F, sep=\"\t\")\n";
     
-    
-    $Rscript .= "    heatmap.3(selected_genes_matrix, col=greenred(256), scale='none', density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=1, margins=c(10,10), cex.main=0.75, RowSideColors=pc_color_bar, cexRow=0.5, main=paste('heatmap for', $num_top_genes_PC_extreme, ' extreme of PC', i)";
+
+    $Rscript .= "    heatmap.3(selected_genes_matrix, col=myheatcol, scale='none', density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=1, margins=c(10,10), cex.main=0.75, RowSideColors=pc_color_bar, cexRow=0.5, main=paste('heatmap for', $num_top_genes_PC_extreme, ' extreme of PC', i)";
 
     if ($samples_file) {
         $Rscript .= ", ColSideColors=sampleAnnotations";
@@ -1900,7 +1900,8 @@ sub add_prin_comp_heatmaps {
     $Rscript .= "all_selected_genes_matrix = prin_comp_data[uniq_genes,]\n";
     
     $Rscript .= "write.table(all_selected_genes_matrix, file=paste(\"$output_prefix\", '.PC_all','_extreme',$num_top_genes_PC_extreme,'.matrix', sep=''), quote=F, sep=\"\t\")\n";
-    $Rscript .= "heatmap.3(all_selected_genes_matrix, col=greenred(256), scale='none', density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=1, margins=c(10,10), cex.main=0.75, cexRow=0.5, main=paste('heatmap for ALL selected ', $num_top_genes_PC_extreme, ' extreme of all PCs')";
+
+    $Rscript .= "heatmap.3(all_selected_genes_matrix, col=myheatcol, scale='none', density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=1, margins=c(10,10), cex.main=0.75, cexRow=0.5, main=paste('heatmap for ALL selected ', $num_top_genes_PC_extreme, ' extreme of all PCs')";
     
     if ($samples_file) {
         $Rscript .= ", ColSideColors=sampleAnnotations";
@@ -1947,8 +1948,8 @@ sub add_top_loadings_pc_heatmap {
         $Rscript .= "    top_loadings_pc_matrix = t(scale(t(top_loadings_pc_matrix), scale=F))\n";
     }
     
-    
-    $Rscript .= "    heatmap.3(top_loadings_pc_matrix, col=greenred(256), scale='none', density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=1, margins=c(10,10), cex.main=0.75, cexRow=0.5, main=paste('heatmap for', $top_loadings_pc_heatmap, ' extreme all Prin. Comps.')";
+
+    $Rscript .= "    heatmap.3(top_loadings_pc_matrix, col=myheatcol, scale='none', density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=1, margins=c(10,10), cex.main=0.75, cexRow=0.5, main=paste('heatmap for', $top_loadings_pc_heatmap, ' extreme all Prin. Comps.')";
     
     if ($samples_file) {
         $Rscript .= ", ColSideColors=sampleAnnotations";
@@ -2007,15 +2008,14 @@ sub write_study_individual_gene_correlations_function {
     $Rscript .= "    this_sample_cor = cor(gene_expr_submatrix, method=\"$sample_cor\", use='pairwise.complete.obs')\n"
              .  "    this_hc_samples = hclust(as.dist(1-this_sample_cor), method=\"$sample_clust\")\n";
 
-    $Rscript .= "    heatmap.3(this_gene_cor_matrix, dendrogram='both', Rowv=as.dendrogram(this_hc_genes), Colv=as.dendrogram(this_hc_genes), col=colorpanel(256,'purple','black','yellow'), scale='none', symm=TRUE, key=TRUE,density.info='none', trace='none', symkey=FALSE, margins=c(10,10), cexCol=1, cexRow=1, cex.main=0.75, main=paste(\"feature correlation matrix\n\", gene_id))\n";
+    $Rscript .= "    heatmap.3(this_gene_cor_matrix, dendrogram='both', Rowv=as.dendrogram(this_hc_genes), Colv=as.dendrogram(this_hc_genes), col=myheatcol, scale='none', symm=TRUE, key=TRUE,density.info='none', trace='none', symkey=FALSE, margins=c(10,10), cexCol=1, cexRow=1, cex.main=0.75, main=paste(\"feature correlation matrix\n\", gene_id))\n";
 
     # gene vs. samples plot
 
     # center rows
     $Rscript .= "    gene_expr_submatrix = t(scale(t(gene_expr_submatrix), scale=F))\n";
     
-    
-    $Rscript .= "    heatmap.3(gene_expr_submatrix, col=greenred(256), Rowv=as.dendrogram(this_hc_genes), Colv=as.dendrogram(this_hc_samples), scale='none', density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=1, margins=c(10,10), cex.main=0.75, cexRow=0.5, main=paste('heatmap for most correlated to', gene_id)";
+    $Rscript .= "    heatmap.3(gene_expr_submatrix, col=myheatcol, Rowv=as.dendrogram(this_hc_genes), Colv=as.dendrogram(this_hc_samples), scale='none', density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=1, margins=c(10,10), cex.main=0.75, cexRow=0.5, main=paste('heatmap for most correlated to', gene_id)";
 
     if ($samples_file) {
         $Rscript .= ", ColSideColors=these_sample_annotations";
@@ -2048,14 +2048,8 @@ sub gene_heatmaps {
         ## matrix must have multiple rows.  Just duplicate the last row
         $Rscript .= "gene_submatrix = rbind(gene_submatrix, gene_submatrix[1,])\n";
     }
-    
-    my $col = "greenred(75)";
-    if ($CENTER) {
-        $col = "colorpanel(75, 'black', 'red')";
-    }
-
-    
-    $Rscript .= "heatmap.3(gene_submatrix, dendrogram='none', Rowv=F, Colv=F, col=$col, main='without clustering'";
+        
+    $Rscript .= "heatmap.3(gene_submatrix, dendrogram='none', Rowv=F, Colv=F, col=myheatcol, main='without clustering'";
     
     if ($samples_file) {
         $Rscript .= ", ColSideColors=coloring_by_sample";
@@ -2066,7 +2060,7 @@ sub gene_heatmaps {
     { 
         ## Do it again and cluster too
     
-        $Rscript .= "heatmap.3(gene_submatrix, col=$col, main='with clustering'";
+        $Rscript .= "heatmap.3(gene_submatrix, col=myheatcol, main='with clustering'";
         
         if ($samples_file) {
             $Rscript .= ", ColSideColors=coloring_by_sample";

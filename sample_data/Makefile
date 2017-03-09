@@ -5,7 +5,8 @@ test_DE_analysis \
 test_align_and_estimate_abundance \
 test_full_edgeR_pipeline \
 test_GOSeq_trinotate_pipe \
-test_profiling_report
+test_profiling_report \
+test_PtR
 
 
 

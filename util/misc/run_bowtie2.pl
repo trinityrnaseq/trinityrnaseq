@@ -69,7 +69,7 @@ main: {
         &process_cmd($cmd);
     }
     
-    my $format = ($reads_1_fq =~ /\.fq/) ? "-q" : "-f";
+    my $format = ($reads_1_fq =~ /\.fq|\.fastq/) ? "-q" : "-f";
     
     my $bowtie2_cmd = "bowtie2 --local --no-unal -k 50 -x $target_seq $format ";
     if ($reads_2_fq) {

@@ -31,7 +31,7 @@ my $usage = <<__EOUSAGE__;
     
       and you can pipe it into samtools to make a bam file:
    
-         | samtools view -Sb - | samtools sort - -o bowtie2.coordSorted.bam
+         | samtools view -@ 8 -Sb - | samtools sort -@ 8 -m 4G - -o bowtie2.coordSorted.bam
 
 #############################################################################
 
@@ -71,7 +71,7 @@ main: {
     
     my $format = ($reads_1_fq =~ /\.fq|\.fastq/) ? "-q" : "-f";
     
-    my $bowtie2_cmd = "bowtie2 --local --no-unal -k 50 -x $target_seq $format ";
+    my $bowtie2_cmd = "bowtie2 --threads $CPU --local --no-unal -k 50 -x $target_seq $format ";
     if ($reads_2_fq) {
         $bowtie2_cmd .= " -1 $reads_1_fq -2 $reads_2_fq ";
     }

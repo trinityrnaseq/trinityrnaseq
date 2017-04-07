@@ -26,6 +26,11 @@ main: {
     my $ordered_record_counter = 0;
     
     my $prev_record = $sam_reader->get_next();
+    unless ($prev_record) {
+        print STDERR "WARNING, bam file appears to not have any reads!   exiting gracefully.\n";
+        exit(0);
+    }
+
     
     my %scaff_seen;
     $scaff_seen{ $prev_record->get_scaffold_name() } = 1;
@@ -63,8 +68,10 @@ main: {
     }
     
     
-    die "ERROR: didn't find at least $num_records_to_validate BAM records properly ordered along a single scaffold. ";
+    print STDERR "Warning: didn't find at least $num_records_to_validate BAM records properly ordered along a single scaffold...  either the file contains few reads per scaffold or there may be a problem.\n";
 
+    exit(0);
+    
 
 }
     

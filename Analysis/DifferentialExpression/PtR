@@ -184,7 +184,7 @@ my $usage = <<__EOUSAGE__;
 #
 #
 #  --sample_dist <string>      Setting used for --heatmap (samples vs. genes)
-#                                  Options: euclidean, gene_cor
+#                                  Options: euclidean, sample_cor
 #                                           maximum, manhattan, canberra, binary, minkowski
 #                                  (default: 'euclidean')  Note: if using 'sample_cor', set method using '--sample_cor' below.
 #

@@ -8,6 +8,9 @@ use FindBin;
 use lib "$FindBin::Bin/../../PerlLib";
 use Pipeliner;
 
+
+my $CPU = 2;
+
 my $usage = <<__EOUSAGE__;
 
 #################################################################
@@ -20,9 +23,13 @@ my $usage = <<__EOUSAGE__;
 #
 #  --samples_file <string>            Trinity samples file
 #
+#    ## TODO: set read pairing and strand-specificity info
+#
 #  Optional:
 #
 #  --out_prefix <string>             default: 'dexseq'
+#
+#  --CPU <int>                       default: $CPU
 #
 ################################################################
 
@@ -43,6 +50,7 @@ my $out_prefix = "dexseq";
               'trinity_genes_gtf=s' => \$trinity_genes_gtf_file,
               'samples_file=s' => \$samples_file,
               'out_prefix=s' => \$out_prefix,
+              'CPU=i' => \$CPU,
     );
 
 if ($help_flag) {
@@ -67,7 +75,7 @@ main: {
     $pipeliner->add_commands(new Command($cmd, "flatten_gtf.ok"));
     
     ## run gsnap
-    $cmd = "$TRINITY_HOME/util/misc/run_GSNAP.pl  --genome $trinity_genes_fasta_file -G $trinity_genes_gtf_file --samples $samples_file";
+    $cmd = "$TRINITY_HOME/util/misc/run_GSNAP.pl  --genome $trinity_genes_fasta_file -G $trinity_genes_gtf_file --samples $samples_file --CPU $CPU";
     $pipeliner->add_commands(new Command($cmd, "gsnap_each.ok"));
 
     $pipeliner->run();
@@ -88,10 +96,10 @@ main: {
 
         # quant
         $cmd = "$TRINITY_HOME/trinity-plugins/DEXseq_util/dexseq_count.py $trinity_genes_gtf_file.dexseq.gff $bam_file.sam $bam_file.counts";
-        $pipeliner->add_commands(new Command($cmd, "$bam_file.counts"));
-
+        $pipeliner->add_commands(new Command($cmd, "$bam_file.counts.ok"));
+        
         push (@counts_files, "$bam_file.counts");
-
+        
     }
 
     #############

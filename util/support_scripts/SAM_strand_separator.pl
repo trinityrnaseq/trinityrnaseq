@@ -7,6 +7,7 @@ use FindBin;
 use lib ("$FindBin::RealBin/../../PerlLib");
 use SAM_reader;
 use SAM_entry;
+use File::Basename;
 
 my $usage = "usage: $0 alignments.sam SS_lib_type=F,R,FR,RF\n\n";
 
@@ -23,8 +24,11 @@ main: {
 	
     my $sam_reader = new SAM_reader($sam_file);
 
-    open (my $plus_ofh, ">$sam_file.+.sam") or die "Error, cannot write to $sam_file.+.sam";
-	open (my $minus_ofh, ">$sam_file.-.sam") or die "Error, cannot write to $sam_file.-.sam";
+    my $sam_basename = basename($sam_file);
+    
+    
+    open (my $plus_ofh, ">$sam_basename.+.sam") or die "Error, cannot write to $sam_basename.+.sam";
+	open (my $minus_ofh, ">$sam_basename.-.sam") or die "Error, cannot write to $sam_basename.-.sam";
 	
 	while (my $sam_entry = $sam_reader->get_next()) {
 

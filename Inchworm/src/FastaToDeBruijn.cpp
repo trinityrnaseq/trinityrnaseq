@@ -30,8 +30,6 @@ unsigned int IRKE_COMMON::MONITOR = 0;
 
 
 
-
-
 // prototypes
 string usage (ArgProcessor args);
 int fastaToDeBruijn (int argc, char* argv[]);
@@ -197,7 +195,9 @@ void createGraphPerRecord(vector<string> fasta_file_names, int kmer_length, bool
             for (size_t s = 0; s < seq_regions.size(); s++) { 
                 
                 string seq_region = seq_regions[s];
-                
+
+                if (seq_region.size() < kmer_length) { continue; }  // can be encountered in jaccard-clip mode (rarely)
+                                
                 if (contains_non_gatc(seq_region)) {
                     seq_region = replace_nonGATC_chars_with_A(seq_region);
                 }

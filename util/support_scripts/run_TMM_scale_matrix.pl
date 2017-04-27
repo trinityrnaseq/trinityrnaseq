@@ -84,8 +84,14 @@ sub run_TMM {
 
     &process_cmd("R --vanilla -q < $tmm_norm_script 1>&2 ");
     
-    return("$counts_matrix_file.TMM_info.txt");
+    my $tmm_matrix = "$counts_matrix_file.TMM_info.txt";
 
+    unless (-s $tmm_matrix) {
+        confess "Error, TMM matrix $tmm_matrix was not generated.  Be sure edgeR is installed and see additional error messages above for other helpful info";
+    }
+    
+    return($tmm_matrix);
+    
 }
 
 ####

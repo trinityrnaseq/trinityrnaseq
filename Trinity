@@ -72,7 +72,7 @@ $output_directory = &create_full_path("trinity_out_dir", 0);
 $min_contig_length = 200;
 $group_pairs_distance = 500;
 my $path_reinforcement_distance;
-my $PE_path_reinforcement_distance = 75;
+my $PE_path_reinforcement_distance = 25;
 my $SE_path_reinforcement_distance = 25;
 
 my $bfly_opts = "";
@@ -116,7 +116,6 @@ my $max_reads_per_graph = 200000;
 my $max_reads_per_loop = 50000000; #MW: Set default to 50M, still fits into main memory
 my $min_pct_read_mapping = 0;
 my $chrysalis_output_dir = "chrysalis";
-my $component_directory;
 my $NO_RUN_CHRYSALIS_FLAG = 0;
 
 my $NO_DISTRIBUTED_TRINITY_EXEC = 0;
@@ -139,23 +138,21 @@ my $grid_exec_toolname = "";
 
 ## Performance monitoring options 
 my $pm_logfile = "Trinity.timing";
-my $pm_trinity_startstring;
-my $pm_trinity_endstring;
-my $pm_trinity_start=0;
-my $pm_trinity_end=0;
-my $pm_inchworm_start=0;
-my $pm_inchworm_end=0;
-my $pm_chrysalis_start=0;
-my $pm_chrysalis_end=0;
-my $pm_butterfly_start=0;
-my $pm_butterfly_end=0;
-my $pm_left_fa_size=0;
-my $pm_right_fa_size=0;
-my $pm_single_fa_size=0;
-my $pm_trinity_fa_size=0;
+my $pm_trinity_startstring="NA";
+my $pm_trinity_endstring="NA";
+my $pm_trinity_start="NA";
+my $pm_trinity_end="NA";
+my $pm_inchworm_start="NA";
+my $pm_inchworm_end="NA";
+my $pm_chrysalis_start="NA";
+my $pm_chrysalis_end="NA";
+my $pm_left_fa_size="NA";
+my $pm_right_fa_size="NA";
+my $pm_single_fa_size="NA";
+my $pm_trinity_fa_size="NA";
 my $pm_trinity_arguments="";
 my $pm_inchworm_kmers=0;
-my $pm_read_count=0;
+my $pm_read_count="NA";
 
 my $run_with_collectl = 0;
 # flush each second, record procs+rest every 5 secs, use only process subsystem
@@ -214,7 +211,7 @@ my $basic_usage = qq^
 #  --seqType <string>      :type of reads: ('fa' or 'fq')
 #
 #  --max_memory <string>      :suggested max memory to use by Trinity where limiting can be enabled. (jellyfish, sorting, etc)
-#                            provied in Gb of RAM, ie.  '--max_memory 10G'
+#                            provided in Gb of RAM, ie.  '--max_memory 10G'
 #
 #  If paired reads:
 #      --left  <string>    :left reads, one or more file names (separated by commas, no spaces)
@@ -275,6 +272,9 @@ my $basic_usage = qq^
 #                                   created if it doesn't already exist)
 #                                   default( your current working directory: "$output_directory" 
 #                                    note: must include 'trinity' in the name as a safety precaution! )
+#             
+#  --workdir <string>              :where Trinity phase-2 assembly computation takes place (defaults to --output setting).
+#                                  (can set this to a node-local drive or RAM disk)     
 #  
 #  --full_cleanup                  :only retain the Trinity fasta file, rename as \${output_dir}.Trinity.fasta
 #
@@ -297,6 +297,9 @@ my $full_usage = qq^
 #
 #  --no_version_check              :dont run a network check to determine if software updates are available.
 #
+#  --monitoring                    :use collectl to monitor all steps of Trinity
+#     --monitor_sec <int>          : number of seconds for each interval of runtime monitoring (default: $COLLECTL_INTERVAL_SECONDS)
+#  
 ####################################################
 # Inchworm and K-mer counting-related options: #####
 #
@@ -364,7 +367,7 @@ my $full_usage = qq^
 #  --bflyHeapSpaceMax <string>     :java max heap space setting for butterfly
 #                                   (default: $bflyHeapSpaceMax) => yields command
 #                  'java -Xmx$bflyHeapSpaceMax -jar Butterfly.jar ... \$bfly_opts'
-#  --bflyHeapSpaceInit <string>    :java initial hap space settings for
+#  --bflyHeapSpaceInit <string>    :java initial heap space settings for
 #                                   butterfly (default: $bflyHeapSpaceInit) => yields command
 #                  'java -Xms$bflyHeapSpaceInit -jar Butterfly.jar ... \$bfly_opts'
 #  --bflyGCThreads <int>           :threads for garbage collection
@@ -483,9 +486,7 @@ my $advanced_usage =  <<_ADVANCEDUSAGE_;
 #
 #
 #  Other:
-#  --monitoring                    :use collectl to monitor all steps of Trinity
-#     --monitor_sec <int>          : number of seconds for each interval of runtime monitoring (default: $COLLECTL_INTERVAL_SECONDS)
-#  
+#
 #  --bypass_java_version_check     : skip check for required java version 1.7
 #
 #  --long_reads_mode               : run in long reads mode (requires --single and the long reads integrated with LR$| accession prefixes.
@@ -553,6 +554,8 @@ my $NO_VERSION_CHECK = 0;
 
 my $samples_file = "";
 
+my $WORKDIR;
+
 &GetOptions( 
     
     'h|help' => \$help_flag,
@@ -578,6 +581,7 @@ my $samples_file = "";
     "long_reads_mode" => \$LONG_READS_MODE,
     
     "output=s" => \$output_directory,
+    "workdir=s" => \$WORKDIR,
     
     "min_contig_length=i" => \$min_contig_length,
 
@@ -654,8 +658,8 @@ my $samples_file = "";
     # Grid computing options
     'grid_exec=s' => \$grid_exec_toolname,         
 
-    "grid_node_CPU=i" => $grid_node_CPU,
-    "grid_node_max_memory=s" => $grid_node_max_memory,
+    "grid_node_CPU=i" => \$grid_node_CPU,
+    "grid_node_max_memory=s" => \$grid_node_max_memory,
                  
     # misc
     'run_as_paired' => \$run_as_paired_flag,
@@ -776,6 +780,8 @@ trinity_complete
 bypass_java_version_check
 ananas_dir
 samples_file
+workdir
+
 );   
 
 my %ACCEPTABLE_OPTS = map { + $_ => 1} @__ALL_TRINITY_PARAMS;
@@ -836,6 +842,15 @@ unless ($max_memory &&
 }
 
 
+$output_directory = &create_full_path($output_directory, 0);
+
+if ($WORKDIR) {
+    $WORKDIR = &create_full_path($WORKDIR, 0);
+}
+else {
+    $WORKDIR = $output_directory;
+}
+
 my $GRAPH_FROM_FASTA_CUSTOM_PARAMS = "";
 my $GRAPH_FROM_FASTA_KK = 2*($KMER_SIZE-1);
 
@@ -865,6 +880,7 @@ if ($TRINITY_COMPLETE_FLAG) {
     }
 
 }
+
 
 if ($NO_CLEANUP && $FULL_CLEANUP) {
     die "cannot set --no_cleanup and --full_cleanup as they contradict";
@@ -1093,7 +1109,7 @@ if ($PASAFLY_MODE) {
 elsif ($CUFFFLY_MODE) {
     $butterfly_output_filename = "Trinity.Cufffly.fasta";
 }
-
+$butterfly_output_filename = "$output_directory/$butterfly_output_filename";
 
 my $PARALLEL_SAMTOOLS_SORT_TOKEN = "-\@ $CPU";
 
@@ -1102,6 +1118,15 @@ unless (basename($output_directory) =~ /trinity/i) {
     die "Error, output directory must contain the word 'trinity' as a safety precaution, given that auto-deletion can take place.\n";
 }
 
+unless (basename($WORKDIR) =~ /trinity/i) {
+    die "Error, workdir must contain the word 'trinity' as a safety precaution, given that auto-deletion can take place.\n";
+}
+
+
+$output_directory =~ s|/+$||g; # remove any trailing directory slash
+my $TRINITY_PHASE1_OUTDIR = $output_directory;
+
+my $MKDIR_PHASE1_OUTDIR_FLAG = 0;
 
 main: {
     $ENV{OMP_NUM_THREADS} = $CPU;
@@ -1109,6 +1134,31 @@ main: {
     unless ($NO_RUN_INCHWORM_FLAG || $NO_RUN_CHRYSALIS_FLAG || $TRINITY_COMPLETE_FLAG)  {
         print STDERR "-since butterfly will eventually be run, lets test for proper execution of java\n" if $VERBOSE;
         &test_java_failure_capture();
+    }
+
+    if (! -d $TRINITY_PHASE1_OUTDIR) {
+        &process_cmd("mkdir -p $TRINITY_PHASE1_OUTDIR");
+        $MKDIR_PHASE1_OUTDIR_FLAG = 1;
+    }
+    
+    if ($TRINITY_COMPLETE_FLAG && $WORKDIR ne $output_directory) {
+
+        ######################################
+        ## Using a WORKDIR for assembly stage.
+        ######################################
+        
+        # should have single.fa file as target for Trinity phase2, and should exist in current output directory.
+        my $single_fa = $single_files[0] or die "Error, in Trinity phase-2 and no single.fa file being used";
+        my @dir_parts = split(/\//, $single_fa);
+        @dir_parts = @dir_parts[-3 .. -1];
+        
+        $WORKDIR .= "/" . join("/", @dir_parts);
+        $output_directory = $WORKDIR . "-" . time(); # make unique
+        
+        unless (-d $output_directory) {
+            &process_cmd("mkdir -p $output_directory");
+            $MKDIR_OUTDIR_FLAG = 1;
+        }
     }
     
     unless ($genome_guided_bam) {
@@ -1121,39 +1171,14 @@ main: {
             die "Error, working in full-cleanup mode. Specify a named directory for the output. The directory and contents are purged at end of a successful run.";
         }
         
-        
         if ($chrysalis_output_dir !~ /^\//) {
             $chrysalis_output_dir = "$output_directory/$chrysalis_output_dir";
         }
         
         $chrysalis_output_dir = &create_full_path($chrysalis_output_dir, 0);
         
-        if ($component_directory){
-            # does a component directory exist from a previous run?
-            if (-e $chrysalis_output_dir.'/Component_bins'){
-                if (-l $chrysalis_output_dir.'/Component_bins'){
-                    $component_directory = readlink($chrysalis_output_dir.'/Component_bins');
-                }else{
-                    $component_directory = $chrysalis_output_dir.'/Component_bins';
-                }
-                warn "Reusing existing component directory $component_directory\n";
-            }else{
-                $component_directory .= "/Trinity.$$";
-                mkdir($component_directory) || die ("component directory cannot be created or already exists!\n");
-                die "Cannot create component directory $component_directory" unless -d $component_directory;
-                $component_directory .= "/Component_bins";
-                mkdir($component_directory) || die ("component directory cannot be created or already exists!\n");
-                die "Cannot create component directory $component_directory" unless -d $component_directory;
-            }
-            # so that users know where it is/remember to remove it if manually done?
-            symlink($component_directory,$chrysalis_output_dir.'/Component_bins') unless -e $chrysalis_output_dir.'/Component_bins'; 
-        }else{
-            $component_directory = $chrysalis_output_dir . '/Component_bins';
-            $component_directory = &create_full_path($component_directory,0);
-        }
-    }
 
-    
+    }
     
     ## create complete paths for input files:
     @left_files = &create_full_path(\@left_files, 1) if @left_files;
@@ -1168,16 +1193,17 @@ main: {
     
     $genome_guided_bam = &create_full_path($genome_guided_bam, 1) if $genome_guided_bam;
     
-    unless (-d $output_directory) {
-        
+    if ( (! $TRINITY_COMPLETE_FLAG) && (! -d $output_directory)) {
+        # phase - 1 mode.
         &process_cmd("mkdir -p $output_directory");
         $MKDIR_OUTDIR_FLAG = 1;
     }
-
+    
     if ((! $genome_guided_bam) && (! -d $chrysalis_output_dir)) {
         &process_cmd("mkdir -p $chrysalis_output_dir"); # note, won't be auto-cleaned up if not in the trinity_out_dir/
     }
-    
+
+    print STDERR "-changing dir to output dir: $output_directory\n" if $VERBOSE;
     chdir ($output_directory) or die "Error, cannot cd to $output_directory";
     
     collectl_start() unless ($TRINITY_COMPLETE_FLAG || $FULL_CLEANUP);
@@ -1190,7 +1216,7 @@ main: {
             . "----------------------------------------------------------------------------------\n\n";
         
     }
-
+    
     
     ##########################
     ##  Run Quality Trimming
@@ -1252,14 +1278,17 @@ main: {
     }
        
     if ($genome_guided_bam) {
-        &run_genome_guided_Trinity();
         
+        my $trinity_GG_fasta_file = &run_genome_guided_Trinity();
+
+        print STDERR "\n\nFinished. See $trinity_GG_fasta_file for reconstructed transcripts\n\n";
         exit(0);
     }
 
-    
+
+    my $Trinity_tmp_fasta_file;
     eval {
-        &run_Trinity();
+        $Trinity_tmp_fasta_file = &run_Trinity();
     };
     
     if ($@) {
@@ -1272,44 +1301,51 @@ main: {
     
     if ($FULL_CLEANUP) {
         print "Fully cleaning up.\n" if $VERBOSE;
-        $output_directory =~ s|/+$||g; # remove any trailing directory slash
-    
-        if (-s "Trinity.fasta.tmp") {
-            rename("Trinity.fasta.tmp", "$output_directory.Trinity.fasta") or die "Error, cannot rename Trinity.fasta.tmp to $output_directory.Trinity.fasta";
-
+                        
+        if ($Trinity_tmp_fasta_file && -s $Trinity_tmp_fasta_file) {
+            my $final_Trinity_fasta_file = "$TRINITY_PHASE1_OUTDIR.Trinity.fasta";
+            &process_cmd("mv $Trinity_tmp_fasta_file $final_Trinity_fasta_file");
+            
             if ($VERBOSE || ! $TRINITY_COMPLETE_FLAG) {
                 print "\n\n"
                     . "###################################################################\n"
-                    . "Butterfly assemblies are written to $output_directory.Trinity.fasta\n"
+                    . "Butterfly assemblies are written to $final_Trinity_fasta_file\n"
                     . "###################################################################\n\n\n";
             }
         }
         else {
             print "# No butterfly assemblies to report.\n" unless $TRINITY_COMPLETE_FLAG;
         }
-        
-        if ($MKDIR_OUTDIR_FLAG && basename($output_directory) =~ /trinity/i) { # ensure outdirectory as trinity in the name, just to be sure we dont delete something non-trinity related!!!
-            system("rm -rf $output_directory");
+
+        if ($TRINITY_COMPLETE_FLAG) {
+            # phase-2
+            # outputdir might be workdir
+            if ($MKDIR_OUTDIR_FLAG && basename($output_directory) =~ /trinity/i) { # ensure outdirectory as trinity in the name, just to be sure we dont delete something non-trinity related!!!
+                system("rm -rf $output_directory");
+            }
         }
-        else {
-            print STDERR "WARNING, cannot remove output directory $output_directory, since not created in this run. (safety precaution)\n";
-        }
         
+        if ($MKDIR_PHASE1_OUTDIR_FLAG && basename($TRINITY_PHASE1_OUTDIR =~ /trinity/i) && -d $TRINITY_PHASE1_OUTDIR) {
+            system("rm -rf $TRINITY_PHASE1_OUTDIR");
+        }
     }
     else {
+
+        # not fully cleaning up.
+        # leave directories intact.
         
-        
-        if (-s "Trinity.fasta.tmp") {
-            rename("Trinity.fasta.tmp", $butterfly_output_filename) or die "Error, cannot rename Trinity.fasta.tmp to $butterfly_output_filename"; # now that process has finished.
+        if ($Trinity_tmp_fasta_file && -s $Trinity_tmp_fasta_file) {
+            print STDERR "-relocating $Trinity_tmp_fasta_file to $butterfly_output_filename\n";
+            &process_cmd("mv $Trinity_tmp_fasta_file $butterfly_output_filename");
         }
-        
+                
         if (-s $butterfly_output_filename) {
 
             if ($VERBOSE || ! $TRINITY_COMPLETE_FLAG) {
             
             print "\n\n"
                 . "###################################################################\n"
-                . "Butterfly assemblies are written to $output_directory/$butterfly_output_filename\n"
+                . "Butterfly assemblies are written to $butterfly_output_filename\n"
                 . "###################################################################\n\n\n";
             }
         }
@@ -1406,7 +1442,7 @@ sub run_Trinity {
                 &process_cmd("touch $trinity_target_fa.ok") unless (-e "$trinity_target_fa.ok");
                 
                 # we keep if we have jaccard; delete later
-                unlink ("left.fa", "right.fa") unless $jaccard_clip; # no longer needed now that we have 'both.fa', which is needed by chryaslis
+                unlink ("left.fa", "right.fa") unless $jaccard_clip; # no longer needed now that we have 'both.fa', which is needed by chrysalis
             }
             
             foreach my $f ((@left_files,@right_files)){
@@ -1529,14 +1565,14 @@ sub run_Trinity {
     
     #################
     ## Inchworm step:
-    $pm_inchworm_start = `date +%s`;
+    $pm_inchworm_start = time();
     unless (-s $inchworm_file && -e $inchworm_finished_checkpoint_file) {
                     
 
         &run_inchworm($inchworm_file, $inchworm_target_fa, $SS_lib_type, $kmer_method);
         &process_cmd("touch $inchworm_finished_checkpoint_file");
     }
-    $pm_inchworm_end = `date +%s`;
+    $pm_inchworm_end = time();
     
     
     unless (-s $inchworm_file) {
@@ -1581,7 +1617,7 @@ sub run_Trinity {
     
     ## butterfly commands can be reparameterized for exploring different assembly requirements
     ## chrysalis will just run or resume depending on what's already been processed.
-    $pm_chrysalis_start = `date +%s`;
+    $pm_chrysalis_start = time();
 
     
     #if ($LONG_READS_MODE && $TRINITY_COMPLETE_FLAG) {
@@ -1595,18 +1631,24 @@ sub run_Trinity {
     my $butterfly_cmds = &run_chrysalis($inchworm_file, $inchworm_target_fa,
                                         $min_contig_length, $group_pairs_distance, $SS_lib_type, 
                                         $chrysalis_reads_fa, $bowtie_reads_fa);
-    $pm_chrysalis_end = `date +%s`;
+    $pm_chrysalis_end = time();
     
 
+    my $Trinity_fasta_file = &create_full_path("Trinity.fasta.tmp");
+    
     if ($butterfly_cmds eq "RECURSIVE_TRINITY_COMPLETE") {
         ## stop here.  all done!   ## FIXME: this is very bad coding style!!! yes, I know.
-        return;
+        return($Trinity_fasta_file);
     }
     
     print STDERR "Butterfly_cmds: $butterfly_cmds\n" if $VERBOSE;
+
+    
     
     if ($butterfly_cmds && -s $butterfly_cmds) {
-            
+
+       
+                    
         ## Run Butterfly
         
         print STDERR "Inchworm and Chrysalis complete.  Butterfly commands to execute are provided here:\n"
@@ -1618,27 +1660,25 @@ sub run_Trinity {
             . "-- (Reconstruct transcripts from reads and de Bruijn graphs) --\n"
             . "---------------------------------------------------------------\n\n" if $VERBOSE;
         
-        $pm_butterfly_start = `date +%s`;
-        
+                
         my $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
         my $cmd = "$PARAFLY -c $butterfly_cmds -shuffle -CPU $bflyCPU -failed_cmds failed_butterfly_commands.$$.txt ";  # shuffle them since the first ones are usually the longest-running ones.
         if ($VERBOSE) { $cmd .= " -v "; }
         $pipeliner->add_commands( new Command($cmd, ".butterfly.ok"));
         $pipeliner->run();
         
-        $pm_butterfly_end = `date +%s`;
-        
+                
         ## capture results:
         # my $cmd = 'find ./chrysalis -name "*allProbPaths.fasta" -exec cat {} + > Trinity.fasta.tmp';
         # no longer scan the file system... we know which files should exist
         print STDERR "\n\n** Harvesting all assembled transcripts into a single multi-fasta file...\n" unless ($TRINITY_COMPLETE_FLAG);
-        $cmd = "$UTILDIR/support_scripts/print_butterfly_assemblies.pl $chrysalis_output_dir/component_base_listing.txt > " . &create_full_path("Trinity.fasta.tmp");
+        $cmd = "$UTILDIR/support_scripts/print_butterfly_assemblies.pl $chrysalis_output_dir/component_base_listing.txt > $Trinity_fasta_file"; 
         &process_cmd($cmd);
         
-        
-        
+
     }
-    
+
+    return($Trinity_fasta_file);
 }
 
 
@@ -2065,8 +2105,8 @@ sub run_recursive_trinity {
     my $prev_component_id = -1;
     my $ofh = undef;
     
-    my $read_filenames = "partitioned_reads.files.list";
-    my $read_filenames_ok = "$read_filenames.ok";
+    my $read_filenames = &create_full_path("partitioned_reads.files.list", 0);
+    my $read_filenames_ok = &create_full_path("$read_filenames.ok");
     if (! -e $read_filenames_ok) {
     
         open (my $ofh_read_filenames, ">$read_filenames") or die $!;
@@ -2082,11 +2122,11 @@ sub run_recursive_trinity {
                 
                 $prev_component_id = $component_id;
                 close $ofh if $ofh;
-                my $base_dir = "read_partitions/Fb_" . (int($component_counter/$file_bins_per_dir)) . "/CBin_" . (int($component_counter/$target_files_per_dir));
+                my $base_dir = &create_full_path("read_partitions/Fb_" . (int($component_counter/$file_bins_per_dir)) . "/CBin_" . (int($component_counter/$target_files_per_dir)));
                 if (! -d $base_dir) {
                     &process_cmd("mkdir -p $base_dir");
                 }
-                my $readsfile = "$currdir/$base_dir/c$component_id.trinity.reads.fa";
+                my $readsfile = "$base_dir/c$component_id.trinity.reads.fa";
                 
                 $component_counter++;
                                 
@@ -2125,11 +2165,14 @@ sub run_recursive_trinity {
     &run_partitioned_cmds("recursive_trinity.cmds");
     
     print STDERR "\n\n** Harvesting all assembled transcripts into a single multi-fasta file...\n\n" unless ($TRINITY_COMPLETE_FLAG);
+
+
+    my $trinity_output_file = &create_full_path("Trinity.fasta.tmp", 0);
     
-    my $cmd = "find read_partitions/  -name '*inity.fasta'  | $UTILDIR/support_scripts/partitioned_trinity_aggregator.pl TRINITY_DN > Trinity.fasta.tmp";
+    my $cmd = "find " . &create_full_path("read_partitions/",0) . " -name '*inity.fasta'  | $UTILDIR/support_scripts/partitioned_trinity_aggregator.pl TRINITY_DN > $trinity_output_file";
     &process_cmd($cmd);
     
-    return;
+    return ($trinity_output_file);
     
 }
 
@@ -2152,6 +2195,10 @@ sub run_inchworm {
         open (my $ofh, ">$read_count_file") or die $!;
         print $ofh $count_of_reads."\n";
         close $ofh;
+    }
+    else {
+        $pm_read_count = `cat $read_count_file`;
+        chomp $pm_read_count;
     }
     
 
@@ -2459,7 +2506,7 @@ sub process_cmd {
 
     if ($ret) {
         
-        die "Error, cmd: $cmd died with ret $ret";
+        confess "Error, cmd: $cmd died with ret $ret";
     }
     
     print STDERR "CMD finished (" . ($end_time - $start_time) . " seconds)\n" if $VERBOSE;
@@ -2696,19 +2743,19 @@ sub perfmon_start {
     my $tempp="";
     $tempp=`ldd $INCHWORM_DIR/inchworm 2>/dev/null | grep "libgomp"`;
     if  ($tempp eq "") {
-	print FILE "Compiler:             Intel\n";
+        print FILE "Compiler:             Intel\n";
     } else {
-	print FILE "Compiler:             GCC\n";
+        print FILE "Compiler:             GCC\n";
     }
     print FILE "Trinity Parameters:  $pm_trinity_arguments\n";
     $pm_trinity_startstring = `date`;
-    $pm_trinity_start = `date +%s`;
+    $pm_trinity_start = time();
     close (FILE);
 }
 
 sub perfmon_end {
     $pm_trinity_endstring = `date`;
-    $pm_trinity_end = `date +%s`;
+    $pm_trinity_end = time();
     my $timestamp = `date +%s`;
     if ( -e "$output_directory/$pm_logfile" ) {
         open (FILE, '>>', "$output_directory/$pm_logfile") or die;
@@ -2742,13 +2789,11 @@ sub perfmon_end {
     my $pm_trinity_time = $pm_trinity_end - $pm_trinity_start;
     print FILE "Trinity   $pm_trinity_time seconds\n";
     my $pm_inchworm_time = $pm_inchworm_end - $pm_inchworm_start;
-    print FILE "  Inchworm   $pm_inchworm_time seconds\n";
+    print FILE "  Inchworm (phase 1 - read clustering)  $pm_inchworm_time seconds\n";
     my $pm_chrysalis_time = $pm_chrysalis_end - $pm_chrysalis_start;
-    print FILE "  Chrysalis  $pm_chrysalis_time seconds\n";
-    my $pm_butterfly_time = $pm_butterfly_end - $pm_butterfly_start;
-    print FILE "  Butterfly  $pm_butterfly_time seconds\n";
-    my $pm_rest_time = $pm_trinity_time - $pm_butterfly_time - $pm_chrysalis_time - $pm_inchworm_time;
-    print FILE "  Rest       $pm_rest_time seconds\n";
+    print FILE "  Chrysalis (phase 1 - read clustering) $pm_chrysalis_time seconds\n";
+    my $pm_rest_time = $pm_trinity_time - $pm_chrysalis_time - $pm_inchworm_time;
+    print FILE "  Rest (phase 2 - parallel assembly)       $pm_rest_time seconds\n";
     close (FILE);
 }
 
@@ -2770,8 +2815,9 @@ sub collectl_start {
         #my $collectl_param = "-F1 -i5:5 -sZ";
         #my $cmd = "cd $collectl_output_directory && exec ${COLLECTL_DIR}/collectl $collectl_param --procfilt u$collectl_userid -f $collectl_output_directory/y";
         
-        my $cmd = "bash -c \"set -eou pipefail && cd $collectl_output_directory && exec nohup ${COLLECTL_DIR}/collectl --procfilt u$collectl_userid --interval :$COLLECTL_INTERVAL_SECONDS -sZ -oD | egrep 'Trinity|trinityrnaseq|samtools|sort' | egrep -v ParaFly > $collectl_output_directory/collectl.dat \" ";
         
+        my $cmd = "bash -c \"set -eou pipefail && cd $collectl_output_directory && exec nohup ${COLLECTL_DIR}/collectl --procopts w  --procfilt u$collectl_userid --interval :$COLLECTL_INTERVAL_SECONDS -sZ -oD | egrep 'Trinity|trinityrnaseq|Inchworm|Chrysalis|Butterfly|jellyfish|samtools|sort|bowtie' | egrep -v 'egrep' > $collectl_output_directory/collectl.dat \" ";
+                
         
         ## fork a child to run collectl
         $collectl_pid = fork();
@@ -3084,14 +3130,16 @@ sub run_genome_guided_Trinity {
     
         
     ## pull together the final outputs:
-    $cmd = "find Dir_*  -name '*inity.fasta'  | $UTILDIR/support_scripts/GG_partitioned_trinity_aggregator.pl TRINITY_GG > Trinity-GG.fasta.tmp";
+    my $tmp_GG_fasta = &create_full_path("Trinity-GG.fasta.tmp", 0);
+    $cmd = "find Dir_*  -name '*inity.fasta'  | $UTILDIR/support_scripts/GG_partitioned_trinity_aggregator.pl TRINITY_GG > $tmp_GG_fasta";
     &process_cmd($cmd);
 
-    rename("Trinity-GG.fasta.tmp", "Trinity-GG.fasta"); # now that it's done.
+    my $trin_GG_fasta = &create_full_path("Trinity-GG.fasta");
+    rename("Trinity-GG.fasta.tmp", "Trinity-GG.fasta") or die "Error, couldn't rename $tmp_GG_fasta to $trin_GG_fasta"; # now that it's done.
     
-    print STDERR "\n\nFinished. See Trinity-GG.fasta for reconstructed transcripts\n\n";
+    
         
-    return;
+    return ($trin_GG_fasta);
 }
 
 ####
@@ -3118,7 +3166,7 @@ sub run_partitioned_cmds {
         
     }
     else {
-        my $cmd = "$PARAFLY -c $cmds_file -CPU $CPU -v ";
+        my $cmd = "$PARAFLY -c $cmds_file -CPU $CPU -v -shuffle ";
         &process_cmd($cmd);
     }
     

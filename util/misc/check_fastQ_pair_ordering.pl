@@ -37,7 +37,10 @@ main: {
             $error_counter++;
             print join("\t", $left_full_acc, $right_full_acc, $left_core_acc, $right_core_acc, "ERROR") . "\n\n";
             print STDERR "\r[$ok_counter ok, $error_counter error]   ";
-        
+            
+
+            die "Error, found out-of-order pairing. Stopping now.";
+            
         }
         if ($ok_counter % 1000 == 0) {
             print STDERR "\r[$ok_counter ok, $error_counter error]   ";

@@ -132,8 +132,9 @@ main: {
 94.13% overall alignment rate
 
 =cut
-    
-    print "\n\n$sum_reads reads; of these:\n";
+
+    print "Stats for aligned rna-seq fragments (note, not counting those frags where neither left/right read aligned)\n";
+    print "\n\n$sum_reads aligned fragments; of these:\n";
     print "  " . ($sum_reads - $counts{US} - $counts{MS}) . " were paired; of these:\n";
     print "    " . ($counts{UL} + $counts{ML} + $counts{UR} + $counts{MR} + $counts{IP}) . " aligned concordantly 0 times\n";
     print "    " . $counts{UPP} . " aligned concordantly exactly 1 time\n";

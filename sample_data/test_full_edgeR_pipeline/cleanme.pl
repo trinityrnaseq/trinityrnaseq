@@ -36,7 +36,11 @@ foreach my $file (<*>) {
 `rm -rf ./trinity_out_dir`;
 `rm -rf ./edgeR_isoforms`;
 `rm -rf ./edgeR_genes`;
+`rm -rf ./ds_rep1.stat`;
+`rm -rf ./edgeR_trans`;
+`rm -rf ./hs_rep1.stat`;
+`rm -rf ./log_rep1.stat`;
+`rm -rf ./plat_rep1.stat`;
 
-    
 
 exit(0);

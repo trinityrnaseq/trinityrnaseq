@@ -3,10 +3,12 @@
 use strict;
 use warnings;
 
-my $usage = "\n\tusage: $0 before.stats after.stats\n\n";
+my $usage = "\n\tusage: $0 before.stats after.stats [RESTRICT_TO_FAILURES]\n\n";
 
 my $before_stats_file = $ARGV[0] or die $usage;
 my $after_stats_file = $ARGV[1] or die $usage;
+
+my $RESTRICT_TO_FAILURES = $ARGV[2] || 0;
 
 my $MIN_PER_LEN = 99;
 my $MAX_PER_GAP = 1;
@@ -20,13 +22,21 @@ main: {
 
     foreach my $trans_acc (keys %trans) {
 
-        print "// $trans_acc\n";
 
         my $before = $before_stats{$trans_acc} || "";
-        print "# before\n$before\n";
-
+        
         my $after = $after_stats{$trans_acc} || "";
-        print "# after\n$after\n\n";
+        
+        if ($RESTRICT_TO_FAILURES) {
+            unless ($before =~ /\*\*/ && $after !~ /\*\*/) {
+
+                next;
+            }
+        }
+        
+        print "// $trans_acc\n";
+                print "# before\n$before\n";
+                print "# after\n$after\n\n";
 
     }
 

@@ -42,10 +42,10 @@ GOBar(circ, display = 'multiple', title = 'Z-score coloured barplot', zsc.col = 
 GOBubble(circ, labels = 3)
 
 # Add a title, change the colour of the circles, facet the plot according to the categories and change the label threshold
-GOBubble(circ, title = 'Bubble plot', colour = c('orange', 'darkred', 'gold'), display = 'multiple', labels = 3)
+GOBubble(circ, title = 'Bubble plot', col = c('orange', 'darkred', 'gold'), display = 'multiple', labels = 3)
 
 # Colour the background according to the category
-GOBubble(circ, title = 'Bubble plot with background colour', display = 'multiple', bg.col = T, labels = 3)
+GOBubble(circ, title = 'Bubble plot with background colour', display = 'multiple', labels = 3)
 
 # Reduce redundant terms with a gene overlap >= 0.75...
 reduced_circ <- reduce_overlap(circ, overlap = 0.75)

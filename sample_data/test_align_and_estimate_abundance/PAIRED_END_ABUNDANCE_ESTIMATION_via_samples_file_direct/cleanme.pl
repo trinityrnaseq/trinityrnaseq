@@ -33,7 +33,11 @@ foreach my $file (<*>) {
 `rm -rf ./*__RSEM`;
 `rm -rf ./*__kallisto`;
 `rm -rf ./*__express`;
-
+`rm -rf ./Trinity.fasta.salmon_quasi.idx/`;
+`rm -rf ./hsrep1/`;
+`rm -rf ./platRep1/`;
+`rm -rf ./logRep1/`;
+`rm -rf ./dsRep1/`;
 
 
 exit(0);

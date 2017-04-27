@@ -113,8 +113,6 @@ my $usage = <<__EOUSAGE__;
 #
 #  --prep_reference                 prep reference (builds target index)
 #
-#  --output_prefix <string>         prefix for output files.  Defaults to --est_method setting.
-#
 #
 ########################################
 #
@@ -249,7 +247,7 @@ my $samples_file = "";
 
               'include_rsem_bam' => \$include_rsem_bam,
 
-              'output_prefix=s' => \$output_prefix,
+              #'output_prefix=s' => \$output_prefix,
               
               ##  devel opts
               'prep_reference' => \$prep_reference,
@@ -640,7 +638,7 @@ sub sort_bam_file {
     if (! -e "$sorted_bam_file.bam.ok") {
         ## sort the bam file
         
-        my $cmd = "samtools sort $bam_file $sorted_bam_file";
+        my $cmd = "samtools sort $bam_file -o $sorted_bam_file.bam";
         &process_cmd($cmd);
         $cmd = "samtools index $sorted_bam_file.bam";
         &process_cmd($cmd);

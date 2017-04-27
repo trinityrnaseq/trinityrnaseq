@@ -126,8 +126,10 @@ def parse_trans_lengths_file(trans_lengths_file):
             
             (trans_id, length) = line.split("\t")
 
-            trans_id_to_length[trans_id] = int(length)
-
+            if re.match("^\d+$", length):
+                trans_id_to_length[trans_id] = int(length)
+            else:
+                print("Warning - ignoring line: [{}] since not parsing length value as number".format(line), file=sys.stderr)
 
     return trans_id_to_length
 

@@ -1,24 +1,27 @@
 
 
-test: test_edgeR test_DESeq2 test_voom test_ROTS test_PtR_PCA
+test: test_edgeR test_DESeq2 test_voom test_ROTS test_PtR_PCA test_PtR_heatmap
 
 test_edgeR:
 	../../../Analysis/DifferentialExpression/run_DE_analysis.pl  -m Trinity_trans.counts.matrix --method edgeR -s samples.txt -o edgeR_outdir
 	cd edgeR_outdir && ../../../../Analysis/DifferentialExpression/analyze_diff_expr.pl  \
 	--matrix ../Trinity_trans.TMM.EXPR.matrix --samples ../samples.txt && \
 	../../../../Analysis/DifferentialExpression/validate_UP_subset.Rscript ../samples.txt
+	touch test_edgeR
 
 test_DESeq2:
 	../../../Analysis/DifferentialExpression/run_DE_analysis.pl  -m Trinity_trans.counts.matrix --method DESeq2 -s samples.txt -o DESeq2_outdir
 	cd DESeq2_outdir && ../../../../Analysis/DifferentialExpression/analyze_diff_expr.pl  \
 	--matrix ../Trinity_trans.TMM.EXPR.matrix --samples ../samples.txt && \
 	../../../../Analysis/DifferentialExpression/validate_UP_subset.Rscript ../samples.txt
+	touch test_DESeq2
 
 test_voom:
 	../../../Analysis/DifferentialExpression/run_DE_analysis.pl  -m Trinity_trans.counts.matrix --method voom -s samples.txt -o voom_outdir
 	cd voom_outdir && ../../../../Analysis/DifferentialExpression/analyze_diff_expr.pl  \
 	--matrix ../Trinity_trans.TMM.EXPR.matrix --samples ../samples.txt && \
 	../../../../Analysis/DifferentialExpression/validate_UP_subset.Rscript ../samples.txt
+	touch test_voom
 
 test_ROTS:
 
@@ -26,10 +29,15 @@ test_ROTS:
 	cd ROTS_outdir && ../../../../Analysis/DifferentialExpression/analyze_diff_expr.pl  \
 	--matrix ../Trinity_trans.TMM.EXPR.matrix --samples ../samples.txt && \
 	../../../../Analysis/DifferentialExpression/validate_UP_subset.Rscript ../samples.txt
-
+	touch test_ROTS
 
 test_PtR_PCA:
 	../../../Analysis/DifferentialExpression/PtR -m Trinity_trans.TMM.EXPR.matrix -s samples.txt --prin_comp 3 --add_prin_comp_heatmaps 30
+	touch test_PtR_PCA
+
+test_PtR_heatmap:
+	../../../Analysis/DifferentialExpression/PtR -m Trinity_trans.TMM.EXPR.matrix -s samples.txt --heatmap --sample_cor_matrix --log2 --save
+	touch test_PtR_heatmap
 
 clean:
 	rm -rf ./edgeR_outdir
@@ -39,6 +47,7 @@ clean:
 	rm -f ./Trinity_trans.counts.matrix.*
 	rm -f ./Trinity_trans.TMM.EXPR.matrix.*
 	rm -f ./*.pdf
+	rm -f test_edgeR test_DESeq2 test_voom test_ROTS test_PtR_heatmap
 
 
 

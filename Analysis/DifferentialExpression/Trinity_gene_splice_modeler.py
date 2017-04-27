@@ -484,6 +484,10 @@ class Gene_splice_modeler:
 
         alignments = self.alignments
 
+        if len(alignments) == 1:
+            # no alignment is necessary.
+            return alignments[0]
+        
         # determine initial path similarity
         similarity_matrix = Gene_splice_modeler.compute_similarity_matrix(self.alignments)
         logger.debug("Similarity matrix:\n" + str(similarity_matrix))
@@ -794,13 +798,6 @@ def main():
     for gene_name in gene_to_isoform_info:
         iso_struct_list = gene_to_isoform_info[ gene_name ]
 
-        if len(iso_struct_list) < 2:
-
-            ofh_fasta.write(">{}\n{}\n".format(gene_name, iso_struct_list[0]['seq']))
-
-            # only want alt splice entries in gtf for diff transcript isoform usage
-            continue
-
         # convert to Node_path objects
         node_path_obj_list = list()
         for iso_struct in iso_struct_list:
@@ -826,7 +823,8 @@ def main():
         ofh_fasta.write(">{}\n{}\n".format(gene_name, gene_seq))
         ofh_gtf.write(gtf_txt + "\n")
 
-        Gene_splice_modeler.write_malign(gene_name, malign_dict, ofh_malign)
+        if len(node_path_obj_list) > 1:
+            Gene_splice_modeler.write_malign(gene_name, malign_dict, ofh_malign)
 
 
     ofh_fasta.close()

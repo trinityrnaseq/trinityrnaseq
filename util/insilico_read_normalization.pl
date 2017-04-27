@@ -17,6 +17,10 @@ use threads;
 use Data::Dumper;
 use COMMON;
 
+
+$ENV{PATH} = "$FindBin::Bin/../trinity-plugins/BIN:$ENV{PATH}";
+
+
 open (STDERR, ">&STDOUT");  ## capturing stderr and stdout in a single stdout stream
 
 

@@ -182,7 +182,20 @@ else:
 num_reads = 0
 
 if not is_PE:
-   for a in reader( sam_file ):
+   ### <----   code changed by bhaas to deal w/ what are being reported as fautly alignments
+   r_it = iter(reader(sam_file))
+   while True:
+      a = None
+      try:
+           a = next(r_it)
+      except StopIteration:
+           break
+      except Exception:
+           sys.stderr.write("Error reading alignment entry from SAM file {}\n".format(sam_file))
+           continue
+
+       ### ---> end of code edits  Feb 9, 2017 bhaas
+      
       if not a.aligned:
          counts[ '_notaligned' ] += 1
          continue

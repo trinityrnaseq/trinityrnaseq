@@ -491,6 +491,7 @@ my $advanced_usage =  <<_ADVANCEDUSAGE_;
 #
 #  --long_reads_mode               : run in long reads mode (requires --single and the long reads integrated with LR$| accession prefixes.
 #
+#  --no_check_coordsorted_bam      : in genome-guided mode, won't test the bam file for coordinate-sortedness#
 
 
 _ADVANCEDUSAGE_
@@ -555,6 +556,8 @@ my $NO_VERSION_CHECK = 0;
 my $samples_file = "";
 
 my $WORKDIR;
+
+my $NO_CHECK_COORDSORTED_BAM = 0;
 
 &GetOptions( 
     
@@ -686,6 +689,9 @@ my $WORKDIR;
     "genome_guided_min_reads_per_partition=i" => \$genome_guided_min_reads_per_partition,
     "genome_guided_just_prep" => \$genome_guided_just_prep_flag,
 
+    "no_check_coordsorted_bam" => \$NO_CHECK_COORDSORTED_BAM,
+
+    
     "trinity_complete" => \$TRINITY_COMPLETE_FLAG,
     
     "bypass_java_version_check" => \$bypass_java_version_check,
@@ -1057,11 +1063,12 @@ if ($genome_guided_bam) {
         die "Error, must specifiy --genome_guided_max_intron <int>  for genome-guided mode.\n";
     }
 
-    # ensure the bam file is coordinate-sorted:
-    my $cmd = "$UTILDIR/support_scripts/ensure_coord_sorted_sam.pl $genome_guided_bam";
-    &process_cmd($cmd);
+    unless ($NO_CHECK_COORDSORTED_BAM) {
+        # ensure the bam file is coordinate-sorted:
+        my $cmd = "$UTILDIR/support_scripts/ensure_coord_sorted_sam.pl $genome_guided_bam";
+        &process_cmd($cmd);
+    }
 }
-
 
 
 $ENV{OMP_NUM_THREADS} = $CPU; ## for Inchworm and Chrysalis

@@ -2618,17 +2618,25 @@ public class TransAssembly_allProbPaths {
 			target_depths.add(d);
 			
 			
+			debugMes("\tvertex: " + v + ", with depth: " + d, 25);
+			
 			for (SeqVertex p : seqvertex_graph.getPredecessors(v)) {
+				
+				if (p.is_replacement_vertex) { return (0); } // delay till next round
+				
 				parent_vertices.add(p);
 				
 				parent_depths.add(p.getNodeDepth());
-				
+				debugMes("\t\tparent of v: " + v + " = " + p + " with depth: " + p.getNodeDepth(), 25);
 				// remove edge
 				SimpleEdge se = seqvertex_graph.findEdge(p, v);
 				edges_to_delete.add(se);
 			}
 			
 			for (SeqVertex c: seqvertex_graph.getSuccessors(v)) {
+				
+				if (c.is_replacement_vertex) { return (0); } // delay till next round
+				
 				child_vertices.add(c);
 				
 				child_depths.add(c.getNodeDepth());
@@ -2649,7 +2657,8 @@ public class TransAssembly_allProbPaths {
 		
 		if (parent_depths.size() > 0 && child_depths.size() > 0) {
 		
-
+			debugMes("\tparent_depths" + parent_depths + ", child_depths: " + child_depths, 20);
+			
 			// ensure can merge and retain depth ordering:
 			if ( ! (max_val(parent_depths) < min_val(child_depths) ) )
 			{

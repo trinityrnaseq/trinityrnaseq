@@ -71,7 +71,7 @@ main: {
     
     my $format = ($reads_1_fq =~ /\.fq|\.fastq/) ? "-q" : "-f";
     
-    my $bowtie2_cmd = "bowtie2 --threads $CPU --local --no-unal -k 50 -x $target_seq $format ";
+    my $bowtie2_cmd = "bowtie2 --threads $CPU --local --no-unal -x $target_seq $format ";
     if ($reads_2_fq) {
         $bowtie2_cmd .= " -1 $reads_1_fq -2 $reads_2_fq ";
     }

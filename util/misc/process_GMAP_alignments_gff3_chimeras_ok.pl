@@ -55,6 +55,11 @@ my $SAM_flag = 0;
              );
 
 
+if ($help_flag) {
+    die $usage;
+}
+
+
 unless ($genome && $transcriptDB) {
     die $usage;
 }

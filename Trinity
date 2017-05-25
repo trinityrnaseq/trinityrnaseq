@@ -2408,7 +2408,7 @@ sub prep_seqs {
             
             if (scalar(@initial_files) == 1 && (!$SS_lib_type || $SS_lib_type ne "R")) {
                 ## just symlink it here:
-                my $cmd = "ln -s $initial_file_str $file_prefix.fa";
+                my $cmd = "ln -sf $initial_file_str $file_prefix.fa";
                 if ($initial_file_str=~/\.gz$/) {
                     $cmd = "gunzip -c $initial_file_str >$file_prefix.fa";
                 }

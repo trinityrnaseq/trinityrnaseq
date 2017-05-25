@@ -26,24 +26,30 @@ main: {
     
     my $tot_seq_len = 0;
 
+    my $missing_gene_ids_flag = 0;
+    
     while (my $seq_obj = $fasta_reader->next()) {
 
         my $acc = $seq_obj->get_accession();
         
         $number_transcripts++;
-         my $comp_id;
-        
-        if ($acc =~ /^(.*c\d+_g\d+)/) {
-            $comp_id = $1;
-        }
-        elsif ($acc =~ /^(.*comp\d+_c\d+)/) {
-            $comp_id = $1;
-        }
-        else {
-            die "Error, cannot decipher gene identifier from acc: $acc";
-        }
-                
+         my $comp_id = $acc;
 
+
+        if (! $missing_gene_ids_flag) {
+            
+            if ($acc =~ /^(.*c\d+_g\d+)/) {
+                $comp_id = $1;
+            }
+            elsif ($acc =~ /^(.*comp\d+_c\d+)/) {
+                $comp_id = $1;
+            }
+            else {
+                print STDERR "Error, cannot decipher gene identifier from acc: $acc";
+                $missing_gene_ids_flag = 1;
+            }
+        }
+        
         my $sequence = $seq_obj->get_sequence();
 
         my $seq_len = length($sequence);
@@ -84,16 +90,21 @@ main: {
     print "########################################\n\n";
 
     &report_stats(@all_seq_lengths);
-    
     print "\n\n";
-    print "#####################################################\n";
-    print "## Stats based on ONLY LONGEST ISOFORM per 'GENE':\n";
-    print "#####################################################\n\n";
     
-    &report_stats(values %component_to_longest_isoform);
-
-
-    print "\n\n\n";
+    if ($missing_gene_ids_flag) {
+        print " - note: not reporting gene-based longest isoform info since couldn't parse Trinity accession info.\n";
+    }
+    else {
+        print "#####################################################\n";
+        print "## Stats based on ONLY LONGEST ISOFORM per 'GENE':\n";
+        print "#####################################################\n\n";
+        
+        &report_stats(values %component_to_longest_isoform);
+            
+        print "\n\n\n";
+    }
+    
     
     exit(0);
 }

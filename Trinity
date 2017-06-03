@@ -1767,7 +1767,7 @@ sub run_chrysalis {
         $pipeliner->run();
         
         $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
-        $cmd = "bowtie2-build -o 3 $iworm_min100_fa_file $iworm_min100_fa_file 1>/dev/null"; #-o 3 / defaut is 5, less use more ram but is faster when mapping the reads
+        $cmd = "bowtie2-build --threads $CPU -o 3 $iworm_min100_fa_file $iworm_min100_fa_file 1>/dev/null"; #-o 3 / defaut is 5, less use more ram but is faster when mapping the reads
         
         if (-s "$iworm_min100_fa_file") {
             $pipeliner->add_commands( new Command($cmd, "$iworm_min100_fa_file.bowtie2-build.ok"));

@@ -67,74 +67,47 @@ while (<$fh>) {
 
 
 ## write output table
-{
-    open (my $ofh, ">$matrix_file.E-inputs") or die $!;
-    print $ofh join("\t", "#acc", "length", "max_expr_over_samples", "sum_expr_over_samples") . "\n";
-    foreach my $t (@trans) {
-        print $ofh join("\t", $t->{acc}, $t->{len}, $t->{max_expr}, $t->{sum_expr}) . "\n";
-    }
-    close $ofh;
-}
 
+open (my $ofh, ">$matrix_file.E-inputs") or die $!;
+print $ofh join("\t", "#Ex", "acc", "length", "max_expr_over_samples", "sum_expr_over_samples") . "\n";
 
-my %Estats_wanted = map { $_ => 1 } (1..100);
+print "E\tExN50\tnum_transcripts\n";
 
-
-
-print "#E\tmin_expr\tE-N50\tnum_transcripts\n";
-
+my $prev_pct = 0;
 my $sum = 0;
 my @captured;
 while (@trans) {
     
     my $t = shift @trans;
-    push (@captured, $t);
 
     $sum += $t->{sum_expr};
 
     my $pct = int($sum/$sum_expr * 100);
     
-    if ($Estats_wanted{$pct}) {
-        
-        my $min_max_expr = &get_min_max(@captured);
-        
-        delete($Estats_wanted{$pct});
-
-        my $N50 = &calc_N50(@captured);
-        my $num_trans = scalar(@captured);
-        
-        print "E$pct\t$min_max_expr\t$N50\t$num_trans\n";
-    }
-}
-
-# ensure that we do E100
-if (%Estats_wanted) {
+    print $ofh join("\t", $pct, $t->{acc}, $t->{len}, sprintf("%.1f", $t->{max_expr}), sprintf("%.1f", $t->{sum_expr})) . "\n";
     
-    if (exists $Estats_wanted{"100"}) {
-        my $min_max_expr = &get_min_max(@captured);
+    if ($prev_pct > 0 && $pct > $prev_pct) {
+        
+                        
         my $N50 = &calc_N50(@captured);
         my $num_trans = scalar(@captured);
         
-        print "E100\t$min_max_expr\t$N50\t$num_trans\n";
+        print "$prev_pct\t$N50\t$num_trans\n";
     }
+    
+    $prev_pct = $pct;
+    
+    push (@captured, $t);
 }
+
+# do last one
+
+my $N50 = &calc_N50(@captured);
+my $num_trans = scalar(@captured);
+print "100\t$N50\t$num_trans\n";
+
 
 exit(0);
-
-
-####
-sub get_min_max {
-    my @entries = @_;
-    
-    my $min = $entries[0]->{max_expr};
-    foreach my $entry (@entries) {
-        if ($entry->{max_expr} < $min) {
-            $min = $entry->{max_expr};
-        }
-    }
-
-    return($min);
-}
 
 
 ####

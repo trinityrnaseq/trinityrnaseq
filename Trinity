@@ -45,6 +45,7 @@ my $TRIMMOMATIC_DIR = "$ROOTDIR/trinity-plugins/Trimmomatic";
 
 $ENV{PATH} = "$ROOTDIR/trinity-plugins/BIN:$ENV{PATH}";
 
+my $JAVA_VERSION_REQUIRED = 8;
 
 # Site specific setup
 
@@ -487,7 +488,7 @@ my $advanced_usage =  <<_ADVANCEDUSAGE_;
 #
 #  Other:
 #
-#  --bypass_java_version_check     : skip check for required java version 1.7
+#  --bypass_java_version_check     : skip check for required java version 1.$JAVA_VERSION_REQUIRED
 #
 #  --long_reads_mode               : run in long reads mode (requires --single and the long reads integrated with LR$| accession prefixes.
 #
@@ -1001,7 +1002,6 @@ else {
 ## Check Java version:
 unless ($NO_RUN_INCHWORM_FLAG || $NO_RUN_CHRYSALIS_FLAG || $bypass_java_version_check || $TRINITY_COMPLETE_FLAG) {
     my $java_version = `java -Xmx64m -version 2>&1 `;
-    my $JAVA_VERSION_REQUIRED = 8;
     if ($java_version =~ /(java|openjdk) version \"1\.(\d)\./) {
       my $version_id = $2;
       if ($version_id < $JAVA_VERSION_REQUIRED) {

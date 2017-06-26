@@ -112,7 +112,7 @@ my $usage = <<__EOUSAGE__;
 #    --per_gene_plot_height <float>    default: 2.5
 #    --per_gene_plots_per_row <int>   default: 1
 #    --per_gene_plots_per_col <int>   default: 2
-#
+#    --per_gene_plots_incl_vioplot    include violin plots to show distribution of rep vals
 #
 ########################################################
 #  Data Filtering, in order of operation below:  #########################################################
@@ -164,6 +164,7 @@ my $usage = <<__EOUSAGE__;
 ######################################
 #
 #  --CPM                    convert to counts per million (uses sum of totals before filtering)
+#  --CPK                    convert to counts per thousand
 #
 #  --binary                 all values > 0 are set to 1.  All values < 0 are set to zero.
 #
@@ -237,6 +238,7 @@ my $min_colAny = 0;
 
 my $CENTER = 0;
 my $CPM = 0;
+my $CPK = 0;
 my $top_genes;
 
 my $restrict_samples = "";
@@ -324,6 +326,7 @@ my $per_gene_plot_flag;
 my $per_gene_plot_width = 2.5;
 my $per_gene_plots_per_row = 1;
 my $per_gene_plots_per_col = 2;
+my $per_gene_plots_incl_vioplot = 0;
 
 my $R_prin_comp_method = "prcomp";
 
@@ -391,7 +394,10 @@ my $imgfmt = "pdf"; # alt is svg
     'per_gene_plot_width=f' => \$per_gene_plot_width,
     'per_gene_plots_per_row=i' => \$per_gene_plots_per_row,
     'per_gene_plots_per_col=i' => \$per_gene_plots_per_col,
+    'per_gene_plots_incl_vioplot' => \$per_gene_plots_incl_vioplot,
 
+    
+    
     ## Data transformations, in order of operation
     
     'restrict_samples=s' => \$restrict_samples,
@@ -414,6 +420,7 @@ my $imgfmt = "pdf"; # alt is svg
     'minValAltNA=f' => \$minValAltNA,
     
     'CPM' => \$CPM,
+    'CPK' => \$CPK,
     'top_genes=i' => \$top_genes,
     'log2' => \$LOG2,
     'top_variable_genes=i' => \$top_variable_genes,
@@ -582,7 +589,9 @@ main: {
     $Rscript .= "source(\"$FindBin::RealBin/R/heatmap.3.R\")\n";
     $Rscript .= "source(\"$FindBin::RealBin/R/misc_rnaseq_funcs.R\")\n";
     $Rscript .= "source(\"$FindBin::RealBin/R/pairs3.R\")\n";
+    $Rscript .= "source(\"$FindBin::RealBin/R/vioplot2.R\")\n";
 
+    
     
     $Rscript .= "data = primary_data\n";
     
@@ -593,8 +602,8 @@ main: {
 
         $Rscript .= "samples_data = read.table(\"$samples_file\", header=F, check.names=F, fill=T)\n";
         $Rscript .= "samples_data = samples_data[samples_data[,2] != '',]\n"; # require the rep column to be filled, also enable compatibility with full-trinity-edgeR-pipe samples file
+        $Rscript .= "colnames(samples_data) = c('sample_name', 'replicate_name')\n";
         
-
         #$Rscript .= "sample_types = as.factor(unique(samples_data[,1]))\n";
         $Rscript .= "sample_types = as.character(unique(samples_data[,1]))\n";
         
@@ -850,6 +859,12 @@ main: {
         $output_prefix .= ".CPM";
         
     }
+    elsif ($CPK) {
+        $Rscript .= "cs = colSums(data)\n";
+        $Rscript .= "data = t( t(data)/cs) * 1e3;\n";
+        $output_prefix .= ".CPK";
+    }
+    
     
     if ($LOG2) {
         $Rscript .= "data = log2(data+1)\n";
@@ -1612,8 +1627,10 @@ main: {
             $Rscript .= "# set up barplot colors:\n"
                 .  "sample_cols = rainbow(nsamples)\n"
                 .  "barplot_cols = c()\n"
+                .  "vioplot_colors = list()\n"
                 .  "for (i in 1:nsamples) {\n"
                 . "    barplot_cols[ sample_factoring \%in% sample_types[i] ] = sample_cols[i]\n"
+                . "    vioplot_colors[[sample_types[i]]] = sample_cols[i]\n"
                 . "}\n";
         }
         else {
@@ -1631,6 +1648,16 @@ main: {
         #     print $ofh "    axis(side=1, at=1:length(data), labels=colnames(all_data), las=2)\n";
         
         #}
+
+        if ($samples_file && $per_gene_plots_incl_vioplot) {
+            $Rscript .= "df = data.frame(reps = names(gene_data), expr=gene_data)\n";
+            $Rscript .= "df = data.frame(df, sample_name=samples_data\$sample_name[match(df\$reps, samples_data\$replicate_name)])\n";
+            $Rscript .= "df2 = df[,c('sample_name', 'expr')]\n";
+            $Rscript .= "s2 = split(df2, df2\$sample_name)\n";
+            $Rscript .= "vals = lapply(s2, function(x) {x\$expr} )\n";
+            $Rscript .= 'vioplot2(vals, names=names(vals), col=unlist(vioplot_colors[names(vals)]))' . "\n";
+        }
+        
         $Rscript .= "}\n";
         $Rscript .= "dev.off()\n";
         

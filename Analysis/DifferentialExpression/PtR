@@ -370,9 +370,12 @@ my $imgfmt = "pdf"; # alt is svg
     'heatmap' => \$heatmap_flag,
     "heatmap_scale_limits=s" => \$heatmap_scale_limits,
     "heatmap_colorscheme=s" => \$heatmap_colorscheme,
+    
+    
     "lexical_column_ordering" => \$lexical_column_ordering,
     "specified_column_ordering=s" => \$specified_column_ordering,
     "order_columns_by_samples_file" => \$order_columns_by_samples_file,
+    
     
     "order_by_gene_factor" => \$order_by_gene_factor,
     
@@ -590,8 +593,6 @@ main: {
     $Rscript .= "source(\"$FindBin::RealBin/R/misc_rnaseq_funcs.R\")\n";
     $Rscript .= "source(\"$FindBin::RealBin/R/pairs3.R\")\n";
     $Rscript .= "source(\"$FindBin::RealBin/R/vioplot2.R\")\n";
-
-    
     
     $Rscript .= "data = primary_data\n";
     
@@ -608,15 +609,20 @@ main: {
         $Rscript .= "sample_types = as.character(unique(samples_data[,1]))\n";
         
         $Rscript .= "rep_names = as.character(samples_data[,2])\n";
-        
-        if ($order_columns_by_samples_file) {
-            $specified_column_ordering = "rep_names";
-        }
-        
 
-        # restrict data to those entries in the samples file
-        $Rscript .= "data = data[, colnames(data) \%in% samples_data[,2], drop=F ]\n";
-        
+        ## order data as specified
+
+        if ($specified_column_ordering) {
+            $Rscript .= "data = data[, $specified_column_ordering, drop=F ]\n";
+        }
+        elsif ($order_columns_by_samples_file) {
+            # restrict data to those entries in the samples file
+            # and order according to rep names
+            $Rscript .= "data = data[, rep_names, drop=F ]\n";
+        }
+        elsif ($lexical_column_ordering) {
+            $Rscript .= "data = data[, order(colnames(data)), drop=F]\n",
+        }
         # associate the data column names with the sample type
         $Rscript .= "nsamples = length(sample_types)\n"
             . "sample_colors = rainbow(nsamples)\n"
@@ -679,14 +685,14 @@ main: {
         $Rscript .= "data = data[1:min($top_rows,dim(data)[1]),]\n";
     }
     
-    if ($samples_file) {
-        ## reorder according to sample type:
-        $Rscript .= "# reorder according to sample type.\n"
-            .  "tmp_sample_reordering = order(sample_factoring)\n"
-            .  "data = data[,tmp_sample_reordering,drop=F]\n"
-            .  "sample_factoring = sample_factoring[tmp_sample_reordering]\n";
+    #if ($samples_file) {
+    #    ## reorder according to sample type:
+    #    $Rscript .= "# reorder according to sample type.\n"
+    #        .  "tmp_sample_reordering = order(sample_factoring)\n"
+    #        .  "data = data[,tmp_sample_reordering,drop=F]\n"
+    #        .  "sample_factoring = sample_factoring[tmp_sample_reordering]\n";
 
-    }
+    #}
 
     if ($gene_factors_file) {
         $Rscript .= "# parse gene factors\n"
@@ -1468,26 +1474,9 @@ main: {
         
         my $dendrogram = 'both';
         my $Colv = "as.dendrogram(hc_samples)";
-        if ($lexical_column_ordering || $specified_column_ordering || $sample_clust eq 'none') {
+        if ($sample_clust eq 'none') {
             $dendrogram = 'row';
             $Colv = "F";
-            
-            if ($lexical_column_ordering) {
-                $Rscript .= "heatmap_data = heatmap_data[,order(colnames(heatmap_data))]\n";
-                if ($samples_file) {
-                    # sample annotations must continue to match column ordering of data matrix
-                    $Rscript .= "sampleAnnotations = sampleAnnotations[,order(colnames(heatmap_data))]\n";
-                }
-            }
-            elsif ($specified_column_ordering) {
-                $Rscript .= "heatmap_data = heatmap_data[,$specified_column_ordering]\n";
-                if ($samples_file) {
-                    # sample annotations must continue to match column ordering of data matrix
-                    $Rscript .= "sampleAnnotations = sampleAnnotations[,$specified_column_ordering]\n";
-                }
-                
-            }
-            
         }
         
         my $Rowv = "as.dendrogram(hc_genes)";
@@ -1650,12 +1639,14 @@ main: {
         #}
 
         if ($samples_file && $per_gene_plots_incl_vioplot) {
-            $Rscript .= "df = data.frame(reps = names(gene_data), expr=gene_data)\n";
-            $Rscript .= "df = data.frame(df, sample_name=samples_data\$sample_name[match(df\$reps, samples_data\$replicate_name)])\n";
-            $Rscript .= "df2 = df[,c('sample_name', 'expr')]\n";
-            $Rscript .= "s2 = split(df2, df2\$sample_name)\n";
-            $Rscript .= "vals = lapply(s2, function(x) {x\$expr} )\n";
-            $Rscript .= 'vioplot2(vals, names=names(vals), col=unlist(vioplot_colors[names(vals)]))' . "\n";
+            $Rscript .= "    df = data.frame(reps = names(gene_data), expr=gene_data)\n";
+            $Rscript .= "    df = data.frame(df, sample_name=samples_data\$sample_name[match(df\$reps, samples_data\$replicate_name)])\n";
+            $Rscript .= "    df2 = df[,c('sample_name', 'expr')]\n";
+            $Rscript .= "     df2\$sample_name = factor(df2\$sample_name, levels=unique(df2\$sample_name))\n";
+            $Rscript .= "    s2 = split(df2, df2\$sample_name)\n";
+            $Rscript .= "    vals = lapply(s2, function(x) {x\$expr} )\n";
+            $Rscript .= '    vioplot2(vals, names=names(vals), col=unlist(vioplot_colors[names(vals)]))' . "\n";
+            
         }
         
         $Rscript .= "}\n";

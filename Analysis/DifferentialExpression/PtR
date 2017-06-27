@@ -596,9 +596,16 @@ main: {
     
     $Rscript .= "data = primary_data\n";
     
-    
     $Rscript .= "myheatcol = colorpanel(75, $HEATMAP_COLORS)\n";  
-        
+
+    ## order data as specified
+    if ($specified_column_ordering) {
+        $Rscript .= "data = data[, $specified_column_ordering, drop=F ]\n";
+    }
+    elsif ($lexical_column_ordering) {
+        $Rscript .= "data = data[, order(colnames(data)), drop=F]\n",
+    }
+    
     if ($samples_file) {
 
         $Rscript .= "samples_data = read.table(\"$samples_file\", header=F, check.names=F, fill=T)\n";
@@ -610,19 +617,12 @@ main: {
         
         $Rscript .= "rep_names = as.character(samples_data[,2])\n";
 
-        ## order data as specified
-
-        if ($specified_column_ordering) {
-            $Rscript .= "data = data[, $specified_column_ordering, drop=F ]\n";
-        }
-        elsif ($order_columns_by_samples_file) {
+        if ($order_columns_by_samples_file) {
             # restrict data to those entries in the samples file
             # and order according to rep names
             $Rscript .= "data = data[, rep_names, drop=F ]\n";
         }
-        elsif ($lexical_column_ordering) {
-            $Rscript .= "data = data[, order(colnames(data)), drop=F]\n",
-        }
+    
         # associate the data column names with the sample type
         $Rscript .= "nsamples = length(sample_types)\n"
             . "sample_colors = rainbow(nsamples)\n"

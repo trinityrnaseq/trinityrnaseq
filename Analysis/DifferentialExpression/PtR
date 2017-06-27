@@ -622,6 +622,11 @@ main: {
             # and order according to rep names
             $Rscript .= "data = data[, rep_names, drop=F ]\n";
         }
+        else {
+            # default, restrict to columns described in samples file and retain ordering in matrix
+            $Rscript .= "data = data[, colnames(data) \%in% rep_names, drop=F ]\n";
+        }
+        
     
         # associate the data column names with the sample type
         $Rscript .= "nsamples = length(sample_types)\n"

@@ -13,6 +13,6 @@ test:
 clean:
 	rm -f ./candidate.Trinity_trans.TMM.EXPR.matrix.*
 	rm -f ./test
-	rm -f ./test.matrix
+	rm -f ./test.matrix ./test.matrix.*
 	rm -f ./*.pdf
 	rm -f ./*.svg

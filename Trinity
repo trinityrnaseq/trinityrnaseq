@@ -43,6 +43,10 @@ my $PARAFLY = "$ROOTDIR/trinity-plugins/parafly/bin/ParaFly";
 my $TRIMMOMATIC = "$ROOTDIR/trinity-plugins/Trimmomatic/trimmomatic.jar";
 my $TRIMMOMATIC_DIR = "$ROOTDIR/trinity-plugins/Trimmomatic";
 
+#variable for bowtie2
+my $bowtie2_path;
+my $bowtie2_build_path;
+
 $ENV{PATH} = "$ROOTDIR/trinity-plugins/BIN:$ENV{PATH}";
 
 
@@ -1054,8 +1058,8 @@ $ENV{OMP_NUM_THREADS} = $CPU; ## for Inchworm and Chrysalis
 my $PAIRED_MODE = ( (@left_files && @right_files)  || $run_as_paired_flag) ? 1:0;
 if (!$NO_BOWTIE) {
     ## be sure we can find 'bowtie', since we use it as part of the iworm pair scaffolding step
-    my $bowtie2_path = `which bowtie2`;
-    my $bowtie2_build_path = `which bowtie2-build`;
+    $bowtie2_path = `which bowtie2`;
+    $bowtie2_build_path = `which bowtie2-build`;
     if ($bowtie2_path =~ /\w/ && $bowtie2_build_path =~ /\w/) {
         print "Paired mode requires bowtie2. Found bowtie2 at: $bowtie2_path\n and bowtie-build at $bowtie2_build_path\n\n" if $VERBOSE;
     }
@@ -1720,7 +1724,7 @@ sub run_chrysalis {
         $pipeliner->run();
         
         $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
-        $cmd = "bowtie2-build -o 3 $iworm_min100_fa_file $iworm_min100_fa_file 1>/dev/null"; #-o 3 / defaut is 5, less use more ram but is faster when mapping the reads
+        $cmd = "$bowtie2_build_path -o 3 $iworm_min100_fa_file $iworm_min100_fa_file 1>/dev/null"; #-o 3 / defaut is 5, less use more ram but is faster when mapping the reads
         
         if (-s "$iworm_min100_fa_file") {
             $pipeliner->add_commands( new Command($cmd, "$iworm_min100_fa_file.bowtie2-build.ok"));
@@ -1728,7 +1732,7 @@ sub run_chrysalis {
             my $bowtie_sam_file = "$chrysalis_output_dir/iworm.bowtie.nameSorted.bam";
             my $samtools_max_memory = int($jellyfish_ram/($CPU*2));
 
-            $cmd = "bash -c \" set -o pipefail;bowtie2 --local -k 2 --threads $CPU -f --score-min G,46,0 -x $iworm_min100_fa_file $bowtie_reads_fa  | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort -m $samtools_max_memory $PARALLEL_SAMTOOLS_SORT_TOKEN -no - - > $bowtie_sam_file\" ";  
+            $cmd = "bash -c \" set -o pipefail;$bowtie2_path --local -k 2 --threads $CPU -f --score-min G,46,0 -x $iworm_min100_fa_file $bowtie_reads_fa  | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort -m $samtools_max_memory $PARALLEL_SAMTOOLS_SORT_TOKEN -no - - > $bowtie_sam_file\" ";  
                         
             $pipeliner->add_commands( new Command($cmd, "$bowtie_sam_file.ok"));
             

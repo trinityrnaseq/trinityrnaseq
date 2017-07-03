@@ -28,6 +28,7 @@ my $usage = <<__EOUSAGE__;
 #  --out_dir <string>          output directory (default: current working directory)
 #  --star_path <string>        full path to the STAR program to use.
 #  --patch <string>            genomic targets to patch the genome fasta with.
+#  --chim_search               include Chimeric.junction outputs
 #
 #######################################################################
 
@@ -50,6 +51,7 @@ my $ADV = 0;
 
 my $star_path = "STAR";
 my $patch;
+my $chim_search;
 
 &GetOptions( 'h' => \$help_flag,
              'genome=s' => \$genome,
@@ -61,6 +63,7 @@ my $patch;
              'ADV' => \$ADV,
              'star_path=s' => \$star_path,
              'patch=s' => \$patch,
+             'chim_search' => \$chim_search,
     );
 
 
@@ -115,7 +118,6 @@ main: {
         
         
         my $cmd = "$star_prog --runThreadN $CPU --runMode genomeGenerate --genomeDir $star_index "
-            . " --twopassMode Basic "
             . " --genomeFastaFiles $genome "
             . " --limitGenomeGenerateRAM 40419136213 ";
         if ($gtf_file) {
@@ -143,21 +145,23 @@ main: {
         . " --outSAMtype BAM SortedByCoordinate "
         . " --runMode alignReads "
         . " --readFilesIn $reads "
-        . " --chimJunctionOverhangMin 12 "
-        . " --chimSegmentMin 12 "
         . " --twopassMode Basic "
         . " --alignSJDBoverhangMin 10 "
-        . " --chimSegmentReadGapMax parameter 3 "
         . " --limitBAMsortRAM 20000000000";
 
+    if ($chim_search) {
+        $cmd .= " --chimJunctionOverhangMin 12 "
+             .  " --chimSegmentMin 12 "
+             .  " --chimSegmentReadGapMax parameter 3 "
+    }
+        
     if ($patch) {
         $cmd .= " --genomeFastaFiles $patch ";
     }
         
     
-    #if ($ADV) {
-        $cmd .= " --alignSJstitchMismatchNmax 5 -1 5 5 ";  #which allows for up to 5 mismatches for non-canonical GC/AG, and AT/AC junctions, and any number of mismatches for canonical junctions (the default values 0 -1 0 0 replicate the old behavior (from AlexD)
-    #}
+    $cmd .= " --alignSJstitchMismatchNmax 5 -1 5 5 ";  #which allows for up to 5 mismatches for non-canonical GC/AG, and AT/AC junctions, and any number of mismatches for canonical junctions (the default values 0 -1 0 0 replicate the old behavior (from AlexD)
+    
     
     if ($reads =~ /\.gz$/) {
         $cmd .= " --readFilesCommand 'gunzip -c' ";

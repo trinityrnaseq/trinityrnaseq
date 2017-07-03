@@ -848,6 +848,15 @@ unless ($max_memory &&
     die "Must specify basic parameters:  ex. Trinity --seqType fq --single reads.fq --max_memory 10G ";
 }
 
+## make sure properly installed
+{
+    foreach my $trinity_tool ("ParaFly", "seqtk-trinity") {
+        my $loc = `which $trinity_tool`;
+        unless ($loc =~ /\w/) {
+            die "\n\n\tError, cannot locate Trinity-specific tool: $trinity_tool,  be sure to install Trinity by running 'make' in the base installation directory\n\n";
+        }
+    }
+}
 
 $output_directory = &create_full_path($output_directory, 0);
 

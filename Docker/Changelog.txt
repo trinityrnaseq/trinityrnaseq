@@ -1,5 +1,13 @@
 
+trinityrnaseq/trinityrnaseq:2.4.0b
+   July-11-2017
+    updated bowtie2
+
+trinityrnaseq/trinityrnaseq:2.4.0
+
 
 trinityrnaseq/trinityrnaseq:2.3.2
 	-first official Docker release of Trinity, Nov-19-2016
-	
+
+
+

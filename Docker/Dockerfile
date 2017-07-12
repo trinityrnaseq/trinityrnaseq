@@ -94,19 +94,21 @@ RUN wget http://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.5
     ln -s /usr/local/src/FastQC/fastqc $BIN/.
 
 
-## Bowtie2
-WORKDIR $SRC
-RUN wget https://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.2.9/bowtie2-2.2.9-linux-x86_64.zip/download -O bowtie2-2.2.9-linux-x86_64.zip && \
-    unzip bowtie2-2.2.9-linux-x86_64.zip && \
-    mv bowtie2-2.2.9/bowtie2* $BIN && \
-    rm *.zip && \
-    rm -r bowtie2-2.2.9
-
 # blast
 WORKDIR $SRC
 RUN wget ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.5.0/ncbi-blast-2.5.0+-x64-linux.tar.gz && \
     tar xvf ncbi-blast-2.5.0+-x64-linux.tar.gz && \
     cp ncbi-blast-2.5.0+/bin/* $BIN
+
+
+
+## Bowtie2
+WORKDIR $SRC
+RUN wget https://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.3.2/bowtie2-2.3.2-linux-x86_64.zip/download -O bowtie2-2.3.2-linux-x86_64.zip && \
+    unzip bowtie2-2.3.2-linux-x86_64.zip && \
+    mv bowtie2-2.3.2/bowtie2* $BIN && \
+    rm *.zip && \
+    rm -r bowtie2-2.3.2
 
 
 
@@ -118,29 +120,26 @@ RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstall
 
 WORKDIR $SRC
 
-# Version Trinity 2.3.2
+# Version Trinity 2.4.0
+ENV TRINITY_VERSION="2.4.0"
 
-ENV TRINITY_VERSION=Trinity-v2.3.2
-ENV TRINITY_CO=b54dc4d
+WORKDIR $SRC
 
-RUN git clone https://github.com/trinityrnaseq/trinityrnaseq.git && \
-    cd trinityrnaseq && \
-    git checkout $TRINITY_CO
-    
+RUN TRINITY_URL="https://github.com/trinityrnaseq/trinityrnaseq/archive/Trinity-v${TRINITY_VERSION}.tar.gz" && \
+    wget $TRINITY_URL
 
-ENV TRINITY_HOME $SRC/trinityrnaseq
+RUN tar -xvf Trinity-v${TRINITY_VERSION}.tar.gz
 
-RUN cd $TRINITY_HOME && make && make plugins
+RUN cd trinityrnaseq-Trinity-v${TRINITY_VERSION} && make
 
-RUN cp $TRINITY_HOME/trinity-plugins/htslib/bgzip $BIN
+ENV TRINITY_HOME $SRC/trinityrnaseq-Trinity-v${TRINITY_VERSION}
 
 RUN cp $TRINITY_HOME/trinity-plugins/BIN/samtools $BIN
-
-RUN cp $TRINITY_HOME/trinity-plugins/htslib/tabix $BIN
 
 ENV PATH=${TRINITY_HOME}:${PATH}
 
 COPY Dockerfile $SRC/Dockerfile.$TRINITY_VERSION
 
+RUN apt-get install -y libtbb-dev && apt-get clean
 
 

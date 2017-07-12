@@ -856,7 +856,7 @@ unless ($max_memory &&
     foreach my $trinity_tool ("ParaFly", "seqtk-trinity") {
         my $loc = `which $trinity_tool`;
         unless ($loc =~ /\w/) {
-            die "\n\n\tError, cannot locate Trinity-specific tool: $trinity_tool,  be sure to install Trinity by running 'make' in the base installation directory\n\n";
+            die "\n\n\tError, cannot locate Trinity-specific tool: $trinity_tool in the PATH setting: $ENV{PATH},  be sure to install Trinity by running 'make' in the base installation directory\n\n";
         }
     }
 }

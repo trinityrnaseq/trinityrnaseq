@@ -1,0 +1,33 @@
+#!/usr/bin/env Rscript
+
+suppressPackageStartupMessages(library("argparse"))
+
+initial.options <- commandArgs(trailingOnly = FALSE)
+file.arg.name <- "--file="
+script.name <- sub(file.arg.name, "", initial.options[grep(file.arg.name, initial.options)])
+script.dirname <- dirname(script.name)
+
+source(paste0(script.dirname,"/R/rnaseq_plot_funcs.R"))
+
+parser = ArgumentParser(description="generate MA plots in DE directory")
+parser$add_argument("--top_genes_label", help="number of top DE genes to label in the plot", type="integer", default=20)
+
+args = parser$parse_args()
+
+
+
+DE_result_files_vec = dir(pattern='DE_results$')
+
+pdf("DE_results.MA_plots.pdf")
+
+for (DE_file in DE_result_files_vec) {
+
+    message("plotting MA plot for: ", DE_file)
+    data = read.table(DE_file, header=T, row.names=1)
+    plot_MA(rownames(data), data$logCPM, data$logFC, data$FDR, title=DE_file, top_gene_labels_show=args$top_genes_label)
+
+}
+
+dev.off()
+
+

@@ -47,6 +47,7 @@ my $usage = <<__EOUSAGE__;
 #  --min_reps_min_cpm  <string>    default: $MIN_REPS_MIN_CPM  (format: 'min_reps,min_cpm')
 #                                  At least min count of replicates must have cpm values > min cpm value.
 #                                     (ie. filtMatrix = matrix[rowSums(cpm(matrix)> min_cpm) >= min_reps, ]  adapted from edgeR manual)
+#                                      Note, ** if no --samples_file, default for min_reps is set = 1 **
 #
 #  --output|o                      name of directory to place outputs (default: \$method.\$pid.dir)
 #
@@ -154,10 +155,16 @@ unless ($method =~ /^(edgeR|DESeq2|voom|ROTS|GLM)$/) {
 }
 
 my ($MIN_REPS, $MIN_CPM) = split(/,/, $MIN_REPS_MIN_CPM);
-unless ($MIN_REPS > 0 && $MIN_CPM > 0) {
-    die "Error, --min_reps_min_cpm $MIN_REPS_MIN_CPM must include values > 0 in comma-delimited format. ex.  '2,1' ";
-}
 
+if ($samples_file) {
+    unless ($MIN_REPS > 0 && $MIN_CPM > 0) {
+        die "Error, --min_reps_min_cpm $MIN_REPS_MIN_CPM must include values > 0 in comma-delimited format. ex.  '2,1' ";
+    }
+}
+else {
+    print STDERR "-note, no biological replicates identified, so setting min reps = $MIN_REPS.\n";
+    $MIN_REPS = 1;
+}
 
 
 main: {

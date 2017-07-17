@@ -192,20 +192,23 @@ my $grid_node_max_memory = "1G";
 # Note: For the Trinity logo below the backslashes are quoted in order to keep
 #   them from quoting the character than follows them.  "\\" keeps "\ " from occuring.
 
+my $trinity_banner = qq^
+     ______  ____   ____  ____   ____  ______  __ __
+    |      ||    \\ |    ||    \\ |    ||      ||  |  |
+    |      ||  D  ) |  | |  _  | |  | |      ||  |  |
+    |_|  |_||    /  |  | |  |  | |  | |_|  |_||  ~  |
+      |  |  |    \\  |  | |  |  | |  |   |  |  |___, |
+      |  |  |  .  \\ |  | |  |  | |  |   |  |  |     |
+      |__|  |__|\\_||____||__|__||____|  |__|  |____/
+^;
+
 my $basic_usage = qq^
 
 
 ###############################################################################
 #
-#     ______  ____   ____  ____   ____  ______  __ __
-#    |      ||    \\ |    ||    \\ |    ||      ||  |  |
-#    |      ||  D  ) |  | |  _  | |  | |      ||  |  |
-#    |_|  |_||    /  |  | |  |  | |  | |_|  |_||  ~  |
-#      |  |  |    \\  |  | |  |  | |  |   |  |  |___, |
-#      |  |  |  .  \\ |  | |  |  | |  |   |  |  |     |
-#      |__|  |__|\\_||____||__|__||____|  |__|  |____/
+$trinity_banner
 #
-###############################################################################
 #
 # Required:
 #
@@ -853,7 +856,7 @@ unless ($max_memory &&
     foreach my $trinity_tool ("ParaFly", "seqtk-trinity") {
         my $loc = `which $trinity_tool`;
         unless ($loc =~ /\w/) {
-            die "\n\n\tError, cannot locate Trinity-specific tool: $trinity_tool,  be sure to install Trinity by running 'make' in the base installation directory\n\n";
+            die "\n\n\tError, cannot locate Trinity-specific tool: $trinity_tool in the PATH setting: $ENV{PATH},  be sure to install Trinity by running 'make' in the base installation directory\n\n";
         }
     }
 }
@@ -932,6 +935,10 @@ unless ($BFLY_JAR) {
 unless ($NO_NORMALIZE_READS_FLAG) {
     $NORMALIZE_READS_FLAG = 1;
 }
+
+
+print STDERR "\n$trinity_banner\n\n" unless ($TRINITY_COMPLETE_FLAG);
+
 
 if ($samples_file) {
     &parse_samples_file($samples_file, \@single_files, \@left_files, \@right_files);
@@ -1145,6 +1152,7 @@ my $TRINITY_PHASE1_OUTDIR = $output_directory;
 my $MKDIR_PHASE1_OUTDIR_FLAG = 0;
 
 main: {
+    
     $ENV{OMP_NUM_THREADS} = $CPU;
 
     unless ($NO_RUN_INCHWORM_FLAG || $NO_RUN_CHRYSALIS_FLAG || $TRINITY_COMPLETE_FLAG)  {

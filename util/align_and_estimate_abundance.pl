@@ -62,7 +62,12 @@ my $usage = <<__EOUSAGE__;
 
 #########################################################################
 #
+########################
+#  Essential parameters:
+########################
+#
 #  --transcripts <string>           transcript fasta file
+#
 #  --seqType <string>               fq|fa
 # 
 #  If Paired-end:
@@ -74,7 +79,8 @@ my $usage = <<__EOUSAGE__;
 #
 #      --single <string>
 #
-#   or
+#   or (preferred):
+#
 #      --samples_file <string>    tab-delimited text file indicating biological replicate relationships.
 #                                   ex.
 #                                        cond_A    cond_A_rep1    A_rep1_left.fq    A_rep1_right.fq
@@ -90,15 +96,21 @@ my $usage = <<__EOUSAGE__;
 #                                        alignment_based:  RSEM|eXpress       
 #                                        alignment_free: kallisto|salmon
 #  
-# --output_dir <string>            write all files to output directory
+###################################
+#  Potentially optional parameters:
+###################################
+#
+# --output_dir <string>            write all files to output directory 
+#                                  (note, if using --samples_file, output_dir will be set automatically according to replicate name))
 #  
 #
 #  if alignment_based est_method:
 #       --aln_method <string>            bowtie|bowtie2 alignment method.  (note: RSEM requires bowtie)
 #                                       
-#
+###########
 # Optional:
-# 
+# #########
+#
 # --SS_lib_type <string>           strand-specific library type:  paired('RF' or 'FR'), single('F' or 'R').
 #                                         (note, no strand-specific mode for kallisto)
 #

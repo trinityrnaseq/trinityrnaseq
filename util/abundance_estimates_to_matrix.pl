@@ -27,7 +27,7 @@ my $usage = <<__EOUSAGE__;
 #  --name_sample_by_basedir             name sample column by dirname instead of filename
 #      --basedir_index <int>            default(-2)
 #
-#  --out_prefix <string>                default: 'matrix'
+#  --out_prefix <string>                default: value for --est_method
 #
 #  --quant_files <string>              file containing a list of all the target files.
 #
@@ -44,7 +44,7 @@ my $est_method;
 my $val_type;
 my $cross_sample_norm = "TMM";
 my $name_sample_by_basedir = 0;
-my $out_prefix = "matrix";
+my $out_prefix;
 my $basedir_index = -2;
 my $quant_files = "";
 
@@ -60,6 +60,9 @@ my $quant_files = "";
             );
 
 
+
+if ($help_flag) { die $usage; }
+
 unless ($est_method && (@ARGV || $quant_files)) {
     die $usage;
 }
@@ -69,6 +72,10 @@ unless ($est_method =~ /^(RSEM|eXpress|kallisto|salmon)/i) {
 }
 unless ($cross_sample_norm =~ /^(TMM|UpperQuartile|none)$/i) {
     die "Error, dont recognize --cross_sample_norm $cross_sample_norm ";
+}
+
+unless ($out_prefix) {
+    $out_prefix = $est_method;
 }
 
 my @files;

@@ -774,7 +774,8 @@ def main():
     parser.add_argument("--trinity_fasta", dest="trinity_fasta", type=str, default="", required=True, help="Trinity.fasta file")
 
     parser.add_argument("--out_prefix", dest="out_prefix", type=str, default="trinity_genes", required=False, help="output prefix for fasta and gtf outputs")
-
+    parser.add_argument("--incl_malign", dest="malign", action="store_true", default=False, help="include multiple alignment formatted output file")
+    
     parser.add_argument("--debug", required=False, action="store_true", default=False, help="debug mode")
 
     args = parser.parse_args()
@@ -793,12 +794,24 @@ def main():
 
     ofh_fasta = open(out_fasta_filename, 'w')
     ofh_gtf = open(out_gtf_filename, 'w')
-    ofh_malign = open(out_malign_filename, 'w')
+    ofh_malign = None
+
+    if args.malign:
+        open(out_malign_filename, 'w')
+
+
+    supertranscript_start_time = time.time()
     
     ## examine the alt spliced isoforms.
+
+    num_genes = len(gene_to_isoform_info.keys())
+    gene_counter = 0
+    
     for gene_name in gene_to_isoform_info:
         iso_struct_list = gene_to_isoform_info[ gene_name ]
 
+        gene_counter += 1
+        
         # convert to Node_path objects
         node_path_obj_list = list()
         for iso_struct in iso_struct_list:
@@ -827,18 +840,26 @@ def main():
         ofh_fasta.write(">{}\n{}\n".format(gene_name, gene_seq))
         ofh_gtf.write(gtf_txt + "\n")
 
-        if len(node_path_obj_list) > 1:
+        if args.malign and len(node_path_obj_list) > 1:
             Gene_splice_modeler.write_malign(gene_name, malign_dict, ofh_malign)
 
 
         runtime = time.time() - start_time
         if runtime > 0.1 or args.debug:
-            logger.info("Exec Time for Gene {}: {:.3f} s\n".format(gene_name, runtime))
+            pct_done = float(gene_counter)/num_genes * 100
+            logger.info("Exec Time for Gene {}: {:.3f} s, total pct done: {:.2f}%\n".format(gene_name, runtime, pct_done))
         
 
     ofh_fasta.close()
     ofh_gtf.close()
-    ofh_malign.close()
+    if args.malign:
+        ofh_malign.close()
+
+    supertranscript_end_time = time.time()
+    runtime_minutes = (supertranscript_end_time - supertranscript_start_time) / 60.0
+
+    logger.info("Done.  Total runtime: {:.1f} min\n\n".format(runtime_minutes))
+    
 
     sys.exit(0)
 

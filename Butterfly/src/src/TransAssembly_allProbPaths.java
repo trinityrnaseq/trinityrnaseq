@@ -10725,6 +10725,7 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 			
 			if (! (is_at_start_of_graph || is_at_end_of_graph)) {
 				Integer path2_seq_len = getPathSeq(graph, path2).length();
+				path2_seq_len -= KMER_SIZE - 1;
 				a.max_internal_gap_length = path2_seq_len;
 				a.gaps = path2_seq_len;
 			}
@@ -10741,6 +10742,7 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 			
 			if (! (is_at_start_of_graph || is_at_end_of_graph)) {
 				Integer path1_seq_len = getPathSeq(graph, path1).length();
+				path1_seq_len -= KMER_SIZE - 1;
 				a.max_internal_gap_length = path1_seq_len;
 				a.gaps = path1_seq_len;
 			}

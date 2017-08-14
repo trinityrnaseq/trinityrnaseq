@@ -797,7 +797,7 @@ def main():
     ofh_malign = None
 
     if args.malign:
-        open(out_malign_filename, 'w')
+        ofh_malign = open(out_malign_filename, 'w')
 
 
     supertranscript_start_time = time.time()

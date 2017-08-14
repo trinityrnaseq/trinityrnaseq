@@ -9,6 +9,7 @@ import logging
 import argparse
 import collections
 import numpy
+import time
 
 logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -392,7 +393,7 @@ class Node_alignment:
 
         block_breakpoints.append(width)
 
-        print("Block_breakpoints: {}".format(block_breakpoints))
+        logger.debug("Block_breakpoints: {}".format(block_breakpoints))
 
         blocked_nodes = list()
         for i in range(0, width+1):
@@ -470,7 +471,7 @@ class Gene_splice_modeler:
         ## create alignments
         self.alignments = list()
 
-        logger.info("Gene_splice_modeler inputs: {}".format(node_path_obj_list))
+        logger.debug("Gene_splice_modeler inputs: {}".format(node_path_obj_list))
         
         for node_path_obj in node_path_obj_list:
             transcript_name = node_path_obj.get_transcript_name()
@@ -520,7 +521,7 @@ class Gene_splice_modeler:
 
             alignments = new_alignment_list
 
-            logger.info("\nUpdated alignments:\n" + str(alignments))
+            logger.debug("\nUpdated alignments:\n" + str(alignments))
             
             similarity_matrix = Gene_splice_modeler.compute_similarity_matrix(alignments)
             logger.debug("Similarity matrix:\n" + str(similarity_matrix))
@@ -555,7 +556,7 @@ class Gene_splice_modeler:
     @staticmethod
     def merge_alignments(align_a, align_b):
 
-        logger.info("Merging alignments {} and {}".format(align_a, align_b))
+        logger.debug("Merging alignments {} and {}".format(align_a, align_b))
 
         ## ensure the transcripts are disjoint
         transcript_names_align_A = set(align_a.get_transcript_names())
@@ -806,18 +807,21 @@ def main():
             #print(str(n_path))
         
         # generate multiple alignment
+
+        start_time = time.time()
+        
         logger.info("Processing Gene: {} having {} isoforms".format(gene_name, len(node_path_obj_list)))
 
         gene_splice_modeler = Gene_splice_modeler(node_path_obj_list)
 
         splice_model_alignment = gene_splice_modeler.build_splice_model()
 
-        logger.info("Final splice_model_alignment for Gene {} :\n{}\n".format(gene_name, str(splice_model_alignment)))
+        logger.debug("Final splice_model_alignment for Gene {} :\n{}\n".format(gene_name, str(splice_model_alignment)))
 
         squeezed_splice_model = splice_model_alignment.squeeze()
         
-        logger.info("Squeezed splice model for Gene {}:\n{}\n".format(gene_name, str(squeezed_splice_model)))
-
+        logger.debug("Squeezed splice model for Gene {}:\n{}\n".format(gene_name, str(squeezed_splice_model)))
+        
         (gene_seq, gtf_txt, malign_dict) = squeezed_splice_model.to_gene_fasta_and_gtf(gene_name)
 
         ofh_fasta.write(">{}\n{}\n".format(gene_name, gene_seq))
@@ -826,6 +830,11 @@ def main():
         if len(node_path_obj_list) > 1:
             Gene_splice_modeler.write_malign(gene_name, malign_dict, ofh_malign)
 
+
+        runtime = time.time() - start_time
+        if runtime > 0.1 or args.debug:
+            logger.info("Exec Time for Gene {}: {:.3f} s\n".format(gene_name, runtime))
+        
 
     ofh_fasta.close()
     ofh_gtf.close()

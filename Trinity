@@ -39,7 +39,7 @@ my $CHRYSALIS_DIR = "$ROOTDIR/Chrysalis";
 my $BUTTERFLY_DIR = "$ROOTDIR/Butterfly";
 my $JELLYFISH_DIR = "$ROOTDIR/trinity-plugins/jellyfish";
 my $COLLECTL_DIR = "$ROOTDIR/trinity-plugins/COLLECTL/collectl";
-my $PARAFLY = "$ROOTDIR/trinity-plugins/parafly/bin/ParaFly";
+my $PARAFLY = "$ROOTDIR/trinity-plugins/BIN/ParaFly";
 my $TRIMMOMATIC = "$ROOTDIR/trinity-plugins/Trimmomatic/trimmomatic.jar";
 my $TRIMMOMATIC_DIR = "$ROOTDIR/trinity-plugins/Trimmomatic";
 

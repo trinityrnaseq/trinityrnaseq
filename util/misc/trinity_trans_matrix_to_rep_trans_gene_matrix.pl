@@ -64,7 +64,7 @@ sub get_rep {
         my @x = split(/\t/, $line);
         my $acc = shift @x;
         my $sum = 0;
-        for (my $i = 0; $i < $#x; $i++) {
+        for (my $i = 0; $i <= $#x; $i++) {
             my $val = $x[$i];
             $sum += $val;
             $vals[$i] += $val;

@@ -5,7 +5,7 @@ use warnings;
 use Carp;
 use Getopt::Long qw(:config posix_default no_ignore_case bundling pass_through);
 use FindBin;
-use lib "$FindBin::Bin/../../PerlLib";
+use lib "$FindBin::Bin/../../../PerlLib";
 use Pipeliner;
 
 
@@ -31,6 +31,8 @@ my $usage = <<__EOUSAGE__;
 #
 #  --CPU <int>                       default: $CPU
 #
+#  --aligner <string>                hisat2|gsnap|STAR
+#
 ################################################################
 
 
@@ -44,6 +46,7 @@ my $trinity_genes_fasta_file;
 my $trinity_genes_gtf_file;
 my $samples_file;
 my $out_prefix = "dexseq";
+my $aligner = "hisat2";
 
 &GetOptions ( 'h' => \$help_flag,
               'trinity_genes_fasta=s' => \$trinity_genes_fasta_file,
@@ -51,6 +54,7 @@ my $out_prefix = "dexseq";
               'samples_file=s' => \$samples_file,
               'out_prefix=s' => \$out_prefix,
               'CPU=i' => \$CPU,
+              'aligner=s' => \$aligner,
     );
 
 if ($help_flag) {
@@ -62,7 +66,7 @@ unless ($trinity_genes_fasta_file && $trinity_genes_gtf_file && $samples_file) {
 }
 
 
-my $TRINITY_HOME = "$FindBin::Bin/../..";
+my $TRINITY_HOME = "$FindBin::Bin/../../..";
 
 main: {
 
@@ -73,10 +77,11 @@ main: {
     ## flatten the gtf file
     my $cmd = "$TRINITY_HOME/trinity-plugins/DEXseq_util/dexseq_prepare_annotation.py $trinity_genes_gtf_file $trinity_genes_gtf_file.dexseq.gff";
     $pipeliner->add_commands(new Command($cmd, "flatten_gtf.ok"));
+
     
     ## run gsnap
-    $cmd = "$TRINITY_HOME/util/misc/run_GSNAP.pl  --genome $trinity_genes_fasta_file -G $trinity_genes_gtf_file --samples $samples_file --CPU $CPU";
-    $pipeliner->add_commands(new Command($cmd, "gsnap_each.ok"));
+    $cmd = "$TRINITY_HOME/util/misc/run_HISAT2.pl $trinity_genes_fasta_file $trinity_genes_gtf_file $samples_file";
+    $pipeliner->add_commands(new Command($cmd, "hisat2.ok"));
 
     $pipeliner->run();
 

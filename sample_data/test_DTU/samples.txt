@@ -1,6 +1,0 @@
-sA	sA_rep1	data/sA_rep1_1.fastq.gz	data/sA_rep1_2.fastq.gz
-sA	sA_rep2	data/sA_rep2_1.fastq.gz	data/sA_rep2_2.fastq.gz
-sA	sA_rep3	data/sA_rep3_1.fastq.gz	data/sA_rep3_2.fastq.gz
-sB	sB_rep1	data/sB_rep1_1.fastq.gz	data/sB_rep1_2.fastq.gz
-sB	sB_rep2	data/sB_rep2_1.fastq.gz	data/sB_rep2_2.fastq.gz
-sB	sB_rep3	data/sB_rep3_1.fastq.gz	data/sB_rep3_2.fastq.gz

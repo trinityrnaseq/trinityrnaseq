@@ -62,9 +62,11 @@ test_gg_trinity:
 
 test_all:
 	cd sample_data/ && make test_all
+	cd trinity_ext_sample_data/ && make test_all
 
 test_clean:
 	cd sample_data/ && make clean
+	cd trinity_ext_sample_data/ && make clean
 
 ###################################################################
 

@@ -17,9 +17,9 @@ my $usage = <<__EOUSAGE__;
 #
 #  Required:
 #
-#  --trinity_genes_fasta <string>     Trinity genes fasta files
+#  --genes_fasta <string>     Trinity genes fasta files
 #
-#  --trinity_genes_gtf <string>       Trinity genes gtf file
+#  --genes_gtf <string>       Trinity genes gtf file
 #
 #  --samples_file <string>            Trinity samples file
 #
@@ -31,7 +31,6 @@ my $usage = <<__EOUSAGE__;
 #
 #  --CPU <int>                       default: $CPU
 #
-#  --aligner <string>                hisat2|gsnap|STAR
 #
 ################################################################
 
@@ -40,17 +39,19 @@ __EOUSAGE__
 
     ;
 
+#  --aligner <string>                hisat2|gsnap|STAR
+
 
 my $help_flag;
-my $trinity_genes_fasta_file;
-my $trinity_genes_gtf_file;
+my $genes_fasta_file;
+my $genes_gtf_file;
 my $samples_file;
 my $out_prefix = "dexseq";
 my $aligner = "hisat2";
 
 &GetOptions ( 'h' => \$help_flag,
-              'trinity_genes_fasta=s' => \$trinity_genes_fasta_file,
-              'trinity_genes_gtf=s' => \$trinity_genes_gtf_file,
+              'genes_fasta=s' => \$genes_fasta_file,
+              'genes_gtf=s' => \$genes_gtf_file,
               'samples_file=s' => \$samples_file,
               'out_prefix=s' => \$out_prefix,
               'CPU=i' => \$CPU,
@@ -61,7 +62,7 @@ if ($help_flag) {
     die $usage;
 }
 
-unless ($trinity_genes_fasta_file && $trinity_genes_gtf_file && $samples_file) {
+unless ($genes_fasta_file && $genes_gtf_file && $samples_file) {
     die $usage;
 }
 
@@ -75,12 +76,12 @@ main: {
     my $pipeliner = new Pipeliner(-verbose => 2);
 
     ## flatten the gtf file
-    my $cmd = "$TRINITY_HOME/trinity-plugins/DEXseq_util/dexseq_prepare_annotation.py $trinity_genes_gtf_file $trinity_genes_gtf_file.dexseq.gff";
+    my $cmd = "$TRINITY_HOME/trinity-plugins/DEXseq_util/dexseq_prepare_annotation.py $genes_gtf_file $genes_gtf_file.dexseq.gff";
     $pipeliner->add_commands(new Command($cmd, "flatten_gtf.ok"));
 
     
     ## run gsnap
-    $cmd = "$TRINITY_HOME/util/misc/run_HISAT2.pl $trinity_genes_fasta_file $trinity_genes_gtf_file $samples_file";
+    $cmd = "$TRINITY_HOME/util/misc/run_HISAT2.pl $genes_fasta_file $genes_gtf_file $samples_file";
     $pipeliner->add_commands(new Command($cmd, "hisat2.ok"));
 
     $pipeliner->run();
@@ -100,7 +101,7 @@ main: {
         $pipeliner->add_commands(new Command($cmd, "$bam_file.sam.ok"));
 
         # quant
-        $cmd = "$TRINITY_HOME/trinity-plugins/DEXseq_util/dexseq_count.py $trinity_genes_gtf_file.dexseq.gff $bam_file.sam $bam_file.counts";
+        $cmd = "$TRINITY_HOME/trinity-plugins/DEXseq_util/dexseq_count.py $genes_gtf_file.dexseq.gff $bam_file.sam $bam_file.counts";
         $pipeliner->add_commands(new Command($cmd, "$bam_file.counts.ok"));
         
         push (@counts_files, "$bam_file.counts");
@@ -133,7 +134,7 @@ main: {
         open (my $ofh, ">$dexseq_rscript") or die "Error, cannot write to $dexseq_rscript";
         print $ofh "library(DEXSeq)\n";
         print $ofh "samples_info = read.table(\"$samples_table_file\", header=T, row.names=1)\n";
-        print $ofh "dxd = DEXSeqDataSetFromHTSeq(as.vector(samples_info\$counts_filename), sampleData=samples_info, design = ~ sample + exon + condition:exon, flattenedfile=\"$trinity_genes_gtf_file.dexseq.gff\")\n";
+        print $ofh "dxd = DEXSeqDataSetFromHTSeq(as.vector(samples_info\$counts_filename), sampleData=samples_info, design = ~ sample + exon + condition:exon, flattenedfile=\"$genes_gtf_file.dexseq.gff\")\n";
         print $ofh "pdf(\"$out_prefix.pdf\")\n";
         print $ofh "dxd = estimateSizeFactors( dxd )\n";
         print $ofh "dxd = estimateDispersions( dxd )\n";

@@ -169,7 +169,7 @@ class Trinity_fasta_parser:
 
         m = re.search("path=\[([^\]]+)\]", header)
         if not m:
-            raise RuntimeExcpetion("Error, cannot parse path info from header of line: {}".format(header))
+            raise RuntimeError("Error, cannot parse path info from header of line: {}".format(header))
         
         path_str = m.group(1)
         

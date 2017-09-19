@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-#from __future__ import (absolute_import, division,
-#                        print_function, unicode_literals)
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
 
 import os, sys
 import logging
@@ -16,7 +16,7 @@ def run_cmd(cmd):
     logger.info("Running: " + " ".join(cmd))
     process = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (output, error) = process.communicate()
-    logger.debug(output)
+    logger.debug("stdout: {}\nstderr:{}".format(output, error))
     if process.returncode != 0:
         logger.error(error)
         raise RuntimeError("Error while running command \"" + str(cmd) + "\":\n" + error)

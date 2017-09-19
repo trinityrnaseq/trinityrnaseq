@@ -1,15 +1,18 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-from __future__ import (absolute_import, division,
-                        print_function, unicode_literals)
+#from __future__ import (absolute_import, division,
+#                        print_function, unicode_literals)
 
 import os, sys
 import logging
+import subprocess
+import shlex
 
 logger = logging.getLogger(__name__)
 
 def run_cmd(cmd):
+    cmd = shlex.split(cmd)
     logger.info("Running: " + " ".join(cmd))
     process = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (output, error) = process.communicate()
@@ -49,7 +52,7 @@ class Pipeliner(object):
         for cmd in self._cmds_list:
             checkpoint_file = os.path.sep.join([self._checkpoint_dir, cmd.get_checkpoint()])
             if os.path.exists(checkpoint_file):
-                logger.info("CMD: " + cmd.cmd + " already processed. Skipping.")
+                logger.info("CMD: " + cmd.get_cmd() + " already processed. Skipping.")
             else:
                 # execute it.  If it succeeds, make the checkpoint file
                 run_cmd(cmd.get_cmd())

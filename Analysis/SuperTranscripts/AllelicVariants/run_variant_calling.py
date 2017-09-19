@@ -31,7 +31,9 @@ def main():
 
     parser = argparse.ArgumentParser(description="This script requires you have the following dependencies:\nSamtools: \"samtools\" in your path\nJava: \"java\" in your path\nPicard-Tools: \"$PICARD_HOME\" with the path to Picard-Tools's bin\nSTAR: \"STAR\" in your path\nGATK: \"$GATK\" with the path to GATK's bin\n", epilog="", formatter_class=argparse.RawTextHelpFormatter)
 
-    parser.add_argument('--st', '--supertranscript', dest="supertranscript_file", type=str, required=True, help="Path to the SuperTranscripts fasta file.")
+    parser.add_argument('--st_fa', '--supertranscript_fasta', dest="st_fa", type=str, required=True, help="Path to the SuperTranscripts fasta file.")
+
+    parser.add_argument('--st_gtf', '--supertranscript_gtf', dest="st_gtf", type=str, required=True, help="Path to the SuperTranscript gtf file.")
 
     group = parser.add_mutually_exclusive_group(required=True)
 
@@ -41,8 +43,8 @@ def main():
 
     parser.add_argument('-o', '--output', dest="out_path", type=str, required=True, help="Path to the folder where to generate the output.")
 
-    parser.add_argument('-l', '--readlength', dest="readlength", type=int, help="Size of the reads (used for STAR --sjdbOverhang). If no value is specified the length of the first read will be used.")
-
+    parser.add_argument('-l', '--sjdbOverhang', dest="sjdbOverhang", default=150, type=int, help="Size of the reads (used for STAR --sjdbOverhang). default=150")
+    
     parser.add_argument('-t', '--threads', dest="nthreads", type=str, default="4", help="Number of threads to use for tools that are multithreaded.")
 
     parser.add_argument('-m', '--maxram', dest="maxram", type=str, default="50000000000", help="Maximum amount of RAM allowed for STAR's genome generation step (only change if you get an error from STAR complaining about this value).")
@@ -67,9 +69,10 @@ def main():
     else:
         reads_paths = [os.path.realpath(args.single_reads)]
 
-    st_path = os.path.realpath(args.supertranscript_file)
+    st_fa_path = os.path.realpath(args.st_fa)
 
-
+    st_gtf_path = os.path.realpath(args.st_gtf)
+    
     
     # check if output directory exists, if not create
     real_path = os.path.realpath(args.out_path)
@@ -79,41 +82,39 @@ def main():
     # move to output folder
     os.chdir(real_path)
     
-    checkpoint_dir = os.path.abspath(os.path.basename(st_path)) + ".gatk_chkpts"
+    checkpoint_dir = os.path.abspath(os.path.basename(st_fa_path)) + ".gatk_chkpts"
     pipeliner = Pipeliner.Pipeliner(checkpoint_dir)
-        
-    if not args.readlength:
-        with open(reads_paths[0], "r") as f:
-            f.readline()  # skip header
-            sjdbOverhang = str(len(f.readline().rstrip()) - 1)
-    else:
-        sjdbOverhang = str(args.readlength - 1)
-
-    
+            
     # generate supertranscript index
     logger.info("Generating SuperTranscript index.")
-    pipeliner.add_commands([Pipeliner.Command("samtools faidx {}".format(st_path), "samtools_faidx_st.ok")])
+    pipeliner.add_commands([Pipeliner.Command("samtools faidx {}".format(st_fa_path), "samtools_faidx_st.ok")])
     pipeliner.run()
     
     # generate supertranscript Picard dictionary
     logger.info("Generating Picard dictionary.")
+    dict_file = re.sub("\.[^\.]+$", ".dict", st_fa_path)
     pipeliner.add_commands([Pipeliner.Command("java -jar " + PICARD_HOME + "/picard.jar" +
-                                              " CreateSequenceDictionary R=" + st_path +
-                                              " O=" + ".".join(os.path.basename(st_path).split(".")[:-1]) + ".dict",
+                                              " CreateSequenceDictionary R=" + st_fa_path +
+                                              " O=" + dict_file,
                                               "picard_dict_st.ok")])
     pipeliner.run()
 
     # generate genome folder for STAR's first pass
     logger.info("Generating genome folder for STAR")
+    
+    star_genome_generate_cmd = str("STAR --runThreadN " +
+                                   args.nthreads +
+                                   " --runMode genomeGenerate" +
+                                   " --genomeDir star_genome_idx " +
+                                   " --genomeFastaFiles {} ".format(st_fa_path) +
+                                   " --sjdbGTFfile {} ".format(st_gtf_path) +
+                                   " --sjdbOverhang {} ".format(args.sjdbOverhang) +
+                                   " --limitGenomeGenerateRAM {}".format(args.maxram) )
+        
     pipeliner.add_commands([
         Pipeliner.Command("mkdir star_genome_idx", "mkdir_star_genome_idx.ok"),
 
-        Pipeliner.Command("STAR --runThreadN " +
-                                              args.nthreads +
-                                              " --runMode genomeGenerate" +
-                                              " --genomeDir star_genome_idx " +
-                                              " --genomeFastaFiles " + st_path +
-                                              " --limitGenomeGenerateRAM " + args.maxram,
+        Pipeliner.Command(star_genome_generate_cmd,
                           "star_genome_generate.ok")
         ])
     pipeliner.run()
@@ -123,15 +124,20 @@ def main():
     logger.info("Running STAR alignment.")
     cmd = str("STAR --runThreadN " + args.nthreads
               + " --genomeDir star_genome_idx "
+              + " --runMode alignReads "
               + " --twopassMode Basic "
-              + "--outSAMtype BAM SortedByCoordinate "
-              + " --readFilesIn " + " ".join(reads_paths))
+              + " --alignSJDBoverhangMin 10 "
+              + " --outSAMtype BAM SortedByCoordinate "
+              + " --limitBAMsortRAM {} ".format(args.maxram) 
+              + " --readFilesIn " + " ".join(reads_paths) )
     
     if re.search("\.gz$", reads_paths[0]):
-        cmd += " --readFilesCommand zcat "
+        cmd += " --readFilesCommand 'gunzip -c' "
         
     pipeliner.add_commands([Pipeliner.Command(cmd, "star_aln.ok")])
     pipeliner.run()
+
+    
     
     # clean and convert sam file with Picard-Tools
     logger.info("Cleaning and Converting sam file with Picard-Tools.")
@@ -151,7 +157,7 @@ def main():
                           "mark_dups.ok"),
 
         Pipeliner.Command("java -jar " + GATK_HOME + "/GenomeAnalysisTK.jar " +
-                          "-T SplitNCigarReads -R " + st_path +
+                          "-T SplitNCigarReads -R " + st_fa_path +
                           " -I dedupped.bam -o splitNCigar.bam " +
                           " -rf ReassignOneMappingQuality -RMQF 255 -RMQT 60 -U ALLOW_N_CIGAR_READS",
                           "splitNCigarReads.ok")
@@ -165,7 +171,7 @@ def main():
 
     pipeliner.add_commands([
         Pipeliner.Command("java -jar " + GATK_HOME + "/GenomeAnalysisTK.jar " +
-                          "-T HaplotypeCaller -R " + st_path +
+                          "-T HaplotypeCaller -R " + st_fa_path +
                           " -I ./splitNCigar.bam -dontUseSoftClippedBases -stand_call_conf 20.0 -o output.vcf",
                           "haplotypecaller.ok")
         ])
@@ -176,7 +182,7 @@ def main():
     
     pipeliner.add_commands([
         Pipeliner.Command("java -jar " + GATK_HOME + "/GenomeAnalysisTK.jar " +
-                          "-T VariantFiltration -R " + st_path +
+                          "-T VariantFiltration -R " + st_fa_path +
                           " -V output.vcf -window 35 -cluster 3 " +
                           "-filterName FS -filter \"FS > 30.0\" " +
                           "-filterName QD -filter \"QD < 2.0\" -o filtered_output.vcf",

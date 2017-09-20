@@ -12,7 +12,7 @@ import shlex
 logger = logging.getLogger(__name__)
 
 def run_cmd(cmd):
-    cmd = shlex.split(cmd)
+    cmd = shlex.split(str(cmd))
     logger.info("Running: " + " ".join(cmd))
     process = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (output, error) = process.communicate()

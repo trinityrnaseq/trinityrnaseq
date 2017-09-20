@@ -31,10 +31,16 @@ def main():
     ch = logging.StreamHandler(sys.stdout)
     ch.setLevel(logging.INFO)
     logger.addHandler(ch)
-    logger.info('Start')
 
-    parser = argparse.ArgumentParser(description="This script requires you have the following dependencies:\nSamtools: \"samtools\" in your path\nJava: \"java\" in your path\nPicard-Tools: \"$PICARD_HOME\" with the path to Picard-Tools's bin\nSTAR: \"STAR\" in your path\nGATK: \"$GATK\" with the path to GATK's bin\n", epilog="", formatter_class=argparse.RawTextHelpFormatter)
-
+    parser = argparse.ArgumentParser(
+        description=str("This script requires you have the following dependencies:\n" +
+                        "Samtools: \"samtools\" in your path\n" +
+                        "Java: \"java\" in your path\n" +
+                        "Picard-Tools: env var \"$PICARD_HOME\" with the path to Picard-Tools's bin\n" +
+                        "STAR: \"STAR\" in your path\n" +
+                        "GATK: env var \"$GATK_HOME\" with the path to GATK's bin\n"),
+        epilog="", formatter_class=argparse.RawTextHelpFormatter) 
+    
     parser.add_argument('--st_fa', '--supertranscript_fasta', dest="st_fa", type=str, required=True, help="Path to the SuperTranscripts fasta file.")
 
     parser.add_argument('--st_gtf', '--supertranscript_gtf', dest="st_gtf", type=str, required=True, help="Path to the SuperTranscript gtf file.")

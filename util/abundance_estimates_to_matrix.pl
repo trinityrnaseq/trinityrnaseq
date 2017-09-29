@@ -328,7 +328,7 @@ main: {
             }
             
             print $ofh_genetpm join("\t", @tpm_vals) . "\n";
-            print $ofh_genecounts join("\t", @count_vals);
+            print $ofh_genecounts join("\t", @count_vals) . "\n";
         }
         close $ofh_genetpm;
         close $ofh_genecounts;

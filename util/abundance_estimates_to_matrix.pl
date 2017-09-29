@@ -8,7 +8,7 @@ use Getopt::Long qw(:config no_ignore_case bundling pass_through);
 
 my $usage = <<__EOUSAGE__;
 
-############################################################
+####################################################################################
 #
 # Usage:  $0 --est_method <method>  sample1.results sample2.results ...
 #
@@ -31,7 +31,9 @@ my $usage = <<__EOUSAGE__;
 #
 #  --quant_files <string>              file containing a list of all the target files.
 #
-############################################################
+#  --gene_trans_map <string>           the gene-to-transcript mapping file.
+#
+######################################################################################
 
 
 __EOUSAGE__

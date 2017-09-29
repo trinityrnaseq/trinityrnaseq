@@ -324,6 +324,7 @@ main: {
                 }
                 push (@tpm_vals, $gene_tpm);
                 my $gene_count = $gene_tpm / 1e6 * $sum_sample_counts{ $column_header_to_filename{$file} };
+                $gene_count = sprintf("%.2f", $gene_count);
                 push (@count_vals, $gene_count);
             }
             

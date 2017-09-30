@@ -2921,7 +2921,7 @@ sub run_trimmomatic_PE {
     }
         
 
-    my $cmd = "java $JAVA_OPTS -jar $TRIMMOMATIC PE -threads $CPU -phred33 "
+    my $cmd = "java $JAVA_OPTS -jar $TRIMMOMATIC PE -threads $CPU "
             . " $left_fq_file $right_fq_file "
             . " $trimmed_left_file_base.P.qtrim $trimmed_left_file_base.U.qtrim "
             . " $trimmed_right_file_base.P.qtrim $trimmed_right_file_base.U.qtrim "
@@ -2970,7 +2970,7 @@ sub run_trimmomatic_SE {
         return($trimmed_fq);
     }
     
-    my $cmd = "java $JAVA_OPTS -jar $TRIMMOMATIC SE -threads $CPU -phred33 "
+    my $cmd = "java $JAVA_OPTS -jar $TRIMMOMATIC SE -threads $CPU "
         . " $single_fq "
         . " $trimmed_fq "
         . " $trimmomatic_params ";

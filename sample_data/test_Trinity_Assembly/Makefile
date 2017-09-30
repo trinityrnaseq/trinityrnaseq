@@ -14,6 +14,7 @@ test_all:
 	./misc_run_tests/__run_PE_samples_file.sh
 	./misc_run_tests/__run_SE_samples_file.sh
 	./misc_run_tests/__runMe_use_workdir.sh
+	./misc_run_tests/__runMe_piecemeal.sh
 	touch test_all
 
 clean:

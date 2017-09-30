@@ -1432,7 +1432,7 @@ sub run_Trinity {
         my $count_of_reads;
         if (@left_files && @right_files) {
 
-            unless (-s $trinity_target_fa && !-e "left.fa.ok" && !-e "right.fa.ok") {
+            unless (-s $trinity_target_fa && -e "left.fa.ok" && -e "right.fa.ok") {
                 
                 my ($left_SS_type, $right_SS_type);
                 if ($SS_lib_type) {
@@ -1490,11 +1490,10 @@ sub run_Trinity {
                     $count_of_reads += $1 if $1;
                 }
             }
-            
-            
+                        
         }
         elsif (@single_files) {
-            unless (-e "single.fa.ok") {
+            unless (-s $trinity_target_fa && -e "single.fa.ok") {
                 &prep_seqs(\@single_files, $seqType, "single", $SS_lib_type);
                 &process_cmd("touch single.fa.ok");
             }

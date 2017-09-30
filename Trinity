@@ -81,6 +81,7 @@ my $bflyHeapSpaceMax = "4G";
 my $bflyHeapSpaceInit = "1G";
 
 my $BFLY_JAR = "";
+my $BFLY_JAVA_OPTS = "";
 
 # butterfly path merging criteria 
 my $NO_PATH_MERGING = 0;
@@ -384,6 +385,8 @@ my $full_usage = qq^
 #  --bfly_jar <string>             : /path/to/Butterfly.jar, otherwise default
 #                                    Trinity-installed version is used. 
 #                                    
+#  --bfly_java_opts <string>       : can include any additional custom options to the java command.
+#                                    ie.  -Djava.io.tmpdir=/path/to/my/custom/tmpdir
 #
 #
 ################################################################################
@@ -624,6 +627,7 @@ my $NO_CHECK_COORDSORTED_BAM = 0;
     'bflyCPU=i'             => \$bflyCPU,
     'bflyCalculateCPU'      => \$bflyCalculateCPU,
     'bfly_jar=s' => \$BFLY_JAR,
+    'bfly_java_opts=s' => \$BFLY_JAVA_OPTS,
     
     'path_reinforcement_distance=i' => \$path_reinforcement_distance,
     
@@ -2055,7 +2059,7 @@ sub run_chrysalis {
             { # butterfly command
                 
 
-                my $bfly_cmd = "java -Xmx$bflyHeapSpaceMax -Xms$bflyHeapSpaceInit -Xss$bflyHeapSpaceInit";
+                my $bfly_cmd = "java -Xmx$bflyHeapSpaceMax -Xms$bflyHeapSpaceInit -Xss$bflyHeapSpaceInit $BFLY_JAVA_OPTS ";
         
                 if (defined($bflyGCThreads)) {
                     $bfly_cmd .= " -XX:ParallelGCThreads=$bflyGCThreads ";

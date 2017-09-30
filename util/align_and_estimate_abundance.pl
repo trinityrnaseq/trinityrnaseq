@@ -112,7 +112,7 @@ my $usage = <<__EOUSAGE__;
 # #########
 #
 # --SS_lib_type <string>           strand-specific library type:  paired('RF' or 'FR'), single('F' or 'R').
-#                                         (note, no strand-specific mode for kallisto)
+#                                  
 #
 # --thread_count                   number of threads to use (default = 4)
 #
@@ -843,6 +843,14 @@ sub run_kallisto {
     }
 
 
+    if ($SS_lib_type) {
+        # add strand-specific options for kallisto
+        my $kallisto_ss_opt = ($SS_lib_type =~ /^R/) ? "--rf-stranded" : "--fr-stranded";
+        if ($kallisto_add_opts !~ /$kallisto_ss_opt/) {
+            $kallisto_add_opts .= " $kallisto_add_opts";
+        }
+    }
+        
     foreach my $sample_href (@samples) {
      
         my ($output_dir, $left_file, $right_file, $single_file) = ($sample_href->{output_dir},

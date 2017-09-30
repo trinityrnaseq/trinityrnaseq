@@ -339,7 +339,7 @@ my $full_usage = qq^
 #                                   (reads outside this distance are treated as single-end)
 #
 #  ///////////////////////////////////////////////
-#  Butterfly default reconstruction mode settings. (no CuffFly or PasaFly custom settings are currently available).
+#  Butterfly default reconstruction mode settings.
 #                                   
 #  --path_reinforcement_distance <int>   :minimum overlap of reads with growing transcript 
 #                                         path (default: PE: $PE_path_reinforcement_distance, SE: $SE_path_reinforcement_distance)
@@ -527,8 +527,8 @@ my $NO_RUN_INCHWORM_FLAG = 0;
 my $JELLY_S;
 
 
-my $PASAFLY_MODE = 0;
-my $CUFFFLY_MODE = 0;
+#my $PASAFLY_MODE = 0;
+#my $CUFFFLY_MODE = 0;
 
 my $full_usage_info_flag;
 
@@ -633,8 +633,8 @@ my $NO_CHECK_COORDSORTED_BAM = 0;
     'max_internal_gap_same_path=i' => \$MAX_INTERNAL_GAP_SAME_PATH,
              
     
-    'PasaFly' => \$PASAFLY_MODE,
-    'CuffFly' => \$CUFFFLY_MODE,
+    #'PasaFly' => \$PASAFLY_MODE,
+    #'CuffFly' => \$CUFFFLY_MODE,
 
     # Inchworm & kmer catalog opts
 
@@ -749,8 +749,6 @@ no_path_merging
 min_per_id_same_path
 max_diffs_same_path
 max_internal_gap_same_path
-PasaFly
-CuffFly
 min_kmer_cov
 inchworm_cpu
 FORCE_INCHWORM_KMER_METHOD
@@ -1126,12 +1124,12 @@ my $MKDIR_OUTDIR_FLAG = 0; ## only purging output_directory if we create it in t
 
 ## Regular run.  Name the output based on the butterfly reconstruction mode.
 my $butterfly_output_filename = "Trinity.fasta";
-if ($PASAFLY_MODE) {
-    $butterfly_output_filename = "Trinity.Pasafly.fasta";
-}
-elsif ($CUFFFLY_MODE) {
-    $butterfly_output_filename = "Trinity.Cufffly.fasta";
-}
+#if ($PASAFLY_MODE) {
+#    $butterfly_output_filename = "Trinity.Pasafly.fasta";
+#}
+#elsif ($CUFFFLY_MODE) {
+#    $butterfly_output_filename = "Trinity.Cufffly.fasta";
+#}
 $butterfly_output_filename = "$output_directory/$butterfly_output_filename";
 
 my $PARALLEL_SAMTOOLS_SORT_TOKEN = "-\@ $CPU";
@@ -2087,12 +2085,12 @@ sub run_chrysalis {
                     }
                 }
                 
-                if ($PASAFLY_MODE) {
-                    $bfly_cmd .= " --PasaFly ";
-                }
-                elsif ($CUFFFLY_MODE) {
-                    $bfly_cmd .= " --CuffFly ";
-                }
+                #if ($PASAFLY_MODE) {
+                #    $bfly_cmd .= " --PasaFly ";
+                #}
+                #elsif ($CUFFFLY_MODE) {
+                #    $bfly_cmd .= " --CuffFly ";
+                #}
                 
                 print $bfly_cmds_ofh $bfly_cmd . "\n";
                 

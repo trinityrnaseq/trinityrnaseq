@@ -364,7 +364,9 @@ if ($single || (@samples_to_process && $samples_to_process[0]->{single})) {
 $transcripts = &create_full_path($transcripts);
 
 $gene_trans_map_file = &create_full_path($gene_trans_map_file) if $gene_trans_map_file;
-
+if ($gene_trans_map_file && ! -s $gene_trans_map_file) {
+    die "Error, $gene_trans_map_file doesn't exist or is empty";
+}
 
 
 if ($SS_lib_type) {

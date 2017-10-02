@@ -81,6 +81,7 @@ my $bflyHeapSpaceMax = "4G";
 my $bflyHeapSpaceInit = "1G";
 
 my $BFLY_JAR = "";
+my $JAVA_OPTS = "";
 
 # butterfly path merging criteria 
 my $NO_PATH_MERGING = 0;
@@ -339,7 +340,7 @@ my $full_usage = qq^
 #                                   (reads outside this distance are treated as single-end)
 #
 #  ///////////////////////////////////////////////
-#  Butterfly default reconstruction mode settings. (no CuffFly or PasaFly custom settings are currently available).
+#  Butterfly default reconstruction mode settings.
 #                                   
 #  --path_reinforcement_distance <int>   :minimum overlap of reads with growing transcript 
 #                                         path (default: PE: $PE_path_reinforcement_distance, SE: $SE_path_reinforcement_distance)
@@ -384,7 +385,6 @@ my $full_usage = qq^
 #  --bfly_jar <string>             : /path/to/Butterfly.jar, otherwise default
 #                                    Trinity-installed version is used. 
 #                                    
-#
 #
 ################################################################################
 #### Quality Trimming Options ####  
@@ -493,6 +493,9 @@ my $advanced_usage =  <<_ADVANCEDUSAGE_;
 #
 #  --bypass_java_version_check     : skip check for required java version 1.$JAVA_VERSION_REQUIRED
 #
+#  --java_opts <string>       : can include any additional custom options to the java command.
+#                                    ie.  -Djava.io.tmpdir=/path/to/my/custom/tmpdir
+#
 #  --long_reads_mode               : run in long reads mode (requires --single and the long reads integrated with LR$| accession prefixes.
 #
 #  --no_check_coordsorted_bam      : in genome-guided mode, won't test the bam file for coordinate-sortedness#
@@ -527,8 +530,8 @@ my $NO_RUN_INCHWORM_FLAG = 0;
 my $JELLY_S;
 
 
-my $PASAFLY_MODE = 0;
-my $CUFFFLY_MODE = 0;
+#my $PASAFLY_MODE = 0;
+#my $CUFFFLY_MODE = 0;
 
 my $full_usage_info_flag;
 
@@ -624,6 +627,7 @@ my $NO_CHECK_COORDSORTED_BAM = 0;
     'bflyCPU=i'             => \$bflyCPU,
     'bflyCalculateCPU'      => \$bflyCalculateCPU,
     'bfly_jar=s' => \$BFLY_JAR,
+    'java_opts=s' => \$JAVA_OPTS,
     
     'path_reinforcement_distance=i' => \$path_reinforcement_distance,
     
@@ -633,8 +637,8 @@ my $NO_CHECK_COORDSORTED_BAM = 0;
     'max_internal_gap_same_path=i' => \$MAX_INTERNAL_GAP_SAME_PATH,
              
     
-    'PasaFly' => \$PASAFLY_MODE,
-    'CuffFly' => \$CUFFFLY_MODE,
+    #'PasaFly' => \$PASAFLY_MODE,
+    #'CuffFly' => \$CUFFFLY_MODE,
 
     # Inchworm & kmer catalog opts
 
@@ -749,8 +753,6 @@ no_path_merging
 min_per_id_same_path
 max_diffs_same_path
 max_internal_gap_same_path
-PasaFly
-CuffFly
 min_kmer_cov
 inchworm_cpu
 FORCE_INCHWORM_KMER_METHOD
@@ -1126,12 +1128,12 @@ my $MKDIR_OUTDIR_FLAG = 0; ## only purging output_directory if we create it in t
 
 ## Regular run.  Name the output based on the butterfly reconstruction mode.
 my $butterfly_output_filename = "Trinity.fasta";
-if ($PASAFLY_MODE) {
-    $butterfly_output_filename = "Trinity.Pasafly.fasta";
-}
-elsif ($CUFFFLY_MODE) {
-    $butterfly_output_filename = "Trinity.Cufffly.fasta";
-}
+#if ($PASAFLY_MODE) {
+#    $butterfly_output_filename = "Trinity.Pasafly.fasta";
+#}
+#elsif ($CUFFFLY_MODE) {
+#    $butterfly_output_filename = "Trinity.Cufffly.fasta";
+#}
 $butterfly_output_filename = "$output_directory/$butterfly_output_filename";
 
 my $PARALLEL_SAMTOOLS_SORT_TOKEN = "-\@ $CPU";
@@ -1302,13 +1304,16 @@ main: {
     }
        
     if ($genome_guided_bam) {
-        
+                
         my $trinity_GG_fasta_file = &run_genome_guided_Trinity();
-
+        
+        &process_cmd("$UTILDIR/support_scripts/get_Trinity_gene_to_trans_map.pl $trinity_GG_fasta_file > $trinity_GG_fasta_file.gene_trans_map");
+        
         print STDERR "\n\nFinished. See $trinity_GG_fasta_file for reconstructed transcripts\n\n";
+        
         exit(0);
     }
-
+    
 
     my $Trinity_tmp_fasta_file;
     eval {
@@ -1322,12 +1327,13 @@ main: {
         }
     }
     
-    
+
+    my $final_Trinity_fasta_file;
     if ($FULL_CLEANUP) {
         print "Fully cleaning up.\n" if $VERBOSE;
                         
         if ($Trinity_tmp_fasta_file && -s $Trinity_tmp_fasta_file) {
-            my $final_Trinity_fasta_file = "$TRINITY_PHASE1_OUTDIR.Trinity.fasta";
+            $final_Trinity_fasta_file = "$TRINITY_PHASE1_OUTDIR.Trinity.fasta";
             &process_cmd("mv $Trinity_tmp_fasta_file $final_Trinity_fasta_file");
             
             if ($VERBOSE || ! $TRINITY_COMPLETE_FLAG) {
@@ -1336,6 +1342,7 @@ main: {
                     . "Butterfly assemblies are written to $final_Trinity_fasta_file\n"
                     . "###################################################################\n\n\n";
             }
+            
         }
         else {
             print "# No butterfly assemblies to report.\n" unless $TRINITY_COMPLETE_FLAG;
@@ -1361,6 +1368,7 @@ main: {
         if ($Trinity_tmp_fasta_file && -s $Trinity_tmp_fasta_file) {
             print STDERR "-relocating $Trinity_tmp_fasta_file to $butterfly_output_filename\n";
             &process_cmd("mv $Trinity_tmp_fasta_file $butterfly_output_filename");
+            $final_Trinity_fasta_file = $butterfly_output_filename;
         }
                 
         if (-s $butterfly_output_filename) {
@@ -1369,7 +1377,7 @@ main: {
             
             print "\n\n"
                 . "###################################################################\n"
-                . "Butterfly assemblies are written to $butterfly_output_filename\n"
+                . "Trinity assemblies are written to $butterfly_output_filename\n"
                 . "###################################################################\n\n\n";
             }
         }
@@ -1379,6 +1387,11 @@ main: {
         }
         
     }
+
+    if ($final_Trinity_fasta_file) {
+        &process_cmd("$UTILDIR/support_scripts/get_Trinity_gene_to_trans_map.pl $final_Trinity_fasta_file > $final_Trinity_fasta_file.gene_trans_map");
+    }
+    
     
     &perfmon_end() unless ($TRINITY_COMPLETE_FLAG || $FULL_CLEANUP);
 
@@ -1423,7 +1436,7 @@ sub run_Trinity {
         my $count_of_reads;
         if (@left_files && @right_files) {
 
-            unless (-s $trinity_target_fa && !-e "left.fa.ok" && !-e "right.fa.ok") {
+            unless (-s $trinity_target_fa && -e "left.fa.ok" && -e "right.fa.ok") {
                 
                 my ($left_SS_type, $right_SS_type);
                 if ($SS_lib_type) {
@@ -1481,11 +1494,10 @@ sub run_Trinity {
                     $count_of_reads += $1 if $1;
                 }
             }
-            
-            
+                        
         }
         elsif (@single_files) {
-            unless (-e "single.fa.ok") {
+            unless (-s $trinity_target_fa && -e "single.fa.ok") {
                 &prep_seqs(\@single_files, $seqType, "single", $SS_lib_type);
                 &process_cmd("touch single.fa.ok");
             }
@@ -1797,14 +1809,15 @@ sub run_chrysalis {
             $pipeliner->add_commands( new Command($cmd, "$bowtie_sam_file.ok"));
             
             ## generate the scaffold info
-            $ENV{'LD_LIBRARY_PATH'} .= ":$ROOTDIR/trinity-plugins/htslib";
+            #$ENV{'LD_LIBRARY_PATH'} .= ":$ROOTDIR/trinity-plugins/htslib";
             
-
+            
             if ($USE_PERL_SCAFFOLDER) {
                 $cmd = "$ROOTDIR/util/support_scripts/scaffold_iworm_contigs.pl $bowtie_sam_file $inchworm_file > $iworm_scaffolds_file";
             }
             else {
-                $cmd = "$ROOTDIR/trinity-plugins/scaffold_iworm_contigs/scaffold_iworm_contigs $bowtie_sam_file $inchworm_file > $iworm_scaffolds_file"; # important, must use original inchworm file because positions are indexed for later use by GraphFromFasta
+                # this c++ code needs to be updated to reflect the new clustering criteria
+                #$cmd = "$ROOTDIR/trinity-plugins/scaffold_iworm_contigs/scaffold_iworm_contigs $bowtie_sam_file $inchworm_file > $iworm_scaffolds_file"; # important, must use original inchworm file because positions are indexed for later use by GraphFromFasta
             }
             
             $pipeliner->add_commands( new Command($cmd, "$iworm_scaffolds_file.ok"));
@@ -2046,7 +2059,7 @@ sub run_chrysalis {
             { # butterfly command
                 
 
-                my $bfly_cmd = "java -Xmx$bflyHeapSpaceMax -Xms$bflyHeapSpaceInit -Xss$bflyHeapSpaceInit";
+                my $bfly_cmd = "java -Xmx$bflyHeapSpaceMax -Xms$bflyHeapSpaceInit -Xss$bflyHeapSpaceInit $JAVA_OPTS ";
         
                 if (defined($bflyGCThreads)) {
                     $bfly_cmd .= " -XX:ParallelGCThreads=$bflyGCThreads ";
@@ -2075,12 +2088,12 @@ sub run_chrysalis {
                     }
                 }
                 
-                if ($PASAFLY_MODE) {
-                    $bfly_cmd .= " --PasaFly ";
-                }
-                elsif ($CUFFFLY_MODE) {
-                    $bfly_cmd .= " --CuffFly ";
-                }
+                #if ($PASAFLY_MODE) {
+                #    $bfly_cmd .= " --PasaFly ";
+                #}
+                #elsif ($CUFFFLY_MODE) {
+                #    $bfly_cmd .= " --CuffFly ";
+                #}
                 
                 print $bfly_cmds_ofh $bfly_cmd . "\n";
                 
@@ -2611,7 +2624,7 @@ sub test_java_failure_capture {
     }
     
 
-    my $cmd = "java -Xmx64m -XX:ParallelGCThreads=$bflyGCThreads -jar $UTILDIR/support_scripts/ExitTester.jar 0";
+    my $cmd = "java -Xmx64m -XX:ParallelGCThreads=$bflyGCThreads $JAVA_OPTS -jar $UTILDIR/support_scripts/ExitTester.jar 0";
     eval {
         &process_cmd($cmd);
     };
@@ -2623,7 +2636,7 @@ sub test_java_failure_capture {
         
     }
     
-    $cmd = "java -Xmx64m -XX:ParallelGCThreads=$bflyGCThreads -jar $UTILDIR/support_scripts/ExitTester.jar 1";
+    $cmd = "java -Xmx64m -XX:ParallelGCThreads=$bflyGCThreads $JAVA_OPTS -jar $UTILDIR/support_scripts/ExitTester.jar 1";
     eval {
         &process_cmd($cmd);
     };
@@ -2908,7 +2921,7 @@ sub run_trimmomatic_PE {
     }
         
 
-    my $cmd = "java -jar $TRIMMOMATIC PE -threads $CPU -phred33 "
+    my $cmd = "java $JAVA_OPTS -jar $TRIMMOMATIC PE -threads $CPU "
             . " $left_fq_file $right_fq_file "
             . " $trimmed_left_file_base.P.qtrim $trimmed_left_file_base.U.qtrim "
             . " $trimmed_right_file_base.P.qtrim $trimmed_right_file_base.U.qtrim "
@@ -2957,7 +2970,7 @@ sub run_trimmomatic_SE {
         return($trimmed_fq);
     }
     
-    my $cmd = "java -jar $TRIMMOMATIC SE -threads $CPU -phred33 "
+    my $cmd = "java $JAVA_OPTS -jar $TRIMMOMATIC SE -threads $CPU "
         . " $single_fq "
         . " $trimmed_fq "
         . " $trimmomatic_params ";

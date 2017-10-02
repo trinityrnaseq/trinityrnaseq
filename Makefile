@@ -17,6 +17,10 @@ endif
 all: inchworm_target chrysalis_target trinity_essentials
 	sh ./util/support_scripts/trinity_install_tests.sh
 
+
+install:
+	util/support_scripts/trinity_installer.py
+
 inchworm_target:
 	@echo Using $(TRINITY_COMPILER) compiler for Inchworm and Chrysalis
 	cd Inchworm && (test -e configure || autoreconf) \

@@ -112,7 +112,7 @@ my $usage = <<__EOUSAGE__;
 # #########
 #
 # --SS_lib_type <string>           strand-specific library type:  paired('RF' or 'FR'), single('F' or 'R').
-#                                         (note, no strand-specific mode for kallisto)
+#                                  
 #
 # --thread_count                   number of threads to use (default = 4)
 #
@@ -364,7 +364,9 @@ if ($single || (@samples_to_process && $samples_to_process[0]->{single})) {
 $transcripts = &create_full_path($transcripts);
 
 $gene_trans_map_file = &create_full_path($gene_trans_map_file) if $gene_trans_map_file;
-
+if ($gene_trans_map_file && ! -s $gene_trans_map_file) {
+    die "Error, $gene_trans_map_file doesn't exist or is empty";
+}
 
 
 if ($SS_lib_type) {
@@ -843,6 +845,14 @@ sub run_kallisto {
     }
 
 
+    if ($SS_lib_type) {
+        # add strand-specific options for kallisto
+        my $kallisto_ss_opt = ($SS_lib_type =~ /^R/) ? "--rf-stranded" : "--fr-stranded";
+        if ($kallisto_add_opts !~ /$kallisto_ss_opt/) {
+            $kallisto_add_opts .= " $kallisto_add_opts";
+        }
+    }
+        
     foreach my $sample_href (@samples) {
      
         my ($output_dir, $left_file, $right_file, $single_file) = ($sample_href->{output_dir},

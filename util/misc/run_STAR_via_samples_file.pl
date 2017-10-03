@@ -19,16 +19,11 @@ my $usage = <<__EOUSAGE__;
 #
 #  Required:
 #  --genome <string>           target genome to align to
-#  --reads  <string>           fastq files. If pairs, indicate both in quotes, ie. "left.fq right.fq"
-#
+#  --gtf <string>              annotations in gtf format
+#  --samples_file  <string>    trinity samples file
+#  
 #  Optional:
-#  -G <string>                 GTF file for incorporating reference splice site info.
 #  --CPU <int>                 number of threads (default: 2)
-#  --out_prefix <string>       output prefix (default: star)
-#  --out_dir <string>          output directory (default: current working directory)
-#  --star_path <string>        full path to the STAR program to use.
-#  --patch <string>            genomic targets to patch the genome fasta with.
-#  --chim_search               include Chimeric.junction outputs
 #
 #######################################################################
 
@@ -38,36 +33,24 @@ __EOUSAGE__
     ;
 
 
-my ($genome, $reads);
+my ($genome);
+my $samples_file;
 
 my $CPU = 2;
 
 my $help_flag;
-
-my $out_prefix = "star";
 my $gtf_file;
-my $out_dir;
-my $ADV = 0;
 
-my $star_path = "STAR";
-my $patch;
-my $chim_search;
 
 &GetOptions( 'h' => \$help_flag,
              'genome=s' => \$genome,
-             'reads=s' => \$reads,
+             'samples_file=s' => \$samples_file,
              'CPU=i' => \$CPU,
-             'out_prefix=s' => \$out_prefix,
-             'G=s' => \$gtf_file,
-             'out_dir=s' => \$out_dir,
-             'ADV' => \$ADV,
-             'star_path=s' => \$star_path,
-             'patch=s' => \$patch,
-             'chim_search' => \$chim_search,
+             'gtf=s' => \$gtf_file,
     );
 
 
-unless ($genome && $reads) {
+unless ($genome && $samples_file && $gtf_file) {
     die $usage;
 }
 
@@ -80,7 +63,7 @@ if (@ARGV) {
 }
 
 
-my $star_prog = `which $star_path`;
+my $star_prog = `which STAR`;
 chomp $star_prog;
 unless ($star_prog =~ /\w/) {
     die "Error, cannot locate STAR program. Be sure it's in your PATH setting.  ";
@@ -91,96 +74,64 @@ main: {
 	
     ## ensure all full paths
     $genome = &Pipeliner::ensure_full_path($genome);
-    $gtf_file = &Pipeliner::ensure_full_path($gtf_file) if $gtf_file;
-
-    my @read_files = split(/\s+/, $reads);
-    foreach my $read_file (@read_files) {
-        if ($read_file) {
-            $read_file = &Pipeliner::ensure_full_path($read_file);
-        }
-    }
-    $reads = join(" ", @read_files);
-    
-    if ($out_dir) {
-        unless (-d $out_dir) {
-            mkdir $out_dir or die "Error, cannot mkdir $out_dir";
-        }
-        chdir $out_dir or die "Error, cannot cd to $out_dir";
-    }
-    
-
-    my $star_index = "$genome.star.idx";
-    if (! -e "$star_index/build.ok") {
-        ## build star index
-        unless (-d $star_index) {
-            mkdir($star_index) or die "Error, cannot mkdir $star_index";
-        }
-        
-        
-        my $cmd = "$star_prog --runThreadN $CPU --runMode genomeGenerate --genomeDir $star_index "
-            . " --genomeFastaFiles $genome "
-            . " --limitGenomeGenerateRAM 40419136213 ";
-        if ($gtf_file) {
-            $cmd .= " --sjdbGTFfile $gtf_file "
-                . " --sjdbOverhang 100 ";
-            
-        }
-        
-        &process_cmd($cmd);
-        
-        &process_cmd("touch $star_index/build.ok");
-        
-    }
+    $gtf_file = &Pipeliner::ensure_full_path($gtf_file);
 
         
-    ## run STAR
-    
-    my @tmpfiles;
-    
+    my @read_sets = &parse_samples_file($samples_file);    
+
     my $pipeliner = new Pipeliner(-verbose => 1);
-
-    my $cmd = "$star_prog "
-        . " --runThreadN $CPU "
-        . " --genomeDir $star_index "
-        . " --outSAMtype BAM SortedByCoordinate "
-        . " --runMode alignReads "
-        . " --readFilesIn $reads "
-        . " --twopassMode Basic "
-        . " --alignSJDBoverhangMin 10 "
-        . " --limitBAMsortRAM 20000000000";
-
-    if ($chim_search) {
-        $cmd .= " --chimJunctionOverhangMin 12 "
-             .  " --chimSegmentMin 12 "
-             .  " --chimSegmentReadGapMax parameter 3 "
+    my $star_index = "$genome.star.idx";
+    my $star_index_chkpt = "$star_index/build.ok";
+    ## build star index
+    unless (-d $star_index) {
+        mkdir($star_index) or die "Error, cannot mkdir $star_index";
     }
-        
-    if ($patch) {
-        $cmd .= " --genomeFastaFiles $patch ";
-    }
-        
     
-    $cmd .= " --alignSJstitchMismatchNmax 5 -1 5 5 ";  #which allows for up to 5 mismatches for non-canonical GC/AG, and AT/AC junctions, and any number of mismatches for canonical junctions (the default values 0 -1 0 0 replicate the old behavior (from AlexD)
-    
-    
-    if ($reads =~ /\.gz$/) {
-        $cmd .= " --readFilesCommand 'gunzip -c' ";
-    }
+    my $cmd = "$star_prog --runThreadN $CPU --runMode genomeGenerate --genomeDir $star_index "
+        . " --genomeFastaFiles $genome "
+        . " --limitGenomeGenerateRAM 40419136213 "
+        . " --sjdbGTFfile $gtf_file "
+        . " --sjdbOverhang 150 ";
 
-    $pipeliner->add_commands( new Command($cmd, "star_align.ok") );
-    
+    $pipeliner->add_commands( new Command($cmd, $star_index_chkpt));
 
-
-    my $bam_outfile = "Aligned.sortedByCoord.out.bam";
-    my $renamed_bam_outfile = "$out_prefix.sortedByCoord.out.bam";
-    $pipeliner->add_commands( new Command("mv $bam_outfile $renamed_bam_outfile", "$renamed_bam_outfile.ok") );
-    
-    
-    $pipeliner->add_commands( new Command("samtools index $renamed_bam_outfile", "$renamed_bam_outfile.bai.ok") );
-    
-    
     $pipeliner->run();
 
+    my $checkpoint_dir = "star_aln_chkpts";
+    unless (-d $checkpoint_dir) {
+        mkdir($checkpoint_dir) or die "Error, cannot mkdir $checkpoint_dir";
+    }
+            
+    foreach my $read_set_aref (@read_sets) {
+        my ($sample_id, $left_fq, $right_fq) = @$read_set_aref;
+            
+        my $cmd = "$star_prog "
+            . " --runThreadN $CPU "
+            . " --genomeDir $star_index "
+            . " --outSAMtype BAM SortedByCoordinate "
+            . " --runMode alignReads "
+            . " --readFilesIn $left_fq $right_fq "
+            . " --twopassMode Basic "
+            . " --alignSJDBoverhangMin 10 "
+            . " --limitBAMsortRAM 20000000000";
+        
+            
+        if ($left_fq =~ /\.gz$/) {
+            $cmd .= " --readFilesCommand 'gunzip -c' ";
+        }
+        
+        $pipeliner->add_commands( new Command($cmd, "$checkpoint_dir/star_align.$sample_id.ok") );
+                
+        my $bam_outfile = "Aligned.sortedByCoord.out.bam";
+        my $renamed_bam_outfile = "$sample_id.cSorted.star.bam";
+        $pipeliner->add_commands( new Command("mv $bam_outfile $renamed_bam_outfile", "$checkpoint_dir/$sample_id.renamed_bam_outfile.ok") );
+        
+        $pipeliner->add_commands( new Command("samtools index $renamed_bam_outfile", "$renamed_bam_outfile.bai.ok") );
+    
+    
+        $pipeliner->run();
+    }
+    
     
 	exit(0);
 }
@@ -202,5 +153,22 @@ sub process_cmd {
 	return;
 }
 
+####
+sub parse_samples_file {
+    my ($samples_file) = @_;
 
+    my @samples;
+
+    open(my $fh, $samples_file) or die "Error, cannot open file $samples_file";
+    while (<$fh>) {
+        chomp;
+        my @x = split(/\t/);
+        my ($cond, $rep, $fq_a, $fq_b) = @x;
+
+        push (@samples, [$rep, $fq_a, $fq_b]);
+    }
+    close $fh;
+
+    return (@samples);
+}
 

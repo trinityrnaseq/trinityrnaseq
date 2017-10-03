@@ -59,7 +59,7 @@ unless ($genome_fa && $annotation_gtf && $samples_file) {
 
 
 main: {
-
+    
     my @read_sets = &parse_samples_file($samples_file);
     
     ## align reads to the mini-genome using hisat2
@@ -79,8 +79,8 @@ main: {
         my ($sample_id, $left_fq, $right_fq) = @$read_set_aref;
 
         
-        &process_cmd("set -eof pipefail; hisat2 --dta -x $genome_fa -p $CPU -1 $left_fq -2 $right_fq | samtools view -Sb -F 4 | samtools sort -o $sample_id.cSorted.bam");
-
+        &process_cmd("set -eof pipefail; hisat2 --dta -x $genome_fa -p $CPU -1 $left_fq -2 $right_fq | samtools view -Sb -F 4 | samtools sort -o $sample_id.cSorted.hisat2.bam");
+        
     }
     
     exit(0);

@@ -64,9 +64,11 @@ if ($help_flag) {
 unless ($genes_fasta_file && $genes_gtf_file && $samples_file && $aligner) {
     die $usage;
 }
-unless ($aligner =~ /STAR|HISAT2/i) {
+unless ($aligner =~ /^(STAR|HISAT2)$/i) {
     die "Error, dont recognize aligner [$aligner]";
 }
+
+$aligner = lc $aligner;
 
 my $TRINITY_HOME = "$FindBin::Bin/../../..";
 
@@ -88,7 +90,9 @@ main: {
         $pipeliner->run();
     }
     elsif ($aligner =~ /STAR/i) {
-        die;
+        $cmd = "$TRINITY_HOME/util/misc/run_STAR_via_samples_file.pl --genome $genes_fasta_file --gtf $genes_gtf_file --samples_file $samples_file --CPU $CPU ";
+        $pipeliner->add_commands(new Command($cmd, "star.ok"));
+        $pipeliner->run();
     }
     else {
         die "Error, dont recognize aligner: $aligner";
@@ -99,7 +103,9 @@ main: {
     foreach my $sample_info_aref (@samples_info) {
         my ($condition, $replicate) = @$sample_info_aref;
         
-        my $bam_file = "$replicate.cSorted.bam";
+        my $bam_file = "$replicate.cSorted.__METHOD__.bam";
+        $bam_file =~ s/__METHOD__/$aligner/;
+        
         unless (-s $bam_file) {
             die "Error, cannot locate bam file: $bam_file";
         }

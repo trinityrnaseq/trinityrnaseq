@@ -103,11 +103,14 @@ def main():
     # generate supertranscript Picard dictionary
     logger.info("Generating Picard dictionary.")
     dict_file = re.sub("\.[^\.]+$", ".dict", st_fa_path)
-    pipeliner.add_commands([Pipeliner.Command("java -jar " + PICARD_HOME + "/picard.jar" +
-                                              " CreateSequenceDictionary R=" + st_fa_path +
-                                              " O=" + dict_file,
-                                              "picard_dict_st.ok")])
-    pipeliner.run()
+    if os.path.isfile(dict_file):
+        open(checkpoint_dir + "/picard_dict_st.ok", 'a').close()
+    else:
+        pipeliner.add_commands([Pipeliner.Command("java -jar " + PICARD_HOME + "/picard.jar" +
+                                                  " CreateSequenceDictionary R=" + st_fa_path +
+                                                  " O=" + dict_file,
+                                                  "picard_dict_st.ok")])
+        pipeliner.run()
 
     # generate genome folder for STAR's first pass
     logger.info("Generating genome folder for STAR")

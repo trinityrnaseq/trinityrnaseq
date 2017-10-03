@@ -23,14 +23,13 @@ my $usage = <<__EOUSAGE__;
 #
 #  --samples_file <string>            Trinity samples file
 #
-#    ## TODO: set read pairing and strand-specificity info
+#  --aligner <string>         aligner to use: STAR|HISAT2
 #
 #  Optional:
 #
 #  --out_prefix <string>             default: 'dexseq'
 #
 #  --CPU <int>                       default: $CPU
-#
 #
 ################################################################
 
@@ -47,7 +46,7 @@ my $genes_fasta_file;
 my $genes_gtf_file;
 my $samples_file;
 my $out_prefix = "dexseq";
-my $aligner = "hisat2";
+my $aligner;
 
 &GetOptions ( 'h' => \$help_flag,
               'genes_fasta=s' => \$genes_fasta_file,
@@ -62,10 +61,12 @@ if ($help_flag) {
     die $usage;
 }
 
-unless ($genes_fasta_file && $genes_gtf_file && $samples_file) {
+unless ($genes_fasta_file && $genes_gtf_file && $samples_file && $aligner) {
     die $usage;
 }
-
+unless ($aligner =~ /STAR|HISAT2/i) {
+    die "Error, dont recognize aligner [$aligner]";
+}
 
 my $TRINITY_HOME = "$FindBin::Bin/../../..";
 
@@ -78,19 +79,26 @@ main: {
     ## flatten the gtf file
     my $cmd = "$TRINITY_HOME/trinity-plugins/DEXseq_util/dexseq_prepare_annotation.py $genes_gtf_file $genes_gtf_file.dexseq.gff";
     $pipeliner->add_commands(new Command($cmd, "flatten_gtf.ok"));
-
     
-    ## run gsnap
-    $cmd = "$TRINITY_HOME/util/misc/run_HISAT2.pl $genes_fasta_file $genes_gtf_file $samples_file";
-    $pipeliner->add_commands(new Command($cmd, "hisat2.ok"));
 
-    $pipeliner->run();
-
+    if ($aligner =~ /HISAT2/i) {
+        $cmd = "$TRINITY_HOME/util/misc/run_HISAT2_via_samples_file.pl --genome $genes_fasta_file --gtf $genes_gtf_file --samples_file $samples_file --CPU $CPU ";
+        $pipeliner->add_commands(new Command($cmd, "hisat2.ok"));
+        
+        $pipeliner->run();
+    }
+    elsif ($aligner =~ /STAR/i) {
+        die;
+    }
+    else {
+        die "Error, dont recognize aligner: $aligner";
+    }
+        
     my @counts_files;
     ## process each of the replicates
     foreach my $sample_info_aref (@samples_info) {
         my ($condition, $replicate) = @$sample_info_aref;
-
+        
         my $bam_file = "$replicate.cSorted.bam";
         unless (-s $bam_file) {
             die "Error, cannot locate bam file: $bam_file";
@@ -115,7 +123,7 @@ main: {
     my $samples_table_file = "$out_prefix.sample_table";
     {
         open (my $ofh, ">$samples_table_file") or die "Error, cannot write to $samples_table_file";
-
+        
         print $ofh "\t" . join("\t", "condition", "counts_filename") . "\n";
         for (my $i = 0; $i <= $#samples_info; $i++) {
             my $sample_info_aref = $samples_info[$i];
@@ -127,7 +135,7 @@ main: {
 
         close $ofh;
     }
-
+    
     my $dexseq_rscript = "$out_prefix.Rscript";
     {
         

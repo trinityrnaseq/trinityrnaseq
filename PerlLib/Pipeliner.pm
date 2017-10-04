@@ -142,7 +142,7 @@ sub run {
         my $checkpoint_file = $cmd_obj->get_checkpoint_file();
         
         if (-e $checkpoint_file) {
-            print STDERR "-- Skipping CMD: $cmdstr, checkpoint exists.\n" if $VERBOSE;
+            print STDERR "-- Skipping CMD: $cmdstr, checkpoint [$checkpoint_file] exists.\n" if $VERBOSE;
         }
         else {
             print STDERR "* Running CMD: $cmdstr\n" if $VERBOSE;

@@ -120,13 +120,13 @@ main: {
             $cmd .= " --readFilesCommand 'gunzip -c' ";
         }
         
-        $pipeliner->add_commands( new Command($cmd, "$checkpoint_dir/star_align.$sample_id.ok") );
-                
-        my $bam_outfile = "Aligned.sortedByCoord.out.bam";
-        my $renamed_bam_outfile = "$sample_id.cSorted.star.bam";
-        $pipeliner->add_commands( new Command("mv $bam_outfile $renamed_bam_outfile", "$checkpoint_dir/$sample_id.renamed_bam_outfile.ok") );
+        $pipeliner->add_commands( new Command($cmd, "$checkpoint_dir/star_align.$sample_id." . basename($genome) . ".ok") );
         
-        $pipeliner->add_commands( new Command("samtools index $renamed_bam_outfile", "$renamed_bam_outfile.bai.ok") );
+        my $bam_outfile = "Aligned.sortedByCoord.out.bam";
+        my $renamed_bam_outfile = "$sample_id.cSorted.star." . basename($genome) . ".bam";
+        $pipeliner->add_commands( new Command("mv $bam_outfile $renamed_bam_outfile", "$checkpoint_dir/$renamed_bam_outfile.ok") );
+        
+        $pipeliner->add_commands( new Command("samtools index $renamed_bam_outfile", "$checkpoint_dir/$renamed_bam_outfile.bai.ok") );
     
     
         $pipeliner->run();

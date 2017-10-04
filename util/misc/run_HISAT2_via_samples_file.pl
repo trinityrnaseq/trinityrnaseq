@@ -6,8 +6,8 @@ use FindBin;
 use lib ("$FindBin::Bin/../../PerlLib");
 use Process_cmd;
 use Getopt::Long qw(:config no_ignore_case bundling pass_through);
-
-
+use Pipeliner;
+use File::Basename;
 
 my $CPU = 2;
 
@@ -64,24 +64,43 @@ main: {
     
     ## align reads to the mini-genome using hisat2
 
-    unless (-e "$genome_fa.hisat2.build.ok") {
+    ###########################
+    # first, build genome index
     
-        &process_cmd("hisat2_extract_splice_sites.py $annotation_gtf  > $annotation_gtf.ss");
+    my $pipeliner = new Pipeliner(-verbose => 1);
+    
+    $pipeliner->add_commands(new Command("hisat2_extract_splice_sites.py $annotation_gtf  > $annotation_gtf.ss",
+                                         "$annotation_gtf.ss.ok"));
+    
+    $pipeliner->add_commands(new Command("hisat2_extract_exons.py $annotation_gtf > $annotation_gtf.exons",
+                                         "$annotation_gtf.exons.ok"));
         
-        &process_cmd("hisat2_extract_exons.py $annotation_gtf > $annotation_gtf.exons");
-        
-        &process_cmd("hisat2-build --exon $annotation_gtf.exons --ss $annotation_gtf.ss -p $CPU $genome_fa $genome_fa");
+    $pipeliner->add_commands(new Command("hisat2-build --exon $annotation_gtf.exons --ss $annotation_gtf.ss -p $CPU $genome_fa $genome_fa",
+                                         "$genome_fa.hisat2.build.ok"));
 
-        &process_cmd("touch $genome_fa.hisat2.build.ok");
+    $pipeliner->run();
+
+
+    #####################
+    ## now run alignments
+    
+    my $aln_checkpoints_dir = "hisat2_aln_chkpts." . basename($genome_fa);
+    unless (-d $aln_checkpoints_dir) {
+        mkdir($aln_checkpoints_dir) or die "Error, cannot mkdir $aln_checkpoints_dir";
     }
     
     foreach my $read_set_aref (@read_sets) {
         my ($sample_id, $left_fq, $right_fq) = @$read_set_aref;
 
+
+        my $bamfile = "$sample_id.cSorted.hisat2." . basename($genome_fa) . ".bam";
         
-        &process_cmd("set -eof pipefail; hisat2 --dta -x $genome_fa -p $CPU -1 $left_fq -2 $right_fq | samtools view -Sb -F 4 | samtools sort -o $sample_id.cSorted.hisat2.bam");
+        $pipeliner->add_commands(new Command("set -eof pipefail; hisat2 --dta -x $genome_fa -p $CPU -1 $left_fq -2 $right_fq | samtools view -Sb -F 4 | samtools sort -o $bamfile",
+                                             "$aln_checkpoints_dir/$bamfile.ok"));
         
     }
+    
+    $pipeliner->run();
     
     exit(0);
     

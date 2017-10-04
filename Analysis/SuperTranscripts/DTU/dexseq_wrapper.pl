@@ -7,7 +7,7 @@ use Getopt::Long qw(:config posix_default no_ignore_case bundling pass_through);
 use FindBin;
 use lib "$FindBin::Bin/../../../PerlLib";
 use Pipeliner;
-
+use File::Basename;
 
 my $CPU = 2;
 
@@ -83,32 +83,44 @@ main: {
 
     my $pipeliner = new Pipeliner(-verbose => 2);
 
+    
+    my $chkpts_dir = "dexseq_chkpts";
+    unless(-d $chkpts_dir) {
+        mkdir $chkpts_dir or die "Error, cannot mkdir $chkpts_dir";
+    }
+    
+    my $analysis_token = "$chkpts_dir/" . basename($genes_gtf_file) . ".$aligner";
+    
+    
     ## flatten the gtf file
     my $cmd = "$TRINITY_HOME/trinity-plugins/DEXseq_util/dexseq_prepare_annotation.py $genes_gtf_file $genes_gtf_file.dexseq.gff";
-    $pipeliner->add_commands(new Command($cmd, "flatten_gtf.ok"));
+    $pipeliner->add_commands(new Command($cmd, "$chkpts_dir/" . basename($genes_gtf_file) . ".flatten_gtf.ok"));
 
     if ($aligner =~ /HISAT2/i) {
         $cmd = "$TRINITY_HOME/util/misc/run_HISAT2_via_samples_file.pl --genome $genes_fasta_file --gtf $genes_gtf_file --samples_file $samples_file --CPU $CPU ";
-        $pipeliner->add_commands(new Command($cmd, "hisat2.ok"));
+        $pipeliner->add_commands(new Command($cmd, "$analysis_token.align.ok"));
         
         $pipeliner->run();
     }
     elsif ($aligner =~ /STAR/i) {
         $cmd = "$TRINITY_HOME/util/misc/run_STAR_via_samples_file.pl --genome $genes_fasta_file --gtf $genes_gtf_file --samples_file $samples_file --CPU $CPU ";
-        $pipeliner->add_commands(new Command($cmd, "star.ok"));
+        $pipeliner->add_commands(new Command($cmd, "$analysis_token.align.ok"));
         $pipeliner->run();
     }
     else {
         die "Error, dont recognize aligner: $aligner";
     }
-        
+
+    my $genes_file_basename = basename($genes_fasta_file);
+    
     my @counts_files;
     ## process each of the replicates
     foreach my $sample_info_aref (@samples_info) {
         my ($condition, $replicate, $left_fq, $right_fq) = @$sample_info_aref;
         
-        my $bam_file = "$replicate.cSorted.__METHOD__.bam";
+        my $bam_file = "$replicate.cSorted.__METHOD__.__GENES__.bam";
         $bam_file =~ s/__METHOD__/$aligner/;
+        $bam_file =~ s/__GENES__/$genes_file_basename/;
         
         unless (-s $bam_file) {
             die "Error, cannot locate bam file: $bam_file";
@@ -142,12 +154,12 @@ main: {
         }
         
         $cmd .= " $genes_gtf_file.dexseq.gff $bam_file $bam_file.counts";
-        $pipeliner->add_commands(new Command($cmd, "$bam_file.counts.ok"));
+        $pipeliner->add_commands(new Command($cmd, "$analysis_token.$bam_file.counts.ok"));
         
         push (@counts_files, "$bam_file.counts");
         
     }
-
+    
     #############
     ## run DEXseq
     
@@ -189,8 +201,8 @@ main: {
     }
     
     $cmd = "R --vanilla -q < $dexseq_rscript";
-    $pipeliner->add_commands(new Command($cmd, "dexseq.ok"));
-
+    $pipeliner->add_commands(new Command($cmd, "$analysis_token.dexseq.ok"));
+    
     $pipeliner->run();
 
     

@@ -198,7 +198,8 @@ main: {
         print $ofh "dxd = testForDEU( dxd )\n";
         print $ofh "dxd = estimateExonFoldChanges( dxd, fitExpToVar=\"condition\")\n";
         print $ofh "dxr1 = DEXSeqResults( dxd )\n";
-        print $ofh "write.table(dxr1, file=\"$out_prefix.results.dat\", quote=F, sep=\"\t\")\n";
+        print $ofh "dxr1.sorted = dxr1[order(dxr1\$padj),]\n";
+        print $ofh "write.table(dxr1.sorted, file=\"$out_prefix.results.dat\", quote=F, sep=\"\t\")\n";
         print $ofh "plotMA( dxr1, cex=0.8 )\n";
         close $ofh;
         

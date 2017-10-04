@@ -180,7 +180,11 @@ main: {
         close $ofh;
     }
     
-    my $dexseq_rscript = "$out_prefix.Rscript";
+    my $dexseq_rscript = "$out_prefix.dexseq.Rscript";
+    if ($out_prefix !~ /dexseq/i) {
+        $out_prefix .= ".dexseq";
+    }
+    
     {
         
         open (my $ofh, ">$dexseq_rscript") or die "Error, cannot write to $dexseq_rscript";

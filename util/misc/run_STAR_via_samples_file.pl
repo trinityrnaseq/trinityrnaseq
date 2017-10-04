@@ -96,8 +96,8 @@ main: {
     $pipeliner->add_commands( new Command($cmd, $star_index_chkpt));
 
     $pipeliner->run();
-
-    my $checkpoint_dir = "star_aln_chkpts";
+    
+    my $checkpoint_dir = "star_aln_chkpts." . basename($genome);
     unless (-d $checkpoint_dir) {
         mkdir($checkpoint_dir) or die "Error, cannot mkdir $checkpoint_dir";
     }

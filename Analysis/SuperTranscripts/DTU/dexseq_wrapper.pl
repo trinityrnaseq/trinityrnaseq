@@ -29,6 +29,8 @@ my $usage = <<__EOUSAGE__;
 #
 #  --out_prefix <string>             default: 'dexseq'
 #
+#  --SS_lib_type <string>            strand-specific library type 'RF|FR|R|F'
+#
 #  --CPU <int>                       default: $CPU
 #
 ################################################################
@@ -47,6 +49,7 @@ my $genes_gtf_file;
 my $samples_file;
 my $out_prefix = "dexseq";
 my $aligner;
+my $SS_lib_type = "";
 
 &GetOptions ( 'h' => \$help_flag,
               'genes_fasta=s' => \$genes_fasta_file,
@@ -55,7 +58,9 @@ my $aligner;
               'out_prefix=s' => \$out_prefix,
               'CPU=i' => \$CPU,
               'aligner=s' => \$aligner,
+              'SS_lib_type=s' => \$SS_lib_type,
     );
+
 
 if ($help_flag) {
     die $usage;
@@ -81,7 +86,6 @@ main: {
     ## flatten the gtf file
     my $cmd = "$TRINITY_HOME/trinity-plugins/DEXseq_util/dexseq_prepare_annotation.py $genes_gtf_file $genes_gtf_file.dexseq.gff";
     $pipeliner->add_commands(new Command($cmd, "flatten_gtf.ok"));
-    
 
     if ($aligner =~ /HISAT2/i) {
         $cmd = "$TRINITY_HOME/util/misc/run_HISAT2_via_samples_file.pl --genome $genes_fasta_file --gtf $genes_gtf_file --samples_file $samples_file --CPU $CPU ";
@@ -101,7 +105,7 @@ main: {
     my @counts_files;
     ## process each of the replicates
     foreach my $sample_info_aref (@samples_info) {
-        my ($condition, $replicate) = @$sample_info_aref;
+        my ($condition, $replicate, $left_fq, $right_fq) = @$sample_info_aref;
         
         my $bam_file = "$replicate.cSorted.__METHOD__.bam";
         $bam_file =~ s/__METHOD__/$aligner/;
@@ -110,12 +114,34 @@ main: {
             die "Error, cannot locate bam file: $bam_file";
         }
         
-        # convert to sam
-        my $cmd = "samtools view $bam_file > $bam_file.sam";
-        $pipeliner->add_commands(new Command($cmd, "$bam_file.sam.ok"));
-
         # quant
-        $cmd = "$TRINITY_HOME/trinity-plugins/DEXseq_util/dexseq_count.py $genes_gtf_file.dexseq.gff $bam_file.sam $bam_file.counts";
+        my $cmd = "$TRINITY_HOME/trinity-plugins/DEXseq_util/dexseq_count.py --order pos -f bam ";
+
+        # paired or unpaired:
+        if ($right_fq) {
+            $cmd .= " --paired yes ";
+        }
+        else {
+            $cmd .= " --paired no ";
+        }
+
+        ## strand-specific options:
+        if ($SS_lib_type) {
+            if ($SS_lib_type =~ /^F/) {
+                $cmd .= " --stranded yes";
+            }
+            elsif ($SS_lib_type =~ /^R/) {
+                $cmd .= " --stranded reverse";
+            }
+            else {
+                die "Error, not recognizing strand-specific lib type [$SS_lib_type]";
+            }
+        }
+        else {
+            $cmd .= " --stranded no";
+        }
+        
+        $cmd .= " $genes_gtf_file.dexseq.gff $bam_file $bam_file.counts";
         $pipeliner->add_commands(new Command($cmd, "$bam_file.counts.ok"));
         
         push (@counts_files, "$bam_file.counts");
@@ -133,7 +159,7 @@ main: {
         print $ofh "\t" . join("\t", "condition", "counts_filename") . "\n";
         for (my $i = 0; $i <= $#samples_info; $i++) {
             my $sample_info_aref = $samples_info[$i];
-            my ($condition, $replicate_name) = @$sample_info_aref;
+            my ($condition, $replicate_name, $left_fq, $right_fq) = @$sample_info_aref;
             my $counts_file = $counts_files[$i];
 
             print $ofh join("\t", $replicate_name, $condition, $counts_file) . "\n";
@@ -182,8 +208,10 @@ sub parse_samples_file {
         my @x = split(/\t/);
         my $condition = $x[0];
         my $replicate = $x[1];
-
-        push (@samples_info, [$condition, $replicate]);
+        my $left_fq = $x[2];
+        my $right_fq = $x[3]; # only if paired-end
+        
+        push (@samples_info, [$condition, $replicate, $left_fq, $right_fq]);
     }
     close $fh;
 

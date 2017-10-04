@@ -115,7 +115,7 @@ main: {
         }
         
         # quant
-        my $cmd = "$TRINITY_HOME/trinity-plugins/DEXseq_util/dexseq_count.py --order pos -f bam ";
+        my $cmd = "$TRINITY_HOME/trinity-plugins/DEXseq_util/dexseq_count-trinity.py --order pos -f bam --max_NH 2 ";
 
         # paired or unpaired:
         if ($right_fq) {

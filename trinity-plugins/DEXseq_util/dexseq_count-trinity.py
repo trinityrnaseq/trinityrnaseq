@@ -1,5 +1,13 @@
 #!/usr/bin/env python
 
+####
+### Note, this script was originally derived from the DEXseq software,
+### subsequently modified and integrated into trinity for use w/ supertranscripts
+###     bhaas, Oct 2017
+
+
+## changes: added --max_NH, default 2  (allow for sense and antisense matches to supertranscripts)
+
 import sys, itertools, optparse, warnings
 
 optParser = optparse.OptionParser( 
@@ -34,6 +42,10 @@ optParser.add_option( "-a", "--minaqual", type="int", dest="minaqual",
    default = 10,
    help = "skip all reads with alignment quality lower than the given " +
       "minimum value (default: 10)" )
+
+optParser.add_option("--max_NH", type="int", dest="max_NH",
+                     default=2,
+                     help="max number of hits per read")
 
 optParser.add_option( "-f", "--format", type="choice", dest="alignment",
    choices=("sam", "bam"), default="sam",
@@ -73,6 +85,8 @@ is_PE = opts.paired == "yes"
 alignment = opts.alignment
 minaqual = opts.minaqual
 order = opts.order
+
+max_NH = opts.max_NH
 
 if alignment == "bam":
    try:
@@ -199,7 +213,7 @@ if not is_PE:
       if not a.aligned:
          counts[ '_notaligned' ] += 1
          continue
-      if a.optional_field("NH") > 1:
+      if a.optional_field("NH") > max_NH:
          continue
       if a.aQual < minaqual:
          counts[ '_lowaqual' ] += 1
@@ -234,7 +248,7 @@ else: # paired-end
             continue
          if not af.aligned:
             continue
-         elif ar.optional_field("NH") > 1 or af.optional_field("NH") > 1:
+         elif ar.optional_field("NH") > max_NH or af.optional_field("NH") > max_NH:
             continue
          elif af.iv.chrom != ar.iv.chrom:
             counts['_ambiguous_readpair_position'] += 1
@@ -254,7 +268,7 @@ else: # paired-end
       for a in reader( sam_file ):
          if not a.aligned:
             continue
-         if a.optional_field("NH") > 1:
+         if a.optional_field("NH") > max_NH:
             continue
          if current_chromosome != a.iv.chrom:
             if current_chromosome in processed_chromosomes:

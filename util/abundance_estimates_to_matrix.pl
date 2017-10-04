@@ -338,7 +338,7 @@ main: {
         ## more than one sample 
         
         &perform_cross_sample_norm($TPM_matrix_file, "$out_prefix.isoform");
-        if ($gene_trans_map_file) {
+        if ($gene_trans_map_file ne 'none') {
             &perform_cross_sample_norm($gene_tpm_file, "$out_prefix.gene");
         }
         

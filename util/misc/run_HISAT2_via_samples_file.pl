@@ -95,7 +95,7 @@ main: {
 
         my $bamfile = "$sample_id.cSorted.hisat2." . basename($genome_fa) . ".bam";
         
-        $pipeliner->add_commands(new Command("set -eof pipefail; hisat2 --dta -x $genome_fa -p $CPU -1 $left_fq -2 $right_fq | samtools view -Sb -F 4 | samtools sort -o $bamfile",
+        $pipeliner->add_commands(new Command("bash -c \"set -eof pipefail; hisat2 --dta -x $genome_fa -p $CPU -1 $left_fq -2 $right_fq | samtools view -Sb -F 4 | samtools sort -o $bamfile \" ",
                                              "$aln_checkpoints_dir/$bamfile.ok"));
         
     }

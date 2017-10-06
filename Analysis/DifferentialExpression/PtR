@@ -96,6 +96,7 @@ my $usage = <<__EOUSAGE__;
 #      --add_prin_comp_heatmaps <int>  draw heatmaps for the top <int> features at each end of the prin. comp. axis.
 #                                      (requires '--prin_comp') 
 #      --add_top_loadings_pc_heatmap <int>  draw a heatmap containing the <int> top feature loadings across all PCs.
+#      --R_prin_comp_method <string>        options: princomp, prcomp (default: prcomp)
 #
 #  --mean_vs_sd               expression variability plot. (highlight specific genes by category via --gene_factors )
 #
@@ -111,7 +112,7 @@ my $usage = <<__EOUSAGE__;
 #    --per_gene_plot_height <float>    default: 2.5
 #    --per_gene_plots_per_row <int>   default: 1
 #    --per_gene_plots_per_col <int>   default: 2
-#
+#    --per_gene_plots_incl_vioplot    include violin plots to show distribution of rep vals
 #
 ########################################################
 #  Data Filtering, in order of operation below:  #########################################################
@@ -153,11 +154,17 @@ my $usage = <<__EOUSAGE__;
 #            or
 #           --anova_maxP <float>    if set, over-rides anova_maxQ  (default, off, uses --anova_maxQ)
 #
+#  --top_variable_via_stdev_and_mean_expr    perform filtering based on the stdev vs. mean expression plot.
+#      Requires both:               (note, if you used --log2 and/or --Zscale, settings below should use those transformed values)
+#         --min_stdev_expr <float>       minimum standard deviation in expression
+#         --min_mean_expr  <float>       minimum mean expression value 
+#
 ######################################
 #  Data transformations:             #
 ######################################
 #
 #  --CPM                    convert to counts per million (uses sum of totals before filtering)
+#  --CPK                    convert to counts per thousand
 #
 #  --binary                 all values > 0 are set to 1.  All values < 0 are set to zero.
 #
@@ -174,13 +181,13 @@ my $usage = <<__EOUSAGE__;
 #  --gene_dist <string>        Setting used for --heatmap (samples vs. genes)
 #                                  Options: euclidean, gene_cor
 #                                           maximum, manhattan, canberra, binary, minkowski
-#                                  (default: 'gene_cor')  Note: if using 'gene_cor', set method using '--gene_cor' below.
+#                                  (default: 'euclidean')  Note: if using 'gene_cor', set method using '--gene_cor' below.
 #
 #
 #  --sample_dist <string>      Setting used for --heatmap (samples vs. genes)
-#                                  Options: euclidean, gene_cor
+#                                  Options: euclidean, sample_cor
 #                                           maximum, manhattan, canberra, binary, minkowski
-#                                  (default: 'sample_cor')  Note: if using 'sample_cor', set method using '--sample_cor' below.
+#                                  (default: 'euclidean')  Note: if using 'sample_cor', set method using '--sample_cor' below.
 #
 #
 #  --gene_clust <string>       ward, single, complete, average, mcquitty, median, centroid, none (default: complete)
@@ -194,8 +201,10 @@ my $usage = <<__EOUSAGE__;
 ####################
 #
 #
-#  --pdf_width <int>
-#  --pdf_height <int>
+#  --imgfmt <string>           image type (pdf,svg) with default: pdf
+#
+#  --img_width <int>           image width
+#  --img_height <int>          image height
 #
 ################
 # Misc. params #
@@ -229,6 +238,7 @@ my $min_colAny = 0;
 
 my $CENTER = 0;
 my $CPM = 0;
+my $CPK = 0;
 my $top_genes;
 
 my $restrict_samples = "";
@@ -236,10 +246,10 @@ my $restrict_samples = "";
 my $top_variable_genes;
 my $var_gene_method = "anova";
 
-my $gene_dist = "gene_cor";  # use --gene_cor setting (default: Pearson)
+my $gene_dist = "euclidean";  # use --gene_cor setting (default: Pearson)
 my $gene_clust = "complete";
 
-my $sample_dist = "sample_cor"; # use --sample_cor setting (default: Pearson)
+my $sample_dist = "euclidean"; # use --sample_cor setting (default: Pearson)
 my $sample_clust = "complete";
 
 my $prin_comp = "";
@@ -248,8 +258,8 @@ my $top_loadings_pc_heatmap = 0;
 
 my $help_flag = 0;
 
-my $pdf_width;
-my $pdf_height;
+my $img_width;
+my $img_height;
 
 my $use_columns_as_samples = 0;
 
@@ -316,8 +326,17 @@ my $per_gene_plot_flag;
 my $per_gene_plot_width = 2.5;
 my $per_gene_plots_per_row = 1;
 my $per_gene_plots_per_col = 2;
+my $per_gene_plots_incl_vioplot = 0;
+
+my $R_prin_comp_method = "prcomp";
 
 my $NO_REUSE = 0;
+
+my $top_variable_via_stdev_and_mean_expr_flag = 0;
+my $min_stdev_expr = undef;
+my $min_mean_expr = undef;
+
+my $imgfmt = "pdf"; # alt is svg
 
 &GetOptions (  
     
@@ -351,9 +370,12 @@ my $NO_REUSE = 0;
     'heatmap' => \$heatmap_flag,
     "heatmap_scale_limits=s" => \$heatmap_scale_limits,
     "heatmap_colorscheme=s" => \$heatmap_colorscheme,
+    
+    
     "lexical_column_ordering" => \$lexical_column_ordering,
     "specified_column_ordering=s" => \$specified_column_ordering,
     "order_columns_by_samples_file" => \$order_columns_by_samples_file,
+    
     
     "order_by_gene_factor" => \$order_by_gene_factor,
     
@@ -362,7 +384,8 @@ my $NO_REUSE = 0;
     'prin_comp=i' => \$prin_comp,
     'add_prin_comp_heatmaps=i' => \$prin_comp_heatmaps,           
     'add_top_loadings_pc_heatmap=i' => \$top_loadings_pc_heatmap,
-
+    'R_prin_comp_method=s' => \$R_prin_comp_method,
+    
     'mean_vs_sd' => \$mean_vs_sd_plot,
     
     'var_vs_count_hist=s' => \$var_vs_count_hist_plot,
@@ -374,7 +397,10 @@ my $NO_REUSE = 0;
     'per_gene_plot_width=f' => \$per_gene_plot_width,
     'per_gene_plots_per_row=i' => \$per_gene_plots_per_row,
     'per_gene_plots_per_col=i' => \$per_gene_plots_per_col,
+    'per_gene_plots_incl_vioplot' => \$per_gene_plots_incl_vioplot,
 
+    
+    
     ## Data transformations, in order of operation
     
     'restrict_samples=s' => \$restrict_samples,
@@ -391,21 +417,24 @@ my $NO_REUSE = 0;
     'min_gene_expr_val=f' => \$min_gene_expr_val,
     
     'min_gene_prevalence=i' => \$min_gene_prevalence, # single cell parlance
-    
 
     'min_across_ALL_samples_gene_expr_val=f' => \$min_across_ALL_samples_gene_expr_val,
     'min_across_ANY_samples_gene_expr_val=f' => \$min_across_ANY_samples_gene_expr_val,
     'minValAltNA=f' => \$minValAltNA,
     
-    
     'CPM' => \$CPM,
+    'CPK' => \$CPK,
     'top_genes=i' => \$top_genes,
     'log2' => \$LOG2,
     'top_variable_genes=i' => \$top_variable_genes,
     'var_gene_method=s' => \$var_gene_method,
     'anova_maxFDR=f' => \$anova_maxFDR,  # note, this is a filter not a transformation, but tied to var_gene_method='anova'
     'anova_maxP=f' => \$anova_maxP,           
-               
+
+    'top_variable_via_stdev_and_mean_expr' => \$top_variable_via_stdev_and_mean_expr_flag,
+    'min_stdev_expr=f' => \$min_stdev_expr,
+    'min_mean_expr=f' => \$min_mean_expr,
+    
     'center_rows' => \$CENTER,
     'Zscale_rows' => \$ZSCALE_ROWS,
 
@@ -421,8 +450,9 @@ my $NO_REUSE = 0;
     'sample_cor=s' => \$sample_cor,
         
     ## Image settings:
-    'pdf_width=i' => \$pdf_width,
-    'pdf_height=i' => \$pdf_height,
+    'imgfmt=s' => \$imgfmt,
+    'img_width=i' => \$img_width,
+    'img_height=i' => \$img_height,
     
     
     ## Misc params
@@ -470,6 +500,10 @@ if (my $var_method = $var_vs_count_hist_plot) {
     unless ($var_method =~ /^(sd|var|cv|fano)$/) {
         die "Error, don't recognize method $var_method for --var_vs_count_hist  ";
     }
+}
+
+if ($imgfmt !~ /^(pdf|svg)$/) {
+    die "Error, --imgfmt must be pdf or svg";
 }
 
 
@@ -534,6 +568,8 @@ main: {
     $Rscript .= "library(Biobase)\n";
     $Rscript .= "library(qvalue)\n";
 
+    $Rscript .= "options(stringsAsFactors = FALSE)\n";
+    
     if ($NO_REUSE) {
         $Rscript .= "NO_REUSE = T\n";
     }
@@ -547,7 +583,7 @@ main: {
              .  "    load(\"$R_data_file\")\n"
              .  "} else {\n"
              .  "    print('Reading matrix file.')\n"
-             .  "    primary_data = read.table(\"$matrix_file\", header=T, com=\'\', sep=\"\\t\", row.names=1, check.names=F)\n"
+             .  "    primary_data = read.table(\"$matrix_file\", header=T, com=\'\', row.names=1, check.names=F)\n"
              .  "    primary_data = as.matrix(primary_data)\n"
              .  "}\n";
     
@@ -556,31 +592,42 @@ main: {
     $Rscript .= "source(\"$FindBin::RealBin/R/heatmap.3.R\")\n";
     $Rscript .= "source(\"$FindBin::RealBin/R/misc_rnaseq_funcs.R\")\n";
     $Rscript .= "source(\"$FindBin::RealBin/R/pairs3.R\")\n";
-
-
+    $Rscript .= "source(\"$FindBin::RealBin/R/vioplot2.R\")\n";
     
     $Rscript .= "data = primary_data\n";
     
+    $Rscript .= "myheatcol = colorpanel(75, $HEATMAP_COLORS)\n";  
+
+    ## order data as specified
+    if ($specified_column_ordering) {
+        $Rscript .= "data = data[, $specified_column_ordering, drop=F ]\n";
+    }
+    elsif ($lexical_column_ordering) {
+        $Rscript .= "data = data[, order(colnames(data)), drop=F]\n",
+    }
     
     if ($samples_file) {
 
         $Rscript .= "samples_data = read.table(\"$samples_file\", header=F, check.names=F, fill=T)\n";
         $Rscript .= "samples_data = samples_data[samples_data[,2] != '',]\n"; # require the rep column to be filled, also enable compatibility with full-trinity-edgeR-pipe samples file
+        $Rscript .= "colnames(samples_data) = c('sample_name', 'replicate_name')\n";
         
-
         #$Rscript .= "sample_types = as.factor(unique(samples_data[,1]))\n";
         $Rscript .= "sample_types = as.character(unique(samples_data[,1]))\n";
         
         $Rscript .= "rep_names = as.character(samples_data[,2])\n";
-        
+
         if ($order_columns_by_samples_file) {
-            $specified_column_ordering = "rep_names";
+            # restrict data to those entries in the samples file
+            # and order according to rep names
+            $Rscript .= "data = data[, rep_names, drop=F ]\n";
+        }
+        else {
+            # default, restrict to columns described in samples file and retain ordering in matrix
+            $Rscript .= "data = data[, colnames(data) \%in% rep_names, drop=F ]\n";
         }
         
-
-        # restrict data to those entries in the samples file
-        $Rscript .= "data = data[, colnames(data) \%in% samples_data[,2], drop=F ]\n";
-        
+    
         # associate the data column names with the sample type
         $Rscript .= "nsamples = length(sample_types)\n"
             . "sample_colors = rainbow(nsamples)\n"
@@ -643,14 +690,14 @@ main: {
         $Rscript .= "data = data[1:min($top_rows,dim(data)[1]),]\n";
     }
     
-    if ($samples_file) {
-        ## reorder according to sample type:
-        $Rscript .= "# reorder according to sample type.\n"
-            .  "tmp_sample_reordering = order(sample_factoring)\n"
-            .  "data = data[,tmp_sample_reordering,drop=F]\n"
-            .  "sample_factoring = sample_factoring[tmp_sample_reordering]\n";
+    #if ($samples_file) {
+    #    ## reorder according to sample type:
+    #    $Rscript .= "# reorder according to sample type.\n"
+    #        .  "tmp_sample_reordering = order(sample_factoring)\n"
+    #        .  "data = data[,tmp_sample_reordering,drop=F]\n"
+    #        .  "sample_factoring = sample_factoring[tmp_sample_reordering]\n";
 
-    }
+    #}
 
     if ($gene_factors_file) {
         $Rscript .= "# parse gene factors\n"
@@ -668,13 +715,13 @@ main: {
 
     if ($barplot_sum_counts_flag) {
 
-        ## set up the pdf output
-        $Rscript .= "pdf(\"$output_prefix.barplot_sum_counts.pdf\"";
-        if ($pdf_width) {
-            $Rscript .= ", width=$pdf_width";
+        ## set up the img format for output
+        $Rscript .= "$imgfmt(\"$output_prefix.barplot_sum_counts.$imgfmt\"";
+        if ($img_width) {
+            $Rscript .= ", width=$img_width";
         }
-        if ($pdf_height) {
-            $Rscript .= ", height=$pdf_height";
+        if ($img_height) {
+            $Rscript .= ", height=$img_height";
         }
         $Rscript .= ")\n";
         
@@ -692,12 +739,12 @@ main: {
     if (defined $boxplot_log2_dist) {
 
         ## set up the pdf output
-        $Rscript .= "pdf(\"$output_prefix.boxplot_log2_dist.pdf\"";
-        if ($pdf_width) {
-            $Rscript .= ", width=$pdf_width";
+        $Rscript .= "$imgfmt(\"$output_prefix.boxplot_log2_dist.$imgfmt\"";
+        if ($img_width) {
+            $Rscript .= ", width=$img_width";
         }
-        if ($pdf_height) {
-            $Rscript .= ", height=$pdf_height";
+        if ($img_height) {
+            $Rscript .= ", height=$img_height";
         }
         $Rscript .= ")\n";
 
@@ -767,9 +814,8 @@ main: {
 
     ############################################
     ## Filtering out rows (genes or transcripts)
-    
 
-        
+    
     if ($min_rowSums > 0) {
         $Rscript .= "data = data\[rowSums\(data)>=" . $min_rowSums . ",]\n";
         $output_prefix .= ".minRow$min_rowSums";
@@ -824,6 +870,12 @@ main: {
         $output_prefix .= ".CPM";
         
     }
+    elsif ($CPK) {
+        $Rscript .= "cs = colSums(data)\n";
+        $Rscript .= "data = t( t(data)/cs) * 1e3;\n";
+        $output_prefix .= ".CPK";
+    }
+    
     
     if ($LOG2) {
         $Rscript .= "data = log2(data+1)\n";
@@ -840,25 +892,6 @@ main: {
     if (defined $minValAltNA) {
         $Rscript .= "\n## any values below $minValAltNA are converted to NA\n";
         $Rscript .= "data[data<$minValAltNA] = NA\n\n";
-    }
-    
-
-    if ($ZSCALE_ROWS) {
-        $Rscript .= "# Z-scale the genes across all the samples for PCA\n";
-        $Rscript .= "zscaled_data = data\n";
-        
-        $Rscript .= "for (i in 1:nrow(data)) {\n";
-        $Rscript .= "    d = data[i,]\n";
-        $Rscript .= "    d_mean = mean(d)\n";
-        $Rscript .= "    d  = d - d_mean\n";
-        $Rscript .= "    d = d / sd(d)\n";
-        $Rscript .= "    zscaled_data[i,] = d\n";
-        $Rscript .= "}\n\n";
-        $Rscript .= "data = zscaled_data\n";
-        
-        $output_prefix .= ".ZscaleRows";
-        $Rscript .= "write.table(data, file=\"$output_prefix.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
-        
     }
     
     ## Redo the sample factoring
@@ -921,8 +954,47 @@ main: {
         $Rscript .= "write.table(data, file=\"$output_prefix.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
         
     }
-        
 
+    
+    ##############################################
+    ## Min mean expression and min stdev filtering
+    ##############################################
+    if ($top_variable_via_stdev_and_mean_expr_flag) {
+
+        unless (defined($min_stdev_expr) && defined($min_mean_expr)) {
+            die "Error, for --top_variable_via_stdev_and_mean_expr, you must specify --min_stdev_expr and --min_mean_expr ";
+        }
+        
+        $Rscript .= "# filtering based on min_stdev $min_stdev_expr and min_mean_expr $min_mean_expr\n";
+        
+        $Rscript .= "data_mean = apply(data, 1, mean)\n"
+            . "data_sd = apply(data, 1, sd)\n"
+            . "data = data[data_mean >= $min_mean_expr & data_sd >= $min_stdev_expr, ]\n\n";
+    }
+    
+    ##############################
+    ## Zscale or Centering of Data
+    ##############################
+
+    if ($ZSCALE_ROWS) {
+        $Rscript .= "# Z-scale the genes across all the samples for PCA\n";
+        $Rscript .= "zscaled_data = t(scale(t(data), scale=T))\n";
+        $Rscript .= "data = zscaled_data\n";
+        $Rscript .= "data = na.omit(data)\n";
+        $output_prefix .= ".ZscaleRows";
+        
+        $Rscript .= "write.table(data, file=\"$output_prefix.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
+        
+    }
+    elsif ($CENTER) {
+        $Rscript .= "\n# Centering rows\n"
+            . "data = t(scale(t(data), scale=F))\n\n";
+        $output_prefix .= ".centered";
+        $Rscript .= "write.table(data, file=\"$output_prefix.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
+    }
+    
+    
+    
     if ($samples_file) {
         
         if ($compare_replicates_flag) {
@@ -969,12 +1041,12 @@ main: {
         # sample correlation matrix
         
         ## set up the pdf output
-        $Rscript .= "pdf(\"$output_prefix.sample_cor_matrix.pdf\"";
-        if ($pdf_width) {
-            $Rscript .= ", width=$pdf_width";
+        $Rscript .= "$imgfmt(\"$output_prefix.sample_cor_matrix.$imgfmt\"";
+        if ($img_width) {
+            $Rscript .= ", width=$img_width";
         }
-        if ($pdf_height) {
-            $Rscript .= ", height=$pdf_height";
+        if ($img_height) {
+            $Rscript .= ", height=$img_height";
         }
         $Rscript .= ")\n";
         
@@ -995,8 +1067,8 @@ main: {
         #$Rscript .= "# for plotting, set self cor = NA\n";
         $Rscript .= "sample_cor_for_plot = sample_cor\n";
         #$Rscript .= "if (nrow(sample_cor_for_plot) > 2) diag(sample_cor_for_plot) = NA\n";  # changed my mind.
-        
-        $Rscript .= "heatmap.3(sample_cor_for_plot, dendrogram='both', Rowv=as.dendrogram(hc_samples), Colv=as.dendrogram(hc_samples), col = greenred(75), scale='none', symm=TRUE, key=TRUE,density.info='none', trace='none', symkey=FALSE, symbreaks=F, margins=c(10,10), cexCol=1, cexRow=1, cex.main=0.75, main=paste(\"sample correlation matrix\n\", \"$output_prefix\") ";
+
+        $Rscript .= "heatmap.3(sample_cor_for_plot, dendrogram='both', Rowv=as.dendrogram(hc_samples), Colv=as.dendrogram(hc_samples), col = myheatcol, scale='none', symm=TRUE, key=TRUE,density.info='none', trace='none', symkey=FALSE, symbreaks=F, margins=c(10,10), cexCol=1, cexRow=1, cex.main=0.75, main=paste(\"sample correlation matrix\n\", \"$output_prefix\") ";
         
         if ($samples_file || $use_columns_as_samples || $sample_cor_sum_gene_factor_expr) {
             
@@ -1043,12 +1115,12 @@ main: {
         
 
         ## set up the pdf output
-        $Rscript .= "pdf(\"$output_prefix.sample_cor_matrix.subsetted.pdf\"";
-        if ($pdf_width) {
-            $Rscript .= ", width=$pdf_width";
+        $Rscript .= "$imgfmt(\"$output_prefix.sample_cor_matrix.subsetted.$imgfmt\"";
+        if ($img_width) {
+            $Rscript .= ", width=$img_width";
         }
-        if ($pdf_height) {
-            $Rscript .= ", height=$pdf_height";
+        if ($img_height) {
+            $Rscript .= ", height=$img_height";
         }
         $Rscript .= ")\n";
         
@@ -1086,65 +1158,77 @@ main: {
 
     
     if ($prin_comp) {
-        
-        ## set up the pdf output
-        $Rscript .= "pdf(\"$output_prefix.principal_components.pdf\"";
-        if ($pdf_width) {
-            $Rscript .= ", width=$pdf_width";
+
+        unless ($R_prin_comp_method =~ /^(princomp|prcomp)$/) {
+            die "Error, --R_prin_comp_method can be only 'princomp' or 'prcomp', not allowed: $R_prin_comp_method ";
         }
-        if ($pdf_height) {
-            $Rscript .= ", height=$pdf_height";
+        
+        my $princomp_img_filename = ($R_prin_comp_method eq "princomp") ? "$output_prefix.princomp.principal_components.$imgfmt" : "$output_prefix.prcomp.principal_components.$imgfmt";
+                
+        ## set up the pdf output
+        $Rscript .= "$imgfmt(\"$princomp_img_filename\"";
+        if ($img_width) {
+            $Rscript .= ", width=$img_width";
+        }
+        if ($img_height) {
+            $Rscript .= ", height=$img_height";
         }
         $Rscript .= ")\n";
 
+                    
+        $Rscript .= "prin_comp_data = data\n"; # all data operations including log2, scaling, centering, etc should be done beforehand as directed by parameters.
+                
+        $Rscript .= "write.table(prin_comp_data, file=\"$output_prefix.Princomp.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
 
-        $Rscript .= "data = as.matrix(data)\n";
         
-
-        
-        # Zscale the genes across samples for Prin Component analysis
-        
-        $Rscript .= "# Z-scale and center the genes across all the samples for PCA\n";
-        $Rscript .= "prin_comp_data = initial_matrix\n"
-            .  "prin_comp_data = log2(prin_comp_data+1)\n"
-            .  "prin_comp_data = scale(prin_comp_data)\n"
-            .  "prin_comp_data = t(scale(t(prin_comp_data), center=TRUE, scale=F)) # just center trans expr level, retain original effect size.\n"
-            .  "pca = prcomp(t(prin_comp_data), center = FALSE, scale. = FALSE)\n";
+        if ($R_prin_comp_method eq "princomp") {
+            $Rscript .= "pca = princomp(prin_comp_data, cor=FALSE)\n";
+        }
+        else {
+            $Rscript .= "pca = prcomp(prin_comp_data, center = FALSE, scale. = FALSE)\n";
+        }
         
         
-        $Rscript .= "write.table(prin_comp_data, file=\"$output_prefix.Princomp_log2_Zscale_centered.dat\", quote=F, sep=\"\t\")\n" if $write_intermediate_data_tables_flag;
         
-        #$Rscript .= "pc = princomp(prin_comp_data, cor=TRUE)\n";
         $Rscript .= "pc_pct_variance = (pca\$sdev^2)/sum(pca\$sdev^2)\n";
         $Rscript .= "def.par <- par(no.readonly = TRUE) # save default, for resetting...\n"
             .  "gridlayout = matrix(c(1:4),nrow=2,ncol=2, byrow=TRUE);\n"
             .  "layout(gridlayout, widths=c(1,1));\n";
         
-        if (1) {
-            ## write out the PC info
-            $Rscript .= "write.table(pca\$rotation, file=\"$output_prefix.PCA.loadings\", quote=F, sep=\"\t\")\n";
-            $Rscript .= "write.table(pca\$x, file=\"$output_prefix.PCA.scores\", quote=F, sep=\"\t\")\n";
+        
+        if ($R_prin_comp_method eq "princomp") {
+            $Rscript .= "write.table(pca\$loadings, file=\"$output_prefix.PCA.princomp.loadings\", quote=F, sep=\"\t\")\n"
+                . "write.table(pca\$scores, file=\"$output_prefix.PCA.princomp.scores\", quote=F, sep=\"\t\")\n"
+                . "PCA.scores = pca\$loadings\n"
+                . "PCA.loadings = pca\$scores\n";
             
         }
-        
+        else {
+            ## write out the PC info
+            $Rscript .= "write.table(pca\$rotation, file=\"$output_prefix.PCA.prcomp.scores\", quote=F, sep=\"\t\")\n";
+            $Rscript .= "write.table(pca\$x, file=\"$output_prefix.PCA.prcomp.loadings\", quote=F, sep=\"\t\")\n";
+            $Rscript .= "PCA.loadings=pca\$x\n"
+                . "PCA.scores = pca\$rotation\n";
+        }
+                
         
 
         $Rscript .= "for (i in 1:(max($prin_comp,2)-1)) {\n" # one plot for each n,n+1 component comparison.
-            . "    xrange = range(pca\$x[,i])\n"
-            . "    yrange = range(pca\$x[,i+1])\n"
-            . "    samples_want = rownames(pca\$x) \%in\% sample_type_list[[sample_types[1]]]\n" # color according to sample
+            . "    xrange = range(PCA.scores[,i])\n"
+            . "    yrange = range(PCA.scores[,i+1])\n"
+            . "    samples_want = rownames(PCA.scores) \%in\% sample_type_list[[sample_types[1]]]\n" # color according to sample
             . "    pc_i_pct_var = sprintf(\"(%.2f%%)\", pc_pct_variance[i]*100)\n"
             . "    pc_i_1_pct_var = sprintf(\"(%.2f%%)\", pc_pct_variance[i+1]*100)\n"
-            . "    plot(pca\$x[samples_want,i], pca\$x[samples_want,i+1], xlab=paste('PC',i, pc_i_pct_var), ylab=paste('PC',i+1, pc_i_1_pct_var), xlim=xrange, ylim=yrange, col=sample_colors[1])\n"
+            . "    plot(PCA.scores[samples_want,i], PCA.scores[samples_want,i+1], xlab=paste('PC',i, pc_i_pct_var), ylab=paste('PC',i+1, pc_i_1_pct_var), xlim=xrange, ylim=yrange, col=sample_colors[1])\n"
             . "    for (j in 2:nsamples) {\n"
-            . "        samples_want = rownames(pca\$x) \%in\% sample_type_list[[sample_types[j]]]\n"
-            . "        points(pca\$x[samples_want,i], pca\$x[samples_want,i+1], col=sample_colors[j], pch=j)\n"
+            . "        samples_want = rownames(PCA.scores) \%in\% sample_type_list[[sample_types[j]]]\n"
+            . "        points(PCA.scores[samples_want,i], PCA.scores[samples_want,i+1], col=sample_colors[j], pch=j)\n"
             . "    }\n"
             . "    plot.new()\n"
             . "    legend('topleft', as.vector(sample_types), col=sample_colors, pch=1:nsamples, ncol=2)\n"
             . "}\n\n";
         
-                
+        
         #else {
         #    $Rscript .= "for (i in 1:($prin_comp-1)) {\n"
         #              . "    pc_i_pct_var = sprintf(\"(%.2f%%)\", pc_pct_variance[i]*100)\n"
@@ -1159,9 +1243,11 @@ main: {
         
         #$Rscript .= "dev.off();stop('debug')\n";
         
-        $Rscript .= "pcscore_mat_vals = pca\$rotation[,1:$prin_comp]\n";
-        $Rscript .= "pcscore_mat = matrix_to_color_assignments(pcscore_mat_vals, col=colorpanel(256,'purple','black','yellow'), by='row')\n";
-        $Rscript .= "colnames(pcscore_mat) = paste('PC', 1:ncol(pcscore_mat))\n"; 
+        $Rscript .= "pcloadings_mat_vals = PCA.loadings[,1:$prin_comp]\n";
+        $Rscript .= "print(dim(pcloadings_mat_vals))\n"; #DEBUG
+        $Rscript .= "pcloadings_mat = matrix_to_color_assignments(pcloadings_mat_vals, col=colorpanel(256,'purple','black','yellow'), by='col')\n";
+        $Rscript .= "print(dim(pcloadings_mat))\n"; #DEBUG
+        $Rscript .= "colnames(pcloadings_mat) = paste('PC', 1:ncol(pcloadings_mat))\n"; 
         
         if ($prin_comp_heatmaps) {
             
@@ -1217,12 +1303,12 @@ main: {
             $Rscript .= "write.table(gene_cor, file=\"$output_prefix.gene_cor.dat\", quote=F, sep=\"\t\")\n";
             
             ## set up the pdf output
-            $Rscript .= "pdf(\"$output_prefix.gene_cor_matrix.pdf\"";
-            if ($pdf_width) {
-                $Rscript .= ", width=$pdf_width";
+            $Rscript .= "$imgfmt(\"$output_prefix.gene_cor_matrix.$imgfmt\"";
+            if ($img_width) {
+                $Rscript .= ", width=$img_width";
             }
-            if ($pdf_height) {
-                $Rscript .= ", height=$pdf_height";
+            if ($img_height) {
+                $Rscript .= ", height=$img_height";
             }
             $Rscript .= ")\n";
             
@@ -1267,12 +1353,12 @@ main: {
     if ($indiv_gene_cor) {
         
         ## set up the pdf output
-        $Rscript .= "pdf(\"$output_prefix.indiv_gene_cors.pdf\"";
-        if ($pdf_width) {
-            $Rscript .= ", width=$pdf_width";
+        $Rscript .= "$imgfmt(\"$output_prefix.indiv_gene_cors.$imgfmt\"";
+        if ($img_width) {
+            $Rscript .= ", width=$img_width";
         }
-        if ($pdf_height) {
-            $Rscript .= ", height=$pdf_height";
+        if ($img_height) {
+            $Rscript .= ", height=$img_height";
         }
         $Rscript .= ")\n";
         
@@ -1305,12 +1391,12 @@ main: {
     if ($gene_heatmaps) {
     
         ## set up the pdf output
-        $Rscript .= "pdf(\"$output_prefix.indiv_gene_heatmaps.pdf\"";
-        if ($pdf_width) {
-            $Rscript .= ", width=$pdf_width";
+        $Rscript .= "$imgfmt(\"$output_prefix.indiv_gene_heatmaps.$imgfmt\"";
+        if ($img_width) {
+            $Rscript .= ", width=$img_width";
         }
-        if ($pdf_height) {
-            $Rscript .= ", height=$pdf_height";
+        if ($img_height) {
+            $Rscript .= ", height=$img_height";
         }
         $Rscript .= ")\n";
         
@@ -1329,47 +1415,16 @@ main: {
 
     if ($heatmap_flag) {
         
-        $Rscript .= "myheatcol = colorpanel(75, $HEATMAP_COLORS)\n";
-        
-        if ($CENTER) {
-            
-            $Rscript .= "data = t(scale(t(data), scale=F)) # center rows, mean substracted\n";
-            ;
-            $output_prefix .= ".centered";
-            
-            $Rscript .= "write.table(data, file=\"$output_prefix.dat\", quote=F, sep='\t');\n";
-            
-            ##  Redo the distance calculations and clustering:
-
-            ## //TODO: make this a subroutine 
-            
-            ## cluster samples
-            if ($sample_dist !~ /sample_cor/ && $sample_clust ne 'none') {
-                $Rscript .= "# redo the sample clustering according to the centered distance values.\n";
-                $Rscript .= "sample_dist = dist(t(data), method=\'$sample_dist\')\n";
-                $Rscript .= "# redo the sample clustering\n";
-                $Rscript .= "hc_samples = hclust(sample_dist, method=\'$sample_clust\')\n";
-            }
-            if ($gene_dist !~ /gene_cor/ && $gene_clust ne 'none') {
-                $Rscript .= "# redo the gene clustering according to centered distance values.\n";
-                $Rscript .= "gene_dist = dist(data, method=\'$gene_dist\')\n";
-                $Rscript .= "# redo the gene clustering\n";
-                $Rscript .= "hc_genes = hclust(gene_dist, method=\'$gene_clust\')\n";
-            }
-            
-        }
-        
-                
         # sample vs. gene heatmap
         $Rscript .= "heatmap_data = data\n";
         
         ## set up the pdf output
-        $Rscript .= "pdf(\"$output_prefix.genes_vs_samples_heatmap.pdf\"";
-        if ($pdf_width) {
-                $Rscript .= ", width=$pdf_width";
+        $Rscript .= "$imgfmt(\"$output_prefix.genes_vs_samples_heatmap.$imgfmt\"";
+        if ($img_width) {
+                $Rscript .= ", width=$img_width";
         }
-        if ($pdf_height) {
-            $Rscript .= ", height=$pdf_height";
+        if ($img_height) {
+            $Rscript .= ", height=$img_height";
         }
         $Rscript .= ")\n";
         
@@ -1424,26 +1479,9 @@ main: {
         
         my $dendrogram = 'both';
         my $Colv = "as.dendrogram(hc_samples)";
-        if ($lexical_column_ordering || $specified_column_ordering || $sample_clust eq 'none') {
+        if ($sample_clust eq 'none') {
             $dendrogram = 'row';
             $Colv = "F";
-            
-            if ($lexical_column_ordering) {
-                $Rscript .= "heatmap_data = heatmap_data[,order(colnames(heatmap_data))]\n";
-                if ($samples_file) {
-                    # sample annotations must continue to match column ordering of data matrix
-                    $Rscript .= "sampleAnnotations = sampleAnnotations[,order(colnames(heatmap_data))]\n";
-                }
-            }
-            elsif ($specified_column_ordering) {
-                $Rscript .= "heatmap_data = heatmap_data[,$specified_column_ordering]\n";
-                if ($samples_file) {
-                    # sample annotations must continue to match column ordering of data matrix
-                    $Rscript .= "sampleAnnotations = sampleAnnotations[,$specified_column_ordering]\n";
-                }
-                
-            }
-            
         }
         
         my $Rowv = "as.dendrogram(hc_genes)";
@@ -1483,13 +1521,14 @@ main: {
     
     if ($mean_vs_sd_plot) {
         
-        $Rscript .= "pdf(\"$output_prefix.mean_vs_sd.pdf\")\n"
+        $Rscript .= "$imgfmt(\"$output_prefix.mean_vs_sd.$imgfmt\")\n"
                  .  "data_mean = apply(data, 1, mean)\n"
                  .  "data_sd = apply(data, 1, sd)\n"
                  .  "data_mean_vs_sd_table = cbind(data_mean, data_sd)\n"
                  .  "data_mean_vs_sd_table = as.data.frame(data_mean_vs_sd_table)\n"
                  .  "write.table(data_mean_vs_sd_table, file=\"$output_prefix.mean_vs_sd.dat\", quote=F, sep=\"\t\")\n"
-                 .  "plot(data_mean_vs_sd_table)\n";
+                 #.  "plot(data_mean_vs_sd_table)\n";
+                 . "smoothScatter(data_mean_vs_sd_table)\n";
         
         if ($gene_factors_file) {
             $Rscript .= "gene_pt_colors = rainbow(length(gene_factors))\n"
@@ -1558,7 +1597,7 @@ main: {
             $Rscript .= "count_hist_matrix[count_hist_matrix > $high] = $high\n";
         }
         
-        $Rscript .= "pdf(\"$output_prefix.${var_method}_vs_count_hist.pdf\")\n";
+        $Rscript .= "$imgfmt(\"$output_prefix.${var_method}_vs_count_hist.$imgfmt\")\n";
         $Rscript .= "heatmap.3(count_hist_matrix, Rowv=F, Colv=F, dendrogram='none', col=colorpanel(max(count_hist_matrix), low='black', high='yellow'), scale='none', symm=TRUE, key=TRUE,density.info='none', trace='none', symkey=FALSE, margins=c(10,10), cexCol=1, cexRow=1, cex.main=0.75, main=\"$var_method vs. count hist\", RowSideColors=t(cv_colors))\n";
         
         $Rscript .= "dev.off()\n";
@@ -1573,7 +1612,7 @@ main: {
 #    --per_gene_plots_per_col <int>   default: 2                                                                         
 #
         $Rscript .= "# per gene plots\n";
-        $Rscript .= "pdf(file=\"$output_prefix.per_gene_plots.pdf\")\n";
+        $Rscript .= "$imgfmt(file=\"$output_prefix.per_gene_plots.$imgfmt\")\n";
         $Rscript .= "par(mfrow=c($per_gene_plots_per_col, $per_gene_plots_per_row))\n";
         $Rscript .= "gene_names = rownames(data)\n";
 
@@ -1582,8 +1621,10 @@ main: {
             $Rscript .= "# set up barplot colors:\n"
                 .  "sample_cols = rainbow(nsamples)\n"
                 .  "barplot_cols = c()\n"
+                .  "vioplot_colors = list()\n"
                 .  "for (i in 1:nsamples) {\n"
                 . "    barplot_cols[ sample_factoring \%in% sample_types[i] ] = sample_cols[i]\n"
+                . "    vioplot_colors[[sample_types[i]]] = sample_cols[i]\n"
                 . "}\n";
         }
         else {
@@ -1601,6 +1642,18 @@ main: {
         #     print $ofh "    axis(side=1, at=1:length(data), labels=colnames(all_data), las=2)\n";
         
         #}
+
+        if ($samples_file && $per_gene_plots_incl_vioplot) {
+            $Rscript .= "    df = data.frame(reps = names(gene_data), expr=gene_data)\n";
+            $Rscript .= "    df = data.frame(df, sample_name=samples_data\$sample_name[match(df\$reps, samples_data\$replicate_name)])\n";
+            $Rscript .= "    df2 = df[,c('sample_name', 'expr')]\n";
+            $Rscript .= "     df2\$sample_name = factor(df2\$sample_name, levels=unique(df2\$sample_name))\n";
+            $Rscript .= "    s2 = split(df2, df2\$sample_name)\n";
+            $Rscript .= "    vals = lapply(s2, function(x) {x\$expr} )\n";
+            $Rscript .= '    vioplot2(vals, names=names(vals), col=unlist(vioplot_colors[names(vals)]))' . "\n";
+            
+        }
+        
         $Rscript .= "}\n";
         $Rscript .= "dev.off()\n";
         
@@ -1678,12 +1731,12 @@ sub add_sample_QC_analysis_R {
         #. "    print(samples_want)\n"
         
         . "    if (sum(samples_want) > 1) {\n"
-        . "        pdf(file=paste(sample_name, '.rep_compare.pdf', sep='')";
-    if ($pdf_width) {                                                                                                                                                                                          
-        $Rscript .= ", width=$pdf_width";                                                                                                                                                                      
+        . "        $imgfmt(file=paste(sample_name, \'.rep_compare.$imgfmt\', sep='')";
+    if ($img_width) {                                                                                                                                                                                          
+        $Rscript .= ", width=$img_width";                                                                                                                                                                      
     }                                                                                                                                                                                                          
-    if ($pdf_height) {                                                                                                                                                                                         
-        $Rscript .= ", height=$pdf_height";                                                                                                                                                                    
+    if ($img_height) {                                                                                                                                                                                         
+        $Rscript .= ", height=$img_height";                                                                                                                                                                    
     }                                                                                                                                                                                                          
     
     $Rscript .= ")\n";           
@@ -1843,35 +1896,28 @@ sub add_prin_comp_heatmaps {
         . "uniq_genes = c()\n"
                 . "for (i in 1:$prin_comp) {\n"
                 . "    ## get genes with extreme vals\n"
-                . "    print(paste('range', range(pca\$rotation[,i])))\n"
-                . "    ordered_gene_indices = order(pca\$rotation[,i])\n"
+                . "    print(paste('range', range(PCA.loadings[,i])))\n"
+                . "    ordered_gene_indices = order(PCA.loadings[,i])\n"
                 . "    num_genes = length(ordered_gene_indices)\n"
                 . "    extreme_ordered_gene_indices = unique(c(1:$num_top_genes_PC_extreme, (num_genes-$num_top_genes_PC_extreme):num_genes))\n"
                 . "    print('extreme ordered gene indices')\n"
                 . "    print(extreme_ordered_gene_indices)\n"
                 . "    selected_gene_indices = ordered_gene_indices[extreme_ordered_gene_indices]\n"
                 . "    print('selected gene indices');print(selected_gene_indices);\n"
-                . "    print('PC scores:');print(pca\$rotation[selected_gene_indices,i])\n"
-                . "    selected_genes_matrix = prin_comp_data[selected_gene_indices,]\n"
-                #. "    print(selected_genes_matrix)\n"
-                . "    pc_color_bar_vals = pcscore_mat_vals[selected_gene_indices,i]\n"
-                . "    print(pc_color_bar_vals)\n"
-                . "    pc_color_bar = as.matrix(pcscore_mat[selected_gene_indices,i])\n";
+                . "    print('PC loadings:');print(PCA.loadings[selected_gene_indices,i])\n"
+                . "    selected_genes_matrix = prin_comp_data[names(PCA.loadings[selected_gene_indices,i]),]\n"
+                . "    print(selected_genes_matrix)\n"
+                . "    print(dim(pcloadings_mat_vals)); print(dim(pcloadings_mat))\n"
+                . "    pc_color_bar_vals = pcloadings_mat_vals[selected_gene_indices,i]\n"
+                . "    print('pc_color_bar_vals:'); print(pc_color_bar_vals)\n"
+                . "    pc_color_bar = as.matrix(pcloadings_mat[selected_gene_indices,i])\n";
 
     $Rscript .= "uniq_genes = unique(c(uniq_genes, rownames(selected_genes_matrix)))\n";
 
-
-    #if (! $LOG2) {
-    #    $Rscript .= "    selected_genes_matrix = log2(selected_genes_matrix+1)\n";
-    #}
     $Rscript .=     "    write.table(selected_genes_matrix, file=paste(\"$output_prefix\", '.PC',i,'_extreme',$num_top_genes_PC_extreme,'.matrix', sep=''), quote=F, sep=\"\t\")\n";
     
-    if ($CENTER) {
-        $Rscript .= "    selected_genes_matrix = t(scale(t(selected_genes_matrix), scale=F))\n";
-    }
-    
-    
-    $Rscript .= "    heatmap.3(selected_genes_matrix, col=greenred(256), scale='none', density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=1, margins=c(10,10), cex.main=0.75, RowSideColors=pc_color_bar, cexRow=0.5, main=paste('heatmap for', $num_top_genes_PC_extreme, ' extreme of PC', i)";
+
+    $Rscript .= "    heatmap.3(selected_genes_matrix, col=myheatcol, scale='none', density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=1, margins=c(10,10), cex.main=0.75, RowSideColors=pc_color_bar, cexRow=0.5, main=paste('heatmap for', $num_top_genes_PC_extreme, ' extreme of PC', i)";
 
     if ($samples_file) {
         $Rscript .= ", ColSideColors=sampleAnnotations";
@@ -1879,13 +1925,14 @@ sub add_prin_comp_heatmaps {
     $Rscript .= ")\n";
     $Rscript .= "}\n";
     
-
+    
     ##  Include a heatmap containing all selected genes across all PCs.
 
     $Rscript .= "all_selected_genes_matrix = prin_comp_data[uniq_genes,]\n";
     
     $Rscript .= "write.table(all_selected_genes_matrix, file=paste(\"$output_prefix\", '.PC_all','_extreme',$num_top_genes_PC_extreme,'.matrix', sep=''), quote=F, sep=\"\t\")\n";
-    $Rscript .= "heatmap.3(all_selected_genes_matrix, col=greenred(256), scale='none', density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=1, margins=c(10,10), cex.main=0.75, cexRow=0.5, main=paste('heatmap for ALL selected ', $num_top_genes_PC_extreme, ' extreme of all PCs')";
+
+    $Rscript .= "heatmap.3(all_selected_genes_matrix, col=myheatcol, scale='none', density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=1, margins=c(10,10), cex.main=0.75, cexRow=0.5, main=paste('heatmap for ALL selected ', $num_top_genes_PC_extreme, ' extreme of all PCs')";
     
     if ($samples_file) {
         $Rscript .= ", ColSideColors=sampleAnnotations";
@@ -1894,6 +1941,7 @@ sub add_prin_comp_heatmaps {
     
 
     return($Rscript);
+
 }
 
 
@@ -1925,14 +1973,14 @@ sub add_top_loadings_pc_heatmap {
     $Rscript .=     "write.table(top_loadings_pc_matrix, file=paste(\"$output_prefix\", '.PC.top_', $top_loadings_pc_heatmap, '_loadings.matrix', sep=''), quote=F, sep=\"\t\")\n";
     $Rscript .=     "write.table(pc\$scores[ordered_loadings[1:$top_loadings_pc_heatmap],1:$prin_comp], file=paste(\"$output_prefix\", '.PC.top_', $top_loadings_pc_heatmap, '_loadings.dat', sep=''), quote=F, sep=\"\t\")\n";
 
-    $Rscript .= "pdf(paste(\"$output_prefix\", '.PC.top_', $top_loadings_pc_heatmap, '_loadings.matrix.pdf', sep=''))\n";
+    $Rscript .= "$imgfmt(paste(\"$output_prefix\", '.PC.top_', $top_loadings_pc_heatmap, \'_loadings.matrix.$imgfmt\', sep=''))\n";
     
     if ($CENTER) {
         $Rscript .= "    top_loadings_pc_matrix = t(scale(t(top_loadings_pc_matrix), scale=F))\n";
     }
     
-    
-    $Rscript .= "    heatmap.3(top_loadings_pc_matrix, col=greenred(256), scale='none', density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=1, margins=c(10,10), cex.main=0.75, cexRow=0.5, main=paste('heatmap for', $top_loadings_pc_heatmap, ' extreme all Prin. Comps.')";
+
+    $Rscript .= "    heatmap.3(top_loadings_pc_matrix, col=myheatcol, scale='none', density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=1, margins=c(10,10), cex.main=0.75, cexRow=0.5, main=paste('heatmap for', $top_loadings_pc_heatmap, ' extreme all Prin. Comps.')";
     
     if ($samples_file) {
         $Rscript .= ", ColSideColors=sampleAnnotations";
@@ -1943,64 +1991,6 @@ sub add_top_loadings_pc_heatmap {
 
 
     return($Rscript);
-}
-
-
-####
-sub print_pipeline_flowchart {
-    
-    print <<__EOTEXT__;
-
-    Start.
-
-    read data table
-    read samples file (optional)
-
-    ? plots: barplots for sum counts per replicate
-    ? plots: boxplots for feature count distribution and barplots for number of features mapped.
-    
-    ? filter: restrict to specified samples (columns)
-    ? filter: min expressed genes at min val
-    ? filter: min column sums
-    ? filter: min row sums
-
-    
-    ? data_transformation: CPM
-    ? data_transformation: log2
-
-    ? data_transformation: minValAltNA
-
-    ? data_annotation: sample factoring
-    ? data_annotation: sample coloring setup
-
-    ? filter: top expressed genes
-    ? filter: top variable genes (coeffvar|anova)
-
-    ? plots: sample replicate comparisons
-
-    ? output: resulting data table post-filtering and data transformations.
-
-    ? plots: sample correlation matrix
-    
-    ? plots: principal components analysis  (note: rows (aka genes) are Z-scaled across samples before PCA)
-    ?       plots: heatmaps for features assigned extreme values in PCA
-
-    ? plots: feature/gene correlation matrix
-
-    ? plots: individual gene correlation plots and heatmaps
-
-    ? plots: samples vs. features matrix
-
-    ? plots: mean expression vs. standard deviation
-
-    End.
-
-    
-__EOTEXT__
-
-    ;
-
-    return;
 }
 
 
@@ -2049,15 +2039,14 @@ sub write_study_individual_gene_correlations_function {
     $Rscript .= "    this_sample_cor = cor(gene_expr_submatrix, method=\"$sample_cor\", use='pairwise.complete.obs')\n"
              .  "    this_hc_samples = hclust(as.dist(1-this_sample_cor), method=\"$sample_clust\")\n";
 
-    $Rscript .= "    heatmap.3(this_gene_cor_matrix, dendrogram='both', Rowv=as.dendrogram(this_hc_genes), Colv=as.dendrogram(this_hc_genes), col=colorpanel(256,'purple','black','yellow'), scale='none', symm=TRUE, key=TRUE,density.info='none', trace='none', symkey=FALSE, margins=c(10,10), cexCol=1, cexRow=1, cex.main=0.75, main=paste(\"feature correlation matrix\n\", gene_id))\n";
+    $Rscript .= "    heatmap.3(this_gene_cor_matrix, dendrogram='both', Rowv=as.dendrogram(this_hc_genes), Colv=as.dendrogram(this_hc_genes), col=myheatcol, scale='none', symm=TRUE, key=TRUE,density.info='none', trace='none', symkey=FALSE, margins=c(10,10), cexCol=1, cexRow=1, cex.main=0.75, main=paste(\"feature correlation matrix\n\", gene_id))\n";
 
     # gene vs. samples plot
 
     # center rows
     $Rscript .= "    gene_expr_submatrix = t(scale(t(gene_expr_submatrix), scale=F))\n";
     
-    
-    $Rscript .= "    heatmap.3(gene_expr_submatrix, col=greenred(256), Rowv=as.dendrogram(this_hc_genes), Colv=as.dendrogram(this_hc_samples), scale='none', density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=1, margins=c(10,10), cex.main=0.75, cexRow=0.5, main=paste('heatmap for most correlated to', gene_id)";
+    $Rscript .= "    heatmap.3(gene_expr_submatrix, col=myheatcol, Rowv=as.dendrogram(this_hc_genes), Colv=as.dendrogram(this_hc_samples), scale='none', density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=1, margins=c(10,10), cex.main=0.75, cexRow=0.5, main=paste('heatmap for most correlated to', gene_id)";
 
     if ($samples_file) {
         $Rscript .= ", ColSideColors=these_sample_annotations";
@@ -2090,14 +2079,8 @@ sub gene_heatmaps {
         ## matrix must have multiple rows.  Just duplicate the last row
         $Rscript .= "gene_submatrix = rbind(gene_submatrix, gene_submatrix[1,])\n";
     }
-    
-    my $col = "greenred(75)";
-    if ($CENTER) {
-        $col = "colorpanel(75, 'black', 'red')";
-    }
-
-    
-    $Rscript .= "heatmap.3(gene_submatrix, dendrogram='none', Rowv=F, Colv=F, col=$col, main='without clustering'";
+        
+    $Rscript .= "heatmap.3(gene_submatrix, dendrogram='none', Rowv=F, Colv=F, col=myheatcol, main='without clustering'";
     
     if ($samples_file) {
         $Rscript .= ", ColSideColors=coloring_by_sample";
@@ -2108,7 +2091,7 @@ sub gene_heatmaps {
     { 
         ## Do it again and cluster too
     
-        $Rscript .= "heatmap.3(gene_submatrix, col=$col, main='with clustering'";
+        $Rscript .= "heatmap.3(gene_submatrix, col=myheatcol, main='with clustering'";
         
         if ($samples_file) {
             $Rscript .= ", ColSideColors=coloring_by_sample";
@@ -2120,4 +2103,67 @@ sub gene_heatmaps {
 
     return($Rscript);
 }
+
     
+####
+sub print_pipeline_flowchart {
+    
+    print <<__EOTEXT__;
+
+    Start.
+
+    read data table
+    read samples file (optional)
+
+    ? plots: barplots for sum counts per replicate
+    ? plots: boxplots for feature count distribution and barplots for number of features mapped.
+    
+    ? filter: restrict to specified samples (columns)
+    ? filter: min expressed genes at min val
+    ? filter: min column sums
+    ? filter: min row sums
+
+    
+    ? data_transformation: CPM
+    ? data_transformation: log2
+    ? data_transformation: make binary
+    ? data_transformation: minValAltNA
+
+    ? data_annotation: sample factoring
+    ? data_annotation: sample coloring setup
+
+    ? filter: top expressed genes
+    ? filter: top variable genes (coeffvar|anova)
+    ? filter: min_mean_expr & min_stdev
+
+    ? data_transformation: Z-scale rows
+    ? data_transformation: row centering (if ! Z-scale, since already centered if Z-scale)
+    
+    ? plots: sample replicate comparisons
+
+    ? output: resulting data table post-filtering and data transformations.
+
+    ? plots: sample correlation matrix
+    
+    ? plots: principal components analysis  (note: rows (aka genes) are Z-scaled across samples before PCA)
+    ?       plots: heatmaps for features assigned extreme values in PCA
+
+    ? plots: feature/gene correlation matrix
+
+    ? plots: individual gene correlation plots and heatmaps
+
+    ? plots: samples vs. features matrix
+
+    ? plots: mean expression vs. standard deviation
+
+    End.
+
+    
+__EOTEXT__
+
+    ;
+
+    return;
+}
+
+

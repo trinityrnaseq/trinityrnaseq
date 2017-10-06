@@ -454,7 +454,7 @@ sub parse_result_files_find_diffExp {
     
     {
         # write DE count matrix:
-        my $num_DE_counts_outfile = "numDE_feature_counts.P${max_p_value}_C${min_abs_log2_fold_change}.matrix";
+        my $num_DE_counts_outfile = "DE_feature_counts.P${max_p_value}_C${min_abs_log2_fold_change}.matrix";
         open (my $ofh, ">$num_DE_counts_outfile") or die "Error, cannot write to file $num_DE_counts_outfile";
         my @conditions = sort keys %DE_pair_counts;
         print $ofh "\t" . join("\t", @conditions) . "\n";

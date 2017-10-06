@@ -197,25 +197,18 @@ main: {
     my $index_ext = "bt2";
     
     my @bowtie_build_files = <$target_db.*.$index_ext>;
-    print Dumper(\@bowtie_build_files);
-    unless (@bowtie_build_files) {
+    print STDERR "bt2 index files: " . Dumper(\@bowtie_build_files);
+    my $index_file_checkpoint = "$target_db._${index_ext}_idx_.ok";
+    unless (@bowtie_build_files && -e $index_file_checkpoint) {
         
         print STDERR "Note - bowtie-build indices do not yet exist. Indexing genome now.\n";
         ## run bowtie-build:
-        
-        my $start_index_file = "$target_db._${index_ext}_idx_.start";
-        if (-e $start_index_file) {
-            die "Error, indexing in progress or never finished. Wait for other process to finish building the index, or delete the $start_index_file and try again";
-        }
-        &process_cmd("touch $start_index_file");
-        # make bowtie index
-        
         my $builder = "bowtie2-build";
         
         my $cmd = "$builder -q $target_db $target_db";
         &process_cmd($cmd);
         
-        unlink($start_index_file);
+        &process_cmd("touch $index_file_checkpoint");
         
     }
     

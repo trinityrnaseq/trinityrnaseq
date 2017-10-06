@@ -1,8 +1,0 @@
-heatshock	hsrep1	../../test_DATA/Sp_hs.10k.left.fq.gz
-plateau	platRep1	../../test_DATA/Sp_plat.10k.right.fq.gz
-log_growth	logRep1	../../test_DATA/Sp_log.10k.left.fq.gz
-diauxic_shift	dsRep1	../../test_DATA/Sp_ds.10k.right.fq.gz
-
---SS_lib_type RF
---seqType fq
---trinity_mode

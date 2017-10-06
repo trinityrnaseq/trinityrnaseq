@@ -62,7 +62,12 @@ my $usage = <<__EOUSAGE__;
 
 #########################################################################
 #
+########################
+#  Essential parameters:
+########################
+#
 #  --transcripts <string>           transcript fasta file
+#
 #  --seqType <string>               fq|fa
 # 
 #  If Paired-end:
@@ -74,7 +79,8 @@ my $usage = <<__EOUSAGE__;
 #
 #      --single <string>
 #
-#   or
+#   or (preferred):
+#
 #      --samples_file <string>    tab-delimited text file indicating biological replicate relationships.
 #                                   ex.
 #                                        cond_A    cond_A_rep1    A_rep1_left.fq    A_rep1_right.fq
@@ -90,17 +96,23 @@ my $usage = <<__EOUSAGE__;
 #                                        alignment_based:  RSEM|eXpress       
 #                                        alignment_free: kallisto|salmon
 #  
-# --output_dir <string>            write all files to output directory
+###################################
+#  Potentially optional parameters:
+###################################
+#
+# --output_dir <string>            write all files to output directory 
+#                                  (note, if using --samples_file, output_dir will be set automatically according to replicate name))
 #  
 #
 #  if alignment_based est_method:
 #       --aln_method <string>            bowtie|bowtie2 alignment method.  (note: RSEM requires bowtie)
 #                                       
-#
+###########
 # Optional:
-# 
+# #########
+#
 # --SS_lib_type <string>           strand-specific library type:  paired('RF' or 'FR'), single('F' or 'R').
-#                                         (note, no strand-specific mode for kallisto)
+#                                  
 #
 # --thread_count                   number of threads to use (default = 4)
 #
@@ -112,8 +124,6 @@ my $usage = <<__EOUSAGE__;
 #
 #
 #  --prep_reference                 prep reference (builds target index)
-#
-#  --output_prefix <string>         prefix for output files.  Defaults to --est_method setting.
 #
 #
 ########################################
@@ -249,7 +259,7 @@ my $samples_file = "";
 
               'include_rsem_bam' => \$include_rsem_bam,
 
-              'output_prefix=s' => \$output_prefix,
+              #'output_prefix=s' => \$output_prefix,
               
               ##  devel opts
               'prep_reference' => \$prep_reference,
@@ -354,7 +364,9 @@ if ($single || (@samples_to_process && $samples_to_process[0]->{single})) {
 $transcripts = &create_full_path($transcripts);
 
 $gene_trans_map_file = &create_full_path($gene_trans_map_file) if $gene_trans_map_file;
-
+if ($gene_trans_map_file && ! -s $gene_trans_map_file) {
+    die "Error, $gene_trans_map_file doesn't exist or is empty";
+}
 
 
 if ($SS_lib_type) {
@@ -640,7 +652,7 @@ sub sort_bam_file {
     if (! -e "$sorted_bam_file.bam.ok") {
         ## sort the bam file
         
-        my $cmd = "samtools sort $bam_file $sorted_bam_file";
+        my $cmd = "samtools sort $bam_file -o $sorted_bam_file.bam";
         &process_cmd($cmd);
         $cmd = "samtools index $sorted_bam_file.bam";
         &process_cmd($cmd);
@@ -833,6 +845,14 @@ sub run_kallisto {
     }
 
 
+    if ($SS_lib_type) {
+        # add strand-specific options for kallisto
+        my $kallisto_ss_opt = ($SS_lib_type =~ /^R/) ? "--rf-stranded" : "--fr-stranded";
+        if ($kallisto_add_opts !~ /$kallisto_ss_opt/) {
+            $kallisto_add_opts .= " $kallisto_add_opts";
+        }
+    }
+        
     foreach my $sample_href (@samples) {
      
         my ($output_dir, $left_file, $right_file, $single_file) = ($sample_href->{output_dir},

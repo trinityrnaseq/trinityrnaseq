@@ -47,6 +47,7 @@ my $usage = <<__EOUSAGE__;
 #  --min_reps_min_cpm  <string>    default: $MIN_REPS_MIN_CPM  (format: 'min_reps,min_cpm')
 #                                  At least min count of replicates must have cpm values > min cpm value.
 #                                     (ie. filtMatrix = matrix[rowSums(cpm(matrix)> min_cpm) >= min_reps, ]  adapted from edgeR manual)
+#                                      Note, ** if no --samples_file, default for min_reps is set = 1 **
 #
 #  --output|o                      name of directory to place outputs (default: \$method.\$pid.dir)
 #
@@ -154,10 +155,16 @@ unless ($method =~ /^(edgeR|DESeq2|voom|ROTS|GLM)$/) {
 }
 
 my ($MIN_REPS, $MIN_CPM) = split(/,/, $MIN_REPS_MIN_CPM);
-unless ($MIN_REPS > 0 && $MIN_CPM > 0) {
-    die "Error, --min_reps_min_cpm $MIN_REPS_MIN_CPM must include values > 0 in comma-delimited format. ex.  '2,1' ";
-}
 
+if ($samples_file) {
+    unless ($MIN_REPS > 0 && $MIN_CPM > 0) {
+        die "Error, --min_reps_min_cpm $MIN_REPS_MIN_CPM must include values > 0 in comma-delimited format. ex.  '2,1' ";
+    }
+}
+else {
+    print STDERR "-note, no biological replicates identified, so setting min reps = $MIN_REPS.\n";
+    $MIN_REPS = 1;
+}
 
 
 main: {
@@ -432,7 +439,7 @@ sub run_edgeR_sample_pair {
     print $ofh "source(\"$FindBin::RealBin/R/rnaseq_plot_funcs.R\")\n";
     print $ofh "pdf(\"$output_prefix.edgeR.DE_results.MA_n_Volcano.pdf\")\n";
 
-    print $ofh "plot_MA_and_Volcano(result_table\$logCPM, result_table\$logFC, result_table\$FDR)\n";
+    print $ofh "plot_MA_and_Volcano(rownames(result_table), result_table\$logCPM, result_table\$logFC, result_table\$FDR)\n";
     print $ofh "dev.off()\n";
     
     close $ofh;
@@ -522,7 +529,7 @@ sub run_DESeq2_sample_pair {
     ## generate MA and Volcano plots
     print $ofh "source(\"$FindBin::RealBin/R/rnaseq_plot_funcs.R\")\n";
     print $ofh "pdf(\"$output_prefix.DESeq2.DE_results.MA_n_Volcano.pdf\")\n";
-    print $ofh "plot_MA_and_Volcano(log2(res\$baseMean+1), res\$log2FoldChange, res\$padj)\n";
+    print $ofh "plot_MA_and_Volcano(rownames(res), log2(res\$baseMean+1), res\$log2FoldChange, res\$padj)\n";
     print $ofh "dev.off()\n";
         
     
@@ -599,7 +606,7 @@ sub run_limma_voom_sample_pair {
     print $ofh "# MA and volcano plots\n";
     print $ofh "source(\"$FindBin::RealBin/R/rnaseq_plot_funcs.R\")\n";
     print $ofh "pdf(\"$output_prefix.voom.DE_results.MA_n_Volcano.pdf\")\n";
-    print $ofh "plot_MA_and_Volcano(tTags2\$logCPM, tTags\$logFC, tTags\$'adj.P.Val')\n";
+    print $ofh "plot_MA_and_Volcano(rownames(tTags2), tTags2\$logCPM, tTags\$logFC, tTags\$'adj.P.Val')\n";
     print $ofh "dev.off()\n";
     
     close $ofh;
@@ -697,7 +704,7 @@ sub run_ROTS_sample_pair {
     print $ofh "# MA and volcano plots\n";
     print $ofh "source(\"$FindBin::RealBin/R/rnaseq_plot_funcs.R\")\n";
     print $ofh "pdf(\"$output_prefix.voom.DE_results.MA_n_Volcano.pdf\")\n";
-    print $ofh "plot_MA_and_Volcano(final_table\$logCPM, final_table\$logFC, final_table\$FDR)\n";
+    print $ofh "plot_MA_and_Volcano(rownames(final_table), final_table\$logCPM, final_table\$logFC, final_table\$FDR)\n";
     print $ofh "dev.off()\n";
     
     

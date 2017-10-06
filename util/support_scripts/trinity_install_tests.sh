@@ -47,7 +47,7 @@ else
 fi
 
 
-if [ -e "trinity-plugins/parafly/bin/ParaFly" ]
+if [ -e "trinity-plugins/BIN/ParaFly" ]
 then
 	echo "parafly:                 has been Installed Properly"
 else

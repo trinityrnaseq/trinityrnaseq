@@ -3,7 +3,7 @@ OS := $(shell uname)
 
 JELLYFISH_CODE="jellyfish-2.2.6"
 COLLECTL_CODE="collectl-4.1.0"
-PARAFLY_CODE=parafly-code
+PARAFLY_CODE="ParaFly-0.1.0"
 TRIMMOMATIC_CODE=Trimmomatic-0.36
 
 
@@ -35,8 +35,9 @@ jellyfish:
 
 
 parafly_target:
-	cd ${PARAFLY_CODE} && sh ./configure --prefix=`pwd` && $(MAKE) install
-	ln -sf ${PARAFLY_CODE} parafly
+	tar -zxvf ${PARAFLY_CODE}.tar.gz && \
+	cd ${PARAFLY_CODE} && sh ./configure --prefix=`pwd` && $(MAKE) install && \
+	cp bin/ParaFly ../BIN/
 
 
 ##################################

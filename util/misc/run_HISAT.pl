@@ -12,8 +12,25 @@ use Cwd;
 use Carp;
 use Getopt::Long qw(:config no_ignore_case bundling pass_through);
 
-my $HISAT_HOME = $ENV{HISAT_HOME} or die "Error, need env var HISAT_HOME set to the HISAT installation directory.\n\n";
- 
+our $HISAT_HOME;
+
+BEGIN {
+    
+    if ($ENV{HISAT_HOME}) {
+        $HISAT_HOME = $ENV{HISAT_HOME};
+    }
+    else {
+        my $hisat_prog = `which hisat`;
+        if ($hisat_prog) {
+            chomp $hisat_prog;
+            $HISAT_HOME = dirname($hisat_prog);
+        }
+        else {
+            die "Error, cannot find hisat in PATH setting";
+        }
+    }
+}
+
 
 
 my $usage = <<__EOUSAGE__;
@@ -33,6 +50,9 @@ my $usage = <<__EOUSAGE__;
 #
 #######################################################################
 
+Include additional hisat arguments as additional command line parameters.
+
+########################################################################
 
 __EOUSAGE__
 
@@ -60,6 +80,11 @@ my $num_top_hits = 1;
              'N=i' => \$num_top_hits,
     );
 
+
+
+if ($help_flag) {
+    die $usage;
+}
 
 unless ($genome && $reads) {
     die $usage;
@@ -109,12 +134,12 @@ main: {
     $pipeliner->add_commands( new Command($cmd, "$out_prefix.sam.gz.ok") );
     push (@tmpfiles, "$out_prefix.sam.gz");
     
-    $cmd = "bash -c \"set -o pipefail && gunzip -c $out_prefix.sam.gz | samtools view -@ $CPU -F 4 -Sb - > $out_prefix.bam \"";
+    $cmd = "bash -c \"set -o pipefail && gunzip -c $out_prefix.sam.gz | samtools view -@ $CPU -F 4 -Sb -o $out_prefix.bam \"";
     $pipeliner->add_commands( new Command($cmd, "$out_prefix.bam.ok") );
     push (@tmpfiles, "$out_prefix.bam");
     
 
-    $cmd = "samtools sort -@ $CPU $out_prefix.bam $out_prefix.cSorted";
+    $cmd = "samtools sort -@ $CPU $out_prefix.bam -o $out_prefix.cSorted.bam";
     $pipeliner->add_commands( new Command($cmd, "$out_prefix.cSorted.bam.ok") );
     
 

@@ -39,9 +39,9 @@ matrix_to_color_assignments = function(matrix_m, col=NULL, by=c("matrix", "row",
     
     if (by == "matrix") {
 
-        min_val = min(matrix_m)
+        min_val = min(matrix_m, na.rm=T)
 	    matrix_m = matrix_m - min_val
-	    max_val = max(matrix_m)
+	    max_val = max(matrix_m, na.rm=T)
 	    matrix_m = matrix_m / max_val * num_colors
         #print(matrix_m)
    	    matrix_m = apply(matrix_m, 1:2, function(x) ifelse (x<1, as.character(col[1]), as.character(col[x])));
@@ -51,8 +51,8 @@ matrix_to_color_assignments = function(matrix_m, col=NULL, by=c("matrix", "row",
 	else {
 
 		row_or_col_only_color_selector_func = function(x) { 
-				a = min(x); 
-				b = max(x); 
+				a = min(x, na.rm=T); 
+				b = max(x, na.rm=T); 
 				c = (x-a)/(b-a) * num_colors;
                 c = round(c);
 				c = ifelse (c<1, 1, c); 
@@ -62,7 +62,11 @@ matrix_to_color_assignments = function(matrix_m, col=NULL, by=c("matrix", "row",
 		}
 	
 		if (by == "row") {
-			matrix_m = t(apply(matrix_m, 1, row_or_col_only_color_selector_func));
+            matrix_m = apply(matrix_m, 1, row_or_col_only_color_selector_func);
+            print(matrix_m)
+            print("dim matrix_m after apply"); print(dim(matrix_m))
+            matrix_m = t(matrix_m);
+            print("dim matrix_m after transpose: "); print(dim(matrix_m))
 		}
 		else {
 			# by column

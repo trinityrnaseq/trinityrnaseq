@@ -29,7 +29,7 @@ my $usage = <<__EOUSAGE__;
 #     --min_pct_dom_iso <int>         minimum percent of dominant isoform expression (default: 0)
 #          or
 #     --highest_iso_only          only retain the most highly expressed isoform per gene (default: off)
-#                                 (mutually exclusive with --min_pct_iso param)
+#                                 (mutually exclusive with --min_pct_dom_iso param)
 #
 #     # requires gene-to-transcript mappings
 #

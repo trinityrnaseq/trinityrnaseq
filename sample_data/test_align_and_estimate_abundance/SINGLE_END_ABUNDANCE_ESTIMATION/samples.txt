@@ -1,8 +1,0 @@
-heatshock	../../test_DATA/Sp_hs.10k.left.fq.gz
-plateau	../../test_DATA/Sp_plat.10k.right.fq.gz
-log_growth	../../test_DATA/Sp_log.10k.left.fq.gz
-diauxic_shift	../../test_DATA/Sp_ds.10k.right.fq.gz
-
---seqType fq
---SS_lib_type R
---trinity_mode

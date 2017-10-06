@@ -1,9 +1,0 @@
-#sample	replicate
-
-heatshock	hs_rep1
-
-plateau	plat_rep1
-
-log_growth	log_rep1
-
-diauxic_shift	ds_rep1

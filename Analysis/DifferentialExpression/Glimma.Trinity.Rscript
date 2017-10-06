@@ -27,6 +27,12 @@ DE_results_file = args$DE_results
 counts_matrix_file = args$counts_matrix
 samples_file = args$samples_file
 
+
+source("https://bioconductor.org/biocLite.R")
+biocLite("Glimma")
+biocLite("argparse")
+biocLite("edgeR")
+
 library(edgeR)
 library(limma)
 library(Glimma)

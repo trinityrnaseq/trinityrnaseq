@@ -1,3 +1,28 @@
+
+# Release v2.5 Oct 6, 2017
+
+-SuperTranscripts: differential transcript usage via DEXseq and variant calling via GATK, based on Davidson et al. GB 2017.
+-abundance matrices: Gene counts based on isoform scaled TPM values (based on Soneson F1000R 2016)
+                     Gene count matrix auto-generated at time of isoform-count matrix construction (requires gene-to-trans mappings).
+-Trinity - gene-to-trans mapping file auto-generated to accompany the Trinity.fasta file.
+-Butterfly - fixed bug yielding certain types of redundant transcripts
+-parafly - auto-retries failed commands at exec time to avoid sporadic failures 
+-included test data minimized, most moved to a submodule that can be populated on demand.
+-make install copies the trinity package to /usr/local/bin/trinity
+
+
+# Release v2.4  Feb 5, 2017
+
+-uses samtools v1.3, jellyfish 2.2.6, and trimmomatic 0.36
+-seqtk now used for fastq->fasta conversions
+updated compute resource monitoring routines that leverage collectl
+-included utilities to examine strand-specificity of the rna-seq reads:
+https://github.com/trinityrnaseq/trinityrnaseq/wiki/Examine-Strand-Specificity
+-Trinity carefully checks formatting of 'samples_file' to ensure it uses all the samples (dealing w/ non-unix text-editor formatting issues that can bundle the entire text file into what looks like a single line of text)
+-Docker image updated to include salmon for abundance estimation
+-refined use of bowtie2 in chrysalis clustering and various updates to improve long-read support.
+
+
 # Release v2.3  Nov 20, 2016
 
     -for submitting parallel computes on a computing grid, use the new --grid_exec parameter with your own script that handles grid submissions and performs job management.

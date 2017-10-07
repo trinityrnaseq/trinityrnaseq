@@ -1,3 +1,6 @@
+trinityrnaseq/trinityrnaseq:2.5.0
+	Oct 6 2017
+
 
 trinityrnaseq/trinityrnaseq:2.4.0b
    July-11-2017

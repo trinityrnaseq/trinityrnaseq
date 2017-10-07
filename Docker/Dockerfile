@@ -127,7 +127,7 @@ WORKDIR $SRC
 
 RUN git clone https://github.com/trinityrnaseq/trinityrnaseq.git && \
     cd trinityrnaseq && \
-    git checkout 5b70955 && \
+    git checkout 88bfb01 && \
     make && make plugins && \
     make install && \
     cd ../ && rm -r trinityrnaseq

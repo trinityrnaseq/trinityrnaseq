@@ -1387,8 +1387,8 @@ main: {
         }
         
     }
-
-    if ($final_Trinity_fasta_file) {
+    
+    if ($final_Trinity_fasta_file && ! $TRINITY_COMPLETE_FLAG) {
         &process_cmd("$UTILDIR/support_scripts/get_Trinity_gene_to_trans_map.pl $final_Trinity_fasta_file > $final_Trinity_fasta_file.gene_trans_map");
     }
     

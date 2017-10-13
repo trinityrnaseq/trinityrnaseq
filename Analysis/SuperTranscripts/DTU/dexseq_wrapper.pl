@@ -91,7 +91,6 @@ main: {
     
     my $analysis_token = "$chkpts_dir/" . basename($genes_gtf_file) . ".$aligner";
     
-    
     ## flatten the gtf file
     my $cmd = "$TRINITY_HOME/trinity-plugins/DEXseq_util/dexseq_prepare_annotation.py $genes_gtf_file $genes_gtf_file.dexseq.gff";
     $pipeliner->add_commands(new Command($cmd, "$chkpts_dir/" . basename($genes_gtf_file) . ".flatten_gtf.ok"));
@@ -218,6 +217,8 @@ sub parse_samples_file {
     my ($samples_file) = @_;
 
     my @samples_info;
+
+    my %seen;
     
     open (my $fh, $samples_file) or die "Error, cannot open file: $samples_file";
     while (<$fh>) {
@@ -227,6 +228,11 @@ sub parse_samples_file {
         my $replicate = $x[1];
         my $left_fq = $x[2];
         my $right_fq = $x[3]; # only if paired-end
+
+        if ($seen{$replicate}) {
+            die "Error, replicate name: [$replicate] must be unique among all replicate names.  Please update your samples file";
+        }
+        $seen{$replicate} = 1;
         
         push (@samples_info, [$condition, $replicate, $left_fq, $right_fq]);
     }

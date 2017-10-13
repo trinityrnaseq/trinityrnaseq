@@ -96,13 +96,13 @@ main: {
     $pipeliner->add_commands(new Command($cmd, "$chkpts_dir/" . basename($genes_gtf_file) . ".flatten_gtf.ok"));
 
     if ($aligner =~ /HISAT2/i) {
-        $cmd = "$TRINITY_HOME/util/misc/run_HISAT2_via_samples_file.pl --genome $genes_fasta_file --gtf $genes_gtf_file --samples_file $samples_file --CPU $CPU ";
+        $cmd = "$TRINITY_HOME/util/misc/run_HISAT2_via_samples_file.pl --genome $genes_fasta_file --gtf $genes_gtf_file --samples_file $samples_file --CPU $CPU --nameSorted ";
         $pipeliner->add_commands(new Command($cmd, "$analysis_token.align.ok"));
         
         $pipeliner->run();
     }
     elsif ($aligner =~ /STAR/i) {
-        $cmd = "$TRINITY_HOME/util/misc/run_STAR_via_samples_file.pl --genome $genes_fasta_file --gtf $genes_gtf_file --samples_file $samples_file --CPU $CPU ";
+        $cmd = "$TRINITY_HOME/util/misc/run_STAR_via_samples_file.pl --genome $genes_fasta_file --gtf $genes_gtf_file --samples_file $samples_file --CPU $CPU --nameSorted ";
         $pipeliner->add_commands(new Command($cmd, "$analysis_token.align.ok"));
         $pipeliner->run();
     }
@@ -117,7 +117,7 @@ main: {
     foreach my $sample_info_aref (@samples_info) {
         my ($condition, $replicate, $left_fq, $right_fq) = @$sample_info_aref;
         
-        my $bam_file = "$replicate.cSorted.__METHOD__.__GENES__.bam";
+        my $bam_file = "$replicate.nSorted.__METHOD__.__GENES__.bam";
         $bam_file =~ s/__METHOD__/$aligner/;
         $bam_file =~ s/__GENES__/$genes_file_basename/;
         
@@ -126,34 +126,38 @@ main: {
         }
         
         # quant
-        my $cmd = "$TRINITY_HOME/trinity-plugins/DEXseq_util/dexseq_count-trinity.py --order pos -f bam --max_NH 2 ";
+        my $cmd = "featureCounts -T $CPU ";
+
+
 
         # paired or unpaired:
         if ($right_fq) {
-            $cmd .= " --paired yes ";
-        }
-        else {
-            $cmd .= " --paired no ";
+            $cmd .= " -p -B ";
         }
 
         ## strand-specific options:
         if ($SS_lib_type) {
             if ($SS_lib_type =~ /^F/) {
-                $cmd .= " --stranded yes";
+                $cmd .= " -s 1";
             }
             elsif ($SS_lib_type =~ /^R/) {
-                $cmd .= " --stranded reverse";
+                $cmd .= " -s 2";
             }
             else {
                 die "Error, not recognizing strand-specific lib type [$SS_lib_type]";
             }
         }
         else {
-            $cmd .= " --stranded no";
+            # unstranded by default
         }
         
-        $cmd .= " $genes_gtf_file.dexseq.gff $bam_file $bam_file.counts";
-        $pipeliner->add_commands(new Command($cmd, "$analysis_token.$bam_file.counts.ok"));
+        $cmd .= " -O --fraction -M -t exonic_part -g exonic_gene_part_number -a $genes_gtf_file.dexseq.gff -f -o $bam_file.fc  $bam_file";
+
+        $pipeliner->add_commands(new Command($cmd, "$analysis_token.$bam_file.fc.ok"));
+
+        
+        $pipeliner->add_commands(new Command("$FindBin::Bin/util/reformat_featureCounts.pl $bam_file.fc > $bam_file.counts",
+                                             "$analysis_token.$bam_file.counts.ok"));
         
         push (@counts_files, "$bam_file.counts");
         

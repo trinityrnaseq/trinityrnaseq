@@ -27,6 +27,8 @@ my $usage = <<__EOUSAGE;
 #
 #  --CPU <int>               multithreading (default: $CPU)
 #
+#  --nameSorted              sorts bam by read name
+#
 ###########################################################
 
 
@@ -41,13 +43,14 @@ my $help_flag;
 my $genome_fa;
 my $annotation_gtf;
 my $samples_file;
-
+my $nameSorted;
 
 &GetOptions ( 'h' => \$help_flag,
               'genome=s' => \$genome_fa,
               'gtf=s' => \$annotation_gtf,
               'samples_file=s' => \$samples_file,
               'CPU=i' => \$CPU,
+              'nameSorted' => \$nameSorted,
     );
 
 if ($help_flag) { die $usage; }
@@ -88,14 +91,22 @@ main: {
     unless (-d $aln_checkpoints_dir) {
         mkdir($aln_checkpoints_dir) or die "Error, cannot mkdir $aln_checkpoints_dir";
     }
+
+    my $sorted_opt = "";
+    my $sorted_token = "c";
+    
+    if ($nameSorted) {
+        $sorted_opt = "-n";
+        $sorted_token = "n";
+    }
     
     foreach my $read_set_aref (@read_sets) {
         my ($sample_id, $left_fq, $right_fq) = @$read_set_aref;
 
 
-        my $bamfile = "$sample_id.cSorted.hisat2." . basename($genome_fa) . ".bam";
+        my $bamfile = "$sample_id.${sorted_token}Sorted.hisat2." . basename($genome_fa) . ".bam";
         
-        $pipeliner->add_commands(new Command("bash -c \"set -eof pipefail; hisat2 --dta -x $genome_fa -p $CPU -1 $left_fq -2 $right_fq | samtools view -Sb -F 4 | samtools sort -o $bamfile \" ",
+        $pipeliner->add_commands(new Command("bash -c \"set -eof pipefail; hisat2 --dta -x $genome_fa -p $CPU -1 $left_fq -2 $right_fq | samtools view -Sb -F 4 | samtools sort $sorted_opt -o $bamfile \" ",
                                              "$aln_checkpoints_dir/$bamfile.ok"));
         
     }

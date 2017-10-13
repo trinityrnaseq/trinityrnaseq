@@ -3538,6 +3538,8 @@ sub append_long_reads_to_iworm_contigs {
 sub parse_samples_file {
     my ($samples_file, $single_files_aref, $left_files_aref, $right_files_aref) = @_;
 
+    my %seen;
+    
     open (my $fh, $samples_file) or die "Error, cannot open file: $samples_file";
     while (<$fh>) {
         chomp;
@@ -3548,6 +3550,16 @@ sub parse_samples_file {
         if (scalar @x > 4) {
             die "Error, more than 4 fields found in samples file line: [$_] ";
         }
+
+        my $sample_name = $x[0];
+        my $replicate_name = $x[1];
+
+        ## ensure replicate names are unique
+        if ($seen{$replicate_name}) {
+            die "Error, replicate name [$replicate_name] must be uniquely specified. Please update your samples file to ensure unique replicate names";
+        }
+        $seen{$replicate_name} = 1;
+                
         my $left_fq = $x[2];
         my $right_fq = $x[3];
 

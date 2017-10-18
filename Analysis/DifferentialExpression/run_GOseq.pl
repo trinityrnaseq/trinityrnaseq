@@ -89,7 +89,8 @@ main: {
     print $ofh "background = read.table(\"$background_file\", header=T, row.names=1)\n";
     print $ofh "background.gene_ids = rownames(background)\n";
     print $ofh "background.gene_ids = unique(c(background.gene_ids, DE_genes))\n"; 
-
+    print $ofh "sample_set_gene_ids = background.gene_ids\n";
+    
     print $ofh "\n\n# parse GO assignments\n";
     print $ofh "GO_info = read.table(\"$GO_file\", header=F, row.names=1,stringsAsFactors=F)\n";
     
@@ -107,7 +108,7 @@ main: {
     
     print $ofh "\n\n#organize go_id -> list of genes\n";  
     print $ofh "GO_to_gene_list = list()\n";
-    print $ofh "for (gene_id in names(GO_info_listed)) {\n";
+    print $ofh "for (gene_id in intersect(names(GO_info_listed), sample_set_gene_ids)) {\n";
     print $ofh "    go_list = GO_info_listed[[gene_id]]\n";
     print $ofh "    for (go_id in go_list) {\n";
     print $ofh "        GO_to_gene_list[[go_id]] = c(GO_to_gene_list[[go_id]], gene_id)\n";
@@ -116,9 +117,8 @@ main: {
     
     
     print $ofh "\n\n# GO-Seq protocol: build pwf based on ALL DE features\n";
-    
-    
-    print $ofh "sample_set_gene_ids = background.gene_ids\n";
+        
+
     print $ofh "sample_set_gene_lengths = gene_lengths[sample_set_gene_ids,]\n";
     print $ofh "GO_info_listed = GO_info_listed[ names(GO_info_listed) %in% sample_set_gene_ids ]\n";
     

@@ -65,7 +65,6 @@ main: {
     print $ofh "library(qvalue)\n";
     
 
-
     print $ofh "# capture list of genes for functional enrichment testing\n";
     if ($genes_single_factor_file) {
         print $ofh "factor_labeling = read.table(\"$genes_single_factor_file\", row.names=1)\n";
@@ -130,7 +129,7 @@ main: {
     
     print $ofh "\n\n# perform functional enrichment testing for each category.\n";
     print $ofh "for (feature_cat in factor_list) {\n";
-    print $ofh "   message('Processing category: ', feature_cat)\n";
+    print $ofh "    message('Processing category: ', feature_cat)\n";
     print $ofh "    gene_ids_in_feature_cat = rownames(factor_labeling)[factor_labeling\$type == feature_cat]\n";
     print $ofh "    cat_genes_vec = as.integer(sample_set_gene_ids %in% gene_ids_in_feature_cat)\n";
     print $ofh "    pwf\$DEgenes = cat_genes_vec\n";
@@ -156,11 +155,10 @@ main: {
 
     print $ofh "    result_table\$gene_ids = do.call(rbind, lapply(result_table\$category, function(x) { \n" .
                "            gene_list = GO_to_gene_list[[x]]\n" .
-               "            gene_list = gene_list[gene_list %in% rownames(factor_labeling)]\n" .
+               "            gene_list = gene_list[gene_list %in% gene_ids_in_feature_cat]\n" .
                "            paste(gene_list, collapse=', ');\n" .
                "     }) )\n";
     
-
     print $ofh "    write.table(result_table[order(result_table\$over_represented_pvalue),], file=go_enrich_filename, sep='\t', quote=F, row.names=F)\n";
     
 

@@ -22,8 +22,9 @@ my $usage = <<__EOUSAGE__;
 #  --gtf <string>              annotations in gtf format
 #  --samples_file  <string>    trinity samples file
 #  
-#  Optional:
+#  Optional
 #  --CPU <int>                 number of threads (default: 2)
+#  --nameSorted                sort bam by name instead of coordinate
 #
 #######################################################################
 
@@ -40,13 +41,14 @@ my $CPU = 2;
 
 my $help_flag;
 my $gtf_file;
-
+my $nameSorted;
 
 &GetOptions( 'h' => \$help_flag,
              'genome=s' => \$genome,
              'samples_file=s' => \$samples_file,
              'CPU=i' => \$CPU,
              'gtf=s' => \$gtf_file,
+             'nameSorted' => \$nameSorted,
     );
 
 
@@ -101,14 +103,25 @@ main: {
     unless (-d $checkpoint_dir) {
         mkdir($checkpoint_dir) or die "Error, cannot mkdir $checkpoint_dir";
     }
-            
+
+
+    my $sort_opt = "SortedByCoordinate";
+    my $sort_token = "c";
+    my $bam_outfile = "Aligned.sortedByCoord.out.bam";
+    if ($nameSorted) {
+        $sort_opt = "Unsorted";
+        $sort_token = "n";
+        $bam_outfile = "Aligned.out.bam";
+    }
+    
+    
     foreach my $read_set_aref (@read_sets) {
         my ($sample_id, $left_fq, $right_fq) = @$read_set_aref;
             
         my $cmd = "$star_prog "
             . " --runThreadN $CPU "
             . " --genomeDir $star_index "
-            . " --outSAMtype BAM SortedByCoordinate "
+            . " --outSAMtype BAM $sort_opt "
             . " --runMode alignReads "
             . " --readFilesIn $left_fq $right_fq "
             . " --twopassMode Basic "
@@ -122,13 +135,14 @@ main: {
         
         $pipeliner->add_commands( new Command($cmd, "$checkpoint_dir/star_align.$sample_id." . basename($genome) . ".ok") );
         
-        my $bam_outfile = "Aligned.sortedByCoord.out.bam";
-        my $renamed_bam_outfile = "$sample_id.cSorted.star." . basename($genome) . ".bam";
+        my $renamed_bam_outfile = "$sample_id.${sort_token}Sorted.star." . basename($genome) . ".bam";
         $pipeliner->add_commands( new Command("mv $bam_outfile $renamed_bam_outfile", "$checkpoint_dir/$renamed_bam_outfile.ok") );
+
+        unless ($nameSorted) {
+            $pipeliner->add_commands( new Command("samtools index $renamed_bam_outfile", "$checkpoint_dir/$renamed_bam_outfile.bai.ok") );
+        }
         
-        $pipeliner->add_commands( new Command("samtools index $renamed_bam_outfile", "$checkpoint_dir/$renamed_bam_outfile.bai.ok") );
-    
-    
+        
         $pipeliner->run();
     }
     

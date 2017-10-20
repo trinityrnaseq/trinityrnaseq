@@ -138,6 +138,7 @@ for l in aggregates.values():
    aggr_feat.attr = { 'gene_id': aggr_feat.name }
    for i in xrange( len(l) ):
       l[i].attr['exonic_part_number'] = "%03d" % ( i+1 )
+      l[i].attr['exonic_gene_part_number'] = "%s:%03d" % (aggr_feat.name, i+1)
    aggregate_features.append( aggr_feat )
       
       

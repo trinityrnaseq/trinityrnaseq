@@ -291,7 +291,7 @@ main: {
     my $gene_counts_file = "$out_prefix.gene.counts.matrix";
     my $gene_tpm_file = "$out_prefix.gene.TPM.not_cross_norm";
     
-    if ($gene_trans_map_file) {
+    if ($gene_trans_map_file ne 'none') {
         my %gene_to_trans;
         {
             open(my $fh, $gene_trans_map_file) or die "Error, cannot open file $gene_trans_map_file";

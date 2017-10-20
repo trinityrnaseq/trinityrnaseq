@@ -1339,11 +1339,11 @@ main: {
                 
             }
 
-            elsif ($prin_comp) {
+            #elsif ($prin_comp) {
                 
-                $Rscript .= ", RowSideColors=pcscore_mat, ColSideColors=t(pcscore_mat)";
+             #   $Rscript .= ", RowSideColors=pcscore_mat, ColSideColors=t(pcscore_mat)";
                 
-            }
+            #}
             $Rscript .= ")\n";
             $Rscript .= "dev.off()\n";
         }
@@ -1503,9 +1503,9 @@ main: {
             $Rscript .= ", RowSideColors = geneFactorAnnotations";
             
         }
-        elsif ($prin_comp) {
-            $Rscript .= ", RowSideColors=pcscore_mat";
-        }
+        #elsif ($prin_comp) {
+        #    $Rscript .= ", RowSideColors=pcscore_mat";
+        #}
         
         if ($samples_file) {
             $Rscript .= ", ColSideColors=sampleAnnotations";

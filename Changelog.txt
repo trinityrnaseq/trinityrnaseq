@@ -1,3 +1,13 @@
+# Release v2.5.1 patch release  Oct 20, 2017
+-no changes to the Trinity assembler, only to analysis support
+-use Subreads featureCounts instead of slow python script for counting reads on supertranscripts.
+-align_abundance_estimates: allow --gene_trans_map 'none'
+-checks to ensure replicate names are unique in samples.txt files
+-run_GO_seq: restrict gene id listing in the report to those features in the factor
+-run_DE: DESeq2 reports include the base expr level for each sample (instead of NAs)
+-PtR: addressed error w/ pcscore_mat values not available.
+
+
 
 # Release v2.5 Oct 6, 2017
 

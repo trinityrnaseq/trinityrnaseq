@@ -512,8 +512,8 @@ sub run_DESeq2_sample_pair {
 
     # adj from: Carsten Kuenne, thx!
     ##recreates baseMeanA and baseMeanB columns that are not created by default DESeq2 anymore
-    print $ofh "baseMeanA <- rowMeans(counts(dds, normalized=TRUE)[,colData(dds)\$condition == \"$sample_A\"])\n";
-    print $ofh "baseMeanB <- rowMeans(counts(dds, normalized=TRUE)[,colData(dds)\$condition == \"$sample_B\"])\n";
+    print $ofh "baseMeanA <- rowMeans(counts(dds, normalized=TRUE)[,colData(dds)\$conditions == \"$sample_A\"])\n";
+    print $ofh "baseMeanB <- rowMeans(counts(dds, normalized=TRUE)[,colData(dds)\$conditions == \"$sample_B\"])\n";
     print $ofh "res = cbind(baseMeanA, baseMeanB, as.data.frame(res))\n";
  
     ##adds an “id” column headline for column 0

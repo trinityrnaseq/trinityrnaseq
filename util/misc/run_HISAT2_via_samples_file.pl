@@ -59,6 +59,10 @@ unless ($genome_fa && $samples_file) {
     die $usage;
 }
 
+$genome_fa = &Pipeliner::ensure_full_path($genome_fa);
+$samples_file = &Pipeliner::ensure_full_path($samples_file);
+$annotation_gtf = &Pipeliner::ensure_full_path($annotation_gtf) if $annotation_gtf;
+
 
 
 main: {
@@ -140,6 +144,9 @@ sub parse_samples_file {
         my @x = split(/\t/);
         my ($cond, $rep, $fq_a, $fq_b) = @x;
 
+        $fq_a = &Pipeliner::ensure_full_path($fq_a);
+        $fq_b = &Pipeliner::ensure_full_path($fq_b) if $fq_b;
+        
         push (@samples, [$rep, $fq_a, $fq_b]);
     }
     close $fh;

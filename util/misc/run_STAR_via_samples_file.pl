@@ -8,6 +8,7 @@ use lib("$FindBin::RealBin/../../PerlLib");
 use Pipeliner;
 use File::Basename;
 use Cwd;
+use List::Util qw(min);
 
 use Carp;
 use Getopt::Long qw(:config no_ignore_case bundling pass_through);
@@ -76,9 +77,18 @@ main: {
 	
     ## ensure all full paths
     $genome = &Pipeliner::ensure_full_path($genome);
-    $gtf_file = &Pipeliner::ensure_full_path($gtf_file);
+    $gtf_file = &Pipeliner::ensure_full_path($gtf_file) if $gtf_file;
+    
 
-        
+    my $num_contigs = `grep '>' $genome | wc -l`;
+    chomp $num_contigs;
+    $num_contigs = int($num_contigs);
+    unless ($num_contigs > 0) {
+        die "Error, couldn't determine the number of contigs in genome: $genome  ... shouldn't happen. ";
+    }
+
+    my $genomeChrBinNbits = min(18, int(log((-s $genome) / $num_contigs) / log(2) + 0.5) );
+    
     my @read_sets = &parse_samples_file($samples_file);    
 
     my $pipeliner = new Pipeliner(-verbose => 1);
@@ -91,6 +101,7 @@ main: {
     
     my $cmd = "$star_prog --runThreadN $CPU --runMode genomeGenerate --genomeDir $star_index "
         . " --genomeFastaFiles $genome "
+        . " --genomeChrBinNbits $genomeChrBinNbits "
         . " --limitGenomeGenerateRAM 40419136213 ";
         
     if ($gtf_file) {
@@ -183,6 +194,9 @@ sub parse_samples_file {
         my @x = split(/\t/);
         my ($cond, $rep, $fq_a, $fq_b) = @x;
 
+        $fq_a = &Pipeliner::ensure_full_path($fq_a);
+        $fq_b = &Pipeliner::ensure_full_path($fq_b) if $fq_b;
+        
         push (@samples, [$rep, $fq_a, $fq_b]);
     }
     close $fh;

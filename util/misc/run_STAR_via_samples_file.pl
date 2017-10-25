@@ -19,10 +19,10 @@ my $usage = <<__EOUSAGE__;
 #
 #  Required:
 #  --genome <string>           target genome to align to
-#  --gtf <string>              annotations in gtf format
 #  --samples_file  <string>    trinity samples file
 #  
 #  Optional
+#  --gtf <string>              annotations in gtf format
 #  --CPU <int>                 number of threads (default: 2)
 #  --nameSorted                sort bam by name instead of coordinate
 #
@@ -52,7 +52,7 @@ my $nameSorted;
     );
 
 
-unless ($genome && $samples_file && $gtf_file) {
+unless ($genome && $samples_file) {
     die $usage;
 }
 
@@ -91,10 +91,14 @@ main: {
     
     my $cmd = "$star_prog --runThreadN $CPU --runMode genomeGenerate --genomeDir $star_index "
         . " --genomeFastaFiles $genome "
-        . " --limitGenomeGenerateRAM 40419136213 "
-        . " --sjdbGTFfile $gtf_file "
-        . " --sjdbOverhang 150 ";
+        . " --limitGenomeGenerateRAM 40419136213 ";
+        
+    if ($gtf_file) {
 
+        $cmd .= " --sjdbGTFfile $gtf_file "
+            .  " --sjdbOverhang 150 ";
+    }            
+        
     $pipeliner->add_commands( new Command($cmd, $star_index_chkpt));
 
     $pipeliner->run();

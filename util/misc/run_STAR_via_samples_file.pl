@@ -20,10 +20,10 @@ my $usage = <<__EOUSAGE__;
 #
 #  Required:
 #  --genome <string>           target genome to align to
-#  --gtf <string>              annotations in gtf format
 #  --samples_file  <string>    trinity samples file
 #  
 #  Optional
+#  --gtf <string>              annotations in gtf format
 #  --CPU <int>                 number of threads (default: 2)
 #  --nameSorted                sort bam by name instead of coordinate
 #
@@ -53,7 +53,7 @@ my $nameSorted;
     );
 
 
-unless ($genome && $samples_file && $gtf_file) {
+unless ($genome && $samples_file) {
     die $usage;
 }
 
@@ -77,8 +77,8 @@ main: {
 	
     ## ensure all full paths
     $genome = &Pipeliner::ensure_full_path($genome);
-    $gtf_file = &Pipeliner::ensure_full_path($gtf_file);
-
+    $gtf_file = &Pipeliner::ensure_full_path($gtf_file) if $gtf_file;
+    
 
     my $num_contigs = `grep '>' $genome | wc -l`;
     chomp $num_contigs;
@@ -102,10 +102,14 @@ main: {
     my $cmd = "$star_prog --runThreadN $CPU --runMode genomeGenerate --genomeDir $star_index "
         . " --genomeFastaFiles $genome "
         . " --genomeChrBinNbits $genomeChrBinNbits "
-        . " --limitGenomeGenerateRAM 40419136213 "
-        . " --sjdbGTFfile $gtf_file "
-        . " --sjdbOverhang 150 ";
+        . " --limitGenomeGenerateRAM 40419136213 ";
+        
+    if ($gtf_file) {
 
+        $cmd .= " --sjdbGTFfile $gtf_file "
+            .  " --sjdbOverhang 150 ";
+    }            
+        
     $pipeliner->add_commands( new Command($cmd, $star_index_chkpt));
 
     $pipeliner->run();
@@ -190,6 +194,9 @@ sub parse_samples_file {
         my @x = split(/\t/);
         my ($cond, $rep, $fq_a, $fq_b) = @x;
 
+        $fq_a = &Pipeliner::ensure_full_path($fq_a);
+        $fq_b = &Pipeliner::ensure_full_path($fq_b) if $fq_b;
+        
         push (@samples, [$rep, $fq_a, $fq_b]);
     }
     close $fh;

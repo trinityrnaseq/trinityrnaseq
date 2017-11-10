@@ -19,11 +19,11 @@ my $usage = <<__EOUSAGE;
 #
 #  --genome <string>         target genome.fasta file
 #
-#  --gtf <string>            annotation in gtf format
-#
 #  --samples_file <string>   Trinity samples file
 #
 # Optional:
+#
+#  --gtf <string>            annotation in gtf format
 #
 #  --CPU <int>               multithreading (default: $CPU)
 #
@@ -55,9 +55,13 @@ my $nameSorted;
 
 if ($help_flag) { die $usage; }
 
-unless ($genome_fa && $annotation_gtf && $samples_file) {
+unless ($genome_fa && $samples_file) {
     die $usage;
 }
+
+$genome_fa = &Pipeliner::ensure_full_path($genome_fa);
+$samples_file = &Pipeliner::ensure_full_path($samples_file);
+$annotation_gtf = &Pipeliner::ensure_full_path($annotation_gtf) if $annotation_gtf;
 
 
 
@@ -69,21 +73,30 @@ main: {
 
     ###########################
     # first, build genome index
-    
+
     my $pipeliner = new Pipeliner(-verbose => 1);
     
-    $pipeliner->add_commands(new Command("hisat2_extract_splice_sites.py $annotation_gtf  > $annotation_gtf.ss",
-                                         "$annotation_gtf.ss.ok"));
-    
-    $pipeliner->add_commands(new Command("hisat2_extract_exons.py $annotation_gtf > $annotation_gtf.exons",
-                                         "$annotation_gtf.exons.ok"));
+    if ($annotation_gtf) {
+                
+        $pipeliner->add_commands(new Command("hisat2_extract_splice_sites.py $annotation_gtf  > $annotation_gtf.ss",
+                                             "$annotation_gtf.ss.ok"));
         
-    $pipeliner->add_commands(new Command("hisat2-build --exon $annotation_gtf.exons --ss $annotation_gtf.ss -p $CPU $genome_fa $genome_fa",
-                                         "$genome_fa.hisat2.build.ok"));
-
-    $pipeliner->run();
-
-
+        $pipeliner->add_commands(new Command("hisat2_extract_exons.py $annotation_gtf > $annotation_gtf.exons",
+                                             "$annotation_gtf.exons.ok"));
+        
+        $pipeliner->add_commands(new Command("hisat2-build --exon $annotation_gtf.exons --ss $annotation_gtf.ss -p $CPU $genome_fa $genome_fa",
+                                             "$genome_fa.hisat2.build.ok"));
+        
+        $pipeliner->run();
+    }
+    else {
+                
+        $pipeliner->add_commands(new Command("hisat2-build  -p $CPU $genome_fa $genome_fa",
+                                             "$genome_fa.hisat2.nogtf.build.ok"));
+        
+        $pipeliner->run();
+    }
+    
     #####################
     ## now run alignments
     
@@ -131,6 +144,9 @@ sub parse_samples_file {
         my @x = split(/\t/);
         my ($cond, $rep, $fq_a, $fq_b) = @x;
 
+        $fq_a = &Pipeliner::ensure_full_path($fq_a);
+        $fq_b = &Pipeliner::ensure_full_path($fq_b) if $fq_b;
+        
         push (@samples, [$rep, $fq_a, $fq_b]);
     }
     close $fh;

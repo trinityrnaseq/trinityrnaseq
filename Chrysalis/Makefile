@@ -292,6 +292,9 @@ SYS_OPT		=
 # Language control (e.g. template instantiations):
 SYS_LANG	=
 
+
+SYS_INCS = -I.
+
 # Where to find system-specific includes:
 ifeq ($(COMPILER),g++)
   ifeq ($(GPP_MAJOR_VERSION),2)

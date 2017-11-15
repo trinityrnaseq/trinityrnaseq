@@ -890,8 +890,6 @@ if ($TRINITY_COMPLETE_FLAG) {
         $iworm_opts .= " --min_ratio_non_error 0.02 ";
     }
     
-    $PARALLEL_IWORM_FLAG = 0;
-    
     $glue_factor = 0.03;
 
 

@@ -883,12 +883,12 @@ if ($TRINITY_COMPLETE_FLAG) {
     
     ## iworm opts
 
-    unless ($iworm_opts =~ /min_seed_entropy/) {
-        $iworm_opts .= " --min_seed_entropy 0.5 ";
-    }
-    unless ($iworm_opts =~ /min_ratio_non_error/) {
-        $iworm_opts .= " --min_ratio_non_error 0.02 ";
-    }
+    #unless ($iworm_opts =~ /min_seed_entropy/) {
+    #    $iworm_opts .= " --min_seed_entropy 0.5 ";
+    #}
+    #unless ($iworm_opts =~ /min_ratio_non_error/) {
+    #    $iworm_opts .= " --min_ratio_non_error 0.02 ";
+    #}
     
     $glue_factor = 0.03;
 

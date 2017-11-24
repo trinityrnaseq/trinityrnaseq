@@ -63,8 +63,9 @@ GOBubble(reduced_circ, labels = 2.8)
 GOCircle(circ)
 
 # Generate a circular visualization of selected terms
-IDs <- c('GO:0007507', 'GO:0001568', 'GO:0001944', 'GO:0048729', 'GO:0048514', 'GO:0005886', 'GO:0008092', 'GO:0008047')
-GOCircle(circ, nsub = IDs)
+# (set the ids to your liking)
+#IDs <- c('GO:0007507', 'GO:0001568', 'GO:0001944', 'GO:0048729', 'GO:0048514', 'GO:0005886', 'GO:0008092', 'GO:0008047')
+#GOCircle(circ, nsub = IDs)
 
 # Generate a circular visualization for 10 terms
 GOCircle(circ, nsub = 10)

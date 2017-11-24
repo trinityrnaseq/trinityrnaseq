@@ -73,5 +73,5 @@ GOCircle(circ, nsub = 10)
 
 ##### Now, the rest is up to you. ;-)
 
-quit(save = "no", status = 0, runLast = FALSE)
+quit(save = "yes", status = 0, runLast = FALSE)
 

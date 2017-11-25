@@ -21,18 +21,22 @@ main: {
     print STDERR "-parsing file: $bam_file\n";
     while (my $sam_entry = $sam_reader->get_next()) {
 
-        if ($sam_entry->is_proper_pair() && $sam_entry->is_first_in_pair()) {
+        my $trans_name = $sam_entry->get_scaffold_name();
+        my $orient = $sam_entry->get_query_strand();
 
-            my $orient = $sam_entry->get_query_strand();
-            my $trans_name = $sam_entry->get_scaffold_name();
 
-            #print STDERR "$trans_name\t$orient\n";
-            
-            $transcript_to_orients{$trans_name}->{$orient}++;
+        if ($sam_entry->is_paired()) {
+        
+            unless ($sam_entry->is_proper_pair() && $sam_entry->is_first_in_pair()) {
+                next;
+            }
         }
+                    
+        $transcript_to_orients{$trans_name}->{$orient}++;
+        
     }
     print STDERR "-done parsing file, examining orientations of reads.\n";
-
+    
     ## sum them up.
     my @transcripts = keys %transcript_to_orients;
     foreach my $transcript (@transcripts) {

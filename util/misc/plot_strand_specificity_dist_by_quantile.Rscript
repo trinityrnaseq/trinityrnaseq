@@ -134,6 +134,9 @@ c = cumsum(data$total_reads)
 cuts = list()
 cutnames = c()
 
+data$diff_ratio = data$diff_ratio + rnorm(nrow(data))/100
+
+
 cut5 = data$diff_ratio[c <= 0.05 * sum_reads]
 if (length(cut5) > 0) {
     cuts = append(cuts, list(cut5))
@@ -168,7 +171,7 @@ plot_filename = paste0(dat_filename, ".vioplot.pdf")
 pdf(plot_filename)
 
 
-vioplot2(cuts, names=cutnames)
+vioplot2(cuts, names=cutnames, ylim=c(-1,1))
 
 
 dev.off()

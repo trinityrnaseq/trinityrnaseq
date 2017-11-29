@@ -22,6 +22,10 @@ class Node:
     merged_nodeset_counter = 0
 
     def __init__(self, transcript_name, loc_node_id, node_seq):
+
+        if len(node_seq) == 0:
+            raise RuntimeError("Error, Node instantiation requires node sequence of length > 0")
+
         self.transcript_name = transcript_name
         self.loc_node_id = loc_node_id
         self.seq = node_seq
@@ -33,6 +37,10 @@ class Node:
 
     @classmethod
     def get_node(self, transcript_name, loc_node_id, node_seq):
+
+        if len(node_seq) == 0:
+            raise RuntimeError("Error, non-zero length node_seq required for parameter")
+        
         node_id = get_node_id(transcript_name, loc_node_id, node_seq)
         if node_id in node_cache:
             node_obj = node_cache[ node_id ]
@@ -436,6 +444,8 @@ class Node_alignment:
             node_obj = self.get_representative_column_node(i)
 
             node_seq = node_obj.get_seq()
+            if len(node_seq) == 0:
+                raise RuntimeError("Error, node seq of length zero: node=" + str(node_obj))
 
             node_occupancy = self.get_node_occupancy_at_column_pos(i)
 

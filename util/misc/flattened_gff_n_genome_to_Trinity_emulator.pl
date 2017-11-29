@@ -66,6 +66,8 @@ main: {
             my @path_text;
             foreach my $path_coord (@path_coords) {
                 my ($exon_number, $lend, $rend) = @$path_coord;
+                $lend--;
+                $rend--;
                 push (@path_text, "$exon_number:$lend-$rend");
             }
             
@@ -101,7 +103,7 @@ sub parse_gff {
 
         unless ($feat_type eq "exonic_part") { next; }
         
-        $info =~ /transcripts \"([^\"]+)\";\s+exonic_part_number \"(\d+)\"; gene_id \"([^\"]+)\"/ or die "Error, cannot parse $info";
+        $info =~ /transcripts \"([^\"]+)\";.*\s+exonic_part_number \"(\d+)\"; gene_id \"([^\"]+)\"/ or die "Error, cannot parse $info";
 
         my $transcripts_list = $1;
         my $exonic_part_number = $2;

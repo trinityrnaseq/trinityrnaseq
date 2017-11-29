@@ -890,7 +890,7 @@ if ($TRINITY_COMPLETE_FLAG) {
     #    $iworm_opts .= " --min_ratio_non_error 0.02 ";
     #}
     
-    $glue_factor = 0.03;
+    # $glue_factor = 0.03;
 
 
     unless ($NORMALIZE_READS_FLAG) {

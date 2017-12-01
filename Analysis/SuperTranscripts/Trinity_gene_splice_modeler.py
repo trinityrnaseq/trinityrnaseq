@@ -117,10 +117,31 @@ class Node:
 
         self.next.update(self.stashed_next)
         self.stashed_next = set()
+
+    def get_prev_node_loc_ids(self):
+        loc_ids = list()
+        for node in self.get_prev_nodes():
+            loc_ids.append(node.get_loc_id())
+        return loc_ids
+
+    def get_next_node_loc_ids(self):
+        loc_ids = list()
+        for node in self.get_next_nodes():
+            loc_ids.append(node.get_loc_id())
+        return loc_ids
     
     def __repr__(self):
         #return(self.get_node_id(self.transcript_name, self.loc_node_id, self.seq))
         return(self.loc_node_id)
+
+
+    def toString(self):
+        txt = str("prev: " + str(self.get_prev_node_loc_ids()) +
+                  ", me: " + str(self.get_loc_id()) +
+                  ", next: " + str(self.get_next_node_loc_ids()))
+
+        return txt
+    
         
     @classmethod
     def merge_nodes(cls, node_list):
@@ -560,6 +581,8 @@ class Topological_sort:
 
     @staticmethod
     def topologically_sort(nodes_list):
+
+        logger.debug("Nodes to topo sort: " + str(nodes_list))
         
         L = list()  # empty list to contain the sorted elements
         S = list()  # set of all nodes with no incoming edge
@@ -583,13 +606,16 @@ class Topological_sort:
         # see if there are cycles
         for node in nodes_list:
             if len(node.get_prev_nodes()) > 0 or len(node.get_next_nodes()) > 0:
-                raise RuntimeError("Graph has cycles!  Shouldn't happen...")
+                raise GraphCycleException("Graph has cycles!  offending node: " + node.toString())
 
         for node in L:
             node.restore_stashed_nodes()
 
         return L
     
+
+class GraphCycleException(Exception):
+    pass
 
 class Gene_splice_modeler:
 
@@ -618,7 +644,14 @@ class Gene_splice_modeler:
     def build_splice_model(self):
 
         if not self.alignment_contains_repeat_node():
-            return self.topological_order_splice_model()
+            # no obvious cycles
+            try:
+                return self.topological_order_splice_model()
+            except GraphCycleException:
+                # have a more complex cycle here...
+                # try again w/ mult align approach.
+                return self.multiple_alignment_splice_model()
+            
         else:
             return self.multiple_alignment_splice_model()
 
@@ -639,6 +672,7 @@ class Gene_splice_modeler:
 
     def topological_order_splice_model(self):
 
+        logger.info("\tusing topological sort method.\n");
         gene_id = self.get_gene_id()
         generic_name = "^^{}^^".format(gene_id)
         
@@ -702,7 +736,9 @@ class Gene_splice_modeler:
         For each best matching pair of transcripts (or aligned transcripts),
         perform alignment, and replace aligned pair with a single alignment object.
         """
-        
+
+        logger.info("\tusing mult alignment method.\n");
+                    
         alignments = self.alignments
 
         if len(alignments) == 1:

@@ -46,9 +46,9 @@ class Node:
         if node_id in Node.node_cache:
             node_obj = Node.node_cache[ node_id ]
             if node_obj.seq != node_seq:
-                if len(node_obj.seq) < node_seq and re.search("{}$".format(node_obj.seq), node_seq):
+                if len(node_obj.seq) < len(node_seq) and re.search("{}$".format(node_obj.seq), node_seq):
                     return node_obj
-                elif len(node_obj.seq) > node_seq and re.search("{}$".format(node_seq), node_obj.seq):
+                elif len(node_obj.seq) > len(node_seq) and re.search("{}$".format(node_seq), node_obj.seq):
                     node_obj.seq = node_seq # reset to shorter sequence, should be k-1 shorter
                     return node_obj
                 else:
@@ -593,10 +593,12 @@ class Topological_sort:
 
 class Gene_splice_modeler:
 
-    def __init__(self, node_path_obj_list):
+    def __init__(self, gene_id, node_path_obj_list):
 
         ## initialize alignments list with simple single 'alignment' objects with
         ## each path as an individual alignment with just its path nodes.
+
+        self.gene_id = gene_id
         self.alignments = list()
 
         logger.debug("Gene_splice_modeler inputs: {}".format(node_path_obj_list))
@@ -608,7 +610,11 @@ class Gene_splice_modeler:
             self.alignments.append(alignment_obj)
 
             #print(alignment_obj)
-            
+
+    def get_gene_id(self):
+        return self.gene_id
+
+    
     def build_splice_model(self):
 
         if not self.alignment_contains_repeat_node():
@@ -633,6 +639,9 @@ class Gene_splice_modeler:
 
     def topological_order_splice_model(self):
 
+        gene_id = self.get_gene_id()
+        generic_name = "^^{}^^".format(gene_id)
+        
         ## make a generic graph.
         graph = set()
         for alignment in self.alignments:
@@ -642,19 +651,19 @@ class Gene_splice_modeler:
             for i in range(0, len(node_list)):
                 node_obj = node_list[i]
                 loc_id = node_obj.get_loc_id()
-                generic_node = Node.get_node("^^generic^^", loc_id, node_obj.get_seq()) # rely on Node class caching system
+                generic_node = Node.get_node(generic_name, loc_id, node_obj.get_seq()) # rely on Node class caching system
                 logger.debug("generic node: " + str(generic_node))
                 graph.add(generic_node)
 
                 if i > 0:
                     # set prev node info
                     prev_node_obj = node_list[i-1]
-                    prev_generic_node = Node.get_node("^^generic^^", prev_node_obj.get_loc_id(), prev_node_obj.get_seq())
+                    prev_generic_node = Node.get_node(generic_name, prev_node_obj.get_loc_id(), prev_node_obj.get_seq())
                     generic_node.add_prev_node(prev_generic_node)
 
                 if i < len(node_list) - 1:
                     next_node_obj = node_list[i+1]
-                    next_generic_node = Node.get_node("^^generic^^", next_node_obj.get_loc_id(), next_node_obj.get_seq())
+                    next_generic_node = Node.get_node(generic_name, next_node_obj.get_loc_id(), next_node_obj.get_seq())
                     generic_node.add_next_node(next_generic_node)
 
         logger.debug("Before sorting nodes: " + str(graph))
@@ -1038,8 +1047,8 @@ def main():
         
         logger.info("Processing Gene: {} having {} isoforms".format(gene_name, len(node_path_obj_list)))
 
-        gene_splice_modeler = Gene_splice_modeler(node_path_obj_list)
-
+        gene_splice_modeler = Gene_splice_modeler(gene_name, node_path_obj_list)
+        
         splice_model_alignment = gene_splice_modeler.build_splice_model()
 
         logger.debug("Final splice_model_alignment for Gene {} :\n{}\n".format(gene_name, str(splice_model_alignment)))

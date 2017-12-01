@@ -33,7 +33,8 @@ class Node:
 
         self.prev = set()
         self.next = set()
-
+        self.stashed_prev = set() # for manipulation during topological sorting
+        self.stashed_next = set() 
 
     @classmethod
     def get_node(self, transcript_name, loc_node_id, node_seq):
@@ -41,21 +42,35 @@ class Node:
         if len(node_seq) == 0:
             raise RuntimeError("Error, non-zero length node_seq required for parameter")
         
-        node_id = get_node_id(transcript_name, loc_node_id, node_seq)
-        if node_id in node_cache:
-            node_obj = node_cache[ node_id ]
+        node_id = self.get_node_id(transcript_name, loc_node_id)
+        if node_id in Node.node_cache:
+            node_obj = Node.node_cache[ node_id ]
             if node_obj.seq != node_seq:
-                raise RuntimeError("Error, have conflicting node sequences for node_id: {}".format(node_id))
-            return node_obj
+                if len(node_obj.seq) < node_seq and re.search("{}$".format(node_obj.seq), node_seq):
+                    return node_obj
+                elif len(node_obj.seq) > node_seq and re.search("{}$".format(node_seq), node_obj.seq):
+                    node_obj.seq = node_seq # reset to shorter sequence, should be k-1 shorter
+                    return node_obj
+                else:
+                    raise RuntimeError("Error, have conflicting node sequences for node_id: {}\n".format(node_id) +
+                                   "{}\n vs. \n{}".format(node_obj.seq, node_seq))
+            else:
+                return node_obj
+            
         else:
             # instantiate a new one
             node_obj = Node(transcript_name, loc_node_id, node_seq)
-            node_cache[ node_id ] = node_obj
+            Node.node_cache[ node_id ] = node_obj
             return node_obj
 
+
     @staticmethod
-    def get_node_id(transcript_name, loc_node_id, node_seq):
-        node_id = "::".join([transcript_name, loc_node_id, str(len(node_seq))])
+    def clear_node_cache():
+        Node.node_cache.clear()
+    
+    @staticmethod
+    def get_node_id(transcript_name, loc_node_id):
+        node_id = "::".join([transcript_name, loc_node_id])
         return node_id
 
     
@@ -67,14 +82,42 @@ class Node:
 
     def get_transcript_name(self):
         return self.transcript_name
-        
+
+    def get_prev_nodes(self):
+        return self.prev
+
+    def get_next_nodes(self):
+        return self.next
+    
 
     def add_next_node(self, next_node_obj):
         self.next.add(next_node_obj)
 
+    def remove_next_node(self, remove_node_obj):
+        self.next.remove(remove_node_obj)
+
+    def stash_next_node(self, stash_node_obj):
+        self.remove_next_node(stash_node_obj)
+        self.stashed_next.add(stash_node_obj)
+
     def add_prev_node(self, prev_node_obj):
         self.prev.add(prev_node_obj)
 
+    def remove_prev_node(self, remove_node_obj):
+        self.prev.remove(remove_node_obj)
+
+    def stash_prev_node(self, stash_node_obj):
+        self.remove_prev_node(stash_node_obj)
+        self.stashed_prev.add(stash_node_obj)
+
+
+    def restore_stashed_nodes(self):
+        self.prev.update(self.stashed_prev)
+        self.stashed_prev = set()
+
+        self.next.update(self.stashed_next)
+        self.stashed_next = set()
+    
     def __repr__(self):
         #return(self.get_node_id(self.transcript_name, self.loc_node_id, self.seq))
         return(self.loc_node_id)
@@ -199,6 +242,26 @@ class Trinity_fasta_parser:
 
 
 class Node_alignment:
+
+    """
+    Structure has two parts:
+
+    transcript_names = [ transA,
+                         transB,
+                         transC,
+                         ...
+                         ]
+
+    aligned_nodes = [ [transA_node_1, transA_node_2, ... ],
+                      [transB_node_1, transB_node_2, ... ],
+                      [ None,         transC_node_1, ... ],  
+                    ]
+
+    Note, can have None at node positions to include gaps.
+
+    """
+
+
 
     GAP = None
 
@@ -474,11 +537,66 @@ class Node_alignment:
         return (gene_seq, gene_gtf, transcript_to_malign)
         
 
+
+class Topological_sort:
+
+    """
+    # https://en.wikipedia.org/wiki/Topological_sorting
+
+    L ← Empty list that will contain the sorted elements
+    S ← Set of all nodes with no incoming edge
+    while S is non-empty do
+        remove a node n from S
+        add n to tail of L
+        for each node m with an edge e from n to m do
+            remove edge e from the graph
+            if m has no other incoming edges then
+                insert m into S
+    if graph has edges then
+        return error (graph has at least one cycle)
+    else
+        return L (a topologically sorted order)
+    """
+
+    @staticmethod
+    def topologically_sort(nodes_list):
+        
+        L = list()  # empty list to contain the sorted elements
+        S = list()  # set of all nodes with no incoming edge
+
+        # populate S with nodes lacking incoming edges
+        for node in nodes_list:
+            if len(node.get_prev_nodes()) == 0:
+                S.append(node)
+
+        while len(S) > 0:
+            node_n = S.pop(0)
+            L.append(node_n)
+            n_children = list(node_n.get_next_nodes()) # make a copy instead of using the reference directly.
+            for n_child in n_children:
+                n_child.stash_prev_node(node_n)
+                node_n.stash_next_node(n_child)
+
+                if len(n_child.get_prev_nodes()) == 0:
+                    S.append(n_child)
+
+        # see if there are cycles
+        for node in nodes_list:
+            if len(node.get_prev_nodes()) > 0 or len(node.get_next_nodes()) > 0:
+                raise RuntimeError("Graph has cycles!  Shouldn't happen...")
+
+        for node in L:
+            node.restore_stashed_nodes()
+
+        return L
+    
+
 class Gene_splice_modeler:
 
     def __init__(self, node_path_obj_list):
 
-        ## create alignments
+        ## initialize alignments list with simple single 'alignment' objects with
+        ## each path as an individual alignment with just its path nodes.
         self.alignments = list()
 
         logger.debug("Gene_splice_modeler inputs: {}".format(node_path_obj_list))
@@ -493,6 +611,89 @@ class Gene_splice_modeler:
             
     def build_splice_model(self):
 
+        if not self.alignment_contains_repeat_node():
+            return self.topological_order_splice_model()
+        else:
+            return self.multiple_alignment_splice_model()
+
+
+    def alignment_contains_repeat_node(self):
+
+        for alignment in self.alignments:
+            loc_ids = set()
+            for i in range(0, alignment.width()):
+                node_obj = alignment.get_representative_column_node(i)
+                loc_id = node_obj.get_loc_id()
+                if loc_id in loc_ids:
+                    return True
+                loc_ids.add(loc_id)
+
+        return False
+
+
+    def topological_order_splice_model(self):
+
+        ## make a generic graph.
+        graph = set()
+        for alignment in self.alignments:
+            logger.debug("topological_order_splice_model, input alignment: " + str(alignment))
+            node_list = alignment.get_aligned_nodes()[0] # should be unaligned here, so just ordered path list.
+            logger.debug("topological_order_splice_model, node list: " + str(node_list))
+            for i in range(0, len(node_list)):
+                node_obj = node_list[i]
+                loc_id = node_obj.get_loc_id()
+                generic_node = Node.get_node("^^generic^^", loc_id, node_obj.get_seq()) # rely on Node class caching system
+                logger.debug("generic node: " + str(generic_node))
+                graph.add(generic_node)
+
+                if i > 0:
+                    # set prev node info
+                    prev_node_obj = node_list[i-1]
+                    prev_generic_node = Node.get_node("^^generic^^", prev_node_obj.get_loc_id(), prev_node_obj.get_seq())
+                    generic_node.add_prev_node(prev_generic_node)
+
+                if i < len(node_list) - 1:
+                    next_node_obj = node_list[i+1]
+                    next_generic_node = Node.get_node("^^generic^^", next_node_obj.get_loc_id(), next_node_obj.get_seq())
+                    generic_node.add_next_node(next_generic_node)
+
+        logger.debug("Before sorting nodes: " + str(graph))
+
+        topologically_sorted_nodes = Topological_sort.topologically_sort(graph)
+
+        logger.debug("Topologically sorted nodes: " + str(topologically_sorted_nodes))
+        
+        # index loc node ids
+        aligned_loc_id_pos = dict()
+        for i in range(0, len(topologically_sorted_nodes)):
+            loc_id = topologically_sorted_nodes[i].get_loc_id()
+            aligned_loc_id_pos[loc_id] = i
+
+
+        new_alignments = list()
+        transcript_ids = list()
+        for alignment in self.alignments:
+            transcript_ids.append(alignment.get_transcript_names()[0]) # really should only be one here.
+            new_alignment = [None for i in topologically_sorted_nodes]
+            for node in alignment.get_aligned_nodes()[0]:
+                loc_id = node.get_loc_id()
+                new_idx = aligned_loc_id_pos[loc_id]
+                new_alignment[new_idx] = node
+            new_alignments.append(new_alignment)
+
+        splice_graph_model = Node_alignment(transcript_ids, new_alignments)
+
+        logger.debug("Splice graph model: " + str(splice_graph_model))
+
+        return splice_graph_model
+    
+    def multiple_alignment_splice_model(self):
+        """
+        Multiple alignment algorithm for dealing with repeat nodes:
+        For each best matching pair of transcripts (or aligned transcripts),
+        perform alignment, and replace aligned pair with a single alignment object.
+        """
+        
         alignments = self.alignments
 
         if len(alignments) == 1:
@@ -821,6 +1022,8 @@ def main():
         iso_struct_list = gene_to_isoform_info[ gene_name ]
 
         gene_counter += 1
+
+        Node.clear_node_cache()
         
         # convert to Node_path objects
         node_path_obj_list = list()

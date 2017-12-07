@@ -8,14 +8,56 @@ use Fasta_reader;
 use Nuc_translator;
 use Data::Dumper;
 
-my $usage = "usage: $0 genome.fa flattened.gtf\n\n";
+use Getopt::Long qw(:config posix_default no_ignore_case bundling pass_through);
 
 
-my $genome_fa = $ARGV[0] or die $usage;
-my $flattened_gff = $ARGV[1] or die $usage;
+my $usage = <<__EOUSAGE__;
+
+###################################################
+#
+# Required:
+#
+#  --genome_fa <string>          genome fasta file
+# 
+#  --flattened_gff <string>      flattened gff file
+#
+# Optional:
+#
+#  --no_revcomp                  do not revcomp reverse strand transcripts
+# 
+###################################################
+
+
+__EOUSAGE__
+
+    ;
+
+
+my $genome_fa;
+my $flattened_gff;
+my $NO_REVCOMP_FLAG = 0;
+my $help_flag;
+
+&GetOptions ( 'h' => \$help_flag,
+
+              'genome_fa=s' => \$genome_fa,
+              'flattened_gff=s' => \$flattened_gff,
+
+              'no_revcomp' => \$NO_REVCOMP_FLAG,
+    );
+
+
+if ($help_flag) {
+    die $usage;
+}
+
+unless ($genome_fa && $flattened_gff) {
+    die $usage;
+}
 
 main: {
 
+    
     my $fasta_reader = new Fasta_reader($genome_fa);
     my %seqs = $fasta_reader->retrieve_all_seqs_hash();
 
@@ -24,8 +66,7 @@ main: {
     unless (%gene_to_transcripts) {
         die "Error, no gff records parsed.  Be sure to use the flattened gff file";
     }
-
-
+    
     #die Dumper(\%gene_to_transcripts);
     
     foreach my $gene (keys %gene_to_transcripts) {
@@ -49,7 +90,7 @@ main: {
                 push (@path_coords, [$exon_number, length($trans_seq)+1, length($trans_seq) + length($seq_seg)]);
                 $trans_seq .= $seq_seg;
             }
-            if ($regions[0]->{orient} eq '-') {
+            if ($regions[0]->{orient} eq '-' && ! $NO_REVCOMP_FLAG) {
                 # revcomp everthing
                 $trans_seq = &reverse_complement($trans_seq);
                 my $trans_len = length($trans_seq);

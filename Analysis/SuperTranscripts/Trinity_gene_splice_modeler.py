@@ -1034,6 +1034,8 @@ def main():
     
     parser.add_argument("--debug", required=False, action="store_true", default=False, help="debug mode")
 
+    parser.add_argument("--no_squeeze", required=False, action="store_true", default=False, help="don't merge unbranched stretches of node identifiers")
+
     args = parser.parse_args()
 
     if args.debug:
@@ -1089,9 +1091,12 @@ def main():
 
         logger.debug("Final splice_model_alignment for Gene {} :\n{}\n".format(gene_name, str(splice_model_alignment)))
 
-        squeezed_splice_model = splice_model_alignment.squeeze()
-        
-        logger.debug("Squeezed splice model for Gene {}:\n{}\n".format(gene_name, str(squeezed_splice_model)))
+        squeezed_splice_model = splice_model_alignment
+        if args.no_squeeze:
+            logger.info("--no_squeeze set, so not squeezing structure")
+        else:
+            squeezed_splice_model = splice_model_alignment.squeeze()
+            logger.debug("Squeezed splice model for Gene {}:\n{}\n".format(gene_name, str(squeezed_splice_model)))
         
         (gene_seq, gtf_txt, malign_dict) = squeezed_splice_model.to_gene_fasta_and_gtf(gene_name)
 

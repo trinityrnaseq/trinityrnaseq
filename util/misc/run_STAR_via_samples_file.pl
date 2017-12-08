@@ -190,10 +190,20 @@ sub parse_samples_file {
 
     open(my $fh, $samples_file) or die "Error, cannot open file $samples_file";
     while (<$fh>) {
+        unless (/\w/) { next; }
         chomp;
+        my $line = $_;
         my @x = split(/\t/);
         my ($cond, $rep, $fq_a, $fq_b) = @x;
 
+        unless ($fq_a) {
+            confess "Error, line in samples file: $samples_file,  line: [$line] not formatted as expected (sample(tab)replicate(tab)left_fq(tab)right_fq)";
+        }
+        
+        if (! defined $fq_b) {
+            $fq_b = "";
+        }
+                
         $fq_a = &Pipeliner::ensure_full_path($fq_a);
         $fq_b = &Pipeliner::ensure_full_path($fq_b) if $fq_b;
         

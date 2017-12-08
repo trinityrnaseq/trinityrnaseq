@@ -108,7 +108,8 @@ def main():
     else:
         pipeliner.add_commands([Pipeliner.Command("java -jar " + PICARD_HOME + "/picard.jar" +
                                                   " CreateSequenceDictionary R=" + st_fa_path +
-                                                  " O=" + dict_file,
+                                                  " O=" + dict_file +
+                                                  " VALIDATION_STRINGENCY=LENIENT ",
                                                   "picard_dict_st.ok")])
         pipeliner.run()
 

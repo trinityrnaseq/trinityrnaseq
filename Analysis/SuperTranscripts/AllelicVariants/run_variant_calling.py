@@ -161,6 +161,7 @@ def main():
                           " AddOrReplaceReadGroups " +
                           "I=Aligned.sortedByCoord.out.bam " +
                           "O=rg_added_sorted.bam " +
+                          " VALIDATION_STRINGENCY=SILENT " +
                           "SO=coordinate RGID=id RGLB=library RGPL=platform RGPU=machine RGSM=sample",
                           "add_read_groups.ok"),
 

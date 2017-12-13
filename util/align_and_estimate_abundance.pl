@@ -113,6 +113,8 @@ my $usage = <<__EOUSAGE__;
 #
 # --SS_lib_type <string>           strand-specific library type:  paired('RF' or 'FR'), single('F' or 'R').
 #                                  
+# --samples_idx <int>               restricte processing to sample entry (index starts at one)
+#
 #
 # --thread_count                   number of threads to use (default = 4)
 #
@@ -231,6 +233,7 @@ my $include_rsem_bam;
 my $coordsort_bam_flag = 0;
 
 my $samples_file = "";
+my $samples_idx = 0;
 
 &GetOptions ( 'help|h' => \$help_flag,
               'transcripts=s' => \$transcripts,
@@ -249,7 +252,7 @@ my $samples_file = "";
               'single=s' => \$single,
               'max_ins_size=i' => \$max_ins_size,
               'samples_file=s' => \$samples_file,
-              
+              'samples_idx=i' => \$samples_idx,
               
               'output_dir=s' => \$output_dir,
       
@@ -310,12 +313,12 @@ unless (
     
     ($est_method && $prep_reference && $transcripts && (! ($single||$left||$right||$samples_file)) ) ## just prep reference
     
-        || 
+    || 
     
     ($transcripts && $est_method && $seqType && ($single || ($left && $right) || $samples_file)) # do alignment
     
     ) {
-
+    
     die "Error, missing parameter. See example usage options below.\n" . $usage;
 }
 
@@ -336,10 +339,16 @@ unless ($est_method =~ /^(RSEM|express|kallisto|salmon|none)$/i) {
 my @samples_to_process;
 if ($samples_file) {
     @samples_to_process = &parse_samples_file($samples_file);
-
+    if ($samples_idx >= 0) {
+        my $num_samples = scalar(@samples_to_process);
+        if ($samples_idx > $num_samples) {
+            die "Error, sample index $samples_idx > $num_samples num samples ";
+        }
+        @samples_to_process = ($samples_to_process[$samples_idx-1]);
+    }
 }
 elsif ( ($left && $right) || $single) {
-
+    
     unless ($output_dir) {
         die "Error, must specify output directory name via: --output_dir   ";
     }

@@ -226,13 +226,26 @@ sub parse_samples_file {
     
     open (my $fh, $samples_file) or die "Error, cannot open file: $samples_file";
     while (<$fh>) {
+        if (/^\#/) { next; }
+        unless (/\w/) { next; }
         chomp;
-        my @x = split(/\t/);
+        my $line = $_;
+        my @x = split(/\s+/);
         my $condition = $x[0];
         my $replicate = $x[1];
         my $left_fq = $x[2];
         my $right_fq = $x[3]; # only if paired-end
 
+        unless ($left_fq) {
+            die "Error, cannot find required fields in sample file line: $line";
+        }
+        unless (-s $left_fq) {
+            die "Error, cannot locate left_fq: $left_fq as specified in samples file line: $line ";
+        }
+        if ($right_fq && ! -s $right_fq) {
+            die "Error, cannot locate right_fq: $right_fq as specified in samples file line: $line";
+        }
+        
         if ($seen{$replicate}) {
             die "Error, replicate name: [$replicate] must be unique among all replicate names.  Please update your samples file";
         }

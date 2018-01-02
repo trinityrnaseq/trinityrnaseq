@@ -344,7 +344,6 @@ if ($samples_file) {
         if ($samples_idx > $num_samples) {
             die "Error, sample index $samples_idx > $num_samples num samples ";
         }
-        @samples_to_process = ($samples_to_process[$samples_idx-1]);
     }
 }
 elsif ( ($left && $right) || $single) {

@@ -11,6 +11,8 @@ use File::Basename;
 
 my $CPU = 2;
 
+my $top_genes_plot = 50;
+
 my $usage = <<__EOUSAGE__;
 
 #################################################################
@@ -33,6 +35,8 @@ my $usage = <<__EOUSAGE__;
 #
 #  --CPU <int>                       default: $CPU
 #
+#  --top_genes_plot <int>            default: $top_genes_plot
+# 
 ################################################################
 
 
@@ -59,6 +63,8 @@ my $SS_lib_type = "";
               'CPU=i' => \$CPU,
               'aligner=s' => \$aligner,
               'SS_lib_type=s' => \$SS_lib_type,
+              'top_genes_plot=i' => \$top_genes_plot,
+              
     );
 
 
@@ -194,7 +200,6 @@ main: {
         print $ofh "library(DEXSeq)\n";
         print $ofh "samples_info = read.table(\"$samples_table_file\", header=T, row.names=1)\n";
         print $ofh "dxd = DEXSeqDataSetFromHTSeq(as.vector(samples_info\$counts_filename), sampleData=samples_info, design = ~ sample + exon + condition:exon, flattenedfile=\"$genes_gtf_file.dexseq.gff\")\n";
-        print $ofh "pdf(\"$out_prefix.pdf\")\n";
         print $ofh "dxd = estimateSizeFactors( dxd )\n";
         print $ofh "dxd = estimateDispersions( dxd )\n";
         print $ofh "plotDispEsts( dxd )\n";
@@ -202,14 +207,25 @@ main: {
         print $ofh "dxd = estimateExonFoldChanges( dxd, fitExpToVar=\"condition\")\n";
         print $ofh "dxr1 = DEXSeqResults( dxd )\n";
         print $ofh "dxr1.sorted = dxr1[order(dxr1\$padj),]\n";
+        print $ofh "save(list = ls(all=TRUE), file = \"$out_prefix.Rdata\")\n";
         print $ofh "write.table(dxr1.sorted, file=\"$out_prefix.results.dat\", quote=F, sep=\"\t\")\n";
-        print $ofh "plotMA( dxr1, cex=0.8 )\n";
+        
+        print $ofh "pdf(\"$out_prefix.pdf\")\n";
+        
+        print $ofh "top_genes = unique(dxr1.sorted\$groupID[dxr1.sorted\$padj < 0.1 & ! is.na(dxr1.sorted\$padj)])\n";
+        print $ofh "top_genes = top_genes[1:min($top_genes_plot, length(top_genes))]\n";
+        print $ofh "message(\"Top $top_genes_plot genes: (\", paste(top_genes, collapse=','), \")\")\n"; 
+        print $ofh "for (gene in top_genes) { \n"
+            . "    plotDEXSeq( dxr1 , gene, legend=TRUE, cex.axis=1.2, cex=1.3, lwd=2 , expression=FALSE, norCounts=TRUE, splicing=TRUE, displayTranscripts=TRUE)\n"
+            . "}\n";
+                        
+        #print $ofh "plotMA( dxr1, cex=0.8 )\n";
         close $ofh;
         
     }
     
     $cmd = "R --vanilla -q < $dexseq_rscript";
-    $pipeliner->add_commands(new Command($cmd, "$analysis_token.dexseq.ok"));
+    $pipeliner->add_commands(new Command($cmd, "$analysis_token.dexseq.$top_genes_plot.ok"));
     
     $pipeliner->run();
 

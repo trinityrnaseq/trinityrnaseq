@@ -50,6 +50,9 @@ main: {
         
         chomp;
         my @ids = split(/\t/);
+        
+        $ids[0] =~ s/\|.*$//;
+        
         if (my $new_id = $new_ids{$ids[0]}) {
             $ids[0] = $new_id;
         }

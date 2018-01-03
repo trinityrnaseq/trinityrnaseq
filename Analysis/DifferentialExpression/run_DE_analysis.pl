@@ -520,9 +520,11 @@ sub run_DESeq2_sample_pair {
     print $ofh "res = cbind(sampleA=\"$sample_A\", sampleB=\"$sample_B\", as.data.frame(res))\n";
 
     print $ofh "res\$padj[is.na(res\$padj)]  <- 1\n"; # Carsten Kuenne
+
+    print $ofh "res = as.data.frame(res[order(res\$pvalue),])\n"; # rank by pvalue
     
     ## output results
-    print $ofh "write.table(as.data.frame(res[order(res\$pvalue),]), file=\'$output_prefix.DESeq2.DE_results\', sep='\t', quote=FALSE)\n";
+    print $ofh "write.table(res, file=\'$output_prefix.DESeq2.DE_results\', sep='\t', quote=FALSE)\n";
     print $ofh "write.table(rnaseqMatrix, file=\'$output_prefix.DESeq2.count_matrix\', sep='\t', quote=FALSE)\n";
     
     

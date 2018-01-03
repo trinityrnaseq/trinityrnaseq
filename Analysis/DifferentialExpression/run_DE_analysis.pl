@@ -306,7 +306,7 @@ sub parse_sample_info {
 
     my %samples;
 
-    open (my $fh, $sample_file) or die $!;
+    open (my $fh, $sample_file) or die "Error, cannot locate samples file: $sample_file";
     while (<$fh>) {
         unless (/\w/) { next; }
         if (/^\#/) { next; } # allow comments

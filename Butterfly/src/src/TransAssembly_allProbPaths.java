@@ -956,9 +956,6 @@ public class TransAssembly_allProbPaths {
 		}
 
 		
-
-		
-		
 		debugMes("SECTION\n======= Reorganize Read Pairings =========\n\n", 5);
 		dijkstraDis = new DijkstraDistance<SeqVertex, SimpleEdge>(seqvertex_graph, true);
 		seqvertex_combinedReadHash = reorganizeReadPairings(seqvertex_graph, seqvertex_combinedReadHash, dijkstraDis);
@@ -1618,12 +1615,12 @@ public class TransAssembly_allProbPaths {
 	
 
 	private static HashMap<Integer, HashMap<PairPath, Integer>> create_DAG_from_OverlapLayout(
-			DirectedSparseGraph<SeqVertex, SimpleEdge> seqvertex_graph, HashMap<Integer, HashMap<PairPath, Integer>> combinedReadHash, String dot_file_prefix, 
+			DirectedSparseGraph<SeqVertex, SimpleEdge> seqvertex_graph, 
+			HashMap<Integer, HashMap<PairPath, Integer>> combinedReadHash, 
+			String dot_file_prefix, 
 			String graphName, boolean createMiddleDotFiles) {
 		
 	
-		
-		
 		Set<PairPath> pairPaths = new HashSet<PairPath>();
 		Map<PairPath, Integer> pairPathToReadSupport = new HashMap<PairPath, Integer>();
 
@@ -2157,9 +2154,7 @@ public class TransAssembly_allProbPaths {
 		
 		debugMes("SECTION\n========  Convert Path-DAG to SeqVertex-DAG ============\n\n", 5);
 		
-		
 	
-		
 		// init seqvertex graph to contain all nodes from expanded paths.
 		
 		HashMap<Path,List<SeqVertex>> orig_path_to_SeqVertex_list = new HashMap<Path,List<SeqVertex>>();
@@ -2308,7 +2303,6 @@ public class TransAssembly_allProbPaths {
 				// ensure DAG 
 				topo_sorted_vertices = TopologicalSort.topoSortSeqVerticesDAG(seqvertex_graph);
 				
-
 				count_zip_down_merged_in_round = zipper_collapse_DAG_zip_down(seqvertex_graph);
 
 				sum_merged += count_zip_down_merged_in_round;
@@ -2329,18 +2323,21 @@ public class TransAssembly_allProbPaths {
 
 		}
 
-			
+		
+		
+		////////////////////////////////
+		// DESTROY UNZIPPED DUP NODES
+		destroy_unzipped_duplicates_above(seqvertex_graph);	
 
+		
 		//  test again. :)
 		if (graph_contains_loops(seqvertex_graph)) {
 			throw new RuntimeException("Error, detected cycles in seqvertex_graph, so not a DAG as expected!");
 		}
-
+		
 		// ensure DAG one last time
 		topo_sorted_vertices = TopologicalSort.topoSortSeqVerticesDAG(seqvertex_graph);
 
-		
-		
 		
 		////////////////////////////////////////////////
 		// update the paths based on their new vertices.
@@ -2393,6 +2390,90 @@ public class TransAssembly_allProbPaths {
 	}
 
 	
+	private static void destroy_unzipped_duplicates_above(
+			DirectedSparseGraph<SeqVertex, SimpleEdge> seqvertex_graph) {
+		
+		debugMes("destroy_unzipped_duplicates_above()", 15);
+		
+		// #  O and v have the same orig ID, but v has no parents
+		//  
+	  
+		//     \|/    \|/
+		//      O  v   O	
+		//       \ | /
+		//         c
+		//
+		// # remove v here.
+		
+		List<SeqVertex> start_vertices = new ArrayList<SeqVertex>();
+		
+		
+		for (SeqVertex v : seqvertex_graph.getVertices()) {
+			if (seqvertex_graph.getPredecessorCount(v) == 0) {
+				start_vertices.add(v);
+			}
+		}
+		
+		if (start_vertices.size() == 0) {
+			return;
+		}
+		
+		// check each C for the O
+		
+		HashSet<SimpleEdge> edges_to_delete = new HashSet<SimpleEdge>();
+		HashSet<SeqVertex> vertices_to_delete = new HashSet<SeqVertex>();
+		
+		for (SeqVertex v : start_vertices) {
+			SeqVertex target_merge_vertex = null;
+			for (SeqVertex c : seqvertex_graph.getSuccessors(v)) {
+				for (SeqVertex O : seqvertex_graph.getPredecessors(c)) {
+					if (v != O 
+						&& 
+						O.getOrigButterflyID() == v.getOrigButterflyID()
+						&&
+						seqvertex_graph.getPredecessorCount(O) > 0	
+							) {
+						target_merge_vertex = O;
+						debugMes("-targeting " + v + " for deletion, replacing with proxy: " + O, 15);
+						
+
+						SimpleEdge se = seqvertex_graph.findEdge(v, c);
+						edges_to_delete.add(se);
+						
+						
+						break;
+					}
+					
+				}
+				if (target_merge_vertex != null) { break; }
+			}
+			if (target_merge_vertex != null) {
+				// do the merging
+				vertices_to_delete.add(v);
+				target_merge_vertex.__tmp_compressed_vertices.addElement(v.getID());
+				target_merge_vertex.__tmp_compressed_vertices.addElement(target_merge_vertex.getID()); //FIXME:  make a new node instead of reusing existing node
+				if (v.__tmp_compressed_vertices.size() > 0) {
+					target_merge_vertex.__tmp_compressed_vertices.addAll(v.__tmp_compressed_vertices);
+				}
+			}
+		}
+		
+		// remove targeted edges and vertices
+		for (SimpleEdge se : edges_to_delete) {
+			seqvertex_graph.removeEdge(se);
+			debugMes("-removing edge from graph: " + se, 15);
+		}
+		for (SeqVertex v : vertices_to_delete) {
+			debugMes("-removing vertex from graph: " + v, 15);
+			seqvertex_graph.removeVertex(v);
+		}
+		
+		
+	}
+
+
+
+
 	private static void init_replacement_vertices(
 			DirectedSparseGraph<SeqVertex, SimpleEdge> seqvertex_graph) {
 		

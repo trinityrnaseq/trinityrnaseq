@@ -94,6 +94,11 @@ class Node:
 
     @staticmethod
     def get_gene_name(transcript_name):
+
+        if re.match("^\^\^TRIN", transcript_name):
+            # using internally specified topologically sorted graph
+            return transcript_name
+
         (gene_name, count) = re.subn("_i\d+$", "", transcript_name)
         if count != 1:
             errmsg = "Error, couldn't extract gene_id from transcript_id: {}".format(transcript_name)

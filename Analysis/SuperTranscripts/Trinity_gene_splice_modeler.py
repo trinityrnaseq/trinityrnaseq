@@ -31,6 +31,8 @@ class Node:
         self.seq = node_seq
         self.len = len(node_seq)
 
+        #logger.info("{}\t{}".format(loc_node_id, node_seq))
+
         self.prev = set()
         self.next = set()
         self.stashed_prev = set() # for manipulation during topological sorting
@@ -38,14 +40,20 @@ class Node:
 
     @classmethod
     def get_node(self, transcript_name, loc_node_id, node_seq):
-
+        
+        logger.debug("{}\t{}".format(loc_node_id, node_seq))
+        
         if len(node_seq) == 0:
             raise RuntimeError("Error, non-zero length node_seq required for parameter")
         
-        node_id = self.get_node_id(transcript_name, loc_node_id)
+        gene_name = Node.get_gene_name(transcript_name)
+        node_id = self.get_node_id(gene_name, loc_node_id)
         if node_id in Node.node_cache:
             node_obj = Node.node_cache[ node_id ]
             if node_obj.seq != node_seq:
+                ## FIXME: when internal node is found as a terminal node, we're using the k-1mer now for the terminal node too.
+                logger.debug("WARNING: have conflicting node sequences for node_id: {}\n".format(node_id) +
+                             "{}\n vs. \n{}".format(node_obj.seq, node_seq))
                 if len(node_obj.seq) < len(node_seq) and re.search("{}$".format(node_obj.seq), node_seq):
                     return node_obj
                 elif len(node_obj.seq) > len(node_seq) and re.search("{}$".format(node_seq), node_obj.seq):
@@ -69,8 +77,9 @@ class Node:
         Node.node_cache.clear()
     
     @staticmethod
-    def get_node_id(transcript_name, loc_node_id):
-        node_id = "::".join([transcript_name, loc_node_id])
+    def get_node_id(gene_name, loc_node_id):
+        
+        node_id = "::".join([gene_name, loc_node_id])
         return node_id
 
     
@@ -83,6 +92,16 @@ class Node:
     def get_transcript_name(self):
         return self.transcript_name
 
+    @staticmethod
+    def get_gene_name(transcript_name):
+        (gene_name, count) = re.subn("_i\d+$", "", transcript_name)
+        if count != 1:
+            errmsg = "Error, couldn't extract gene_id from transcript_id: {}".format(transcript_name)
+            logger.critical(errmsg)
+            raise RuntimeError(errmsg)
+        return gene_name
+    
+        
     def get_prev_nodes(self):
         return self.prev
 
@@ -131,7 +150,6 @@ class Node:
         return loc_ids
     
     def __repr__(self):
-        #return(self.get_node_id(self.transcript_name, self.loc_node_id, self.seq))
         return(self.loc_node_id)
 
 
@@ -174,8 +192,8 @@ class Node_path:
             lend = int(lend)
             rend = int(rend)
             
-            node_obj = Node(transcript_name, loc_node_id, sequence[lend:rend+1]) # coords in path were already zero-based
-
+            node_obj = Node.get_node(transcript_name, loc_node_id, sequence[lend:rend+1]) # coords in path were already zero-based
+            
             self.node_obj_list.append(node_obj)
 
 
@@ -1088,9 +1106,9 @@ def main():
         gene_splice_modeler = Gene_splice_modeler(gene_name, node_path_obj_list)
         
         splice_model_alignment = gene_splice_modeler.build_splice_model()
-
+        
         logger.debug("Final splice_model_alignment for Gene {} :\n{}\n".format(gene_name, str(splice_model_alignment)))
-
+        
         squeezed_splice_model = splice_model_alignment
         if args.no_squeeze:
             logger.info("--no_squeeze set, so not squeezing structure")

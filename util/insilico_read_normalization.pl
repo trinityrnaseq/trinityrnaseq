@@ -43,7 +43,7 @@ my $CPU = 2;
 my $MIN_KMER_COV_CONST = 2;  ## DO NOT CHANGE
 my $max_cov;
 my $pairs_together_flag = 0;
-my $max_pct_stdev = 200;
+my $max_pct_stdev = 10000; # effectively turning this off
 my $KMER_SIZE = 25;
 
 my $__devel_report_kmer_cov_stats = 0;

@@ -16,10 +16,24 @@ logger = logging.getLogger(__name__)
 
 
 class Trinity_fasta_parser:
+    """
+    Parses a Trinity.fasta file and stores the transcript name, sequence, and node path info.
 
+    Instance member:
+
+        trinity_gene_to_isoform_seqs : (defaultdict(list)) stores key,val of transcript_name,path_struct
+
+        where path_struct has structure:
+             {
+                 'transcript_name' : accession,
+                 'path' : path_str,
+                 'seq' : sequence
+             }
+    """
+    
     def __init__(self, trinity_fasta_filename):
 
-        self.trinity_gene_to_isoform_seqs = collections.defaultdict(list)
+        self.trinity_gene_to_isoform_seqs = collections.defaultdict(list) #instantiate member 
 
         with open(trinity_fasta_filename) as fh:
             header = ""
@@ -76,7 +90,10 @@ class Trinity_fasta_parser:
                        'seq' : sequence }
 
         isoform_list.append(iso_struct)
+
+
         
     def get_trinity_gene_to_isoform_info(self):
         return self.trinity_gene_to_isoform_seqs
+
 

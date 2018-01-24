@@ -19,24 +19,22 @@ logger = logging.getLogger(__name__)
 class Node_alignment:
 
     """
-    Structure has two parts:
+    Object has two members:
 
-    transcript_names = [ transA,
-                         transB,
-                         transC,
-                         ...
-                         ]
+        transcript_names = [ transA,
+                             transB,
+                             transC,
+                             ...
+                             ]
 
-    aligned_nodes = [ [transA_node_1, transA_node_2, ... ],
-                      [transB_node_1, transB_node_2, ... ],
-                      [ None,         transC_node_1, ... ],  
-                    ]
+        aligned_nodes = [ [transA_node_1, transA_node_2, ... ],
+                          [transB_node_1, transB_node_2, ... ],
+                          [ None,         transC_node_1, ... ],  
+                        ]
 
     Note, can have None at node positions to include gaps.
 
     """
-
-
 
     GAP = None
 
@@ -45,15 +43,27 @@ class Node_alignment:
         self.aligned_nodes = node_obj_matrix
 
     def get_transcript_names(self):
+        # accessor
         return self.transcript_names
 
     def get_aligned_nodes(self):
+        # accessor
         return self.aligned_nodes
 
     @staticmethod
     def get_single_seq_node_alignment(transcript_name, path_obj):
+        """
+        Factory method:
+           constructs a Node_alignment object from a Node_path object
+
+           mostly just reshaping the info for use with the multiple alignment methods.
+        
+        """
+        
+        # TODO: the Node_path object already has the transcript_name as a member. Don't need to incl parameter here.
+        
         node_list = list()
-        for node_obj in  path_obj.get_path():
+        for node_obj in path_obj.get_path():
             node_list.append(node_obj)
 
         self = Node_alignment([transcript_name], [node_list])
@@ -63,6 +73,10 @@ class Node_alignment:
 
     @staticmethod
     def compute_number_common_nodes(align_A, align_B):
+        """
+        given to Node_alignment objects, counts the number of shared nodes
+        """
+        
         node_set_a = Node_alignment.get_node_set(align_A)
         node_set_b = Node_alignment.get_node_set(align_B)
 
@@ -76,6 +90,11 @@ class Node_alignment:
 
     @staticmethod
     def get_node_loc_ids(node_set):
+        """
+        private static method
+        gets the list of loc_id among all nodes in the set
+        """
+        
         loc_ids_set = set()
         for node in node_set:
             loc_id = node.get_loc_id()
@@ -86,6 +105,10 @@ class Node_alignment:
 
     @staticmethod
     def get_node_set(align_obj):
+        """
+        extracts a list of unique Node objects from the Node_alignment object
+        """
+        
         num_trans = len(align_obj)
         alignment_width = align_obj.width()
 
@@ -101,6 +124,14 @@ class Node_alignment:
 
 
     def get_node_set_at_column_pos(self, col_pos):
+        """
+        At a given column of the Node_alignment, extracts the list of unique nodes
+        """
+
+        # FIXME: since we're not dealing with mismatched nodes, there really should only be one node here
+        # that's shared among the different alignments
+        # Need refactoring across the next few methods as well for the same reason.
+        
         node_objs = set()
         for i in range(0, len(self)):
             node_obj = self.aligned_nodes[ i ][ col_pos ]

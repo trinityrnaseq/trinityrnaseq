@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 class Topological_sort:
 
     """
+    Implementation of Topological Sorting - as per described on wikipedia
+
     # https://en.wikipedia.org/wiki/Topological_sorting
 
     L ← Empty list that will contain the sorted elements

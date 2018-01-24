@@ -22,11 +22,31 @@ logger = logging.getLogger(__name__)
 
 class Gene_splice_modeler:
 
+    """
+    Builds supertranscipts.
+
+    object instance members:
+
+        gene_id : str
+
+        alignments : list of Node_alignment objects
+
+    """
+    
     def __init__(self, gene_id, node_path_obj_list):
 
-        ## initialize alignments list with simple single 'alignment' objects with
-        ## each path as an individual alignment with just its path nodes.
+        """
+        initialize alignments list with simple single 'alignment' objects with
+        each path as an individual alignment with just its path nodes.
 
+        params:
+
+        gene_id : str
+
+        node_path_obj_list : list of Node_path objects, each Node_path corresponding to an individual Trinity isoform
+
+        """
+        
         self.gene_id = gene_id
         self.alignments = list()
 
@@ -38,14 +58,26 @@ class Gene_splice_modeler:
 
             self.alignments.append(alignment_obj)
 
-            #print(alignment_obj)
+        
 
     def get_gene_id(self):
         return self.gene_id
 
     
     def build_splice_model(self):
+        """
+        method to construct the super transcript.
 
+        Tries 2 approaches:
+            a.  If there isn't an obvious repetitive node structure and so the graph formas a DAG,
+                we build a splice graph and perform topological sorting of the nodes.
+            b.  If there is some repetitive structure, we resort to performing a multiple alignment-based method to
+                organize relationships among nodes in isoforms, and the multiple alignment produces the linear ordering
+                for the supertranscript.
+
+        """
+
+        
         if not self.alignment_contains_repeat_node():
             # no obvious cycles
             try:
@@ -74,7 +106,10 @@ class Gene_splice_modeler:
 
 
     def topological_order_splice_model(self):
-
+        """
+        Build supertranscript using simpler topological sorting of the nodes.
+        """
+        
         logger.info("\tusing topological sort method.\n");
         gene_id = self.get_gene_id()
         generic_name = "^^{}^^".format(gene_id)
@@ -139,7 +174,7 @@ class Gene_splice_modeler:
         For each best matching pair of transcripts (or aligned transcripts),
         perform alignment, and replace aligned pair with a single alignment object.
         """
-
+        
         logger.info("\tusing mult alignment method.\n");
                     
         alignments = self.alignments
@@ -194,6 +229,10 @@ class Gene_splice_modeler:
 
     @staticmethod
     def compute_similarity_matrix(alignments_list):
+        """
+        similarity matrix indicates number of shared nodes between each pair of isoforms.
+        """
+        
         num_alignments = len(alignments_list)
         sim_matrix = numpy.zeros( (num_alignments, num_alignments), dtype='int_' )
 
@@ -214,7 +253,13 @@ class Gene_splice_modeler:
 
     @staticmethod
     def merge_alignments(align_a, align_b):
+        """
+        Computes a mismatch-free multiple alignment (just matches and gaps) between two Node_alignment objects
 
+        returns single Node_alignment object containing the contents of aligned align_a and align_b as aligned.
+        
+        """
+        
         logger.debug("Merging alignments {} and {}".format(align_a, align_b))
 
         ## ensure the transcripts are disjoint
@@ -358,6 +403,9 @@ class Gene_splice_modeler:
                 
     @staticmethod
     def get_match_score(align_a, idx_a, align_b, idx_b):
+        """
+        just determines if indices in two transcripts have the same node identifier
+        """
         
         node_set_a = align_a.get_node_set_at_column_pos(idx_a)
         node_set_b = align_b.get_node_set_at_column_pos(idx_b)
@@ -373,7 +421,10 @@ class Gene_splice_modeler:
 
     @staticmethod
     def write_malign(gene_name, malign_dict, ofh, align_width=100):
-
+        """
+        writes the multiply aligned isoform sequences to an output filehandle
+        """
+        
         transcript_names = malign_dict.keys()
 
         alignment_length = len(malign_dict[ transcript_names[ 0 ] ])
@@ -393,7 +444,10 @@ class Gene_splice_modeler:
 
                 
 class DP_matrix:
-
+    """
+    defines the dynamic programming matrix for the node multiple alignments
+    """
+    
     @staticmethod
     def build_DP_matrix(num_rows, num_cols):
         dp_matrix = list()

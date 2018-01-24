@@ -16,13 +16,40 @@ logger = logging.getLogger(__name__)
 
 
 class Node:
+    """
+    generic graph node object representing a node in the Trinity isoform reconstruction graph
 
+    instance members include:
+
+        transcript_name : (str) name of the Trinity transcript that the node corresponds to.
+
+        loc_node_id : (int) identifier of the node
+
+        seq : (str)  nucleotide sequence for this node in the transcript
+
+        len : (int)  length of the node sequence
+
+        prev : (set) node objects connected as parental nodes in the graph
+
+        next : (set) node objects connected as descendant nodes in the graph
+
+    class members include:
+
+        node_cache : (dict) stores all nodes instantiated via the get_node() factory constructor.
+
+        merged_nodeset_counter : (int) tracking nodes that get merged under squeeze operations.
+        
+    """
+    
     node_cache = dict()
 
     merged_nodeset_counter = 0
 
     def __init__(self, transcript_name, loc_node_id, node_seq):
-
+        """
+        constructor, but don't use directly.... instead, use get_node() factory function below
+        """
+        
         if len(node_seq) == 0:
             raise RuntimeError("Error, Node instantiation requires node sequence of length > 0")
 
@@ -37,17 +64,29 @@ class Node:
         self.next = set()
         self.stashed_prev = set() # for manipulation during topological sorting
         self.stashed_next = set() 
+        
+
 
     @classmethod
-    def get_node(self, transcript_name, loc_node_id, node_seq):
+    def get_node(cls, transcript_name, loc_node_id, node_seq):
         
+        """
+        Instantiates Node objects, and stores them in a graph.
+
+        *** use this method for instantiating all Node objects ***
+
+        use Node.clear_node_cache() to clear the graph
+                
+        """
+                
         logger.debug("{}\t{}".format(loc_node_id, node_seq))
         
         if len(node_seq) == 0:
             raise RuntimeError("Error, non-zero length node_seq required for parameter")
-        
+
+        ## TODO: should probably use gene_id directly as a constructor parameter
         gene_name = Node.get_gene_name(transcript_name)
-        node_id = self.get_node_id(gene_name, loc_node_id)
+        node_id = cls.get_node_id(gene_name, loc_node_id)
         if node_id in Node.node_cache:
             node_obj = Node.node_cache[ node_id ]
             if node_obj.seq != node_seq:
@@ -74,11 +113,16 @@ class Node:
 
     @staticmethod
     def clear_node_cache():
+        """
+        clears the graph
+        """
         Node.node_cache.clear()
     
     @staticmethod
     def get_node_id(gene_name, loc_node_id):
-        
+        """
+        builds a node identifier as a combination of the gene_name and loc_node_id
+        """
         node_id = "::".join([gene_name, loc_node_id])
         return node_id
 
@@ -94,9 +138,13 @@ class Node:
 
     @staticmethod
     def get_gene_name(transcript_name):
-
+        """
+        extracts the gene name from the Trinity identifier as the prefix
+        """
+                
         if re.match("^\^\^TRIN", transcript_name):
             # using internally specified topologically sorted graph
+            # FIXME: this is very hacky.  Won't have this issue if we use gene names instead of transcript names.
             return transcript_name
 
         (gene_name, count) = re.subn("_i\d+$", "", transcript_name)
@@ -168,6 +216,11 @@ class Node:
         
     @classmethod
     def merge_nodes(cls, node_list):
+        """
+        Merges linear stretches of nodes into a single new node that has
+        concatenated sequences of the input nodes
+        """
+        
         merged_node_seq = ""
         Node.merged_nodeset_counter += 1
         merged_loc_node_id = "M{}".format(Node.merged_nodeset_counter)

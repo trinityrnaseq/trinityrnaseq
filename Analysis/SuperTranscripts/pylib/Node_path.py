@@ -18,8 +18,23 @@ logger = logging.getLogger(__name__)
 
 
 class Node_path:
+    """
+    Object representation of the connected set of Node objects that represent the reconstructed isoforms graph traversal
 
+    Instance members:
+
+        transcript_name : (str)  name of the isoform
+
+        node_obj_list : (list) of Node objects
+
+    """
+
+    
     def __init__(self, transcript_name, path_string, sequence):
+        """
+        constructor, instantiates Node_path and builds vertices in the graph
+        """
+        
         self.transcript_name = transcript_name
         self.node_obj_list = list()
 
@@ -31,12 +46,13 @@ class Node_path:
             (lend,rend) = node_coord_range.split("-")
             lend = int(lend)
             rend = int(rend)
-            
+
+            # use factory call to instantiate node objects:
             node_obj = Node.get_node(transcript_name, loc_node_id, sequence[lend:rend+1]) # coords in path were already zero-based
             
             self.node_obj_list.append(node_obj)
 
-
+    
     def get_transcript_name(self):
         return self.transcript_name
 

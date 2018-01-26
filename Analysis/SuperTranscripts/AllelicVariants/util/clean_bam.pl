@@ -45,7 +45,7 @@ main: {
         my $output_index = $output_bam;
         $output_index =~ s/\.bam$/\.bai/;
 
-        &rename("$output_bam.bai $output_index");
+        rename("$output_bam.bai",  $output_index);
         
     }
     else {

@@ -179,7 +179,8 @@ def main():
                           "MAX_OUTPUT=100000 " +
                           "IGNORE=MATE_NOT_FOUND " +
                           "O=dedupped.bam.validation",
-                          "bam_validate.ok"),
+                          "bam_validate.ok",
+                          ignore_error=True),
 
         Pipeliner.Command(UTILDIR + "/clean_bam.pl dedupped.bam dedupped.bam.validation dedupped.valid.bam",
                           "make_valid_dedupped_bam.ok"),

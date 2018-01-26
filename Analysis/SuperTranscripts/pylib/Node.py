@@ -19,9 +19,11 @@ class Node:
     """
     generic graph node object representing a node in the Trinity isoform reconstruction graph
 
+    Node's are objects within a gene and can be shared among transcript isoforms.
+
     instance members include:
 
-        transcript_name : (str) name of the Trinity transcript that the node corresponds to.
+        gene_id : (str) name of the Trinity gene that the node corresponds to.
 
         loc_node_id : (int) identifier of the node
 
@@ -45,7 +47,7 @@ class Node:
 
     merged_nodeset_counter = 0
 
-    def __init__(self, transcript_name, loc_node_id, node_seq):
+    def __init__(self, gene_id, loc_node_id, node_seq):
         """
         constructor, but don't use directly.... instead, use get_node() factory function below
         """
@@ -53,7 +55,7 @@ class Node:
         if len(node_seq) == 0:
             raise RuntimeError("Error, Node instantiation requires node sequence of length > 0")
 
-        self.transcript_name = transcript_name
+        self.gene_id = gene_id
         self.loc_node_id = loc_node_id
         self.seq = node_seq
         self.len = len(node_seq)
@@ -68,7 +70,7 @@ class Node:
 
 
     @classmethod
-    def get_node(cls, transcript_name, loc_node_id, node_seq):
+    def get_node(cls, gene_id, loc_node_id, node_seq):
         
         """
         Instantiates Node objects, and stores them in a graph.
@@ -84,9 +86,7 @@ class Node:
         if len(node_seq) == 0:
             raise RuntimeError("Error, non-zero length node_seq required for parameter")
 
-        ## TODO: should probably use gene_id directly as a constructor parameter
-        gene_name = Node.get_gene_name(transcript_name)
-        node_id = cls.get_node_id(gene_name, loc_node_id)
+        node_id = cls._construct_gene_node_id(gene_id, loc_node_id)
         if node_id in Node.node_cache:
             node_obj = Node.node_cache[ node_id ]
             if node_obj.seq != node_seq:
@@ -106,7 +106,7 @@ class Node:
             
         else:
             # instantiate a new one
-            node_obj = Node(transcript_name, loc_node_id, node_seq)
+            node_obj = Node(gene_id, loc_node_id, node_seq)
             Node.node_cache[ node_id ] = node_obj
             return node_obj
 
@@ -119,11 +119,11 @@ class Node:
         Node.node_cache.clear()
     
     @staticmethod
-    def get_node_id(gene_name, loc_node_id):
+    def _construct_gene_node_id(gene_id, loc_node_id):
         """
         builds a node identifier as a combination of the gene_name and loc_node_id
         """
-        node_id = "::".join([gene_name, loc_node_id])
+        node_id = "::".join([gene_id, loc_node_id])
         return node_id
 
     

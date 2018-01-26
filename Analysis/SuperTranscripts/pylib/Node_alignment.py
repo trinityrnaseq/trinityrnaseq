@@ -51,7 +51,7 @@ class Node_alignment:
         return self.aligned_nodes
 
     @staticmethod
-    def get_single_seq_node_alignment(transcript_name, path_obj):
+    def get_single_seq_node_alignment(path_obj):
         """
         Factory method:
            constructs a Node_alignment object from a Node_path object
@@ -60,13 +60,11 @@ class Node_alignment:
         
         """
         
-        # TODO: the Node_path object already has the transcript_name as a member. Don't need to incl parameter here.
-        
         node_list = list()
         for node_obj in path_obj.get_path():
             node_list.append(node_obj)
 
-        self = Node_alignment([transcript_name], [node_list])
+        self = Node_alignment([path_obj.get_transcript_name()], [node_list])
 
         return self
 

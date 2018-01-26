@@ -20,6 +20,8 @@ import Pipeliner
 
 logger = None
 
+UTILDIR = os.path.sep.join([os.path.dirname(os.path.realpath(__file__)), "util"])
+
 
 def main():
 
@@ -171,9 +173,20 @@ def main():
                           "CREATE_INDEX=true VALIDATION_STRINGENCY=SILENT M=output.metrics",
                           "mark_dups.ok"),
 
+        Pipeliner.Command("java -jar " + PICARD_HOME + "/picard.jar ValidateSamFile " +
+                          "I=dedupped.bam " +
+                          "IGNORE_WARNINGS=true " +
+                          "MAX_OUTPUT=100000 " +
+                          "IGNORE=MATE_NOT_FOUND " +
+                          "O=dedupped.bam.validation",
+                          "bam_validate.ok"),
+
+        Pipeliner.Command(UTILDIR + "/clean_bam.pl dedupped.bam dedupped.bam.validation dedupped.valid.bam",
+                          "make_valid_dedupped_bam.ok"),
+        
         Pipeliner.Command("java -jar " + GATK_HOME + "/GenomeAnalysisTK.jar " +
                           "-T SplitNCigarReads -R " + st_fa_path +
-                          " -I dedupped.bam -o splitNCigar.bam " +
+                          " -I dedupped.valid.bam -o splitNCigar.bam " +
                           " -rf ReassignOneMappingQuality -RMQF 255 -RMQT 60 -U ALLOW_N_CIGAR_READS  --validation_strictness LENIENT",
                           "splitNCigarReads.ok")
         ])

@@ -45,6 +45,7 @@ my $max_cov;
 my $pairs_together_flag = 0;
 my $max_pct_stdev = 10000; # effectively turning this off
 my $KMER_SIZE = 25;
+my $MIN_COV = 0;
 
 my $__devel_report_kmer_cov_stats = 0;
 
@@ -99,6 +100,8 @@ my $usage = <<_EOUSAGE_;
 #
 #  --max_pct_stdev <int>           :maximum pct of mean for stdev of kmer coverage across read (default: $max_pct_stdev)
 #
+#  --min_cov <int>                 :minimum kmer coverage for a read to be retained (default: $MIN_COV)
+#
 #  --no_cleanup                    :leave intermediate files                      
 #  --tmp_dir_name <string>         default("tmp_normalized_reads");
 #
@@ -140,6 +143,8 @@ my $TMP_DIR_NAME = "tmp_normalized_reads";
     
     "SS_lib_type=s" => \$SS_lib_type,
     "max_cov=i" => \$max_cov,
+    "min_cov=i" => \$MIN_COV,
+    
     "output=s" => \$output_directory,
 
     # Jellyfish
@@ -369,9 +374,9 @@ main: {
     &generate_stats_files(\@files_need_stats, $kmer_file, $SS_lib_type);
 
     if ($pairs_together_flag) {
-        &run_nkbc_pairs_together(\@files_need_stats, $kmer_file, $SS_lib_type, $max_cov, $max_pct_stdev);
+        &run_nkbc_pairs_together(\@files_need_stats, $kmer_file, $SS_lib_type, $max_cov, $MIN_COV, $max_pct_stdev);
     } else {
-        &run_nkbc_pairs_separate(\@files_need_stats, $kmer_file, $SS_lib_type, $max_cov, $max_pct_stdev);
+        &run_nkbc_pairs_separate(\@files_need_stats, $kmer_file, $SS_lib_type, $max_cov, $MIN_COV, $max_pct_stdev);
     }
         
     my @outputs;
@@ -854,7 +859,7 @@ sub process_checkpoints {
 
 ####
 sub run_nkbc_pairs_separate {
-    my ($files_need_stats_aref, $kmer_file, $SS_lib_type, $max_cov, $max_pct_stdev) = @_;
+    my ($files_need_stats_aref, $kmer_file, $SS_lib_type, $max_cov, $min_cov, $max_pct_stdev) = @_;
 
     my @cmds;
 
@@ -862,16 +867,20 @@ sub run_nkbc_pairs_separate {
     foreach my $info_aref (@$files_need_stats_aref) {
         my ($orig_file, $converted_file, $stats_file) = @$info_aref;
                 
-        my $selected_entries = "$stats_file.C$max_cov.pctSD$max_pct_stdev.accs";
-        my $cmd = "$UTILDIR/nbkc_normalize.pl $stats_file $max_cov $max_pct_stdev > $selected_entries";
+        my $selected_entries = "$stats_file.maxC$max_cov.minC$min_cov.pctSD$max_pct_stdev.accs";
+        my $cmd = "$UTILDIR/nbkc_normalize.pl --stats_file $stats_file "
+            . " --max_cov $max_cov "
+            . " --min_cov $MIN_COV "
+            . " --max_pct_stdev $max_pct_stdev > $selected_entries";
+        
         push (@cmds, $cmd) unless (-e "$selected_entries.ok");
-
+        
         push (@$info_aref, $selected_entries);
         
         push (@checkpoints, [$selected_entries, "$selected_entries.ok"]);
-
+        
     }
-
+    
 
     &process_cmds_parallel(@cmds); ## low memory, all I/O - fine to always run in parallel.
 
@@ -884,7 +893,7 @@ sub run_nkbc_pairs_separate {
 
 ####
 sub run_nkbc_pairs_together {
-    my ($files_need_stats_aref, $kmer_file, $SS_lib_type, $max_cov, $max_pct_stdev) = @_;
+    my ($files_need_stats_aref, $kmer_file, $SS_lib_type, $max_cov, $min_cov, $max_pct_stdev) = @_;
 
     my $left_stats_file = $files_need_stats_aref->[0]->[2];
     my $right_stats_file = $files_need_stats_aref->[1]->[2];
@@ -905,7 +914,8 @@ sub run_nkbc_pairs_together {
     }
     
     my $selected_entries = "$pair_out_stats_filename.C$max_cov.pctSD$max_pct_stdev.accs";
-    $cmd = "$UTILDIR/nbkc_normalize.pl $pair_out_stats_filename $max_cov $max_pct_stdev > $selected_entries";
+    $cmd = "$UTILDIR/nbkc_normalize.pl --stats_file $pair_out_stats_filename --max_cov $max_cov "
+        . " --min_cov $MIN_COV --max_pct_stdev $max_pct_stdev > $selected_entries";
     &process_cmd($cmd) unless (-e "$selected_entries.ok");
     @checkpoints = ( [$selected_entries, "$selected_entries.ok"] );
     &process_checkpoints(@checkpoints);

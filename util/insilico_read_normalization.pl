@@ -389,7 +389,7 @@ main: {
 
         my $base = (scalar @$orig_file == 1) ? basename($orig_file->[0]) : basename($orig_file->[0]) . "_ext_all_reads";
         
-        my $normalized_filename_prefix = $output_directory . "/$base.normalized_K${KMER_SIZE}_C${max_cov}_pctSD${max_pct_stdev}";
+        my $normalized_filename_prefix = $output_directory . "/$base.normalized_K${KMER_SIZE}_maxC${max_cov}_minC${MIN_COV}_pctSD${max_pct_stdev}";
         my $outfile;
         
         if ($seqType eq 'fq') {

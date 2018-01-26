@@ -3050,7 +3050,7 @@ sub normalize {
     print STDERR "# running normalization on reads: " . Dumper(\@read_files) . "\n\n";
     
     my $cmd = "$UTILDIR/insilico_read_normalization.pl --seqType $seqType --JM $max_memory "
-        . " --max_cov $max_read_coverage --CPU $CPU --output $normalize_outdir   --max_pct_stdev $normalize_max_pct_stdev ";
+        . " --max_cov $max_read_coverage --min_cov $min_kmer_cov --CPU $CPU --output $normalize_outdir   --max_pct_stdev $normalize_max_pct_stdev ";
     
     if ($SS_lib_type) {
         $cmd .= " --SS_lib_type $SS_lib_type ";

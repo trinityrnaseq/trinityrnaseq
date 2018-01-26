@@ -11,17 +11,18 @@ import shlex
 
 logger = logging.getLogger(__name__)
 
-def run_cmd(cmd):
-    cmd = shlex.split(str(cmd))
-    logger.info("Running: " + " ".join(cmd))
-    process = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    (output, error) = process.communicate()
-    logger.debug("stdout: {}\nstderr:{}".format(output, error))
-    if process.returncode != 0:
-        logger.error(error)
-        raise RuntimeError("Error while running command \"" + str(cmd) + "\":\n" + error)
+def run_cmd(cmd, ignore_error=False):
 
-    
+    logger.info("Running: " + cmd)
+    try:
+        subprocess.check_call(cmd, shell=True)
+    except subprocess.CalledProcessError as e:
+        if ignore_error:
+            return
+        else:
+            raise e
+
+
 class Pipeliner(object):
 
     _checkpoint_dir = None
@@ -55,7 +56,7 @@ class Pipeliner(object):
                 logger.info("CMD: " + cmd.get_cmd() + " already processed. Skipping.")
             else:
                 # execute it.  If it succeeds, make the checkpoint file
-                run_cmd(cmd.get_cmd())
+                run_cmd(cmd.get_cmd(), cmd.get_ignore_error_setting())
                 run_cmd("touch {}".format(checkpoint_file))
 
         # since all commands executed successfully, remove them from the current cmds list
@@ -65,12 +66,10 @@ class Pipeliner(object):
 
 class Command(object):
 
-    _cmd = None
-    _checkpoint = None
-
-    def __init__(self, cmd, checkpoint):
+    def __init__(self, cmd, checkpoint, ignore_error=False):
         self._cmd = cmd
         self._checkpoint = checkpoint
+        self._ignore_error = ignore_error
 
     def get_cmd(self):
         return self._cmd
@@ -78,3 +77,6 @@ class Command(object):
     def get_checkpoint(self):
         return self._checkpoint
 
+    def get_ignore_error_setting(self):
+        return self._ignore_error
+ 

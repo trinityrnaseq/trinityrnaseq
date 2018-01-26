@@ -174,7 +174,7 @@ def main():
         Pipeliner.Command("java -jar " + GATK_HOME + "/GenomeAnalysisTK.jar " +
                           "-T SplitNCigarReads -R " + st_fa_path +
                           " -I dedupped.bam -o splitNCigar.bam " +
-                          " -rf ReassignOneMappingQuality -RMQF 255 -RMQT 60 -U ALLOW_N_CIGAR_READS",
+                          " -rf ReassignOneMappingQuality -RMQF 255 -RMQT 60 -U ALLOW_N_CIGAR_READS  --validation_strictness LENIENT",
                           "splitNCigarReads.ok")
         ])
     pipeliner.run()

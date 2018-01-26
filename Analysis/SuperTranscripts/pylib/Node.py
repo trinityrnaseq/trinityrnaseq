@@ -136,25 +136,6 @@ class Node:
     def get_transcript_name(self):
         return self.transcript_name
 
-    @staticmethod
-    def get_gene_name(transcript_name):
-        """
-        extracts the gene name from the Trinity identifier as the prefix
-        """
-                
-        if re.match("^\^\^TRIN", transcript_name):
-            # using internally specified topologically sorted graph
-            # FIXME: this is very hacky.  Won't have this issue if we use gene names instead of transcript names.
-            return transcript_name
-
-        (gene_name, count) = re.subn("_i\d+$", "", transcript_name)
-        if count != 1:
-            errmsg = "Error, couldn't extract gene_id from transcript_id: {}".format(transcript_name)
-            logger.critical(errmsg)
-            raise RuntimeError(errmsg)
-        return gene_name
-    
-        
     def get_prev_nodes(self):
         return self.prev
 

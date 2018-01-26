@@ -31,6 +31,7 @@ def main():
     parser.add_argument("--incl_malign", dest="malign", action="store_true", default=False, help="include multiple alignment formatted output file")
     
     parser.add_argument("--debug", required=False, action="store_true", default=False, help="debug mode")
+    parser.add_argument("--verbose", required=False, action="store_true", default=False, help="verbose mode")
 
     parser.add_argument("--no_squeeze", required=False, action="store_true", default=False, help="don't merge unbranched stretches of node identifiers")
 
@@ -86,8 +87,9 @@ def main():
         gene_splice_modeler = Gene_splice_modeler(gene_name, node_path_obj_list)
         
         splice_model_alignment = gene_splice_modeler.build_splice_model()
-        
-        logger.debug("Final splice_model_alignment for Gene {} :\n{}\n".format(gene_name, str(splice_model_alignment)))
+
+        if args.verbose:
+            logger.info("Final splice_model_alignment for Gene {} :\n{}\n".format(gene_name, str(splice_model_alignment)))
         
         squeezed_splice_model = splice_model_alignment
         if args.no_squeeze:

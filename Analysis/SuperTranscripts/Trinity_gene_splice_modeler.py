@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.sep.join([os.path.dirname(os.path.realpath(__file__))
 
 from Trinity_fasta_parser import *
 from Gene_splice_modeler import *
-
+import Splice_model_refiner
 
 def main():
 
@@ -87,6 +87,8 @@ def main():
         gene_splice_modeler = Gene_splice_modeler(gene_name, node_path_obj_list)
         
         splice_model_alignment = gene_splice_modeler.build_splice_model()
+
+        splice_model_alignment = Splice_model_refiner.refine_alignment(splice_model_alignment)
 
         if args.verbose:
             logger.info("Final splice_model_alignment for Gene {} :\n{}\n".format(gene_name, str(splice_model_alignment)))

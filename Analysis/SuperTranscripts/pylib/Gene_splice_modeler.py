@@ -121,23 +121,24 @@ class Gene_splice_modeler:
         for alignment in self.alignments:
             logger.debug("topological_order_splice_model, input alignment: " + str(alignment))
             node_list = alignment.get_aligned_nodes()[0] # should be unaligned here, so just ordered path list.
+            transcript_name = alignment.get_transcript_names()[0]
             logger.debug("topological_order_splice_model, node list: " + str(node_list))
             for i in range(0, len(node_list)):
                 node_obj = node_list[i]
                 loc_id = node_obj.get_loc_id()
-                generic_node = Node.get_node(generic_name, loc_id, node_obj.get_seq()) # rely on Node class caching system
+                generic_node = Node.get_node(generic_name, transcript_name, loc_id, node_obj.get_seq()) # rely on Node class caching system
                 logger.debug("generic node: " + str(generic_node))
                 graph.add(generic_node)
 
                 if i > 0:
                     # set prev node info
                     prev_node_obj = node_list[i-1]
-                    prev_generic_node = Node.get_node(generic_name, prev_node_obj.get_loc_id(), prev_node_obj.get_seq())
+                    prev_generic_node = Node.get_node(generic_name, transcript_name, prev_node_obj.get_loc_id(), prev_node_obj.get_seq())
                     generic_node.add_prev_node(prev_generic_node)
 
                 if i < len(node_list) - 1:
                     next_node_obj = node_list[i+1]
-                    next_generic_node = Node.get_node(generic_name, next_node_obj.get_loc_id(), next_node_obj.get_seq())
+                    next_generic_node = Node.get_node(generic_name, transcript_name, next_node_obj.get_loc_id(), next_node_obj.get_seq())
                     generic_node.add_next_node(next_generic_node)
 
         logger.debug("Before sorting nodes: " + str(graph))

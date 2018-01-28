@@ -49,7 +49,7 @@ class Node_path:
             rend = int(rend)
 
             # use factory call to instantiate node objects:
-            node_obj = Node.get_node(Trinity_util.get_Trinity_gene_name(transcript_name),
+            node_obj = Node.get_node(Trinity_util.get_Trinity_gene_name(transcript_name), transcript_name,
                                      loc_node_id, sequence[lend:rend+1]) # coords in path were already zero-based
             
             self.node_obj_list.append(node_obj)

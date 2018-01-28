@@ -11,7 +11,8 @@ import collections
 import numpy
 import time
 
-from Node import *
+from TGraph import *
+from TNode import *
 from Node_path import *
 from Node_alignment import *
 from GraphCycleException import *
@@ -117,7 +118,7 @@ class Gene_splice_modeler:
         generic_name = "^^{}^^".format(gene_id)
         
         ## make a generic graph.
-        graph = set()
+        graph = TGraph(generic_name)
         for alignment in self.alignments:
             logger.debug("topological_order_splice_model, input alignment: " + str(alignment))
             node_list = alignment.get_aligned_nodes()[0] # should be unaligned here, so just ordered path list.
@@ -126,24 +127,23 @@ class Gene_splice_modeler:
             for i in range(0, len(node_list)):
                 node_obj = node_list[i]
                 loc_id = node_obj.get_loc_id()
-                generic_node = Node.get_node(generic_name, transcript_name, loc_id, node_obj.get_seq()) # rely on Node class caching system
+                generic_node = graph.get_node(transcript_name, loc_id, node_obj.get_seq()) # rely on Node class caching system
                 logger.debug("generic node: " + str(generic_node))
-                graph.add(generic_node)
-
+                
                 if i > 0:
                     # set prev node info
                     prev_node_obj = node_list[i-1]
-                    prev_generic_node = Node.get_node(generic_name, transcript_name, prev_node_obj.get_loc_id(), prev_node_obj.get_seq())
+                    prev_generic_node = graph.get_node(transcript_name, prev_node_obj.get_loc_id(), prev_node_obj.get_seq())
                     generic_node.add_prev_node(prev_generic_node)
 
                 if i < len(node_list) - 1:
                     next_node_obj = node_list[i+1]
-                    next_generic_node = Node.get_node(generic_name, transcript_name, next_node_obj.get_loc_id(), next_node_obj.get_seq())
+                    next_generic_node = graph.get_node(transcript_name, next_node_obj.get_loc_id(), next_node_obj.get_seq())
                     generic_node.add_next_node(next_generic_node)
 
         logger.debug("Before sorting nodes: " + str(graph))
 
-        topologically_sorted_nodes = Topological_sort.topologically_sort(graph)
+        topologically_sorted_nodes = Topological_sort.topologically_sort(graph.get_all_nodes())
 
         logger.debug("Topologically sorted nodes: " + str(topologically_sorted_nodes))
         

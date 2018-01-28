@@ -88,7 +88,6 @@ def main():
         
         splice_model_alignment = gene_splice_modeler.build_splice_model()
 
-        splice_model_alignment = Splice_model_refiner.refine_alignment(splice_model_alignment)
 
         if args.verbose:
             logger.info("Final splice_model_alignment for Gene {} :\n{}\n".format(gene_name, str(splice_model_alignment)))
@@ -99,6 +98,10 @@ def main():
         else:
             squeezed_splice_model = splice_model_alignment.squeeze()
             logger.debug("Squeezed splice model for Gene {}:\n{}\n".format(gene_name, str(squeezed_splice_model)))
+
+            
+        squeezed_splice_model = Splice_model_refiner.refine_alignment(squeezed_splice_model)
+
         
         (gene_seq, gtf_txt, malign_dict) = squeezed_splice_model.to_gene_fasta_and_gtf(gene_name)
 

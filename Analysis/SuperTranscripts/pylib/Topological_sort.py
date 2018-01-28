@@ -11,7 +11,7 @@ import collections
 import numpy
 import time
 
-from Node import *
+from TNode import *
 from GraphCycleException import *
 
 logging.basicConfig(stream=sys.stderr, level=logging.INFO)

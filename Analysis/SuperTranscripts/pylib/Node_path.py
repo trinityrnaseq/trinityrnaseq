@@ -11,7 +11,7 @@ import collections
 import numpy
 import time
 
-from Node import *
+from TNode import *
 import Trinity_util
 
 logging.basicConfig(stream=sys.stderr, level=logging.INFO)
@@ -31,7 +31,7 @@ class Node_path:
     """
 
     
-    def __init__(self, transcript_name, path_string, sequence):
+    def __init__(self, tgraph, transcript_name, path_string, sequence):
         """
         constructor, instantiates Node_path and builds vertices in the graph
         """
@@ -49,7 +49,7 @@ class Node_path:
             rend = int(rend)
 
             # use factory call to instantiate node objects:
-            node_obj = Node.get_node(Trinity_util.get_Trinity_gene_name(transcript_name), transcript_name,
+            node_obj = tgraph.get_node(transcript_name,
                                      loc_node_id, sequence[lend:rend+1]) # coords in path were already zero-based
             
             self.node_obj_list.append(node_obj)

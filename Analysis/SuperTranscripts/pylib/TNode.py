@@ -77,20 +77,35 @@ class TNode:
         self.stashed_prev = set() # for manipulation during topological sorting
         self.stashed_next = set() 
         
-    
+
+    #########################
+    ## various Node ID values
+    #########################
+
+
+    def get_id(self):
+        # a private unique identifier for all nodes
+        return self._id
+        
     def get_loc_id(self):
         return self.loc_node_id
     
-    def get_seq(self):
-        return self.seq
-
     def get_gene_id(self):
         return self.gene_id
 
     def get_gene_node_id(self):
         node_id = "::".join([self.tgraph.get_gene_id(), self.get_loc_id()])
         return node_id
-    
+
+
+    ## Other accessors
+
+    def get_graph(self):
+        return self.tgraph
+
+    def get_seq(self):
+        return self.seq
+
     def get_transcripts(self):
         return self.transcripts
 
@@ -160,7 +175,7 @@ class TNode:
         
         return txt
     
-        
+
     @classmethod
     def merge_nodes(cls, node_list):
         """
@@ -176,7 +191,11 @@ class TNode:
             seq = node_obj.get_seq()
             merged_node_seq += seq
 
-        merged_node = TNode(self.tgraph, node_list[0].get_transcripts(), merged_loc_node_id, merged_node_seq)
+
+        transcripts = node_list[0].get_transcripts()
+        tgraph = node_list[0].get_graph()
+
+        merged_node = TNode(tgraph, transcripts, merged_loc_node_id, merged_node_seq)
         
         return merged_node
 

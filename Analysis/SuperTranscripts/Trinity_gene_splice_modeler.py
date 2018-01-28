@@ -69,12 +69,12 @@ def main():
 
         gene_counter += 1
 
-        Node.clear_node_cache()
-        
+        tgraph = TGraph(gene_name)
+
         # convert to Node_path objects
         node_path_obj_list = list()
         for iso_struct in iso_struct_list:
-            n_path = Node_path(iso_struct['transcript_name'], iso_struct['path'], iso_struct['seq'])
+            n_path = Node_path(tgraph, iso_struct['transcript_name'], iso_struct['path'], iso_struct['seq'])
             node_path_obj_list.append(n_path)
             #print(str(n_path))
         

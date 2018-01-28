@@ -7,8 +7,10 @@ from __future__ import (absolute_import, division,
 import os, sys, re
 import logging
 
-from Node import *
+from TGraph import *
+from TNode import *
 from Node_alignment import *
+
 
 logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -30,6 +32,7 @@ def refine_alignment(node_alignment_obj):
     new_node_list = list()
     orig_node_list = list()
 
+    refined_tgraph = TGraph("^^SGRAPH2^^")
     
     for i in range(0,width):
         repr_node = node_alignment_obj.get_representative_column_node(i)
@@ -37,7 +40,7 @@ def refine_alignment(node_alignment_obj):
 
         transcripts = repr_node.get_transcripts()
         
-        new_node = Node.get_node("^^SGRAPH2^^", transcripts, "loc_" + str(i), repr_node.get_seq())
+        new_node = refined_tgraph.get_node(transcripts, "loc_" + str(i), repr_node.get_seq())
         new_node_list.append(new_node)
 
     # build graph
@@ -57,7 +60,7 @@ def refine_alignment(node_alignment_obj):
         print(node.toString() + " " + node.get_seq())
 
 
-    Node.draw_graph("ladeda.dot")
+    refined_tgraph.draw_graph("ladeda.dot")
     
 
 

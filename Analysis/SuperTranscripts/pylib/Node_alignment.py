@@ -11,7 +11,7 @@ import collections
 import numpy
 import time
 
-from Node import *
+from TNode import *
 
 logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -276,7 +276,7 @@ class Node_alignment:
                 # found block terminator
                 node_to_add = None
                 if len(blocked_nodes) > 1:
-                    node_to_add = Node.merge_nodes(blocked_nodes)
+                    node_to_add = TNode.merge_nodes(blocked_nodes)
                 else:
                     node_to_add = blocked_nodes[ 0 ]
 

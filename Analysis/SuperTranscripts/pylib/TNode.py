@@ -161,10 +161,10 @@ class TNode:
             raise RuntimeError("Error, parameter must be a string or a set ")
         
     def get_prev_nodes(self):
-        return list(self.prev)
+        return set(self.prev)
 
     def get_next_nodes(self):
-        return list(self.next)
+        return set(self.next)
     
     def add_next_node(self, next_node_obj):
         self.next.add(next_node_obj)
@@ -225,7 +225,8 @@ class TNode:
         txt = str("prev: " + str(self.get_prev_node_loc_ids()) +
                   ", me: " + str(self.get_loc_id()) +
                   ", next: " + str(self.get_next_node_loc_ids()) +
-                  ", transcripts: " + str(self.transcripts))
+                  ", transcripts: " + str(self.transcripts) +
+                  ", " + self.get_seq())
 
         if self.dead:
             txt += " ** dead ** "

@@ -33,7 +33,7 @@ class Compact_graph_whole:
             if node.is_dead():
                 continue
 
-            prev_nodes = node.get_prev_nodes()
+            prev_nodes = list(node.get_prev_nodes())
             if len(prev_nodes) == 1:
                 # merge them
                 prev_node = prev_nodes[0]

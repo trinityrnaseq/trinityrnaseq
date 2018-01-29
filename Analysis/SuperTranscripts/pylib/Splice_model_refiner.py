@@ -84,7 +84,9 @@ def refine_alignment(node_alignment_obj):
         
 
     ## now extract prefix and suffix matches
-    #compact_graph_partial(refined_tgraph)
+
+    partial_graph_compactor = Compact_graph_partial()
+    partial_graph_compactor.compact_graph(refined_tgraph)
     
 
     refined_tgraph.draw_graph("ladeda.final.dot")

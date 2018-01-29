@@ -56,7 +56,7 @@ class TGraph:
                     node_obj.seq = node_seq # reset to shorter sequence, should be k-1 shorter
                     return node_obj
                 else:
-                    raise RuntimeError("Error, have conflicting node sequences for node_id: {}\n".format(node_id) +
+                    raise RuntimeError("Error, have conflicting node sequences for node_id: {}\n".format(node_obj) +
                                    "{}\n vs. \n{}".format(node_obj.seq, node_seq))
             else:
                 return node_obj

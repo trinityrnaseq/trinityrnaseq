@@ -11,9 +11,8 @@ import collections
 import numpy
 import time
 
-from TGraph import *
+import TGraph
 
-logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -76,6 +75,8 @@ class TNode:
         self.next = set()
         self.stashed_prev = set() # for manipulation during topological sorting
         self.stashed_next = set() 
+
+        self.touched = 0  
         
 
     #########################
@@ -97,6 +98,9 @@ class TNode:
         node_id = "::".join([self.tgraph.get_gene_id(), self.get_loc_id()])
         return node_id
 
+    def get_touched_val(self):
+        return self.touched
+
 
     ## Other accessors
 
@@ -105,6 +109,11 @@ class TNode:
 
     def get_seq(self):
         return self.seq
+
+
+    def set_seq(self, seq):
+        self.seq = seq
+    
 
     def get_transcripts(self):
         return self.transcripts
@@ -118,10 +127,10 @@ class TNode:
             raise RuntimeError("Error, parameter must be a string or a set ")
         
     def get_prev_nodes(self):
-        return self.prev
+        return list(self.prev)
 
     def get_next_nodes(self):
-        return self.next
+        return list(self.next)
     
     def add_next_node(self, next_node_obj):
         self.next.add(next_node_obj)
@@ -165,6 +174,17 @@ class TNode:
     
     def __repr__(self):
         return(self.loc_node_id)
+
+
+    ## Touching nodes 
+    def touch(self):
+        self.touched += 1
+
+    def untouch(self):
+        self.touched -= 1
+
+    def clear_touch(self):
+        self.touched = 0
 
 
     def toString(self):

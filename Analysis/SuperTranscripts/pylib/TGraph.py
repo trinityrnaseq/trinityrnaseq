@@ -11,9 +11,8 @@ import collections
 import numpy
 import time
 
-from TNode import *
+import TNode
 
-logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -64,7 +63,7 @@ class TGraph:
             
         else:
             # instantiate a new one
-            node_obj = TNode(self, transcript_id, loc_node_id, node_seq)
+            node_obj = TNode.TNode(self, transcript_id, loc_node_id, node_seq)
             self.node_cache[ loc_node_id ] = node_obj
             return node_obj
 
@@ -79,7 +78,37 @@ class TGraph:
         """
         self.node_cache.clear()
     
+    def clear_touch_settings(self):
+        """
+        clear the touch settings for each of the nodes
+        """
+
+        for node in self.get_all_nodes():
+            node.clear_touch()
     
+
+
+    def add_edges(self, from_nodes_list, to_nodes_list):
+
+        for from_node in from_nodes_list:
+            for to_node in to_nodes_list:
+                from_node.add_next_node(to_node)
+                to_node.add_prev_node(from_node)
+
+    def prune_edges(self, from_nodes_list, to_nodes_list):
+
+        for from_node in from_nodes_list:
+            for to_node in to_nodes_list:
+                from_node.remove_next_node(to_node)
+                to_node.remove_prev_node(from_node)
+    
+
+    def prune_node(self, node):
+        self.prune_edges(node.get_prev_nodes(), list(node))
+        self.prune_edges(list(node), node.get_next_nodes())
+        self.node_cache.pop(node.get_loc_id())
+    
+        
     def get_gene_id(self):
         return self.gene_id
 

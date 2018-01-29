@@ -17,9 +17,12 @@ logger = logging.getLogger(__name__)
 # add local py lib
 sys.path.insert(0, os.path.sep.join([os.path.dirname(os.path.realpath(__file__)), "pylib"]))
 
-from Trinity_fasta_parser import *
-from Gene_splice_modeler import *
+import TGraph
+import Trinity_fasta_parser
+import Gene_splice_modeler
 import Splice_model_refiner
+import Node_path
+
 
 def main():
 
@@ -38,10 +41,10 @@ def main():
     args = parser.parse_args()
 
     if args.debug:
-        logger.setLevel(logging.DEBUG)      
+        #logger.setLevel(logging.DEBUG)      
+        logging.getLogger().setLevel(logging.DEBUG)
 
-
-    trin_parser = Trinity_fasta_parser(args.trinity_fasta)
+    trin_parser = Trinity_fasta_parser.Trinity_fasta_parser(args.trinity_fasta)
 
     gene_to_isoform_info = trin_parser.get_trinity_gene_to_isoform_info()
 
@@ -69,12 +72,12 @@ def main():
 
         gene_counter += 1
 
-        tgraph = TGraph(gene_name)
+        tgraph = TGraph.TGraph(gene_name)
 
         # convert to Node_path objects
         node_path_obj_list = list()
         for iso_struct in iso_struct_list:
-            n_path = Node_path(tgraph, iso_struct['transcript_name'], iso_struct['path'], iso_struct['seq'])
+            n_path = Node_path.Node_path(tgraph, iso_struct['transcript_name'], iso_struct['path'], iso_struct['seq'])
             node_path_obj_list.append(n_path)
             #print(str(n_path))
         
@@ -84,7 +87,7 @@ def main():
         
         logger.info("Processing Gene: {} having {} isoforms".format(gene_name, len(node_path_obj_list)))
 
-        gene_splice_modeler = Gene_splice_modeler(gene_name, node_path_obj_list)
+        gene_splice_modeler = Gene_splice_modeler.Gene_splice_modeler(gene_name, node_path_obj_list)
         
         splice_model_alignment = gene_splice_modeler.build_splice_model()
 
@@ -109,7 +112,7 @@ def main():
         ofh_gtf.write(gtf_txt + "\n")
 
         if args.malign and len(node_path_obj_list) > 1:
-            Gene_splice_modeler.write_malign(gene_name, malign_dict, ofh_malign)
+            Gene_splice_modeler.Gene_splice_modeler.write_malign(gene_name, malign_dict, ofh_malign)
 
 
         runtime = time.time() - start_time

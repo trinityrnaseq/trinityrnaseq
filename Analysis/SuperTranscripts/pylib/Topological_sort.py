@@ -11,10 +11,9 @@ import collections
 import numpy
 import time
 
-from TNode import *
-from GraphCycleException import *
+import TNode
+import GraphCycleException
 
-logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 

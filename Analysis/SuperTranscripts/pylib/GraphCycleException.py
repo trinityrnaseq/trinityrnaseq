@@ -11,7 +11,7 @@ import collections
 import numpy
 import time
 
-logging.basicConfig(stream=sys.stderr, level=logging.INFO)
+
 logger = logging.getLogger(__name__)
 
 

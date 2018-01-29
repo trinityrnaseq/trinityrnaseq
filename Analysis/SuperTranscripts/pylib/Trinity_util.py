@@ -7,7 +7,6 @@ from __future__ import (absolute_import, division,
 import os, sys, re
 import logging
 
-logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 

@@ -11,17 +11,16 @@ import collections
 import numpy
 import time
 
-from TGraph import *
-from TNode import *
-from Node_path import *
-from Node_alignment import *
-from GraphCycleException import *
-from Topological_sort import *
-from DP_matrix import *
+import TGraph
+import TNode
+import Node_path
+import Node_alignment
+import GraphCycleException
+import Topological_sort
+import DP_matrix
 
-logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 logger = logging.getLogger(__name__)
-
+logger.addHandler(logging.NullHandler())
 
 class Gene_splice_modeler:
 
@@ -57,7 +56,7 @@ class Gene_splice_modeler:
         
         for node_path_obj in node_path_obj_list:
             transcript_name = node_path_obj.get_transcript_name()
-            alignment_obj = Node_alignment.get_single_seq_node_alignment(node_path_obj)
+            alignment_obj = Node_alignment.Node_alignment.get_single_seq_node_alignment(node_path_obj)
 
             self.alignments.append(alignment_obj)
 
@@ -118,7 +117,7 @@ class Gene_splice_modeler:
         generic_name = "^^{}^^".format(gene_id)
         
         ## make a generic graph.
-        graph = TGraph(generic_name)
+        graph = TGraph.TGraph(generic_name)
         for alignment in self.alignments:
             logger.debug("topological_order_splice_model, input alignment: " + str(alignment))
             node_list = alignment.get_aligned_nodes()[0] # should be unaligned here, so just ordered path list.
@@ -143,7 +142,7 @@ class Gene_splice_modeler:
 
         logger.debug("Before sorting nodes: " + str(graph))
 
-        topologically_sorted_nodes = Topological_sort.topologically_sort(graph.get_all_nodes())
+        topologically_sorted_nodes = Topological_sort.Topological_sort.topologically_sort(graph.get_all_nodes())
 
         logger.debug("Topologically sorted nodes: " + str(topologically_sorted_nodes))
         
@@ -165,7 +164,7 @@ class Gene_splice_modeler:
                 new_alignment[new_idx] = node
             new_alignments.append(new_alignment)
 
-        splice_graph_model = Node_alignment(transcript_ids, new_alignments)
+        splice_graph_model = Node_alignment.Node_alignment(transcript_ids, new_alignments)
 
         logger.debug("Splice graph model: " + str(splice_graph_model))
 
@@ -244,7 +243,7 @@ class Gene_splice_modeler:
             for j in range(i+1, num_alignments):
                 align_j = alignments_list[j]
 
-                common_nodes = Node_alignment.compute_number_common_nodes(align_i, align_j)
+                common_nodes = Node_alignment.Node_alignment.compute_number_common_nodes(align_i, align_j)
                 num_common_nodes = len(common_nodes)
 
                 sim_matrix[ i ][ j ] = num_common_nodes
@@ -277,7 +276,7 @@ class Gene_splice_modeler:
         width_b = align_b.width()
 
         # do global alignments w/o penalizing end gaps
-        dp_matrix = DP_matrix.build_DP_matrix(width_a, width_b)
+        dp_matrix = DP_matrix.DP_matrix.build_DP_matrix(width_a, width_b)
 
         # put align B across top (cols) and align A at side (row)
         # init the matrix zero rows
@@ -394,7 +393,7 @@ class Gene_splice_modeler:
 
         logger.debug("merged alignment node matrix:\n" + str(node_obj_matrix))
 
-        merged_alignment_obj = Node_alignment(merged_transcript_name_list, node_obj_matrix)
+        merged_alignment_obj = Node_alignment.Node_alignment(merged_transcript_name_list, node_obj_matrix)
 
         logger.debug("merged alignment obj:\n" + str(merged_alignment_obj))
 
@@ -413,8 +412,8 @@ class Gene_splice_modeler:
         node_set_a = align_a.get_node_set_at_column_pos(idx_a)
         node_set_b = align_b.get_node_set_at_column_pos(idx_b)
     
-        node_set_a = Node_alignment.get_node_loc_ids(node_set_a)
-        node_set_b = Node_alignment.get_node_loc_ids(node_set_b)
+        node_set_a = Node_alignment.Node_alignment.get_node_loc_ids(node_set_a)
+        node_set_b = Node_alignment.Node_alignment.get_node_loc_ids(node_set_b)
             
         if (set.intersection(node_set_a, node_set_b)):
             return 1 # match

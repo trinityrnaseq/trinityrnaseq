@@ -11,10 +11,9 @@ import collections
 import numpy
 import time
 
-from TNode import *
+import TNode
 import Trinity_util
 
-logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 

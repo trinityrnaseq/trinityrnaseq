@@ -227,8 +227,10 @@ main: {
         }
         else {
             $column_header = basename($file);
-            
         }
+        
+        $column_header =~ s/\.(genes|isoforms)\.results$//; # in case of rsem
+        
         $column_header_to_filename{$column_header} = $file;
         $file = $column_header; # update the @filenames
     }
@@ -248,10 +250,10 @@ main: {
     
 
     # clean up matrix headers
-    foreach my $file (@filenames) {
+    #foreach my $file (@filenames) {
         # also, get rid of the part of the filename that RSEM adds
-        $file =~ s/\.(genes|isoforms)\.results$//;
-    }
+    #    $file =~ s/\.(genes|isoforms)\.results$//;
+    #}
     
 
     print $ofh_counts join("\t", "", @filenames) . "\n";

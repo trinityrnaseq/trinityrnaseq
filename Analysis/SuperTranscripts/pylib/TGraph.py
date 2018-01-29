@@ -104,8 +104,10 @@ class TGraph:
     
 
     def prune_node(self, node):
-        self.prune_edges(node.get_prev_nodes(), list(node))
-        self.prune_edges(list(node), node.get_next_nodes())
+        logger.debug("pruning node: {}".format(node))
+        self.prune_edges(node.get_prev_nodes(), [node])
+        self.prune_edges([node], node.get_next_nodes())
+        node.dead = True
         self.node_cache.pop(node.get_loc_id())
     
         

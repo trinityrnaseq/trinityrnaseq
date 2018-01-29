@@ -77,6 +77,7 @@ class TNode:
         self.stashed_next = set() 
 
         self.touched = 0  
+        self.dead = False
         
 
     #########################
@@ -101,7 +102,40 @@ class TNode:
     def get_touched_val(self):
         return self.touched
 
+    def is_dead(self):
+        return(self.dead)
 
+    def is_ancestral(self, node, visited=set()):
+        if node == self:
+            return True
+        
+        if node in self.prev:
+            return True
+        else:
+            visited.add(self)
+            for prev_node in self.prev:
+                if prev_node not in visited:
+                    found = prev_node.is_ancestral(node, visited)
+                    if found:
+                        return True
+        return False
+
+
+    def is_descendant(self, node, visited=set()):
+        if node == self:
+            return True
+
+        if node in self.next:
+            return True
+        else:
+            visited.add(self)
+            for next_node in self.next:
+                if next_node not in visited:
+                    found = next_node.is_descendant(node, visited)
+                    if found:
+                        return True
+        return False
+    
     ## Other accessors
 
     def get_graph(self):
@@ -192,6 +226,9 @@ class TNode:
                   ", me: " + str(self.get_loc_id()) +
                   ", next: " + str(self.get_next_node_loc_ids()) +
                   ", transcripts: " + str(self.transcripts))
+
+        if self.dead:
+            txt += " ** dead ** "
         
         return txt
     

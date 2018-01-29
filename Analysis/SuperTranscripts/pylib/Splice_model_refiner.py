@@ -10,6 +10,7 @@ import logging
 import TGraph
 import TNode
 import Node_alignment
+import Topological_sort
 
 from Compact_graph_whole import Compact_graph_whole
 from Compact_graph_partial import Compact_graph_partial
@@ -92,6 +93,139 @@ def refine_alignment(node_alignment_obj):
     refined_tgraph.draw_graph("ladeda.final.dot")
     
     # convert compacted graph into a node alignment obj
-    return(node_alignment_obj)
+
+    splice_graph_node_alignment = splice_graph_to_node_alignment(refined_tgraph)
+
+    splice_graph_node_alignment = remove_redundant_paths(splice_graph_node_alignment)
+
+    
+    return(splice_graph_node_alignment)
 
 
+
+def splice_graph_to_node_alignment(tgraph):
+
+    topologically_sorted_nodes = Topological_sort.Topological_sort.topologically_sort(tgraph.get_all_nodes())
+
+    logger.debug("Topologically sorted nodes: " + str(topologically_sorted_nodes))
+
+    # index loc node ids
+    aligned_loc_id_pos = dict()
+    for i in range(0, len(topologically_sorted_nodes)):
+        loc_id = topologically_sorted_nodes[i].get_loc_id()
+        aligned_loc_id_pos[loc_id] = i
+
+
+    new_alignments = list()
+    transcript_ids = set()
+    for node in topologically_sorted_nodes:
+        transcript_ids = transcript_ids.union(node.get_transcripts())
+
+    transcript_ids = list(transcript_ids)
+    
+    for transcript_id in transcript_ids:
+        new_alignment = [None for i in topologically_sorted_nodes]
+        for node in topologically_sorted_nodes:
+            if transcript_id in node.get_transcripts():
+                loc_id = node.get_loc_id()
+                new_idx = aligned_loc_id_pos[loc_id]
+                new_alignment[new_idx] = node
+        new_alignments.append(new_alignment)
+
+    splice_graph_node_alignment = Node_alignment.Node_alignment(transcript_ids, new_alignments)
+
+    logger.debug("Splice graph node_alignment: " + str(splice_graph_node_alignment))
+
+    return(splice_graph_node_alignment)
+
+
+
+def remove_redundant_paths(node_alignment):
+
+    transcript_names = node_alignment.get_transcript_names()
+    aligned_nodes = node_alignment.get_aligned_nodes()
+
+
+    # do all pairwise comparisons
+    # check for containments
+
+    containments = set()
+
+    for i in range(0,len(aligned_nodes)-1):
+        for j in range(i+1, len(aligned_nodes)):
+            if a_contains_b(aligned_nodes[i], aligned_nodes[j]):
+                containments.add(j)
+            elif a_contains_b(aligned_nodes[j], aligned_nodes[i]):
+                containments.add(i)
+
+    if containments:
+        adj_transcript_names = list()
+        adj_aligned_nodes = list()
+        for i in range(0, len(aligned_nodes)):
+            if i not in containments:
+                adj_transcript_names.append(transcript_names[i])
+                adj_aligned_nodes.append(aligned_nodes[i])
+
+        adj_splice_graph_node_alignment = Node_alignment.Node_alignment(adj_transcript_names, adj_aligned_nodes)
+
+        logger.debug("Containments found, reporting reduced set")
+        return adj_splice_graph_node_alignment
+
+    else:
+        logger.debug("No containments found")
+        return node_alignment # no changes
+
+
+
+
+def get_first_node_idx(node_list):
+
+    # find starting place for comparison
+    begin_idx = -1
+    for i in range(0,len(node_list)):
+        if node_list[i] is not None:
+            begin_idx = i
+            break
+
+    if begin_idx < 0:
+        raise RuntimeError("Error, didn't find first non-none value among {} and {}".format(node_list_A, node_list_B))
+
+    return begin_idx
+
+
+def get_end_node_idx(node_list):
+    
+    # find ending place for comparison
+    end_idx = -1
+
+    for i in reversed(range(0, len(node_list))):
+        if node_list[i] is not None:
+            end_idx = i
+            break
+    
+    if end_idx < 0:
+        raise RuntimeError("Error, didn't find last non-none value among {} and {}".format(node_list_A, node_list_B))
+
+    return end_idx
+
+
+
+def a_contains_b(node_list_A, node_list_B):
+
+    A_start = get_first_node_idx(node_list_A)
+    A_end = get_end_node_idx(node_list_A)
+
+    B_start = get_first_node_idx(node_list_B)
+    B_end = get_end_node_idx(node_list_B)
+
+    if not (A_start <= B_start and A_end >= B_end):
+        return False # no containment
+
+    # ensure that in overlapping region, they have identical nodes
+    for i in range(B_start, B_end+1):
+        # if we see any difference, then not compatible 
+        if node_list_A[i] != node_list_B[i]:
+            return False
+
+    # must be compatible and contained
+    return True

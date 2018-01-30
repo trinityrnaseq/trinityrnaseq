@@ -127,7 +127,8 @@ class TGraph:
             gene_node_id = node.get_gene_node_id()
             next_nodes = node.get_next_nodes()
 
-            ofh.write("{} [label=\"{}:Len{}:{}\"]\n".format(node.get_id(), gene_node_id, len(node_seq), node_seq))
+            ofh.write("{} [label=\"{}:Len{}:T{}:{}\"]\n".format(node.get_id(), gene_node_id, len(node_seq),
+                                                                node.get_topological_order(), node_seq))
             
             for next_node in next_nodes:
                 ofh.write("{}->{}\n".format(node.get_id(), next_node.get_id()))

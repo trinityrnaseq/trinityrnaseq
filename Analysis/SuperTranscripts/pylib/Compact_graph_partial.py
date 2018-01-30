@@ -11,10 +11,10 @@ import TGraph
 import TNode
 import Node_alignment
 import Compact_graph_whole
-
+from Topological_sort import Topological_sort
 
 logger = logging.getLogger(__name__)
-#logger.addHandler(logging.NullHandler())
+
 
 
 class Compact_graph_partial(Compact_graph_whole.Compact_graph_whole):
@@ -37,24 +37,32 @@ class Compact_graph_partial(Compact_graph_whole.Compact_graph_whole):
             tgraph.clear_touch_settings() # start fresh
             compacted_flag = False # reset for this round
 
-            for node in tgraph.get_all_nodes():
+            sorted_nodes = Topological_sort.topologically_sort(tgraph.get_all_nodes())
+
+            dot_filename = "ladeda.BEGIN.compacted_partial.round_{}.dot".format(round)
+            tgraph.draw_graph(dot_filename)
+            logger.debug("-wrote dot: {}".format(dot_filename))
+            
+            for node in sorted_nodes:
 
                 if node.get_touched_val() > 0:
                     continue
 
+                logger.debug("\n\n/////////// R[{}] Exploring compaction from node: {}\n\n".format(round, node.toString()))
+                
                 # try compact upward
                 prev_nodes = node.get_prev_nodes()
-                if len(prev_nodes) > 1 and self.untouched(prev_nodes):
+                if len(prev_nodes) > 1 and self.untouched(prev_nodes) and self.all_have_lower_topological_orderings(node, prev_nodes):
                     if self.compact_upward(prev_nodes):
                         compacted_flag = True
 
                 next_nodes = node.get_next_nodes()
-                if len(next_nodes) > 1 and self.untouched(next_nodes):
+                if len(next_nodes) > 1 and self.untouched(next_nodes) and self.all_have_higher_topological_orderings(node, next_nodes):
                     if self.compact_downward(next_nodes):
                         compacted_flag = True
 
             if compacted_flag:
-                dot_filename = "ladeda.compacted_partial.round_{}.dot".format(round)
+                dot_filename = "ladeda.END.compacted_partial.round_{}.dot".format(round)
                 tgraph.draw_graph(dot_filename)
                 logger.debug("-wrote dot: {}".format(dot_filename))
 
@@ -79,7 +87,8 @@ class Compact_graph_partial(Compact_graph_whole.Compact_graph_whole):
 
     def compact_upward_node_pair(self, node_A, node_B):
 
-        logger.debug("compact_upward_node_pair({},{})".format(node_A, node_B))
+        logger.debug("compact_upward_node_pair:\nnode_A: {}\nnode_B: {}".format(node_A.toString(), node_B.toString()))
+        
         # ensure they're on parallel paths in the graph.
         if (node_A.is_ancestral(node_B) or node_B.is_ancestral(node_A)):
             logger.debug("-not parallel paths. excluding compaction of {} and {}".format(node_A, node_B))
@@ -196,6 +205,8 @@ class Compact_graph_partial(Compact_graph_whole.Compact_graph_whole):
 
     def compact_downward_node_pair(self, node_A, node_B):
 
+        logger.debug("compact_downward_node_pair:\nnode_A: {}\nnode_B: {}".format(node_A.toString(), node_B.toString()))
+        
         # ensure they're on parallel paths in the graph.
         if (node_A.is_descendant(node_B) or node_B.is_descendant(node_A)):
             logger.debug("-not parallel paths. excluding compaction of {} and {}".format(node_A, node_B))
@@ -221,7 +232,7 @@ class Compact_graph_partial(Compact_graph_whole.Compact_graph_whole):
 
 
         if num_matches == 0:
-            logger.debug("Error, no prefix match between {} and {}".format(node_A, node_B))
+            logger.debug("-no matching prefix match between {} and {}".format(node_A, node_B))
             return False
 
         

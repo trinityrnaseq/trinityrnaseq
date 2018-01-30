@@ -78,7 +78,7 @@ class TNode:
 
         self.touched = 0  
         self.dead = False
-        
+        self.topological_order = -1  # updated on topological sorting
 
     #########################
     ## various Node ID values
@@ -105,16 +105,29 @@ class TNode:
     def is_dead(self):
         return(self.dead)
 
-    def is_ancestral(self, node, visited=set()):
+    def is_ancestral(self, node, visited=None):
+
+        if visited is None:
+            visited = set() #init round
+        
+        logger.debug("is_ancestral search from {} of node {}".format(self, node))
         if node == self:
+            logger.debug("node is self")
             return True
         
         if node in self.prev:
+            logger.debug("node in self.prev")
             return True
         else:
+            logger.debug("continuing search")
             visited.add(self)
+            logger.debug("visited: {}".format(visited))
             for prev_node in self.prev:
-                if prev_node not in visited:
+                logger.debug("cascading towards prev_node: {}".format(prev_node))
+                if prev_node in visited:
+                    logger.debug("prev_node in visited")
+                else:
+                    logger.debug("prev_node not in visited")
                     found = prev_node.is_ancestral(node, visited)
                     if found:
                         return True
@@ -147,8 +160,14 @@ class TNode:
 
     def set_seq(self, seq):
         self.seq = seq
-    
 
+
+    def get_topological_order(self):
+        return self.topological_order
+
+    def set_topological_order(self, topo_order):
+        self.topological_order = topo_order
+    
     def get_transcripts(self):
         return self.transcripts
 
@@ -228,6 +247,9 @@ class TNode:
                   ", transcripts: " + str(self.transcripts) +
                   ", " + self.get_seq())
 
+        if self.topological_order >= 0:
+            txt += ", topo_order={}".format(self.topological_order)
+        
         if self.dead:
             txt += " ** dead ** "
         

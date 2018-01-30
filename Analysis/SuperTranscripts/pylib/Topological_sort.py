@@ -68,8 +68,11 @@ class Topological_sort:
             if len(node.get_prev_nodes()) > 0 or len(node.get_next_nodes()) > 0:
                 raise GraphCycleException("Graph has cycles!  offending node: " + node.toString())
 
+        idx = 0
         for node in L:
             node.restore_stashed_nodes()
+            node.set_topological_order(idx)
+            idx += 1
 
         return L
     

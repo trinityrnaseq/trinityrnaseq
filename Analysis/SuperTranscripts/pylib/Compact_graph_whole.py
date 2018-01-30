@@ -10,10 +10,10 @@ import logging
 import TGraph
 import TNode
 import Node_alignment
-
+from Topological_sort import Topological_sort
 
 logger = logging.getLogger(__name__)
-#logger.addHandler(logging.NullHandler())
+
 
 
 MAX_MM_RATE = 0.05 
@@ -54,31 +54,39 @@ class Compact_graph_whole:
 
         round = 0
         while compacted_flag:
-
+            
             round += 1
             logger.debug("\n\t### Num allowed variants: {}, Round: {}".format(num_allowed_variants, round))
 
             tgraph.clear_touch_settings() # start fresh
             compacted_flag = False # reset for this round
 
-            for node in tgraph.get_all_nodes():
+            sorted_nodes = Topological_sort.topologically_sort(tgraph.get_all_nodes())
+
+            dot_filename = "ladeda.compacted_whole.BEGIN.num_allowed_{}.round_{}.dot".format(num_allowed_variants, round)
+            tgraph.draw_graph(dot_filename)
+            logger.debug("-wrote dot: {}".format(dot_filename))
+            
+            for node in sorted_nodes:
 
                 if node.get_touched_val() > 0:
                     continue
 
+                logger.debug("\n\n///////// R[{}]  Exploring compaction at node: {}\n\n".format(round, node.toString()))
+                
                 # try compact upward
                 prev_nodes = node.get_prev_nodes()
-                if len(prev_nodes) > 1 and self.untouched(prev_nodes):
+                if len(prev_nodes) > 1 and self.untouched(prev_nodes) and self.all_have_lower_topological_orderings(node, prev_nodes):
                     if self.compact_upward(prev_nodes, num_allowed_variants):
                         compacted_flag = True
 
                 next_nodes = node.get_next_nodes()
-                if len(next_nodes) > 1 and self.untouched(next_nodes):
+                if len(next_nodes) > 1 and self.untouched(next_nodes) and self.all_have_higher_topological_orderings(node, next_nodes):
                     if self.compact_downward(next_nodes, num_allowed_variants):
                         compacted_flag = True
 
             if compacted_flag:
-                dot_filename = "ladeda.compacted.num_allowed_{}.round_{}.dot".format(num_allowed_variants, round)
+                dot_filename = "ladeda.compacted_whole.END.num_allowed_{}.round_{}.dot".format(num_allowed_variants, round)
                 tgraph.draw_graph(dot_filename)
                 logger.debug("-wrote dot: {}".format(dot_filename))
 
@@ -92,6 +100,28 @@ class Compact_graph_whole:
 
         return True
 
+
+    def all_have_lower_topological_orderings(self, node, other_nodes_list):
+        topo_order = node.get_topological_order()
+        if topo_order < 0:
+            raise RuntimeError("Error, must run topological ordering first")
+
+        for other_node in other_nodes_list:
+            if other_node.get_topological_order() > topo_order:
+                return False
+        return True
+
+
+    def all_have_higher_topological_orderings(self, node, other_nodes_list):
+        topo_order = node.get_topological_order()
+        if topo_order < 0:
+            raise RuntimeError("Error, must run topological ordering first")
+
+        for other_node in other_nodes_list:
+            if other_node.get_topological_order() < topo_order:
+                return False
+        return True
+    
 
     ####################
     ## Upward Compaction
@@ -110,12 +140,14 @@ class Compact_graph_whole:
         return False
 
     def compact_upward_node_pair(self, node_A, node_B, num_allowed_variants):
-
+        logger.debug("compact_upward_node_pair({}, {}, num_allowed_variants: {}".format(node_A, node_B, num_allowed_variants))
+        
         # ensure they're on parallel paths in the graph.
         if (node_A.is_ancestral(node_B) or node_B.is_ancestral(node_A)):
             logger.debug("-not parallel paths. excluding compaction of {} and {}".format(node_A, node_B))
             return False
-
+        logger.debug("-not ancestral: {}, {}".format(node_A, node_B))
+        
         # switch A,B so A is the shorter sequence node
 
         if len(node_B.get_seq()) < len(node_A.get_seq()):

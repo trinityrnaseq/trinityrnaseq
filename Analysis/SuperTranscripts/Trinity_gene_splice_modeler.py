@@ -44,8 +44,10 @@ def main():
         #logger.setLevel(logging.DEBUG)      
         logging.getLogger().setLevel(logging.DEBUG)
 
+    logger.info("-parsing Trinity fasta file: {}".format(args.trinity_fasta))
     trin_parser = Trinity_fasta_parser.Trinity_fasta_parser(args.trinity_fasta)
 
+    logger.info("-organizing gene/isoform data")
     gene_to_isoform_info = trin_parser.get_trinity_gene_to_isoform_info()
 
     out_fasta_filename = args.out_prefix + ".fasta"
@@ -64,6 +66,7 @@ def main():
     
     ## examine the alt spliced isoforms.
 
+    logger.info("-computing supertranscripts")
     num_genes = len(gene_to_isoform_info.keys())
     gene_counter = 0
     

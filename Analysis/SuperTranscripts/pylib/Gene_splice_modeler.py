@@ -15,7 +15,7 @@ import TGraph
 import TNode
 import Node_path
 import Node_alignment
-import GraphCycleException
+from GraphCycleException import GraphCycleException 
 import Topological_sort
 import DP_matrix
 

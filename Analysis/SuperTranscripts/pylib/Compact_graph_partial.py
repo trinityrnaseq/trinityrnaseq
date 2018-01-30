@@ -79,19 +79,20 @@ class Compact_graph_partial(Compact_graph_whole.Compact_graph_whole):
 
     def compact_upward_node_pair(self, node_A, node_B):
 
+        logger.debug("compact_upward_node_pair({},{})".format(node_A, node_B))
         # ensure they're on parallel paths in the graph.
         if (node_A.is_ancestral(node_B) or node_B.is_ancestral(node_A)):
             logger.debug("-not parallel paths. excluding compaction of {} and {}".format(node_A, node_B))
             return False
 
         # switch A,B so A is the shorter sequence node
-
+        
         if len(node_B.get_seq()) < len(node_A.get_seq()):
             (node_A, node_B) = (node_B, node_A)
 
         seqA = node_A.get_seq()
         seqB = node_B.get_seq()
-
+        
         shorter_len = len(seqA)
 
         # reverse the strings and check number of mismatches
@@ -116,6 +117,9 @@ class Compact_graph_partial(Compact_graph_whole.Compact_graph_whole):
         shared_seq = seqA[-1*num_matches:]
         uniqA_seq = seqA[0:(len(seqA)-num_matches)]
         uniqB_seq = seqB[0:(len(seqB)-num_matches)]
+
+        logger.debug("Suffices:\nseqA:{}\nSeqB:{}\nShared:{}".format(seqA, seqB, shared_seq))
+        
 
         assert len(seqA) == len(shared_seq) + len(uniqA_seq)
         assert len(seqB) == len(shared_seq) + len(uniqB_seq)
@@ -143,24 +147,35 @@ class Compact_graph_partial(Compact_graph_whole.Compact_graph_whole):
         node_A.set_seq(uniqA_seq)
         node_B.set_seq(uniqB_seq)
 
+        # reset next nodes from A,B to C
         all_next_nodes = node_A.get_next_nodes().union(node_B.get_next_nodes())
         tgraph.prune_edges([node_A], node_A.get_next_nodes())
         tgraph.prune_edges([node_B], node_B.get_next_nodes())
-        
-        tgraph.add_edges([node_A], [node_C])
-        tgraph.add_edges([node_B], [node_C])
         tgraph.add_edges([node_C], all_next_nodes)
-
-        node_A.touch()
-        node_B.touch()
         node_C.touch()
-
         
+        if len(uniqA_seq) == 0:
+            # no longer need this now
+            tgraph.add_edges(node_A.get_prev_nodes(), [node_C])
+            tgraph.prune_node(node_A)
+        else:
+            tgraph.add_edges([node_A], [node_C])
+            node_A.touch()
+
+        if len(uniqB_seq) == 0:
+            # no longer need it
+            tgraph.add_edges(node_B.get_prev_nodes(), [node_C])
+            tgraph.prune_node(node_B)
+        else:
+            tgraph.add_edges([node_B], [node_C])
+            node_B.touch()
+            
+                
         logger.debug("node_A after mods: {}".format(node_A.toString()))
         logger.debug("node_B after mods: {}".format(node_B.toString()))
         logger.debug("node_C after mods: {}".format(node_C.toString()))
         
-        logger.debug("\n\n\t*** partially compacted nodes: {} and {} + {} ***".format(node_A, node_B, node_C))
+        logger.debug("\n\n\t*** partially UP-compacted nodes: {} and {} + {} ***".format(node_A, node_B, node_C))
         
         return True
 
@@ -216,6 +231,8 @@ class Compact_graph_partial(Compact_graph_whole.Compact_graph_whole):
         shared_seq = seqA[0:num_matches]
         uniqA_seq = seqA[num_matches:]
         uniqB_seq = seqB[num_matches:]
+        
+        logger.debug("Prefixes:\nseqA:{}\nSeqB:{}\nShared:{}".format(seqA, seqB, shared_seq))
 
         ##### operations needed:
         #
@@ -240,17 +257,29 @@ class Compact_graph_partial(Compact_graph_whole.Compact_graph_whole):
         node_A.set_seq(uniqA_seq)
         node_B.set_seq(uniqB_seq)
 
+        # reset prev nodes from A,B to C
         all_prev_nodes = node_A.get_prev_nodes().union(node_B.get_prev_nodes())
         tgraph.prune_edges(node_A.get_prev_nodes(), [node_A])
         tgraph.prune_edges(node_B.get_prev_nodes(), [node_B])
-        
-        tgraph.add_edges([node_C], [node_A])
-        tgraph.add_edges([node_C], [node_B])
         tgraph.add_edges(all_prev_nodes, [node_C])
-        
-        node_A.touch()
-        node_B.touch()
         node_C.touch()
+
+        
+        if len(uniqA_seq) == 0:
+            # no longer need this now
+            tgraph.add_edges([node_C], node_A.get_next_nodes())
+            tgraph.prune_node(node_A)
+        else:
+            tgraph.add_edges([node_C], [node_A])
+            node_A.touch()
+
+        if len(uniqB_seq) == 0:
+            # no longer need it
+            tgraph.add_edges([node_C], node_B.get_next_nodes())
+            tgraph.prune_node(node_B)
+        else:
+            tgraph.add_edges([node_C], [node_B])
+            node_B.touch()
 
         
         logger.debug("node_A after mods: {}".format(node_A.toString()))

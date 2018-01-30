@@ -12,7 +12,7 @@ import numpy
 import time
 
 import TNode
-import GraphCycleException
+from GraphCycleException import GraphCycleException 
 
 logger = logging.getLogger(__name__)
 

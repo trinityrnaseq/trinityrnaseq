@@ -88,9 +88,10 @@ def main():
         # generate multiple alignment
 
         start_time = time.time()
-        
-        logger.info("Processing Gene: {} having {} isoforms".format(gene_name, len(node_path_obj_list)))
 
+        logger.debug("\n\n##################\n############## PROCESSING GENE: {}\n###########################\n\n".format(gene_name))
+        logger.info("# Processing Gene: {} having {} isoforms".format(gene_name, len(node_path_obj_list)))
+        
         gene_splice_modeler = Gene_splice_modeler.Gene_splice_modeler(gene_name, node_path_obj_list)
         
         splice_model_alignment = gene_splice_modeler.build_splice_model()

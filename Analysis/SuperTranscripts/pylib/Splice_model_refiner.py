@@ -148,6 +148,7 @@ def remove_redundant_paths(node_alignment):
     transcript_names = node_alignment.get_transcript_names()
     aligned_nodes = node_alignment.get_aligned_nodes()
 
+    num_transcripts_before_reduction = len(transcript_names)
 
     # do all pairwise comparisons
     # check for containments
@@ -171,14 +172,17 @@ def remove_redundant_paths(node_alignment):
 
         adj_splice_graph_node_alignment = Node_alignment.Node_alignment(adj_transcript_names, adj_aligned_nodes)
 
-        logger.debug("Containments found, reporting reduced set")
+        num_after_reduction = len(adj_transcript_names)
+        
+        logger.debug("Containments found, reporting reduced set {} of {} = {:.2f}%".format(
+            num_after_reduction, num_transcripts_before_reduction,
+            num_after_reduction/num_transcripts_before_reduction*100))
+        
         return adj_splice_graph_node_alignment
 
     else:
         logger.debug("No containments found")
         return node_alignment # no changes
-
-
 
 
 def get_first_node_idx(node_list):

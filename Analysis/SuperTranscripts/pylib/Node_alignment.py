@@ -335,18 +335,19 @@ class Node_alignment:
                                                                             "gene_id \"{}\"; transcript_id \"{}\"\n".format(
                                                                                 gene_name, transcript_name) ] )
                     transcript_to_malign[ transcript_name ] += node_seq
+
+                    # build Trinity fasta sequence and path info:
+                    cdna_seq_len = len(transcript_to_Trinity_fa_seq[ transcript_name ])
+                    rel_node_start = cdna_seq_len # index starting at zero
+                    rel_node_end = cdna_seq_len + len(node_seq) -1
+
+                    transcript_to_Trinity_fa_seq[ transcript_name ] += node_seq
+                    transcript_to_Trinity_fa_path[ transcript_name ].append("{}:{}-{}".format(i, rel_node_start, rel_node_end))
+
                 else:
                     for x in range(0,len(node_seq)):
                         transcript_to_malign[ transcript_name ] += '.'
 
-
-                # build Trinity fasta sequence and path info:
-                cdna_seq_len = len(transcript_to_Trinity_fa_seq[ transcript_name ])
-                rel_node_start = cdna_seq_len # index starting at zero
-                rel_node_end = cdna_seq_len + len(node_seq) -1
-
-                transcript_to_Trinity_fa_seq[ transcript_name ] += node_seq
-                transcript_to_Trinity_fa_path[ transcript_name ].append("{}:{}-{}".format(i, rel_node_start, rel_node_end))
         
         # build mini-gtf section
         gene_gtf = "\n".join(transcript_to_gtf_lines.values())

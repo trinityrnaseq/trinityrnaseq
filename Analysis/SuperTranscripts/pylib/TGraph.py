@@ -46,18 +46,11 @@ class TGraph:
             node_obj = self.node_cache[ loc_node_id ]
             node_obj.add_transcripts(transcript_id)
             if node_obj.seq != node_seq:
-                ## FIXME: when internal node is found as a terminal node, we're using the k-1mer now for the terminal node too.
-                logger.debug("WARNING: have conflicting node sequences for {} node_id: {}\n".format(self.get_gene_id(),
-                                                                                                    loc_node_id) +
-                             "{}\n vs. \n{}".format(node_obj.seq, node_seq))
-                if len(node_obj.seq) < len(node_seq) and re.search("{}$".format(node_obj.seq), node_seq):
-                    return node_obj
-                elif len(node_obj.seq) > len(node_seq) and re.search("{}$".format(node_seq), node_obj.seq):
-                    node_obj.seq = node_seq # reset to shorter sequence, should be k-1 shorter
-                    return node_obj
-                else:
-                    raise RuntimeError("Error, have conflicting node sequences for node_id: {}\n".format(node_obj) +
-                                   "{}\n vs. \n{}".format(node_obj.seq, node_seq))
+                errmsg = "ERROR: have conflicting node sequences for {} node_id: {}\n".format(self.get_gene_id(),
+                                                   loc_node_id) + "{}\n vs. \n{}".format(node_obj.seq, node_seq)
+                logger.critical(errmsg)
+
+                raise RuntimeError(errmsg)
             else:
                 return node_obj
             

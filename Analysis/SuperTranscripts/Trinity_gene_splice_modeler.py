@@ -26,22 +26,27 @@ import TGLOBALS
 
 def main():
 
-    parser = argparse.ArgumentParser(description="Converts Trinity Isoform structures into a single gene structure representation", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description="Converts Trinity Isoform structures into a single gene structure representation",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     
-    parser.add_argument("--trinity_fasta", dest="trinity_fasta", type=str, default="", required=True, help="Trinity.fasta file")
+    parser.add_argument("--trinity_fasta", dest="trinity_fasta", type=str,
+                        default="", required=True, help="Trinity.fasta file")
 
-    parser.add_argument("--out_prefix", dest="out_prefix", type=str, default="trinity_genes", required=False, help="output prefix for fasta and gtf outputs")
-    parser.add_argument("--incl_malign", dest="malign", action="store_true", default=False, help="include multiple alignment formatted output file")
+    parser.add_argument("--out_prefix", dest="out_prefix", type=str,
+                    default="trinity_genes", required=False, help="output prefix for fasta and gtf outputs")
+    parser.add_argument("--incl_malign", dest="malign", action="store_true",
+                        default=False, help="include multiple alignment formatted output file")
     
     parser.add_argument("--debug", required=False, action="store_true", default=False, help="debug mode")
     parser.add_argument("--verbose", required=False, action="store_true", default=False, help="verbose mode")
 
-    parser.add_argument("--no_squeeze", required=False, action="store_true", default=False, help="don't merge unbranched stretches of node identifiers")
-
+    parser.add_argument("--no_squeeze", required=False, action="store_true",
+                        default=False, help="don't merge unbranched stretches of node identifiers")
+    
     args = parser.parse_args()
 
     if args.debug:
-        #logger.setLevel(logging.DEBUG)      
         logging.getLogger().setLevel(logging.DEBUG)
         TGLOBALS.DEBUG = True
 

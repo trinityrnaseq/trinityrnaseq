@@ -40,6 +40,8 @@ class Node_path:
 
         node_descr_list = re.findall("\d+:\d+\-\d+", path_string)
 
+        # 1st node is special (full kmer prefix included)
+        first_kmer_flag = False
         obj_node_list = list()
         for node_descr in node_descr_list:
             (loc_node_id, node_coord_range) = node_descr.split(":")
@@ -47,6 +49,10 @@ class Node_path:
             lend = int(lend)
             rend = int(rend)
 
+            if not first_kmer_flag:
+                first_kmer_flag = True
+                loc_node_id += 'fst'
+            
             # use factory call to instantiate node objects:
             node_obj = tgraph.get_node(transcript_name,
                                      loc_node_id, sequence[lend:rend+1]) # coords in path were already zero-based

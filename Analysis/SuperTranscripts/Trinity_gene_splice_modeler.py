@@ -53,10 +53,13 @@ def main():
 
     out_fasta_filename = args.out_prefix + ".fasta"
     out_gtf_filename = args.out_prefix + ".gtf"
+    out_trinity_fa_filename = args.out_prefix + ".transcripts.fa"
     out_malign_filename = args.out_prefix + ".malign"
+    
 
     ofh_fasta = open(out_fasta_filename, 'w')
     ofh_gtf = open(out_gtf_filename, 'w')
+    ofh_trinity_fa = open(out_trinity_fa_filename, 'w')
     ofh_malign = None
 
     if args.malign:
@@ -110,11 +113,14 @@ def main():
             
         squeezed_splice_model = Splice_model_refiner.refine_alignment(squeezed_splice_model)
 
+        # re-squeeze
+        squeezed_splice_model = splice_model_alignment.squeeze()
         
-        (gene_seq, gtf_txt, malign_dict) = squeezed_splice_model.to_gene_fasta_and_gtf(gene_name)
-
+        (gene_seq, gtf_txt, trinity_fa_text, malign_dict) = squeezed_splice_model.to_gene_fasta_and_gtf(gene_name)
+        
         ofh_fasta.write(">{}\n{}\n".format(gene_name, gene_seq))
         ofh_gtf.write(gtf_txt + "\n")
+        ofh_trinity_fa.write(trinity_fa_text)
 
         if args.malign and len(node_path_obj_list) > 1:
             Gene_splice_modeler.Gene_splice_modeler.write_malign(gene_name, malign_dict, ofh_malign)
@@ -128,6 +134,7 @@ def main():
 
     ofh_fasta.close()
     ofh_gtf.close()
+    ofh_trinity_fa.close()
     if args.malign:
         ofh_malign.close()
 

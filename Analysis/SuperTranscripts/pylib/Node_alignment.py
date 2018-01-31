@@ -299,13 +299,19 @@ class Node_alignment:
 
         # init transcript gtf records
         transcript_to_gtf_lines = dict()
-
         transcript_to_malign = dict()
+        transcript_to_Trinity_fa_seq = dict()
+        transcript_to_Trinity_fa_path = dict()
+
 
         for transcript_name in transcript_names:
             transcript_to_gtf_lines[ transcript_name ] = ""
             transcript_to_malign[ transcript_name ] = ""
 
+            transcript_to_Trinity_fa_path[ transcript_name ] = list()
+            transcript_to_Trinity_fa_seq[ transcript_name ] = ""
+
+            
         for i in range(0,self.width()):
             node_obj = self.get_representative_column_node(i)
 
@@ -332,10 +338,28 @@ class Node_alignment:
                 else:
                     for x in range(0,len(node_seq)):
                         transcript_to_malign[ transcript_name ] += '.'
-                
+
+
+                # build Trinity fasta sequence and path info:
+                cdna_seq_len = len(transcript_to_Trinity_fa_seq[ transcript_name ])
+                rel_node_start = cdna_seq_len # index starting at zero
+                rel_node_end = cdna_seq_len + len(node_seq) -1
+
+                transcript_to_Trinity_fa_seq[ transcript_name ] += node_seq
+                transcript_to_Trinity_fa_path[ transcript_name ].append("{}:{}-{}".format(i, rel_node_start, rel_node_end))
         
         # build mini-gtf section
         gene_gtf = "\n".join(transcript_to_gtf_lines.values())
 
-        return (gene_seq, gene_gtf, transcript_to_malign)
+        # build Trinity fasta text
+        trinity_fasta_text = ""
+        for transcript_name in transcript_names:
+            transcript_seq = transcript_to_Trinity_fa_seq[transcript_name]
+            path_list = transcript_to_Trinity_fa_path[transcript_name]
+            #logger.debug("path list: " + str(path_list))
+            path_list_text = " ".join(path_list)
+            trinity_fasta_text += ">{} len={} path=[{}]\n{}\n".format(transcript_name, len(transcript_seq),
+                                                                      path_list_text, transcript_seq)
+        
+        return (gene_seq, gene_gtf, trinity_fasta_text, transcript_to_malign)
         

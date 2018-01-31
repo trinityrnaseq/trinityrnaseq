@@ -14,6 +14,7 @@ import Topological_sort
 
 from Compact_graph_whole import Compact_graph_whole
 from Compact_graph_partial import Compact_graph_partial
+import TGLOBALS
 
 logger = logging.getLogger(__name__)
 
@@ -68,20 +69,22 @@ def refine_alignment(node_alignment_obj):
     for node in new_node_list:
         logger.debug(node.toString() + " " + node.get_seq())
 
-
-    refined_tgraph.draw_graph("ladeda.pre.dot")
-
+    if TGLOBALS.DEBUG:
+        refined_tgraph.draw_graph("ladeda.pre.dot")
+    
     graph_compactor = Compact_graph_whole()
     graph_compactor.compact_unbranched(refined_tgraph)
 
-    refined_tgraph.draw_graph("ladeda.linear_compact.dot")
+    if TGLOBALS.DEBUG:
+        refined_tgraph.draw_graph("ladeda.linear_compact.dot")
     
     ###########
     #
     
     for allowed_variants in (0, 1, 2):
         graph_compactor.compact_graph(refined_tgraph, allowed_variants)
-        refined_tgraph.draw_graph("ladeda.compact.m{}.dot".format(allowed_variants))
+        if TGLOBALS.DEBUG:
+            refined_tgraph.draw_graph("ladeda.compact.m{}.dot".format(allowed_variants))
         
 
     ## now extract prefix and suffix matches
@@ -89,8 +92,8 @@ def refine_alignment(node_alignment_obj):
     partial_graph_compactor = Compact_graph_partial()
     partial_graph_compactor.compact_graph(refined_tgraph)
     
-
-    refined_tgraph.draw_graph("ladeda.final.dot")
+    if TGLOBALS.DEBUG:
+        refined_tgraph.draw_graph("ladeda.final.dot")
     
     # convert compacted graph into a node alignment obj
 

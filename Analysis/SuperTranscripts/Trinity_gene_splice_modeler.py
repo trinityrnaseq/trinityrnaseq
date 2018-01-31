@@ -22,7 +22,7 @@ import Trinity_fasta_parser
 import Gene_splice_modeler
 import Splice_model_refiner
 import Node_path
-
+import TGLOBALS
 
 def main():
 
@@ -43,6 +43,7 @@ def main():
     if args.debug:
         #logger.setLevel(logging.DEBUG)      
         logging.getLogger().setLevel(logging.DEBUG)
+        TGLOBALS.DEBUG = True
 
     logger.info("-parsing Trinity fasta file: {}".format(args.trinity_fasta))
     trin_parser = Trinity_fasta_parser.Trinity_fasta_parser(args.trinity_fasta)

@@ -110,31 +110,36 @@ class TNode:
         if visited is None:
             visited = set() #init round
         
-        logger.debug("is_ancestral search from {} of node {}".format(self, node))
+        #logger.debug("is_ancestral search from {} of node {}".format(self, node))
         if node == self:
-            logger.debug("node is self")
+            #logger.debug("node is self")
             return True
         
         if node in self.prev:
-            logger.debug("node in self.prev")
+            #logger.debug("node in self.prev")
             return True
         else:
-            logger.debug("continuing search")
+            #logger.debug("continuing search")
             visited.add(self)
-            logger.debug("visited: {}".format(visited))
+            #logger.debug("visited: {}".format(visited))
             for prev_node in self.prev:
-                logger.debug("cascading towards prev_node: {}".format(prev_node))
+                #logger.debug("cascading towards prev_node: {}".format(prev_node))
                 if prev_node in visited:
-                    logger.debug("prev_node in visited")
+                    #logger.debug("prev_node in visited")
+                    pass
                 else:
-                    logger.debug("prev_node not in visited")
+                    #logger.debug("prev_node not in visited")
                     found = prev_node.is_ancestral(node, visited)
                     if found:
                         return True
         return False
 
 
-    def is_descendant(self, node, visited=set()):
+    def is_descendant(self, node, visited=None):
+
+        if visited == None:
+            visited = set()  # init round
+        
         if node == self:
             return True
 

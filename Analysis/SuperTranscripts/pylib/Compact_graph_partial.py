@@ -12,6 +12,7 @@ import TNode
 import Node_alignment
 import Compact_graph_whole
 from Topological_sort import Topological_sort
+import TGLOBALS
 
 logger = logging.getLogger(__name__)
 
@@ -39,9 +40,10 @@ class Compact_graph_partial(Compact_graph_whole.Compact_graph_whole):
 
             sorted_nodes = Topological_sort.topologically_sort(tgraph.get_all_nodes())
 
-            dot_filename = "ladeda.BEGIN.compacted_partial.round_{}.dot".format(round)
-            tgraph.draw_graph(dot_filename)
-            logger.debug("-wrote dot: {}".format(dot_filename))
+            if TGLOBALS.DEBUG:
+                dot_filename = "ladeda.BEGIN.compacted_partial.round_{}.dot".format(round)
+                tgraph.draw_graph(dot_filename)
+                logger.debug("-wrote dot: {}".format(dot_filename))
             
             for node in sorted_nodes:
 
@@ -62,9 +64,10 @@ class Compact_graph_partial(Compact_graph_whole.Compact_graph_whole):
                         compacted_flag = True
 
             if compacted_flag:
-                dot_filename = "ladeda.END.compacted_partial.round_{}.dot".format(round)
-                tgraph.draw_graph(dot_filename)
-                logger.debug("-wrote dot: {}".format(dot_filename))
+                if TGLOBALS.DEBUG:
+                    dot_filename = "ladeda.END.compacted_partial.round_{}.dot".format(round)
+                    tgraph.draw_graph(dot_filename)
+                    logger.debug("-wrote dot: {}".format(dot_filename))
 
                 self.compact_unbranched(tgraph)
 

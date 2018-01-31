@@ -49,7 +49,7 @@ class TGraph:
                 errmsg = "ERROR: have conflicting node sequences for {} node_id: {}\n".format(self.get_gene_id(),
                                                    loc_node_id) + "{}\n vs. \n{}".format(node_obj.seq, node_seq)
                 logger.critical(errmsg)
-
+                
                 raise RuntimeError(errmsg)
             else:
                 return node_obj

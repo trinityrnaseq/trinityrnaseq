@@ -1099,33 +1099,9 @@ $ENV{OMP_NUM_THREADS} = $CPU; ## for Inchworm and Chrysalis
 
 
 my $PAIRED_MODE = ( (@left_files && @right_files)  || $run_as_paired_flag) ? 1:0;
-if (!$NO_BOWTIE) {
-    ## be sure we can find 'bowtie', since we use it as part of the iworm pair scaffolding step
-    my $bowtie2_path = `which bowtie2`;
-    my $bowtie2_build_path = `which bowtie2-build`;
-    if ($bowtie2_path =~ /\w/ && $bowtie2_build_path =~ /\w/) {
-        print "Paired mode requires bowtie2. Found bowtie2 at: $bowtie2_path\n and bowtie-build at $bowtie2_build_path\n\n" if $VERBOSE;
-    }
-    else {
-        die "Error, cannot find path to bowtie2 ($bowtie2_path) or bowtie2-build ($bowtie2_build_path), which is now needed as part of Chrysalis' read scaffolding step.  If you should choose to not run bowtie, include the --no_bowtie in your Trinity command.\n\n";
-    }
-}
-
-if (! $NO_SALMON) {
-    my $salmon_path = `which salmon`;
-    if ($salmon_path !~ /\w/) {
-        die "Trinity $VERSION requires salmon to be installed.  Get it here: https://combine-lab.github.io/salmon/ ";
-    }
-}
 
 
-my $samtools_path = `which samtools`;
-if ($samtools_path =~ /\w/) {
-    print "Found samtools at: $samtools_path\n" if $VERBOSE;
-}
-else {
-    die "Error, cannot find samtools. Please be sure samtools is installed and included in your PATH setting.\n";
-}
+&check_required_3rd_party_tool_installations(); # bowtie2, salmon, jellyfish, samtools
 
 
 unless ($path_reinforcement_distance) {
@@ -3642,3 +3618,78 @@ sub parse_samples_file {
 
     return;
 }
+
+
+####
+sub check_required_3rd_party_tool_installations {
+
+
+    # samtools
+    my $samtools_path = `which samtools`;
+    if ($samtools_path =~ /\w/) {
+        print "Found samtools at: $samtools_path\n" if $VERBOSE;
+    
+        my $version_info = `samtools --version`;
+        my @pts = split(/\s+/, $version_info);
+        my $version = $pts[1];
+        my ($major, $minor, $patch) = split(/\./, $version);
+        if ($major != 1 || $minor < 3) {
+            die "Error, need samtools installed that is at least as new as version 1.3";
+        }
+    }
+    else {
+        die "Error, cannot find samtools. Please be sure samtools is installed and included in your PATH setting.\n";
+    }
+
+    # jellyfish
+    my $jellyfish_path = `which jellyfish`;
+    if ($jellyfish_path =~ /\w/) {
+        print "Found jellyfish at: $jellyfish_path\n" if $VERBOSE;
+
+        my $version_info = `jellyfish --version`;
+        my ($name, $version) = split(/\s+/, $version_info);
+        unless ($version =~ /^2\./) {
+            die "Error, need jellyfish v2, instead found $version_info ; Get it here: http://www.genome.umd.edu/jellyfish.html";
+        }
+    }
+    else {
+        die "Error, cannot find jellyfish installed on this system. Be sure to install it. You can get it here: http://www.genome.umd.edu/jellyfish.html";
+    }
+    
+    
+    ## bowtie2
+    if (!$NO_BOWTIE) {
+        ## be sure we can find 'bowtie', since we use it as part of the iworm pair scaffolding step
+        my $bowtie2_path = `which bowtie2`;
+        my $bowtie2_build_path = `which bowtie2-build`;
+        if ($bowtie2_path =~ /\w/ && $bowtie2_build_path =~ /\w/) {
+            print "Paired mode requires bowtie2. Found bowtie2 at: $bowtie2_path\n and bowtie-build at $bowtie2_build_path\n\n" if $VERBOSE;
+        }
+        else {
+            die "Error, cannot find path to bowtie2 ($bowtie2_path) or bowtie2-build ($bowtie2_build_path), which is now needed as part of Chrysalis' read scaffolding step.  If you should choose to not run bowtie, include the --no_bowtie in your Trinity command.\n\n";
+        }
+    }
+
+    # salmon
+    if (! $NO_SALMON) {
+        my $salmon_path = `which salmon`;
+        if ($salmon_path =~ /\w/) {
+            print "Found salmon installed at $salmon_path\n" if $VERBOSE;
+
+            my $version_info = `salmon --version 2>&1`;
+            my @pts = split(/\s+/, $version_info);
+            my $version = $pts[2];
+            my ($major, $minor, $patch) = split(/\./, $version);
+            if ($major == 0 && $minor < 8) {
+                die "Error, please install a version of salmon that is at least as new as version 0.8.  Get it here: https://combine-lab.github.io/salmon/";
+            }
+        }
+        else {
+            die "Trinity $VERSION requires salmon to be installed.  Get it here: https://combine-lab.github.io/salmon/ ";
+        }
+    }
+    
+
+    return;
+}
+

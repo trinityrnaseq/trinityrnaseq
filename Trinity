@@ -189,6 +189,7 @@ my $NORMALIZE_BY_READ_SET = 0;
 my $grid_node_CPU = 1;
 my $grid_node_max_memory = "1G";
 
+my $min_eff_read_cov = 2.0; # min effective read coverage (#reads * read_len / transcript_len)
 
 # Note: For the Trinity logo below the backslashes are quoted in order to keep
 #   them from quoting the character than follows them.  "\\" keeps "\ " from occuring.
@@ -496,6 +497,7 @@ my $advanced_usage =  <<_ADVANCEDUSAGE_;
 #  --java_opts <string>       : can include any additional custom options to the java command.
 #                                    ie.  -Djava.io.tmpdir=/path/to/my/custom/tmpdir
 #  --no_salmon                : remove salmon expression filtering
+#     --min_eff_read_cov <int>   : minimum effective read coverage for reconstructed transcript (default: $min_eff_read_cov)
 #
 #  --long_reads_mode               : run in long reads mode (requires --single and the long reads integrated with LR$| accession prefixes.
 #
@@ -569,6 +571,7 @@ my $NO_CHECK_COORDSORTED_BAM = 0;
 
 my $NO_SALMON = 0;
 
+
 &GetOptions( 
     
     'h|help' => \$help_flag,
@@ -640,6 +643,7 @@ my $NO_SALMON = 0;
     'max_internal_gap_same_path=i' => \$MAX_INTERNAL_GAP_SAME_PATH,
              
     'no_salmon' => \$NO_SALMON,
+    'min_eff_read_cov=f' => \$min_eff_read_cov,
     
     #'PasaFly' => \$PASAFLY_MODE,
     #'CuffFly' => \$CUFFFLY_MODE,
@@ -1358,6 +1362,9 @@ main: {
             print "# No butterfly assemblies to report.\n" unless $TRINITY_COMPLETE_FLAG;
         }
 
+        # before removing anything under cleanup, cd to a safe place.
+        chdir($start_dir) or die "Error, cannot cd to start dir: $start_dir";
+        
         if ($TRINITY_COMPLETE_FLAG) {
             # phase-2
             # outputdir might be workdir
@@ -1733,9 +1740,9 @@ sub run_Trinity {
         $pipeliner->add_commands( new Command($cmd, "$polish_checkpoints_dir/salmon.ok") );
 
         my $salmon_quant_file = "salmon_outdir/quant.sf";
-        $cmd = "$UTILDIR/support_scripts/filter_transcripts_require_min_counts.pl $Trinity_fasta_file $salmon_quant_file 1 > $Trinity_fasta_file.filt";
+        $cmd = "$UTILDIR/support_scripts/filter_transcripts_require_min_cov.pl $Trinity_fasta_file $inchworm_target_fa $salmon_quant_file $min_eff_read_cov > $Trinity_fasta_file.filt";
         $pipeliner->add_commands( new Command($cmd, "$polish_checkpoints_dir/salmon.filt.ok"));
-
+        
         $pipeliner->run();
 
         $Trinity_fasta_file = "$Trinity_fasta_file.filt";

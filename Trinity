@@ -495,6 +495,7 @@ my $advanced_usage =  <<_ADVANCEDUSAGE_;
 #
 #  --java_opts <string>       : can include any additional custom options to the java command.
 #                                    ie.  -Djava.io.tmpdir=/path/to/my/custom/tmpdir
+#  --no_salmon                : remove salmon expression filtering
 #
 #  --long_reads_mode               : run in long reads mode (requires --single and the long reads integrated with LR$| accession prefixes.
 #
@@ -566,6 +567,8 @@ my $WORKDIR;
 
 my $NO_CHECK_COORDSORTED_BAM = 0;
 
+my $NO_SALMON = 0;
+
 &GetOptions( 
     
     'h|help' => \$help_flag,
@@ -636,6 +639,7 @@ my $NO_CHECK_COORDSORTED_BAM = 0;
     'max_diffs_same_path=i' => \$MAX_DIFFS_SAME_PATH,
     'max_internal_gap_same_path=i' => \$MAX_INTERNAL_GAP_SAME_PATH,
              
+    'no_salmon' => \$NO_SALMON,
     
     #'PasaFly' => \$PASAFLY_MODE,
     #'CuffFly' => \$CUFFFLY_MODE,
@@ -1102,7 +1106,15 @@ if (!$NO_BOWTIE) {
         die "Error, cannot find path to bowtie2 ($bowtie2_path) or bowtie2-build ($bowtie2_build_path), which is now needed as part of Chrysalis' read scaffolding step.  If you should choose to not run bowtie, include the --no_bowtie in your Trinity command.\n\n";
     }
 }
- 
+
+if (! $NO_SALMON) {
+    my $salmon_path = `which salmon`;
+    if ($salmon_path !~ /\w/) {
+        die "Trinity $VERSION requires salmon to be installed.  Get it here: https://combine-lab.github.io/salmon/ ";
+    }
+}
+
+
 my $samtools_path = `which samtools`;
 if ($samtools_path =~ /\w/) {
     print "Found samtools at: $samtools_path\n" if $VERBOSE;
@@ -1324,7 +1336,7 @@ main: {
             die "Trinity run failed. Must investigate error above.\n";
         }
     }
-    
+
 
     my $final_Trinity_fasta_file;
     if ($FULL_CLEANUP) {
@@ -1620,12 +1632,9 @@ sub run_Trinity {
         
         if ($jaccard_clip && -s 'left.fa' && -s 'right.fa') {
             $inchworm_file = &run_jaccard_clip_left_right($inchworm_file, \@left_files, \@right_files, $seqType, $SS_lib_type);
-            #$inchworm_file = &run_jaccard_clip_left_right($inchworm_file, $left_file, $right_file, $seqType, $SS_lib_type);
-            
         }
         elsif ($jaccard_clip && -s 'single.fa') {
             $inchworm_file = &run_jaccard_clip_single_but_really_paired($inchworm_file, \@single_files, $seqType, $SS_lib_type);
-            #$inchworm_file = &run_jaccard_clip_single_but_really_paired($inchworm_file, $single_file, $seqType, $SS_lib_type);
         }
     }
     
@@ -1680,8 +1689,6 @@ sub run_Trinity {
     
     
     if ($butterfly_cmds && -s $butterfly_cmds) {
-
-       
                     
         ## Run Butterfly
         
@@ -1705,12 +1712,51 @@ sub run_Trinity {
         ## capture results:
         # my $cmd = 'find ./chrysalis -name "*allProbPaths.fasta" -exec cat {} + > Trinity.fasta.tmp';
         # no longer scan the file system... we know which files should exist
-        print STDERR "\n\n** Harvesting all assembled transcripts into a single multi-fasta file...\n" unless ($TRINITY_COMPLETE_FLAG);
+        print STDERR "\n\n** Harvesting all assembled transcripts into a single multi-fasta file...\n" if ($VERBOSE);
         $cmd = "$UTILDIR/support_scripts/print_butterfly_assemblies.pl $chrysalis_output_dir/component_base_listing.txt > $Trinity_fasta_file"; 
         &process_cmd($cmd);
         
-
     }
+
+
+    my $polish_checkpoints_dir = "__polish.chkpts";
+    if (! -d $polish_checkpoints_dir) {
+        mkdir($polish_checkpoints_dir) or confess "Error, cannot mkdir $polish_checkpoints_dir";
+    }
+    
+    if (-s "$Trinity_fasta_file" && ! $NO_SALMON) {
+        
+        ## assembly polishing
+            
+        my $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
+        my $cmd = "$UTILDIR/support_scripts/salmon_runner.pl $Trinity_fasta_file $inchworm_target_fa";
+        $pipeliner->add_commands( new Command($cmd, "$polish_checkpoints_dir/salmon.ok") );
+
+        my $salmon_quant_file = "salmon_outdir/quant.sf";
+        $cmd = "$UTILDIR/support_scripts/filter_transcripts_require_min_counts.pl $Trinity_fasta_file $salmon_quant_file 1 > $Trinity_fasta_file.filt";
+        $pipeliner->add_commands( new Command($cmd, "$polish_checkpoints_dir/salmon.filt.ok"));
+
+        $pipeliner->run();
+
+        $Trinity_fasta_file = "$Trinity_fasta_file.filt";
+    }
+    
+    if (-s $Trinity_fasta_file) {
+
+        # further simplification
+        
+        my $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
+                
+        my $cmd = "$ROOTDIR/Analysis/SuperTranscripts/Trinity_gene_splice_modeler.py --trinity_fasta $Trinity_fasta_file --out_prefix $Trinity_fasta_file.ST --incl_cdna";
+        $pipeliner->add_commands( new Command($cmd, "$polish_checkpoints_dir/trinity_st.ok"));
+        
+        $pipeliner->run();
+
+        $Trinity_fasta_file = "$Trinity_fasta_file.ST.transcripts.fa";
+        
+                
+    }
+    
 
     return($Trinity_fasta_file);
 }

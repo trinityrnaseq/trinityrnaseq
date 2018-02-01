@@ -44,6 +44,9 @@ def main():
     parser.add_argument("--no_squeeze", required=False, action="store_true",
                         default=False, help="don't merge unbranched stretches of node identifiers")
     
+    parser.add_argument("--incl_cdna", required=False, action="store_true",
+                        default=False, help="rewrite Trinity fasta file using simplified graph structure")
+
     args = parser.parse_args()
 
     if args.debug:
@@ -64,11 +67,15 @@ def main():
 
     ofh_fasta = open(out_fasta_filename, 'w')
     ofh_gtf = open(out_gtf_filename, 'w')
-    ofh_trinity_fa = open(out_trinity_fa_filename, 'w')
+    ofh_trinity_fa = None
     ofh_malign = None
 
     if args.malign:
         ofh_malign = open(out_malign_filename, 'w')
+
+    if args.incl_cdna:
+        ofh_trinity_fa = open(out_trinity_fa_filename, 'w')
+
 
 
     supertranscript_start_time = time.time()
@@ -125,7 +132,9 @@ def main():
         
         ofh_fasta.write(">{}\n{}\n".format(gene_name, gene_seq))
         ofh_gtf.write(gtf_txt + "\n")
-        ofh_trinity_fa.write(trinity_fa_text)
+
+        if args.incl_cdna:
+            ofh_trinity_fa.write(trinity_fa_text)
 
         if args.malign and len(node_path_obj_list) > 1:
             Gene_splice_modeler.Gene_splice_modeler.write_malign(gene_name, malign_dict, ofh_malign)
@@ -139,7 +148,8 @@ def main():
 
     ofh_fasta.close()
     ofh_gtf.close()
-    ofh_trinity_fa.close()
+    if args.incl_cdna:
+        ofh_trinity_fa.close()
     if args.malign:
         ofh_malign.close()
 

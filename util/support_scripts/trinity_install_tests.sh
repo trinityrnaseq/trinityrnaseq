@@ -6,12 +6,6 @@ echo 'Performing Unit Tests of Build'
 echo ' '
 echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
-if [ -e "trinity-plugins/jellyfish/jellyfish" ]
-then
-	echo "JellyFish:               has been Installed Properly"
-else
-	echo "JellyFish                Installation appears to have FAILED"
-fi
 
 if [ -e "Inchworm/bin/inchworm" ]
 then
@@ -54,9 +48,3 @@ else
 	echo "parafly Installation appears to have FAILED"
 fi
 
-if [ -e "trinity-plugins/BIN/samtools" ]
-then
-    echo "samtools          has been Installed Properly"
-else
-    echo "samtools          Installation appears to have FAILED"
-fi

@@ -117,7 +117,6 @@ _EOUSAGE_
 my $ROOTDIR = "$FindBin::RealBin/../";
 my $UTILDIR = "$ROOTDIR/util/support_scripts/";
 my $INCHWORM_DIR = "$ROOTDIR/Inchworm";
-my $JELLYFISH_DIR = "$ROOTDIR/trinity-plugins/jellyfish";
 
 unless (@ARGV) {
     die "$usage\n";
@@ -588,7 +587,7 @@ sub run_jellyfish {
             $jelly_hash_size = $JELLY_S;
         }
                 
-        my $cmd = "$JELLYFISH_DIR/bin/jellyfish count -t $CPU -m $KMER_SIZE -s $jelly_hash_size ";
+        my $cmd = "jellyfish count -t $CPU -m $KMER_SIZE -s $jelly_hash_size ";
         
         unless ($SS_lib_type) {
             ## count both strands
@@ -607,12 +606,12 @@ sub run_jellyfish {
         my $jelly_db = "mer_counts.jf";
         
         ## write a histogram of the kmer counts.
-        $cmd = "$JELLYFISH_DIR/bin/jellyfish histo -t $CPU -o $jelly_kmer_fa_file.histo $jelly_db";
+        $cmd = "jellyfish histo -t $CPU -o $jelly_kmer_fa_file.histo $jelly_db";
         &process_cmd($cmd);
 
 
 
-        $cmd = "$JELLYFISH_DIR/bin/jellyfish dump -L $MIN_KMER_COV_CONST $jelly_db > $jelly_kmer_fa_file";
+        $cmd = "jellyfish dump -L $MIN_KMER_COV_CONST $jelly_db > $jelly_kmer_fa_file";
 
         &process_cmd($cmd);
         

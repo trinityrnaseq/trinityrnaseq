@@ -37,7 +37,6 @@ my $MISCDIR = "$UTILDIR/misc";
 my $INCHWORM_DIR = "$ROOTDIR/Inchworm/bin/";
 my $CHRYSALIS_DIR = "$ROOTDIR/Chrysalis";
 my $BUTTERFLY_DIR = "$ROOTDIR/Butterfly";
-my $JELLYFISH_DIR = "$ROOTDIR/trinity-plugins/jellyfish";
 my $COLLECTL_DIR = "$ROOTDIR/trinity-plugins/COLLECTL/collectl";
 my $PARAFLY = "$ROOTDIR/trinity-plugins/BIN/ParaFly";
 my $TRIMMOMATIC = "$ROOTDIR/trinity-plugins/Trimmomatic/trimmomatic.jar";
@@ -2306,7 +2305,7 @@ sub run_inchworm {
             $jelly_hash_size = $JELLY_S;
         }
         
-        my $cmd = "$JELLYFISH_DIR/bin/jellyfish count -t $CPU -m $KMER_SIZE -s $jelly_hash_size ";
+        my $cmd = "jellyfish count -t $CPU -m $KMER_SIZE -s $jelly_hash_size ";
         
         unless ($SS_lib_type) {
             ## count both strands
@@ -2320,12 +2319,12 @@ sub run_inchworm {
         
         my $jelly_db = "mer_counts.jf";
         
-        $cmd = "$JELLYFISH_DIR/bin/jellyfish dump -L $min_kmer_cov $jelly_db > $jelly_kmer_fa_file";
+        $cmd = "jellyfish dump -L $min_kmer_cov $jelly_db > $jelly_kmer_fa_file";
         
         $pipeliner->add_commands(new Command($cmd, ".jellyfish_dump.ok") );        
         
         ## write a histogram of the kmer counts.
-        $cmd = "$JELLYFISH_DIR/bin/jellyfish histo -t $CPU -o $jelly_kmer_fa_file.histo $jelly_db";
+        $cmd = "jellyfish histo -t $CPU -o $jelly_kmer_fa_file.histo $jelly_db";
         
         $pipeliner->add_commands( new Command($cmd, ".jellyfish_histo.ok") );
         

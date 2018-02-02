@@ -112,7 +112,7 @@ class Gene_splice_modeler:
         Build supertranscript using simpler topological sorting of the nodes.
         """
         
-        logger.info("\tusing topological sort method.\n");
+        logger.debug("\tusing topological sort method.\n");
         gene_id = self.get_gene_id()
         generic_name = "^^{}^^".format(gene_id)
         
@@ -177,7 +177,7 @@ class Gene_splice_modeler:
         perform alignment, and replace aligned pair with a single alignment object.
         """
         
-        logger.info("\tusing mult alignment method.\n");
+        logger.debug("\tusing mult alignment method.\n");
                     
         alignments = self.alignments
 

@@ -60,7 +60,7 @@ while (@TRIN_ARGS) {
         my $val = shift @TRIN_ARGS;
         # retain quotes around multiparams
         
-        $trin_args .= "$arg \"$val\"";
+        $trin_args .= "$arg \"$val\" ";
     }
     else {
         $trin_args .= "$arg ";

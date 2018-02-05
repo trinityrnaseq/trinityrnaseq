@@ -102,7 +102,7 @@ def splice_graph_to_node_alignment(tgraph):
                 new_alignment[new_idx] = node
         new_alignments.append(new_alignment)
 
-    splice_graph_node_alignment = Node_alignment.Node_alignment(transcript_ids, new_alignments)
+    splice_graph_node_alignment = Node_alignment.Node_alignment(tgraph.get_gene_id(), transcript_ids, new_alignments)
 
     logger.debug("Splice graph node_alignment: " + str(splice_graph_node_alignment))
 

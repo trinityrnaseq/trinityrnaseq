@@ -47,6 +47,9 @@ def main():
     parser.add_argument("--incl_cdna", required=False, action="store_true",
                         default=False, help="rewrite Trinity fasta file using simplified graph structure")
 
+    parser.add_argument("--incl_dot", required=False, action="store_true",
+                        default=False, help="include dot file for gene graph (*warning* single dot file per gene!! use sparingly)")
+    
     args = parser.parse_args()
 
     if args.debug:
@@ -123,10 +126,15 @@ def main():
             logger.debug("Squeezed splice model for Gene {}:\n{}\n".format(gene_name, str(squeezed_splice_model)))
 
             
-        squeezed_splice_model = Splice_model_refiner.refine_alignment(squeezed_splice_model, reset_node_ids=True)
+        squeezed_splice_model = Splice_model_refiner.refine_alignment(squeezed_splice_model, reset_node_ids=False)
 
         # re-squeeze
         squeezed_splice_model = squeezed_splice_model.squeeze()
+
+        squeezed_splice_model.reassign_node_loc_ids_by_align_order()
+        
+        if args.incl_dot:
+            squeezed_splice_model.to_splice_graph(gene_name).draw_graph("{}.dot".format(gene_name))
         
         (gene_seq, gtf_txt, trinity_fa_text, malign_dict) = squeezed_splice_model.to_gene_fasta_and_gtf(gene_name)
         

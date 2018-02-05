@@ -114,10 +114,9 @@ class Gene_splice_modeler:
         
         logger.debug("\tusing topological sort method.\n");
         gene_id = self.get_gene_id()
-        generic_name = "^^{}^^".format(gene_id)
         
         ## make a generic graph.
-        graph = TGraph.TGraph(generic_name)
+        graph = TGraph.TGraph(gene_id)
         for alignment in self.alignments:
             logger.debug("topological_order_splice_model, input alignment: " + str(alignment))
             node_list = alignment.get_aligned_nodes()[0] # should be unaligned here, so just ordered path list.
@@ -164,7 +163,7 @@ class Gene_splice_modeler:
                 new_alignment[new_idx] = node
             new_alignments.append(new_alignment)
 
-        splice_graph_model = Node_alignment.Node_alignment(transcript_ids, new_alignments)
+        splice_graph_model = Node_alignment.Node_alignment(gene_id, transcript_ids, new_alignments)
 
         logger.debug("Splice graph model: " + str(splice_graph_model))
 
@@ -393,7 +392,7 @@ class Gene_splice_modeler:
 
         logger.debug("merged alignment node matrix:\n" + str(node_obj_matrix))
 
-        merged_alignment_obj = Node_alignment.Node_alignment(merged_transcript_name_list, node_obj_matrix)
+        merged_alignment_obj = Node_alignment.Node_alignment(align_a.get_gene_id(), merged_transcript_name_list, node_obj_matrix)
 
         logger.debug("merged alignment obj:\n" + str(merged_alignment_obj))
 

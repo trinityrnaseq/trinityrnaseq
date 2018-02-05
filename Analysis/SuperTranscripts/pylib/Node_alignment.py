@@ -38,10 +38,17 @@ class Node_alignment:
 
     GAP = None
 
-    def __init__(self, transcript_name_list, node_obj_matrix):
+    def __init__(self, gene_id, transcript_name_list, node_obj_matrix):
+        self.gene_id = gene_id
         self.transcript_names = transcript_name_list
         self.aligned_nodes = node_obj_matrix
 
+    def get_gene_id(self):
+        return self.gene_id
+
+    def set_gene_id(self, gene_id):
+        self.gene_id = gene_id
+    
     def get_transcript_names(self):
         # accessor
         return self.transcript_names
@@ -64,8 +71,9 @@ class Node_alignment:
         for node_obj in path_obj.get_path():
             node_list.append(node_obj)
 
-        self = Node_alignment([path_obj.get_transcript_name()], [node_list])
-
+        transcript_name = path_obj.get_transcript_name()
+        self = Node_alignment(transcript_name, [transcript_name], [node_list])
+        
         return self
 
 
@@ -252,7 +260,7 @@ class Node_alignment:
         for i in range(0,num_transcripts):
             node_obj_matrix.append([])
 
-        squeezed_alignment = Node_alignment(self.get_transcript_names(), node_obj_matrix)
+        squeezed_alignment = Node_alignment(self.get_gene_id(), self.get_transcript_names(), node_obj_matrix)
 
         # walk the node list and merge unbranched stretches into single nodes
         block_breakpoints = []
@@ -320,6 +328,8 @@ class Node_alignment:
             if len(node_seq) == 0:
                 raise RuntimeError("Error, node seq of length zero: node=" + str(node_obj))
 
+            node_id = node_obj.get_loc_id()
+
             node_occupancy = self.get_node_occupancy_at_column_pos(i)
 
             pos_start = len(gene_seq) + 1
@@ -343,7 +353,7 @@ class Node_alignment:
                     rel_node_end = cdna_seq_len + len(node_seq) -1
 
                     transcript_to_Trinity_fa_seq[ transcript_name ] += node_seq
-                    transcript_to_Trinity_fa_path[ transcript_name ].append("{}:{}-{}".format(i, rel_node_start, rel_node_end))
+                    transcript_to_Trinity_fa_path[ transcript_name ].append("{}:{}-{}".format(node_id, rel_node_start, rel_node_end))
 
                 else:
                     for x in range(0,len(node_seq)):
@@ -367,7 +377,13 @@ class Node_alignment:
         
 
 
+    def reassign_node_loc_ids_by_align_order(self):
 
+        for i in range(0,self.width()):
+            repr_node = self.get_representative_column_node(i)
+            repr_node.set_loc_id(str(i))
+
+    
 
     def to_splice_graph(self, gene_name, reset_node_ids=False):
 

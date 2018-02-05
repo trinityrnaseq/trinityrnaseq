@@ -91,6 +91,10 @@ class TNode:
         
     def get_loc_id(self):
         return self.loc_node_id
+
+    def set_loc_id(self, loc_node_id):
+        self.loc_node_id = loc_node_id
+        
     
     def get_gene_id(self):
         return self.tgraph.get_gene_id()

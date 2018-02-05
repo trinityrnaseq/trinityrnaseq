@@ -49,6 +49,9 @@ def main():
 
     parser.add_argument("--incl_dot", required=False, action="store_true",
                         default=False, help="include dot file for gene graph (*warning* single dot file per gene!! use sparingly)")
+
+    parser.add_argument("--restrict_gene_id", required=False, dest='restrict_gene_id', type=str,
+                        default=None, help="only process this gene")
     
     args = parser.parse_args()
 
@@ -90,6 +93,10 @@ def main():
     gene_counter = 0
     
     for gene_name in gene_to_isoform_info:
+
+        if args.restrict_gene_id and args.restrict_gene_id != gene_name:
+            continue
+
         iso_struct_list = gene_to_isoform_info[ gene_name ]
 
         gene_counter += 1
@@ -126,7 +133,7 @@ def main():
             logger.debug("Squeezed splice model for Gene {}:\n{}\n".format(gene_name, str(squeezed_splice_model)))
 
             
-        squeezed_splice_model = Splice_model_refiner.refine_alignment(squeezed_splice_model, reset_node_ids=False)
+        squeezed_splice_model = Splice_model_refiner.refine_alignment(squeezed_splice_model, reset_node_ids=True) # True important here... can have repeat nodes
 
         # re-squeeze
         squeezed_splice_model = squeezed_splice_model.squeeze()
@@ -153,6 +160,10 @@ def main():
             pct_done = float(gene_counter)/num_genes * 100
             logger.info("Exec Time for Gene {}: {:.3f} s, total pct done: {:.2f}%\n".format(gene_name, runtime, pct_done))
         
+
+        if args.restrict_gene_id and args.restrict_gene_id == gene_name:
+            break
+    
 
     ofh_fasta.close()
     ofh_gtf.close()

@@ -112,6 +112,7 @@ def splice_graph_to_node_alignment(tgraph):
 
 def remove_redundant_paths(node_alignment):
 
+    gene_id = node_alignment.get_gene_id()
     transcript_names = node_alignment.get_transcript_names()
     aligned_nodes = node_alignment.get_aligned_nodes()
 
@@ -137,7 +138,7 @@ def remove_redundant_paths(node_alignment):
                 adj_transcript_names.append(transcript_names[i])
                 adj_aligned_nodes.append(aligned_nodes[i])
 
-        adj_splice_graph_node_alignment = Node_alignment.Node_alignment(adj_transcript_names, adj_aligned_nodes)
+        adj_splice_graph_node_alignment = Node_alignment.Node_alignment(gene_id, adj_transcript_names, adj_aligned_nodes)
 
         num_after_reduction = len(adj_transcript_names)
         

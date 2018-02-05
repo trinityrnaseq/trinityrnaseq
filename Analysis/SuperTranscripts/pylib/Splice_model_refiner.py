@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 MAX_MM_RATE = 0.05 
 
 
-def refine_alignment(node_alignment_obj):
+def refine_alignment(node_alignment_obj, reset_node_ids=False):
 
     """
     Create a new splice graph based on the node alignment obj.
@@ -32,42 +32,9 @@ def refine_alignment(node_alignment_obj):
     
     logger.debug("refine_alignment({})".format(node_alignment_obj))
 
-    transcript_names = node_alignment_obj.get_transcript_names()
-    aligned_nodes = node_alignment_obj.get_aligned_nodes()
 
-    width = node_alignment_obj.width()
-
-    new_node_list = list()
-    orig_node_list = list()
-
-    refined_tgraph = TGraph.TGraph("^^SGRAPH2^^")
-    
-    for i in range(0,width):
-        repr_node = node_alignment_obj.get_representative_column_node(i)
-        orig_node_list.append(repr_node)
-
-        transcripts = repr_node.get_transcripts()
-        
-        new_node = refined_tgraph.get_node(transcripts, "loc_" + str(i), repr_node.get_seq())
-        new_node_list.append(new_node)
-
-    #############
-    # build graph
-    
-    for iso_node_alignment in aligned_nodes:
-
-        prev = None
-        for i in range(0,width):
-
-            if iso_node_alignment[i] != None:
-                if prev != None:
-                    refined_tgraph.add_edges([prev], [new_node_list[i]])
-                prev = new_node_list[i]
-            
-            
-    logger.debug("new graph node listing:")
-    for node in new_node_list:
-        logger.debug(node.toString() + " " + node.get_seq())
+    # convert to splice graph
+    refined_tgraph = node_alignment_obj.to_splice_graph("^^SGRAPH2^^", reset_node_ids)
 
     if TGLOBALS.DEBUG:
         refined_tgraph.draw_graph("ladeda.pre.dot")

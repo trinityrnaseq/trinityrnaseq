@@ -93,10 +93,15 @@ class TNode:
         return self.loc_node_id
     
     def get_gene_id(self):
-        return self.gene_id
+        return self.tgraph.get_gene_id()
 
     def get_gene_node_id(self):
-        node_id = "::".join([self.tgraph.get_gene_id(), self.get_loc_id()])
+
+        gene_id = self.get_gene_id()
+        loc_id = self.get_loc_id()
+
+        node_id = gene_id + "::" + loc_id
+                
         return node_id
 
     def get_touched_val(self):

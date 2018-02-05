@@ -123,10 +123,10 @@ def main():
             logger.debug("Squeezed splice model for Gene {}:\n{}\n".format(gene_name, str(squeezed_splice_model)))
 
             
-        squeezed_splice_model = Splice_model_refiner.refine_alignment(squeezed_splice_model)
+        squeezed_splice_model = Splice_model_refiner.refine_alignment(squeezed_splice_model, reset_node_ids=True)
 
         # re-squeeze
-        squeezed_splice_model = splice_model_alignment.squeeze()
+        squeezed_splice_model = squeezed_splice_model.squeeze()
         
         (gene_seq, gtf_txt, trinity_fa_text, malign_dict) = squeezed_splice_model.to_gene_fasta_and_gtf(gene_name)
         

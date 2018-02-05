@@ -12,6 +12,7 @@ import numpy
 import time
 
 import TNode
+import TGraph
 
 logger = logging.getLogger(__name__)
 
@@ -364,3 +365,47 @@ class Node_alignment:
         
         return (gene_seq, gene_gtf, trinity_fasta_text, transcript_to_malign)
         
+
+
+
+
+    def to_splice_graph(self, gene_name, reset_node_ids=False):
+
+        aligned_nodes = self.get_aligned_nodes()
+        
+        width = self.width()
+        refined_tgraph = TGraph.TGraph(gene_name)
+
+        new_node_list = list()
+
+        for i in range(0,width):
+            repr_node = self.get_representative_column_node(i)
+        
+            transcripts = repr_node.get_transcripts()
+
+            loc_id = repr_node.get_loc_id()
+            if reset_node_ids:
+                loc_id = "loc_" + str(i)
+                            
+            new_node = refined_tgraph.get_node(transcripts, loc_id, repr_node.get_seq())
+            new_node_list.append(new_node)
+
+        #############
+        # build graph
+
+        for iso_node_alignment in aligned_nodes:
+
+            prev = None
+            for i in range(0,width):
+
+                if iso_node_alignment[i] != None:
+                    if prev != None:
+                        refined_tgraph.add_edges([prev], [new_node_list[i]])
+                    prev = new_node_list[i]
+            
+        logger.debug("New graph node listing:")
+        for node in new_node_list:
+            logger.debug(node.toString())
+
+
+        return refined_tgraph

@@ -117,7 +117,6 @@ _EOUSAGE_
 my $ROOTDIR = "$FindBin::RealBin/../";
 my $UTILDIR = "$ROOTDIR/util/support_scripts/";
 my $INCHWORM_DIR = "$ROOTDIR/Inchworm";
-my $JELLYFISH_DIR = "$ROOTDIR/trinity-plugins/jellyfish";
 
 unless (@ARGV) {
     die "$usage\n";
@@ -588,7 +587,7 @@ sub run_jellyfish {
             $jelly_hash_size = $JELLY_S;
         }
                 
-        my $cmd = "$JELLYFISH_DIR/bin/jellyfish count -t $CPU -m $KMER_SIZE -s $jelly_hash_size ";
+        my $cmd = "jellyfish count -t $CPU -m $KMER_SIZE -s $jelly_hash_size ";
         
         unless ($SS_lib_type) {
             ## count both strands
@@ -607,12 +606,12 @@ sub run_jellyfish {
         my $jelly_db = "mer_counts.jf";
         
         ## write a histogram of the kmer counts.
-        $cmd = "$JELLYFISH_DIR/bin/jellyfish histo -t $CPU -o $jelly_kmer_fa_file.histo $jelly_db";
+        $cmd = "jellyfish histo -t $CPU -o $jelly_kmer_fa_file.histo $jelly_db";
         &process_cmd($cmd);
 
 
 
-        $cmd = "$JELLYFISH_DIR/bin/jellyfish dump -L $MIN_KMER_COV_CONST $jelly_db > $jelly_kmer_fa_file";
+        $cmd = "jellyfish dump -L $MIN_KMER_COV_CONST $jelly_db > $jelly_kmer_fa_file";
 
         &process_cmd($cmd);
         
@@ -774,6 +773,15 @@ sub generate_stats_files {
     
     my @cmds;
 
+
+    my $CPU_ADJ = $CPU;
+    if ($PARALLEL_STATS) {
+        $CPU_ADJ = int($CPU/2);
+        if ($CPU_ADJ < 1) {
+            $CPU_ADJ = 1;
+        }
+    }
+    
     my @checkpoints;
     foreach my $info_aref (@$files_need_stats_aref) {
         my ($orig_file, $converted_fa_file) = @$info_aref;
@@ -781,7 +789,7 @@ sub generate_stats_files {
         my $stats_filename = "$converted_fa_file.K$KMER_SIZE.stats";
         push (@$info_aref, $stats_filename);
         
-        my $cmd = "$INCHWORM_DIR/bin/fastaToKmerCoverageStats --reads $converted_fa_file --kmers $kmer_file --kmer_size $KMER_SIZE  --num_threads $CPU ";
+        my $cmd = "$INCHWORM_DIR/bin/fastaToKmerCoverageStats --reads $converted_fa_file --kmers $kmer_file --kmer_size $KMER_SIZE  --num_threads $CPU_ADJ ";
         unless ($SS_lib_type) {
             $cmd .= " --DS ";
         }

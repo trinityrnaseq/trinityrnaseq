@@ -65,7 +65,7 @@ main: {
 sub run_TMM {
     my ($counts_matrix_file) = @_;
     
-    my $tmm_norm_script = "__tmp_runTMM.R";
+    my $tmm_norm_script = "$counts_matrix_file.runTMM.R";
     open (my $ofh, ">$tmm_norm_script") or die "Error, cannot write to $tmm_norm_script";
     #print $ofh "source(\"$FindBin::RealBin/R/edgeR_funcs.R\")\n";
     

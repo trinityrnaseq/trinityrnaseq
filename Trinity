@@ -3676,11 +3676,15 @@ sub check_required_3rd_party_tool_installations {
             print "Found salmon installed at $salmon_path\n" if $VERBOSE;
 
             my $version_info = `salmon --version 2>&1`;
-            my @pts = split(/\s+/, $version_info);
-            my $version = $pts[2];
-            my ($major, $minor, $patch) = split(/\./, $version);
-            if ($major == 0 && $minor < 8) {
-                die "Error, please install a version of salmon that is at least as new as version 0.8.  Get it here: https://combine-lab.github.io/salmon/";
+
+            if ($version_info =~ /\s(\d+)\.(\d+)\.(\d+)/) {
+                my ($major, $minor, $patch) = ($1, $2, $3);
+                if ($major == 0 && $minor < 8) {
+                    die "Error, please install a version of salmon that is at least as new as version 0.8.  Get it here: https://combine-lab.github.io/salmon/";
+                }
+            }
+            else {
+                die "Error, cannot determine salmon version installed from ($version_info)";
             }
         }
         else {

@@ -140,10 +140,11 @@ def main():
 
         squeezed_splice_model.reassign_node_loc_ids_by_align_order()
         
+        (gene_seq, gtf_txt, trinity_fa_text, malign_dict) = squeezed_splice_model.to_gene_fasta_and_gtf(gene_name)
+
         if args.incl_dot:
             squeezed_splice_model.to_splice_graph(gene_name).draw_graph("{}.dot".format(gene_name))
-        
-        (gene_seq, gtf_txt, trinity_fa_text, malign_dict) = squeezed_splice_model.to_gene_fasta_and_gtf(gene_name)
+            write_mfa(malign_dict, "{}.mfa".format(gene_name))
         
         ofh_fasta.write(">{}\n{}\n".format(gene_name, gene_seq))
         ofh_gtf.write(gtf_txt + "\n")
@@ -179,6 +180,17 @@ def main():
     
 
     sys.exit(0)
+
+
+def write_mfa(malign_dict, filename):
+
+    ofh = open(filename, 'w')
+    for acc in malign_dict:
+        aligned_seq = malign_dict[acc]
+        ofh.write(">{}\n{}\n".format(acc, aligned_seq))
+
+    ofh.close()
+
 
  
 ####################

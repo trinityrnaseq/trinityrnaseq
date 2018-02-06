@@ -297,21 +297,7 @@ SYS_INCS = -I.
 
 # Where to find system-specific includes:
 ifeq ($(COMPILER),g++)
-  ifeq ($(GPP_MAJOR_VERSION),2)
-       SYS_INCS	= -I. -I- $(XERCES_INC)
-  endif
-  ifeq ($(GPP_MAJOR_VERSION),3)
-       SYS_INCS	= -I. -I- $(XERCES_INC)
-  endif
-  ifeq ($(GPP_MAJOR_VERSION),4)
-       SYS_INCS	= -iquote . $(XERCES_INC)
-  endif
-  ifeq ($(GPP_MAJOR_VERSION),5)
-       SYS_INCS        = -iquote . $(XERCES_INC)
-  endif
-  ifeq ($(GPP_MAJOR_VERSION),6)
-       SYS_INCS        = -iquote . $(XERCES_INC)
-  endif
+	SYS_INCS        = -iquote . $(XERCES_INC)
 endif
 
 # Linking control (e.g. to link templates):

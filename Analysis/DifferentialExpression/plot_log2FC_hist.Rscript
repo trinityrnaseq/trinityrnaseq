@@ -1,0 +1,11 @@
+#!/usr/bin/env Rscript
+
+files=list.files(pattern=".*DE_results$")
+pdf("logFC.histograms.pdf")
+
+for (file in files) {
+    message("analyzing: ", file)
+    data = read.table(file, header=T)
+    hist(data$log2FoldChange, br=50, main=file)
+}
+

@@ -13,13 +13,16 @@ my $trin_fa = $ARGV[0] or die $usage;
 my $reads_fa = $ARGV[1] or die $usage;
 
 
+
+
+
 main: {
 
     my $salmon_index = "$trin_fa.salmon.idx";
-    my $cmd = "salmon index -t $trin_fa -i $salmon_index --type quasi -k 25 -p 1";
+    my $cmd = "salmon --no-version-check index -t $trin_fa -i $salmon_index --type quasi -k 25 -p 1";
     &process_cmd($cmd);
 
-    $cmd = "salmon quant -i $salmon_index -l U -r $reads_fa -o salmon_outdir -p 1";
+    $cmd = "salmon --no-version-check quant -i $salmon_index -l U -r $reads_fa -o salmon_outdir -p 1 --minAssignedFrags 1 ";
     &process_cmd($cmd);
     
     exit(0);

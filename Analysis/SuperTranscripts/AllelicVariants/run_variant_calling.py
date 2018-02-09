@@ -123,6 +123,7 @@ def main():
                                    " --runMode genomeGenerate" +
                                    " --genomeDir star_genome_idx " +
                                    " --genomeFastaFiles {} ".format(st_fa_path) +
+                                   " --genomeSAindexNbases 8 " +  # as per A. Dobin
                                    " --sjdbGTFfile {} ".format(st_gtf_path) +
                                    " --sjdbOverhang {} ".format(args.sjdbOverhang) +
                                    " --limitGenomeGenerateRAM {}".format(args.maxram) )

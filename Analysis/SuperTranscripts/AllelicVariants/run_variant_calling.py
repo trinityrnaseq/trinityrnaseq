@@ -61,6 +61,9 @@ def main():
 
     parser.add_argument('-m', '--maxram', dest="maxram", type=str, default="50000000000", help="Maximum amount of RAM allowed for STAR's genome generation step (only change if you get an error from STAR complaining about this value).")
 
+
+    parser.add_argument("--STAR_genomeGenerate_opts", type=str, default="", help="options to pass through to STAR's genomeGenerate function")
+
     args = parser.parse_args()
 
     
@@ -126,8 +129,10 @@ def main():
                                    " --genomeSAindexNbases 8 " +  # as per A. Dobin
                                    " --sjdbGTFfile {} ".format(st_gtf_path) +
                                    " --sjdbOverhang {} ".format(args.sjdbOverhang) +
-                                   " --limitGenomeGenerateRAM {}".format(args.maxram) )
-        
+                                   " --limitGenomeGenerateRAM {}".format(args.maxram) +
+                                   " {} ".format(args.STAR_genomeGenerate_opts)
+                                   )
+    
     pipeliner.add_commands([
         Pipeliner.Command("mkdir star_genome_idx", "mkdir_star_genome_idx.ok"),
 

@@ -68,6 +68,11 @@ my ($seqType, @left_files, @right_files, @single_files, $SS_lib_type, $min_conti
 $output_directory = &create_full_path("trinity_out_dir", 0);
 
 
+#variable for bowtie2
+my $bowtie2_path;
+my $bowtie2_build_path;
+
+
 #  butterfly opts
 $min_contig_length = 200;
 $group_pairs_distance = 500;
@@ -1822,7 +1827,7 @@ sub run_chrysalis {
         $pipeliner->run();
         
         $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
-        $cmd = "bowtie2-build --threads $CPU -o 3 $iworm_min100_fa_file $iworm_min100_fa_file 1>/dev/null"; #-o 3 / defaut is 5, less use more ram but is faster when mapping the reads
+        $cmd = "$bowtie2_build_path --threads $CPU -o 3 $iworm_min100_fa_file $iworm_min100_fa_file 1>/dev/null"; #-o 3 / defaut is 5, less use more ram but is faster when mapping the reads
         
         if (-s "$iworm_min100_fa_file") {
             $pipeliner->add_commands( new Command($cmd, "$iworm_min100_fa_file.bowtie2-build.ok"));
@@ -1833,7 +1838,7 @@ sub run_chrysalis {
             my $bowtie2_scoring = "G,20,4";
             
             
-            $cmd = "bash -c \" set -o pipefail;bowtie2 --local -k 2 --no-unal --threads $CPU -f --score-min $bowtie2_scoring -x $iworm_min100_fa_file $bowtie_reads_fa  | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort -m $samtools_max_memory $PARALLEL_SAMTOOLS_SORT_TOKEN -no - - > $bowtie_sam_file\" ";  
+            $cmd = "bash -c \" set -o pipefail;$bowtie2_path --local -k 2 --no-unal --threads $CPU -f --score-min $bowtie2_scoring -x $iworm_min100_fa_file $bowtie_reads_fa  | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort -m $samtools_max_memory $PARALLEL_SAMTOOLS_SORT_TOKEN -no - - > $bowtie_sam_file\" ";  
                         
             $pipeliner->add_commands( new Command($cmd, "$bowtie_sam_file.ok"));
             
@@ -3659,9 +3664,11 @@ sub check_required_3rd_party_tool_installations {
     ## bowtie2
     if (!$NO_BOWTIE) {
         ## be sure we can find 'bowtie', since we use it as part of the iworm pair scaffolding step
-        my $bowtie2_path = `which bowtie2`;
-        my $bowtie2_build_path = `which bowtie2-build`;
+        $bowtie2_path = `which bowtie2`;
+        $bowtie2_build_path = `which bowtie2-build`;
         if ($bowtie2_path =~ /\w/ && $bowtie2_build_path =~ /\w/) {
+            chomp $bowtie2_path;
+            chomp $bowtie2_build_path;
             print "Paired mode requires bowtie2. Found bowtie2 at: $bowtie2_path\n and bowtie-build at $bowtie2_build_path\n\n" if $VERBOSE;
         }
         else {

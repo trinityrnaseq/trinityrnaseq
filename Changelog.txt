@@ -1,3 +1,11 @@
+# Release v2.6.5
+-incorporates salmon for quick expression estimates and filtering of likely artifacts
+-drops bundling of jellyfish and samtools - now leverages user-installed versions of tools.
+-overhauled supertranscript module, improvements around high-polymorphism situations.
+-updated variant detection module, more flexible around STAR alignments and GATK usage
+-misc bug fixes
+
+
 # Release v2.5.1 patch release  Oct 20, 2017
 -no changes to the Trinity assembler, only to analysis support
 -use Subreads featureCounts instead of slow python script for counting reads on supertranscripts.

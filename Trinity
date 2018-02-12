@@ -1565,7 +1565,7 @@ sub run_Trinity {
         my $num_long_reads =  `grep -c '^\>LR\\\$' $trinity_target_fa`;
         #print STDERR "num long reads: $num_long_reads  :: $trinity_target_fa\n";
         if ($num_long_reads > 0) {
-            my $inchworm_target_minus_LR = "$trinity_target_fa.minusLR";
+            my $inchworm_target_minus_LR = "$trinity_target_fa.minusLR.fa";
             my $inchworm_target_minus_LR_checkpoint = "$inchworm_target_minus_LR.ok";
             unless (-s $inchworm_target_minus_LR && -e $inchworm_target_minus_LR_checkpoint) {
                 open (my $ofh, ">$inchworm_target_minus_LR") or die "Error, cannot write to $inchworm_target_minus_LR";

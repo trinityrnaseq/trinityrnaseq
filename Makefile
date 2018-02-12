@@ -57,15 +57,12 @@ clean:
 test_trinity:
 	cd sample_data/test_Trinity_Assembly && make test
 
-test_gg_trinity:
-	cd sample_data/test_GenomeGuidedTrinity && make test
-
-
 
 # note 'test_all': ** this is for a more advanced installation including devel features **
 
 test_all:
 	cd sample_data/ && make test_all
+	./__pull_trinity_ext_sample_data.sh
 	cd trinity_ext_sample_data/ && make test_all
 
 test_clean:

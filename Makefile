@@ -63,7 +63,7 @@ test_trinity:
 test_all:
 	cd sample_data/ && make test_all
 	./__pull_trinity_ext_sample_data.sh
-	cd trinity_ext_sample_data/ && make test_all
+	cd trinity_ext_sample_data/ && make test
 
 test_clean:
 	cd sample_data/ && make clean

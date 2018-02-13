@@ -81,14 +81,6 @@ RUN wget https://github.com/pachterlab/kallisto/releases/download/v0.43.1/kallis
     mv kallisto_linux-v0.43.1/kallisto $BIN
 
 
-## Salmon
-WORKDIR $SRC
-RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v0.8.2/Salmon-0.8.2_linux_x86_64.tar.gz && \
-    tar xvf Salmon-0.8.2_linux_x86_64.tar.gz && \
-    ln -s $SRC/Salmon-latest_linux_x86_64/bin/salmon $BIN/.
-    
-
-
 ## FASTQC
 WORKDIR $SRC
 RUN wget http://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.5.zip && \
@@ -115,31 +107,51 @@ RUN wget https://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.3.3.1/bowti
 
 
 
+## Samtools
+RUN wget https://github.com/samtools/samtools/releases/download/1.7/samtools-1.7.tar.bz2 && \
+    tar xvf samtools-1.7.tar.bz2 && \
+    cd samtools-1.7/ && \
+    ./configure && make && make install
+    
+## Jellyfish
+RUN wget https://github.com/gmarcais/Jellyfish/releases/download/v2.2.7/jellyfish-2.2.7.tar.gz && \
+    tar xvf jellyfish-2.2.7.tar.gz && \
+    cd jellyfish-2.2.7/ && \
+    ./configure && make && make install
+
+
+## Salmon
+WORKDIR $SRC
+RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v0.9.1/Salmon-0.9.1_linux_x86_64.tar.gz && \
+    tar xvf Salmon-0.9.1_linux_x86_64.tar.gz && \
+    ln -s $SRC/Salmon-latest_linux_x86_64/bin/salmon $BIN/.
+    
+
+
 ##########
 ## Trinity
 
 
 WORKDIR $SRC
 
-ENV TRINITY_VERSION="2.5.0"
+ENV TRINITY_VERSION="2.6.5"
 
 WORKDIR $SRC
 
 RUN git clone https://github.com/trinityrnaseq/trinityrnaseq.git && \
     cd trinityrnaseq && \
-    git checkout 88bfb01 && \
+    git checkout a0bbe0b && \
     make && make plugins && \
     make install && \
     cd ../ && rm -r trinityrnaseq
 
 ENV TRINITY_HOME /usr/local/bin/trinityrnaseq
 
-RUN cp $TRINITY_HOME/trinity-plugins/BIN/samtools $BIN
-
 ENV PATH=${TRINITY_HOME}:${PATH}
 
 COPY Dockerfile $SRC/Dockerfile.$TRINITY_VERSION
 
+ENV LD_LIBRARY_PATH=/usr/local/lib
 
-
+RUN pip install numpy
 

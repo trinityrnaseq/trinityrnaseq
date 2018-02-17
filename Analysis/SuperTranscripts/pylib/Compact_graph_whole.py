@@ -29,7 +29,9 @@ class Compact_graph_whole:
     
     def compact_unbranched(self, tgraph):
 
-        for node in tgraph.get_all_nodes():
+        all_nodes = list(tgraph.get_all_nodes())
+        
+        for node in all_nodes:
 
             if node.is_dead():
                 continue

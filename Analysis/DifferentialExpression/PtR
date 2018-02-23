@@ -567,6 +567,7 @@ main: {
     #$Rscript .= "library(gplots)\n";
     $Rscript .= "library(Biobase)\n";
     $Rscript .= "library(qvalue)\n";
+    $Rscript .= "library(fastcluster)\n";
 
     $Rscript .= "options(stringsAsFactors = FALSE)\n";
     

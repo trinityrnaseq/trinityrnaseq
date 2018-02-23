@@ -71,7 +71,7 @@ while (<$fh>) {
 open (my $ofh, ">$matrix_file.E-inputs") or die $!;
 print $ofh join("\t", "#Ex", "acc", "length", "max_expr_over_samples", "sum_expr_over_samples") . "\n";
 
-print "E\tExN50\tnum_transcripts\n";
+print "Ex\tExN50\tnum_transcripts\n";
 
 my $prev_pct = 0;
 my $sum = 0;

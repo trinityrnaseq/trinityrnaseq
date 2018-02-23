@@ -43,26 +43,38 @@ def main():
                         "GATK: env var \"$GATK_HOME\" with the path to GATK's bin\n"),
         epilog="", formatter_class=argparse.RawTextHelpFormatter) 
     
-    parser.add_argument('--st_fa', '--supertranscript_fasta', dest="st_fa", type=str, required=True, help="Path to the SuperTranscripts fasta file.")
+    parser.add_argument('--st_fa', '--supertranscript_fasta', dest="st_fa", type=str, required=True,
+                        help="Path to the SuperTranscripts fasta file.")
 
-    parser.add_argument('--st_gtf', '--supertranscript_gtf', dest="st_gtf", type=str, required=True, help="Path to the SuperTranscript gtf file.")
+    parser.add_argument('--st_gtf', '--supertranscript_gtf', dest="st_gtf", type=str, required=True,
+                        help="Path to the SuperTranscript gtf file.")
 
     group = parser.add_mutually_exclusive_group(required=True)
 
-    group.add_argument('-p', '--paired', dest="paired_reads", type=str, nargs=2, help="Pair of paired ends read files.")
+    group.add_argument('-p', '--paired', dest="paired_reads", type=str, nargs=2,
+                       help="Pair of paired ends read files.")
 
-    group.add_argument('-s', '--single', dest="single_reads", type=str, help="Single reads file.")
+    group.add_argument('-s', '--single', dest="single_reads", type=str,
+                       help="Single reads file.")
 
-    parser.add_argument('-o', '--output', dest="out_path", type=str, required=True, help="Path to the folder where to generate the output.")
-
-    parser.add_argument('-l', '--sjdbOverhang', dest="sjdbOverhang", default=150, type=int, help="Size of the reads (used for STAR --sjdbOverhang). default=150")
+    group.add_argument("-S", "--samples_file", dest="samples_file", type=str,
+                       help="Trinity samples file (fmt: condition_name replicate_name /path/to/reads_1.fq /path/to/reads_2.fq (tab-delimited, single sample per line))")
     
-    parser.add_argument('-t', '--threads', dest="nthreads", type=str, default="4", help="Number of threads to use for tools that are multithreaded.")
+    parser.add_argument('-o', '--output', dest="out_path", type=str, required=True,
+                        help="Path to the folder where to generate the output.")
 
-    parser.add_argument('-m', '--maxram', dest="maxram", type=str, default="50000000000", help="Maximum amount of RAM allowed for STAR's genome generation step (only change if you get an error from STAR complaining about this value).")
+    parser.add_argument('-l', '--sjdbOverhang', dest="sjdbOverhang", default=150, type=int,
+                        help="Size of the reads (used for STAR --sjdbOverhang). default=150")
+    
+    parser.add_argument('-t', '--threads', dest="nthreads", type=str, default="4",
+                        help="Number of threads to use for tools that are multithreaded.")
+
+    parser.add_argument('-m', '--maxram', dest="maxram", type=str, default="50000000000",
+                        help="Maximum amount of RAM allowed for STAR's genome generation step (only change if you get an error from STAR complaining about this value).")
 
 
-    parser.add_argument("--STAR_genomeGenerate_opts", type=str, default="", help="options to pass through to STAR's genomeGenerate function")
+    parser.add_argument("--STAR_genomeGenerate_opts", type=str, default="",
+                        help="options to pass through to STAR's genomeGenerate function")
 
     args = parser.parse_args()
 
@@ -76,14 +88,32 @@ def main():
     if not GATK_HOME:
         exit("Error, missing path to GATK in $GATK.")
 
-
-
     # get real paths before changing working directory in case they are relative paths
     if args.paired_reads:
         reads_paths = [os.path.realpath(f) for f in args.paired_reads]
-    else:
+    elif args.single_reads:
         reads_paths = [os.path.realpath(args.single_reads)]
+    elif args.samples_file:
+        left_fq_list = list()
+        right_fq_list = list()
+        with open(args.samples_file) as fh:
+            for line in fh:
+                line = line.rstrip()
+                if not re.match("\w", line):
+                    continue
+                fields = line.split("\t")
+                left_fq = fields[2]
+                left_fq_list.append(os.path.realpath(left_fq))
+                if len(fields) > 3:
+                    right_fq = fields[3]
+                    right_fq_list.append(os.path.realpath(right_fq))
+        reads_paths = [",".join(left_fq_list)]
+        if right_fq_list:
+            reads_paths.append(",".join(right_fq_list))
+    else:
+        raise RuntimeError("no reads specified") # should never get here
 
+    
     st_fa_path = os.path.realpath(args.st_fa)
 
     st_gtf_path = os.path.realpath(args.st_gtf)

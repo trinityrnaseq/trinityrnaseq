@@ -189,7 +189,11 @@ def main():
     pipeliner.add_commands([Pipeliner.Command(cmd, "star_aln.ok")])
     pipeliner.run()
 
-    
+
+    ##
+    ## GATK settings based on best practices:
+    ## https://software.broadinstitute.org/gatk/documentation/article.php?id=3891
+    ##
     
     # clean and convert sam file with Picard-Tools
     logger.info("Cleaning and Converting sam file with Picard-Tools.")

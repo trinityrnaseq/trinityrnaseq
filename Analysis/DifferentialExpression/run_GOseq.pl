@@ -117,7 +117,10 @@ main: {
     
     print $ofh "\n\n# GO-Seq protocol: build pwf based on ALL DE features\n";
         
-
+    print $ofh "missing_gene_lengths = sample_set_gene_ids[! sample_set_gene_ids %in% rownames(gene_lengths)]\n";
+    print $ofh "if (length(missing_gene_lengths) > 0) {\n";
+    print $ofh "     stop(\"Error, missing gene lengths for features: \", paste(missing_gene_lengths, collapse=', '))\n";
+    print $ofh "}\n";
     print $ofh "sample_set_gene_lengths = gene_lengths[sample_set_gene_ids,]\n";
     print $ofh "GO_info_listed = GO_info_listed[ names(GO_info_listed) %in% sample_set_gene_ids ]\n";
     

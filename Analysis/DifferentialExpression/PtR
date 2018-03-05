@@ -1675,7 +1675,7 @@ main: {
     print $ofh $Rscript;
     close $ofh;
     
-    &process_cmd("R --vanilla -q < $R_script_file");
+    &process_cmd("R --no-save --no-restore --no-site-file --no-init-file -q < $R_script_file");
 
     exit(0);
     

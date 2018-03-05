@@ -132,7 +132,7 @@ __EORSCRIPT__
 
 ;
 
-    my $cmd = "R --vanilla -q < $out_rscript";
+    my $cmd = "R --no-save --no-restore --no-site-file --no-init-file -q < $out_rscript";
     my $ret = system($cmd);
     if ($ret) {
         die "Error, cmd: $cmd died with ret $ret";

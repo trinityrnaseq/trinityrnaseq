@@ -108,7 +108,7 @@ main: {
     close $ofh;
     
 
-    &process_cmd("R --vanilla -q < $R_script");
+    &process_cmd("R --no-save --no-restore --no-site-file --no-init-file -q < $R_script");
     
 
     exit(0);

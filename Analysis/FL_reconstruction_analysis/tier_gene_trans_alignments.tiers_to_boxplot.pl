@@ -38,7 +38,7 @@ main: {
     print $ofh "dev.off();\n";
     close $ofh;
     
-    system("R --vanilla -q < __tmp_tiers_boxplot.R");
+    system("R --no-save --no-restore --no-site-file --no-init-file -q < __tmp_tiers_boxplot.R");
 
     exit($?);
 }

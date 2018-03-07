@@ -124,9 +124,15 @@ class Node_path:
             fst_node_seq = fst_node.get_seq()
             core_node_seq = core_node.get_seq()
 
-            prefix_endpt = fst_node_seq.index(core_node_seq)
-
-
+            # reverse, index, then revcomp the index value to get the actual position.
+            fst_node_seq_rev = fst_node_seq[::-1]
+            core_node_seq_rev = fst_node_seq[::-1]
+            
+            if not re.match(core_node_seq_rev, fst_node_seq_rev):
+                raise RuntimeError("Error, core_node_seq:\n{}\nis not a suffix of fst seq:\n{}\n".format(core_node_seq, fst_node_seq))
+            
+            prefix_endpt = len(fst_node_seq) - len(core_node_seq)
+            
 
             if prefix_endpt == 0:
                 assert fst_node_seq == core_node_seq, "Error, prefix starts at first position but sequences are not equivalent"

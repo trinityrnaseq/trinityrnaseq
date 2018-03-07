@@ -103,6 +103,18 @@ class TGraph:
         node.dead = True
         self.node_cache.pop(node.get_loc_id())
     
+
+    def retrieve_node(self, node_id):
+        """
+        does not instantiate, only retrieves.
+        If loc_node_id is not in the graph, returns None
+        """
+
+        if node_id in self.node_cache:
+            return self.node_cache[node_id]
+        else:
+            return None
+        
         
     def get_gene_id(self):
         return self.gene_id

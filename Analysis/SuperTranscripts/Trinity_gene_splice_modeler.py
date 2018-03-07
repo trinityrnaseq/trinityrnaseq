@@ -128,16 +128,16 @@ def main():
         squeezed_splice_model = splice_model_alignment
         if args.no_squeeze:
             logger.info("--no_squeeze set, so not squeezing structure")
+            squeezed_splice_model = Splice_model_refiner.refine_alignment(squeezed_splice_model, reset_node_ids=True) # True important here... can have repeat nodes
         else:
+            # SQUEEZE
             squeezed_splice_model = splice_model_alignment.squeeze()
             logger.debug("Squeezed splice model for Gene {}:\n{}\n".format(gene_name, str(squeezed_splice_model)))
-
-            
-        squeezed_splice_model = Splice_model_refiner.refine_alignment(squeezed_splice_model, reset_node_ids=True) # True important here... can have repeat nodes
-
-        # re-squeeze
-        squeezed_splice_model = squeezed_splice_model.squeeze()
-
+            squeezed_splice_model = Splice_model_refiner.refine_alignment(squeezed_splice_model, reset_node_ids=True) # True important here... can have repeat nodes
+            squeezed_splice_model = Splice_model_refiner.remove_redundant_paths(squeezed_splice_model)
+            # re-squeeze
+            squeezed_splice_model = squeezed_splice_model.squeeze()
+        
         squeezed_splice_model.reassign_node_loc_ids_by_align_order()
         
         (gene_seq, gtf_txt, trinity_fa_text, malign_dict) = squeezed_splice_model.to_gene_fasta_and_gtf(gene_name)

@@ -7,6 +7,7 @@ use lib "$FindBin::RealBin/../../PerlLib";
 use Fasta_reader;
 use List::Util qw(min max);
 use Overlap_piler;
+use Data::Dumper;
 
 my $usage = "\n\n\tusage: $0 blast.outfmt6 query_fasta target_fasta\n\n\n";
 
@@ -24,6 +25,11 @@ if ($query_fasta eq $target_fasta) {
 else {
     %target_seq_lens = &get_seq_lengths($target_fasta);
 }
+
+
+
+my $MAX_MISSING = 10;
+my $COUNT_MISSING = 0;
 
 main: {
 
@@ -60,10 +66,9 @@ main: {
 ####
 sub process_hits {
     my @hits = @_;
+
+    #print Dumper(\@hits);
     
-    #use Data::Dumper; print Dumper(\@hits);
-
-
     my @query_coords;
     my @target_coords;
 
@@ -127,9 +132,28 @@ sub process_hits {
         }
     }
     
-    my $query_len = $query_seq_lens{$query_acc} or die "Error, cannot find seq length for query: $query_acc";
-    my $target_len = $target_seq_lens{$target_acc} or die "Error, cannot find seq length for target: $target_acc";
+    my $query_len = $query_seq_lens{$query_acc};
+    my $target_len = $target_seq_lens{$target_acc};
 
+    if ( ! defined ($query_len)) {
+        print STDERR "Error, missing length for query: [$query_acc]\n";
+        $COUNT_MISSING++;
+        if ($COUNT_MISSING > $MAX_MISSING) {
+            die "Error, too many missing seq length entries encountered\n";
+        }
+        return;
+    }
+    
+    if (! defined($target_len)) {
+        print STDERR "Error, missing length for db hit: [$target_acc]\n";
+            $COUNT_MISSING++;
+        if ($COUNT_MISSING > $MAX_MISSING) {
+            die "Error, too many missing seq length entries encountered\n";
+        }
+        return;
+    }
+    
+    
     my $pct_query_len = sprintf("%.2f", $query_match_len / $query_len * 100);
     my $pct_target_len = sprintf("%.2f", $target_match_len / $target_len * 100);
     

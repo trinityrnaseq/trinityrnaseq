@@ -82,7 +82,7 @@ sub run_TMM {
     
     close $ofh;
 
-    &process_cmd("R --vanilla -q < $tmm_norm_script 1>&2 ");
+    &process_cmd("R --no-save --no-restore --no-site-file --no-init-file -q < $tmm_norm_script 1>&2 ");
     
     my $tmm_matrix = "$counts_matrix_file.TMM_info.txt";
 

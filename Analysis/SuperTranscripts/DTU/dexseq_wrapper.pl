@@ -224,7 +224,7 @@ main: {
         
     }
     
-    $cmd = "R --vanilla -q < $dexseq_rscript";
+    $cmd = "R --no-save --no-restore --no-site-file --no-init-file -q < $dexseq_rscript";
     $pipeliner->add_commands(new Command($cmd, "$analysis_token.dexseq.$top_genes_plot.ok"));
     
     $pipeliner->run();

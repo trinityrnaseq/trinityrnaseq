@@ -66,9 +66,6 @@ def refine_alignment(node_alignment_obj, reset_node_ids=False):
 
     splice_graph_node_alignment = splice_graph_to_node_alignment(refined_tgraph)
 
-    splice_graph_node_alignment = remove_redundant_paths(splice_graph_node_alignment)
-
-    
     return(splice_graph_node_alignment)
 
 

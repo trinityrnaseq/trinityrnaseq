@@ -94,7 +94,7 @@ sub upper_quartile_normalize {
     
     close $ofh;
     
-    &process_cmd("R --vanilla -q --slave < $tmm_norm_script ");
+    &process_cmd("R --no-save --no-restore --no-site-file --no-init-file -q --slave < $tmm_norm_script ");
     
     return;
 }

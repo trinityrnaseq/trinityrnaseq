@@ -84,7 +84,7 @@ main: {
         print $ofh "get_cluster_info(\"$R_data_file\")\n";
         close $ofh;
         
-        &process_cmd("R --vanilla -q --slave < $R_script");
+        &process_cmd("R --no-save --no-restore --no-site-file --no-init-file -q --slave < $R_script");
 
         
         open (my $fh, $matrix_data) or die "Error, cannot open file $matrix_data";

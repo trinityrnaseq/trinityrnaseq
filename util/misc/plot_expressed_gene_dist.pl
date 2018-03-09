@@ -17,7 +17,7 @@ print $ofh "plot_expressed_gene_counts(\"$fpkm_file\", title=\"expressed transcr
 print $ofh "dev.off()\n";
 close $ofh;
 
-&process_cmd("R --vanilla -q < $Rscript");
+&process_cmd("R --no-save --no-restore --no-site-file --no-init-file -q < $Rscript");
 
 
 exit(0);

@@ -43,6 +43,9 @@ def main():
 
     parser.add_argument("--no_squeeze", required=False, action="store_true",
                         default=False, help="don't merge unbranched stretches of node identifiers")
+
+    parser.add_argument("--no_refinement", required=False, action="store_true",
+                        default=False, help="don't refine splice graph by further collapsing allelic variants")
     
     parser.add_argument("--incl_cdna", required=False, action="store_true",
                         default=False, help="rewrite Trinity fasta file using simplified graph structure")
@@ -109,6 +112,10 @@ def main():
             n_path = Node_path.Node_path(tgraph, iso_struct['transcript_name'], iso_struct['path'], iso_struct['seq'])
             node_path_obj_list.append(n_path)
             #print(str(n_path))
+
+        # adjust for unique prefix yet shared suffix of FST nodes
+        node_path_obj_list = Node_path.Node_path.adjust_for_fst_nodes(tgraph, node_path_obj_list)
+
         
         # generate multiple alignment
 
@@ -124,20 +131,36 @@ def main():
 
         if args.verbose:
             logger.info("Final splice_model_alignment for Gene {} :\n{}\n".format(gene_name, str(splice_model_alignment)))
+
+
+        ################################
+        ## Splice graph refinement stage
         
         squeezed_splice_model = splice_model_alignment
+
+        
         if args.no_squeeze:
             logger.info("--no_squeeze set, so not squeezing structure")
+            #squeezed_splice_model = Splice_model_refiner.refine_alignment(squeezed_splice_model, reset_node_ids=True) # True important here... can have repeat nodes
         else:
+            # SQUEEZE
             squeezed_splice_model = splice_model_alignment.squeeze()
             logger.debug("Squeezed splice model for Gene {}:\n{}\n".format(gene_name, str(squeezed_splice_model)))
 
+        if not args.no_refinement:
+            squeezed_splice_model = Splice_model_refiner.refine_alignment(squeezed_splice_model, reset_node_ids=True) # True important here... can have repeat nodes
+            logger.debug("After seq-refinement of splice model for Gene {}:\n{}\n".format(gene_name, str(squeezed_splice_model)))
+            squeezed_splice_model = Splice_model_refiner.remove_redundant_paths(squeezed_splice_model)
+            logger.debug("After removing redundant paths of splice model for Gene {}:\n{}\n".format(gene_name, str(squeezed_splice_model)))
             
-        squeezed_splice_model = Splice_model_refiner.refine_alignment(squeezed_splice_model, reset_node_ids=True) # True important here... can have repeat nodes
+            if not args.no_squeeze:
+                # re-squeeze
+                squeezed_splice_model = squeezed_splice_model.squeeze()
+                logger.debug("Post-refinement and final squeeze of splice model for Gene {}:\n{}\n".format(gene_name, str(squeezed_splice_model)))
 
-        # re-squeeze
-        squeezed_splice_model = squeezed_splice_model.squeeze()
 
+        # done with splice graph refinement.
+        
         squeezed_splice_model.reassign_node_loc_ids_by_align_order()
         
         (gene_seq, gtf_txt, trinity_fa_text, malign_dict) = squeezed_splice_model.to_gene_fasta_and_gtf(gene_name)

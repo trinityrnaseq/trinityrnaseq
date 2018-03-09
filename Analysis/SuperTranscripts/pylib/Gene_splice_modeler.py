@@ -426,7 +426,7 @@ class Gene_splice_modeler:
         writes the multiply aligned isoform sequences to an output filehandle
         """
         
-        transcript_names = malign_dict.keys()
+        transcript_names = list(malign_dict.keys())
 
         alignment_length = len(malign_dict[ transcript_names[ 0 ] ])
 

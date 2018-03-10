@@ -3154,14 +3154,15 @@ sub run_genome_guided_Trinity {
     ## Simply index it using samtools.  If it's not coord sorted, samtools will error
     
     my $cmd = "samtools index $genome_guided_bam";
-    eval {
-        &process_cmd($cmd);
-    };
-    if ($@) {
-        die "$@\n\nPlease be sure that your bam file: $genome_guided_bam is coordinate-sorted before running genome-guided Trinity.\n";
+    unless ("-s $genome_guided_bam.bai") {
+        eval {
+            &process_cmd($cmd);
+        };
+        if ($@) {
+            die "$@\n\nPlease be sure that your bam file: $genome_guided_bam is coordinate-sorted before running genome-guided Trinity.\n";
+        }
     }
     
-
     $cmd = "$UTILDIR/support_scripts/prep_rnaseq_alignments_for_genome_assisted_assembly.pl --coord_sorted_SAM $genome_guided_bam -I $genome_guided_max_intron --sort_buffer $max_memory --CPU $CPU ";
     
     if ($SS_lib_type) {

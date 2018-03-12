@@ -18,7 +18,10 @@ use Fasta_reader;
 use List::Util qw(min max);
 use Data::Dumper;
 
-my $VERSION = "__BLEEDING_EDGE__"; 
+
+
+my $VERSION = "Trinity-v2.6.6";
+#my $VERSION = "__BLEEDING_EDGE__"; 
 
 
 BEGIN {

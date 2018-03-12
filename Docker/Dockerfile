@@ -128,19 +128,25 @@ RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v0.9.1/Salmon-0
     
 
 
+ENV LD_LIBRARY_PATH=/usr/local/lib
+
+RUN pip install numpy
+
+
 ##########
 ## Trinity
 
 
 WORKDIR $SRC
 
-ENV TRINITY_VERSION="2.6.5"
+ENV TRINITY_VERSION="2.6.6"
+ENV TRINITY_CO="925e986"
 
 WORKDIR $SRC
 
 RUN git clone https://github.com/trinityrnaseq/trinityrnaseq.git && \
     cd trinityrnaseq && \
-    git checkout a0bbe0b && \
+    git checkout $TRINITY_CO && \
     make && make plugins && \
     make install && \
     cd ../ && rm -r trinityrnaseq
@@ -151,7 +157,5 @@ ENV PATH=${TRINITY_HOME}:${PATH}
 
 COPY Dockerfile $SRC/Dockerfile.$TRINITY_VERSION
 
-ENV LD_LIBRARY_PATH=/usr/local/lib
 
-RUN pip install numpy
 

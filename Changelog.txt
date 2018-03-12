@@ -1,3 +1,9 @@
+# Patch Release v2.6.6
+
+-minor updates to trinity gene splice modeler for python-3 compatibility
+-update to R command execution that improves use on computing grids.
+
+
 # Release v2.6.5
 -incorporates salmon for quick expression estimates and filtering of likely artifacts
 -drops bundling of jellyfish and samtools - now leverages user-installed versions of tools.

@@ -1335,9 +1335,9 @@ main: {
             
             if ($VERBOSE || ! $TRINITY_COMPLETE_FLAG) {
                 print "\n\n"
-                    . "###################################################################\n"
-                    . "Butterfly assemblies are written to $final_Trinity_fasta_file\n"
-                    . "###################################################################\n\n\n";
+                    . "#############################################################################\n"
+                    . "Finished.  Final Trinity assemblies are written to $final_Trinity_fasta_file\n"
+                    . "#############################################################################\n\n\n";
             }
             
         }

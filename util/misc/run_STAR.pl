@@ -147,6 +147,7 @@ main: {
         . " --readFilesIn $reads "
         . " --twopassMode Basic "
         . " --alignSJDBoverhangMin 10 "
+        . " --outSAMstrandField intronMotif "
         . " --limitBAMsortRAM 20000000000";
 
     if ($chim_search) {

@@ -6,7 +6,8 @@ use FindBin;
 use lib ("$FindBin::Bin/../../PerlLib");
 use DelimParser;
 use File::Basename;
-
+use Data::Dumper;
+use Carp;
 use Getopt::Long qw(:config posix_default no_ignore_case bundling pass_through);
 
 
@@ -91,21 +92,33 @@ main: {
             #    1 2.17e-06
             
             my $go_term_info = $row->{go_term};
-            my ($go_type, $go_descr) = split(/\s+/, $go_term_info, 2);
+            
             my $go_id = $row->{'category'};
+
+            if ($go_term_info eq "none") {
+                print STDERR "WARNING, no GO term info found for: $go_id, skipping...\n";
+                next;
+            }
+            
+            my ($go_type, $go_descr) = split(/\s+/, $go_term_info, 2);
+            
             my $genes = $genes_with_enriched_GO{$go_id};
             
             unless ($genes) {
                 die "Error, no genes extracted for GO category: $go_id $go_type $go_descr ";
             }
-            
-            $tab_writer->write_row( { 'Category' => $go_type,
-                                      'ID' => $go_id,
-                                      'Term' => $go_descr,
-                                      'Genes' => $genes,
-                                      'adj_pval' => $row->{over_represented_FDR},
-                                    } );
-            
+
+            eval {
+                $tab_writer->write_row( { 'Category' => $go_type,
+                                          'ID' => $go_id,
+                                          'Term' => $go_descr,
+                                          'Genes' => $genes,
+                                          'adj_pval' => $row->{over_represented_FDR},
+                                        } );
+            };
+            if ($@) {
+                confess "$@\n" . "row: " . Dumper($row);
+            }
         }
         close $ofh;
     }

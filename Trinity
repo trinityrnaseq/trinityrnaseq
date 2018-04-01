@@ -362,7 +362,7 @@ my $full_usage = qq^
 #
 #  By default, alternative transcript candidates are merged (in reality, discarded) if they are found to be too similar, according to the following logic:
 #
-#  (identity=(numberOfMatches/shorterLen) > 95.0% or if we have <= 2 mismatches) and if we have internal gap lengths <= 10
+#  (identity=(numberOfMatches/shorterLen) > 98.0% or if we have <= 2 mismatches) and if we have internal gap lengths <= 10
 #
 #  with parameters as:
 #      

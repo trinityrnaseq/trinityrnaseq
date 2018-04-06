@@ -3224,6 +3224,7 @@ sub run_partitioned_cmds {
     print STDERR "\n\n";
     print STDERR "--------------------------------------------------------------------------------\n"
                . "------------ Trinity Phase 2: Assembling Clusters of Reads ---------------------\n"
+               . "------- (involving the Inchworm, Chrysalis, Butterfly trifecta ) ---------------\n"
                . "--------------------------------------------------------------------------------\n\n";
     
 

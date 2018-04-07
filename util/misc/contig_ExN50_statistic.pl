@@ -6,6 +6,8 @@ use warnings;
 use FindBin;
 use lib ("$FindBin::RealBin/../../PerlLib");
 use Fasta_reader;
+use File::Basename;
+
 
 my $usage = "usage: $0 EXPR.matrix Trinity.fasta\n\n";
 
@@ -68,7 +70,9 @@ while (<$fh>) {
 
 ## write output table
 
-open (my $ofh, ">$matrix_file.E-inputs") or die $!;
+
+my $E_file = basename($matrix_file) . ".E-inputs";
+open (my $ofh, ">$E_file") or die $!;
 print $ofh join("\t", "#Ex", "acc", "length", "max_expr_over_samples", "sum_expr_over_samples") . "\n";
 
 print "Ex\tExN50\tnum_transcripts\n";

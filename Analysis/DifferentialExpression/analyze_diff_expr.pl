@@ -243,7 +243,7 @@ sub cluster_diff_expressed_transcripts {
         $cmd .= " -s $samples_file";
                 
         if ($order_columns_by_samples_file) {
-            $cmd .= " --order_columns_by_samples_file ";
+            $cmd .= " --order_columns_by_samples_file --sample_clust none ";
         }
 
     }

@@ -621,6 +621,7 @@ main: {
         if ($order_columns_by_samples_file) {
             # restrict data to those entries in the samples file
             # and order according to rep names
+            $Rscript .= "# ordering columns according to samples file\n";
             $Rscript .= "data = data[, rep_names, drop=F ]\n";
         }
         else {

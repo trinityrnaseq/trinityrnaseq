@@ -3319,7 +3319,11 @@ public class TransAssembly_allProbPaths {
 	
 	
 	private static DirectedSparseGraph<Path, SimplePathNodeEdge> construct_path_overlap_graph(
-			List<Path> path_list, HashMap<String, PathOverlap> pathMatches, HashSet<Integer> dispersed_repeat_nodes, String dot_file_prefix, String graphName, boolean createMiddleDotFiles) {
+			List<Path> path_list, 
+			HashMap<String, PathOverlap> pathMatches, 
+			HashSet<Integer> dispersed_repeat_nodes, 
+			String dot_file_prefix, 
+			String graphName, boolean createMiddleDotFiles) {
 		
 		// draw an edge between each pathNode B and the pathNode A to which B has a best-matching extension to the right.
 		
@@ -3330,18 +3334,23 @@ public class TransAssembly_allProbPaths {
 		}
 		
 		// identify repeat nodes.
+		// dispersed
 		HashSet<Integer> repeat_node_ids = new HashSet<Integer>();
 		if (! dispersed_repeat_nodes.isEmpty()) {
 			repeat_node_ids.addAll(dispersed_repeat_nodes);
 		}
 		
+		// local
+		int max_internal_repeat_count = 2;
 		for (Path path : path_list) {
 			HashMap<Integer,Integer> repeat_nodes_and_counts = Path.getRepeatNodesAndCounts(path.get_vertex_list());
 			for (Integer i : repeat_nodes_and_counts.keySet()) {
-				repeat_node_ids.add(i);
+				if (repeat_nodes_and_counts.get(i) > max_internal_repeat_count) {
+					repeat_node_ids.add(i);
+				}
 			}
 		}
-
+		
 
 		boolean store_best_extension_match_only = false;
 		
@@ -10804,12 +10813,12 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 		else if (path1.isEmpty() || (path1.size() == 1 && path1.get(0) < 0)) {
 			AlignmentStats a = new AlignmentStats();
 			
-			if (! (is_at_start_of_graph || is_at_end_of_graph)) {
+			//if (! (is_at_start_of_graph || is_at_end_of_graph)) {
 				Integer path2_seq_len = getPathSeq(graph, path2).length();
 				path2_seq_len -= KMER_SIZE - 1;
 				a.max_internal_gap_length = path2_seq_len;
 				a.gaps = path2_seq_len;
-			}
+			//}
 			debugMes("empty path1 vs " + path2 + " = " + a.toString(), 15);
 			
 			return(a);
@@ -10821,12 +10830,12 @@ HashMap<List<Integer>, Pair<Integer>> transcripts = new HashMap<List<Integer>,Pa
 		else if (path2.isEmpty() || (path2.size() == 1 && path2.get(0) < 0)) {
 			AlignmentStats a = new AlignmentStats();
 			
-			if (! (is_at_start_of_graph || is_at_end_of_graph)) {
+			//if (! (is_at_start_of_graph || is_at_end_of_graph)) {
 				Integer path1_seq_len = getPathSeq(graph, path1).length();
 				path1_seq_len -= KMER_SIZE - 1;
 				a.max_internal_gap_length = path1_seq_len;
 				a.gaps = path1_seq_len;
-			}
+			//}
 			
 			debugMes("path1 : " + path1 + " vs empty path2 = " + a.toString(), 15);
 			

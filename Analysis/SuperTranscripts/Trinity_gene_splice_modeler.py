@@ -61,6 +61,7 @@ def main():
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
         TGLOBALS.DEBUG = True
+        args.verbose = True
 
     logger.info("-parsing Trinity fasta file: {}".format(args.trinity_fasta))
     trin_parser = Trinity_fasta_parser.Trinity_fasta_parser(args.trinity_fasta)
@@ -135,7 +136,8 @@ def main():
 
         ################################
         ## Splice graph refinement stage
-        
+
+        logger.info("Splice graph refinement underway")
         squeezed_splice_model = splice_model_alignment
 
         

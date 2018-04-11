@@ -276,17 +276,24 @@ class TNode:
         Merges linear stretches of nodes into a single new node that has
         concatenated sequences of the input nodes
         """
+
+        logger.debug("Merging nodes: {}".format(node_list))
         
         merged_node_seq = ""
         TNode.merged_nodeset_counter += 1
         merged_loc_node_id = "M{}".format(TNode.merged_nodeset_counter)
 
+        # transcript list should be the intersection from nodes being merged (not the union)
+        # because repeat nodes could be part of the merge.
+        transcripts = node_list[0].get_transcripts()
+
+
         for node_obj in node_list:
+            logger.debug("node being merge: {}".format(node_obj.toString()))
             seq = node_obj.get_seq()
             merged_node_seq += seq
+            transcripts = transcripts.intersection(node_obj.get_transcripts())
 
-
-        transcripts = node_list[0].get_transcripts()
         tgraph = node_list[0].get_graph()
 
         merged_node = TNode(tgraph, transcripts, merged_loc_node_id, merged_node_seq)

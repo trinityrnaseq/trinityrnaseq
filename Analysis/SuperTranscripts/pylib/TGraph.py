@@ -121,7 +121,8 @@ class TGraph:
 
 
     def draw_graph(self, filename):
-        
+
+        logger.debug("drawing graph: {}".format(filename))
         ofh = open(filename, 'w')
 
         ofh.write("digraph G {\n")
@@ -142,3 +143,9 @@ class TGraph:
 
         ofh.close()
     
+    def __repr__(self):
+        txt = ""
+        for node in self.get_all_nodes():
+            txt += node.toString() + "\n"
+
+        return txt

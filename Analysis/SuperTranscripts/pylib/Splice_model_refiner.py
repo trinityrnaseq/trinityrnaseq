@@ -38,6 +38,7 @@ def refine_alignment(node_alignment_obj, reset_node_ids=False):
 
     if TGLOBALS.DEBUG:
         refined_tgraph.draw_graph("ladeda.pre.dot")
+        logger.debug("# pre-refinement tgraph:\n{}".format(refined_tgraph))
     
     graph_compactor = Compact_graph_whole()
     graph_compactor.compact_unbranched(refined_tgraph)
@@ -61,7 +62,8 @@ def refine_alignment(node_alignment_obj, reset_node_ids=False):
     
     if TGLOBALS.DEBUG:
         refined_tgraph.draw_graph("ladeda.final.dot")
-    
+        logger.debug("# post-refinement tgraph:\n{}".format(refined_tgraph))
+        
     # convert compacted graph into a node alignment obj
 
     splice_graph_node_alignment = splice_graph_to_node_alignment(refined_tgraph)

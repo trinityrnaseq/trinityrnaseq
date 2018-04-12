@@ -1032,7 +1032,7 @@ main: {
             $Rscript .= "sample_dist = dist(t(data), method=\'$sample_dist\')\n";
         }
         
-        unless ($sample_clust eq 'none' || $order_columns_by_sample_file) {
+        unless ($sample_clust eq 'none' || $order_columns_by_samples_file) {
             $Rscript .= "hc_samples = hclust(sample_dist, method=\'$sample_clust\')\n";
         }
         

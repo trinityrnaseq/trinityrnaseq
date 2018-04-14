@@ -1076,6 +1076,12 @@ if ($inchworm_cpu > $CPU) {
     $inchworm_cpu = $CPU;
 }
 
+if ($TRINITY_COMPLETE_FLAG) {
+    # strict inchworm
+    $inchworm_cpu = 1; 
+    $NO_PARALLEL_IWORM = 1;
+}
+
 if ($bflyCalculateCPU && $jellyfish_ram) {
     $bflyCPU = int ($jellyfish_ram * 0.80 / $bflyHeapSpaceMaxBytes);
 }

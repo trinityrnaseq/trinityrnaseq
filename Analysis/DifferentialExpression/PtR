@@ -584,7 +584,7 @@ main: {
              .  "    load(\"$R_data_file\")\n"
              .  "} else {\n"
              .  "    print('Reading matrix file.')\n"
-             .  "    primary_data = read.table(\"$matrix_file\", header=T, com=\'\', row.names=1, check.names=F)\n"
+             .  "    primary_data = read.table(\"$matrix_file\", header=T, com=\'\', row.names=1, check.names=F, sep=\"\t\")\n"
              .  "    primary_data = as.matrix(primary_data)\n"
              .  "}\n";
     

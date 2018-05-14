@@ -99,11 +99,11 @@ RUN wget ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.5.0/ncbi-blast-2.
 
 ## Bowtie2
 WORKDIR $SRC
-RUN wget https://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.3.3.1/bowtie2-2.3.3.1-linux-x86_64.zip/download -O bowtie2-2.3.3.1-linux-x86_64.zip && \
-    unzip bowtie2-2.3.3.1-linux-x86_64.zip && \
-    mv bowtie2-2.3.3.1-linux-x86_64/bowtie2* $BIN && \
+RUN wget https://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.3.4.1/bowtie2-2.3.4.1-linux-x86_64.zip/download -O bowtie2-2.3.4.1-linux-x86_64.zip && \
+    unzip bowtie2-2.3.4.1-linux-x86_64.zip && \
+    mv bowtie2-2.3.4.1-linux-x86_64/bowtie2* $BIN && \
     rm *.zip && \
-    rm -r bowtie2-2.3.3.1-linux-x86_64
+    rm -r bowtie2-2.3.4.1-linux-x86_64
 
 
 

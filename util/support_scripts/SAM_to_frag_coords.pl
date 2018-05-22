@@ -178,7 +178,8 @@ sub extract_frag_coords {
         &process_cmd($cmd);
         rename("$read_coords_file.sort_by_readname", $read_coords_file);
         # so that sort is not re-done...
-        symlink(&create_full_path($read_coords_file),&create_full_path("$read_coords_file.sort_by_readname"));
+        #symlink(&create_full_path($read_coords_file),&create_full_path("$read_coords_file.sort_by_readname"));
+        &process_cmd("cp " . &create_full_path($read_coords_file) . " " . &create_full_path("$read_coords_file.sort_by_readname"));  # some systems dont like symlinks
     }
     
     ## define fragment pair coordinate span

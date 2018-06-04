@@ -159,3 +159,4 @@ COPY Dockerfile $SRC/Dockerfile.$TRINITY_VERSION
 
 
 
+RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("fastcluster", dep = TRUE)'

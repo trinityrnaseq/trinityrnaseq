@@ -36,7 +36,7 @@ void populate_kmer_counter_from_kmers (MaskedKmerCounter& kcounter, string& kmer
 string usage();
 
 
-string stomp_snps(string& sequence, MaskedKmerCounter& kcounter);
+string stomp_snps(string& sequence, MaskedKmerCounter& kcounter, unsigned long& snp_stomp_counter);
 
 int runMe(int argc, char* argv[]);
 
@@ -109,6 +109,8 @@ int runMe(int argc, char* argv[]) {
     int start_time = time(NULL);
 
     Fasta_reader fasta_reader(reads_fasta_file);
+
+    unsigned long snp_stomp_counter = 0;
     
     while (true) {
 
@@ -125,7 +127,7 @@ int runMe(int argc, char* argv[]) {
         
         
 
-        string newseq = stomp_snps(sequence, kcounter);
+        string newseq = stomp_snps(sequence, kcounter, snp_stomp_counter);
 
 
         cout << header << endl << newseq << endl;
@@ -135,7 +137,10 @@ int runMe(int argc, char* argv[]) {
     
     int end_time = time(NULL);
 
+    cerr << "Number of snps stomped: " << snp_stomp_counter << endl;
+    
     cerr << "SNP_STOMPING_TIME: " << (end_time - start_time) << " seconds." << endl;
+
     
     return(0);
 }
@@ -172,7 +177,7 @@ void populate_kmer_counter_from_kmers(MaskedKmerCounter& kcounter, string& kmers
 }
 
 
-string stomp_snps(string& sequence, MaskedKmerCounter& kcounter) {
+string stomp_snps(string& sequence, MaskedKmerCounter& kcounter, unsigned long& snp_stomp_counter) {
     if(IRKE_COMMON::MONITOR) {
         cerr << "processing sequence: " << sequence << endl;
     }
@@ -206,16 +211,48 @@ string stomp_snps(string& sequence, MaskedKmerCounter& kcounter) {
         
         Kmer_Occurrence_Pair kmer_occur_pair = kcounter.get_kmer_occurrence_pair(search_kmer_val);
 
-        kmer_int_type_t best_masked_kmer_val = kmer_occur_pair.first;
+        kmer_int_type_t best_unmasked_kmer_val = kmer_occur_pair.first;
 
         unsigned int count = kmer_occur_pair.second;
 
-        string stored_kmer = decode_kmer_from_intval(best_masked_kmer_val, KMER_SIZE);
+        string stored_kmer = decode_kmer_from_intval(best_unmasked_kmer_val, KMER_SIZE);
 
-        cout << search_kmer << "\t" << stored_kmer << "\t" << count << endl;
+        if (IRKE_COMMON::MONITOR) {
+            cerr << search_kmer << "\t" << stored_kmer << "\t" << count << endl;
+        }
+        char chosen_char = stored_kmer[central_kmer_pos];
+        if (kcounter.is_DS_mode()) {
+            // see if stored kmer matches the forward or reverse of the read kmer
+            kmer_int_type_t masked_stored_val = kcounter.get_masked_kmer_intval(best_unmasked_kmer_val);
+            if (masked_stored_val == masked_kmer_int_val) {
+                // forward orientation
+            }
+            else if (masked_stored_val == masked_ds_kmer_int_val) {
+                // reverse orientation
+                string schar = "";
+                schar += chosen_char;
+                schar = revcomp(schar);
+                chosen_char = schar[0];
+            }
+        }
+        
+        if (chosen_char != sequence[string_pos]) {
+
+            if (IRKE_COMMON::MONITOR) {
+                stringstream ss;
+                ss << "snp [" << string_pos << "]: " << sequence[string_pos] << " -> " << chosen_char << endl;
+                cerr << ss.str();
+            }
+
+            // update sequence w/ stomped snp
+            sequence_copy[string_pos] = chosen_char;
+
+            snp_stomp_counter += 1;
+            
+        }
     }
     
-    return(sequence);
+    return(sequence_copy);
 }
 
 

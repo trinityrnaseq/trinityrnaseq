@@ -130,7 +130,7 @@ int runMe(int argc, char* argv[]) {
         string newseq = stomp_snps(sequence, kcounter, snp_stomp_counter);
 
 
-        cout << header << endl << newseq << endl;
+        cout << ">" << header << endl << newseq << endl;
 
                 
     }
@@ -265,7 +265,7 @@ string usage() {
                << endl 
                << "* optional:" << endl
                << "  --kmer_size <int>          " << ":kmer size, must be odd value.  default = 25" << endl
-               << "  --DS                             " << ":double-stranded RNA-Seq mode (not strand-specific)" << endl
+               << "  --SS                       " << ":strand specific mode.  (default: double-stranded RNA-Seq mode (not strand-specific))" << endl
                << "  --capture_coverage_info    " << ":writes coverage info file." << endl
                << "  --monitor <int>            " << ":verbose level for debugging" << endl
                << "  --num_threads <int>        " << ":number of threads" << endl

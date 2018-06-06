@@ -509,7 +509,8 @@ my $advanced_usage =  <<_ADVANCEDUSAGE_;
 #  --long_reads_mode               : run in long reads mode (requires --single and the long reads integrated with LR$| accession prefixes.
 #
 #  --no_check_coordsorted_bam      : in genome-guided mode, won't test the bam file for coordinate-sortedness#
-
+#
+#  --stomp_snps                    : stomp snps out of kmers before inchworm assembly
 
 _ADVANCEDUSAGE_
 
@@ -578,6 +579,7 @@ my $NO_CHECK_COORDSORTED_BAM = 0;
 
 my $NO_SALMON = 0;
 
+my $STOMP_SNPS = 0;
 
 &GetOptions( 
     
@@ -663,7 +665,8 @@ my $NO_SALMON = 0;
     'INCHWORM_CUSTOM_PARAMS=s' => \$INCHWORM_CUSTOM_PARAMS,
     'no_run_inchworm' => \$NO_RUN_INCHWORM_FLAG,
     'iworm_opts=s' => \$iworm_opts,
-    
+    'stomp_snps' => \$STOMP_SNPS,
+     
     'max_memory|M=s'          => \$max_memory, # in GB
     
     # Chrysalis -related opts
@@ -808,7 +811,7 @@ bypass_java_version_check
 ananas_dir
 samples_file
 workdir
-
+stomp_snps
 );   
 
 my %ACCEPTABLE_OPTS = map { + $_ => 1} @__ALL_TRINITY_PARAMS;
@@ -2353,10 +2356,21 @@ sub run_inchworm {
             print STDERR "WARNING:  --no_run_inchworm parameter in effect.  Stopping here prior to running inchworm.\n";
             exit(0);
         }
-                
+
+        if ($STOMP_SNPS) {
+            print STDERR "-stomping snps out of kmers before inchworm assembly\n";
+            my $cmd = "$INCHWORM_DIR/SNP_stomper --reads $jelly_kmer_fa_file --kmers $jelly_kmer_fa_file -0kmer_size $KMER_SIZE"; 
+            if ($strand_specific_flag) {
+                $cmd .= " --SS";
+            }
+            $jelly_kmer_fa_file = "$jelly_kmer_fa_file.snps_stomped";
+            $cmd .= " > $jelly_kmer_fa_file 2> $jelly_kmer_fa_file.log";
+            $pipeliner->add_commands( new Command($cmd, ".jellyfish_snp_stomp.ok") );
+            $pipeliner->run();
+        }
         
         $inchworm_cmd = "$INCHWORM_DIR/inchworm --kmers $jelly_kmer_fa_file --run_inchworm -K $KMER_SIZE -L $MIN_IWORM_LEN --monitor 1 $iworm_opts ";
-
+            
         # hold on to the jellyfish file - we might use it for other applications.
         #push (@tmp_files, $jelly_finished_checkpoint_file, $jelly_kmer_fa_file) unless $NO_CLEANUP;
         

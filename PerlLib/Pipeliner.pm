@@ -9,7 +9,6 @@ use Cwd;
 ## Verbose levels:
 ## 1: see CMD string
 ## 2: see stderr during process
-my $VERBOSE = 0;
 ################################
 
 
@@ -53,7 +52,8 @@ sub process_cmd {
 sub new {
     my $packagename = shift;
     my %params = @_;
-    
+
+    my $VERBOSE = 0;
     if ($params{-verbose}) {
         $VERBOSE = $params{-verbose};
     }
@@ -64,7 +64,7 @@ sub new {
         cmd_objs => [],
         checkpoint_dir => undef,
         cmds_log_ofh => undef,
-        
+        VERBOSE => $VERBOSE,
     };
     
     bless ($self, $packagename);
@@ -118,6 +118,7 @@ sub add_commands {
 sub set_checkpoint_dir {
     my $self = shift;
     my ($checkpoint_dir) = @_;
+    $checkpoint_dir = &ensure_full_path($checkpoint_dir);
     if (! -d $checkpoint_dir) {
         mkdir($checkpoint_dir) or die "Error, cannot mkdir $checkpoint_dir";
     }
@@ -141,14 +142,16 @@ sub has_commands {
 
 sub run {
     my $self = shift;
-
+    my $VERBOSE = $self->{VERBOSE};
+    
     my $cmds_log_ofh = $self->{cmds_log_ofh};
 
     foreach my $cmd_obj ($self->_get_commands()) {
         
         my $cmdstr = $cmd_obj->get_cmdstr();
         print $cmds_log_ofh "$cmdstr\n";
-        
+
+        my $msg = $cmd_obj->{msg};
 
         my $checkpoint_file = $cmd_obj->get_checkpoint_file();
         
@@ -163,10 +166,12 @@ sub run {
                 unlink($tmp_stderr);
             }
 
-            unless ($VERBOSE == 2) {
+            if ($VERBOSE < 2 && $cmdstr !~ /2\s*>/ ) {
                 $cmdstr .= " 2>$tmp_stderr";
             }
-
+            
+            print STDERR $msg if $msg;
+            
             my $ret = system($cmdstr);
             if ($ret) {
                                 
@@ -220,7 +225,7 @@ use Carp;
 sub new {
     my $packagename = shift;
     
-    my ($cmdstr, $checkpoint_file) = @_;
+    my ($cmdstr, $checkpoint_file, $message) = @_;
 
     unless ($cmdstr && $checkpoint_file) {
         confess "Error, need cmdstr and checkpoint filename as params";
@@ -228,6 +233,7 @@ sub new {
 
     my $self = { cmdstr => $cmdstr,
                  checkpoint_file => $checkpoint_file,
+                 msg => $message,
     };
 
     bless ($self, $packagename);

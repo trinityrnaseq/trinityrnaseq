@@ -160,3 +160,17 @@ COPY Dockerfile $SRC/Dockerfile.$TRINITY_VERSION
 
 
 RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("fastcluster", dep = TRUE)'
+
+## patch the RSEM install... need convert-sam-for-rsem  too!
+WORKDIR $SRC
+RUN wget https://github.com/deweylab/RSEM/archive/v1.3.0.tar.gz && \
+    tar xvf v1.3.0.tar.gz && \
+            cd RSEM-1.3.0 && \
+                        make && \
+                                        cp rsem-* $BIN && \
+                                                        cp convert-sam-for-rsem $BIN && \
+                                                                            cp rsem_perl_utils.pm /usr/local/lib/site_perl/ && \
+                                                                                                    cd ../ && rm -r RSEM-1.3.0
+
+# adding multiqc
+RUN pip install git+https://github.com/ewels/MultiQC.git

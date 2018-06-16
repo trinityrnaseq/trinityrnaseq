@@ -408,15 +408,28 @@ sub parse_result_files_find_diffExp {
             my $cmd = "$FindBin::RealBin/run_GOseq.pl --GO_assignments $GO_annots_file "
                 . " --lengths $gene_lengths_file --genes_single_factor $condA_up_subset_file"
                 . " --background $background_file ";
-            
-            &process_cmd($cmd) if $countA;
 
+            eval {
+                &process_cmd($cmd) if $countA;
+            };
+            if ($@) {
+                print STDERR "WARNING, go-seq failed for $condA_up_subset_file: $@";
+                system("touch $condA_up_subset_file.FAILED");
+            }
+            
+                
             $cmd = "$FindBin::RealBin/run_GOseq.pl --GO_assignments $GO_annots_file "
                 . " --lengths $gene_lengths_file --genes_single_factor $condB_up_subset_file"
                 . " --background $background_file ";
             
-            &process_cmd($cmd) if $countB;
 
+            eval {
+                &process_cmd($cmd) if $countB;
+            };
+            if ($@) {
+                print STDERR "WARNING, go-seq failed for $condB_up_subset_file: $@";
+                system("touch $condB_up_subset_file.FAILED");
+            }
 
             if ($countA + $countB) {
                 
@@ -424,9 +437,14 @@ sub parse_result_files_find_diffExp {
                     . " --lengths $gene_lengths_file --genes_single_factor $either_subset_file"
                     . " --background $background_file ";
             
-                &process_cmd($cmd);
-
-
+                eval {
+                    &process_cmd($cmd);
+                };
+                if ($@) {
+                    print STDERR "Warning, go-seq failed for $either_subset_file: $@";
+                    system("touch $either_subset_file.FAILED");
+                }
+                
                 if ($RUN_GOPLOT) {
                     $cmd = "$FindBin::RealBin/prep_n_run_GOplot.pl --GO_annots $GO_annots_file "
                         . " --DE_subset $either_subset_file "

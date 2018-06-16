@@ -2693,7 +2693,7 @@ sub test_java_failure_capture {
         
     }
     
-    $cmd = "java -Xmx64m -XX:ParallelGCThreads=$bflyGCThreads $JAVA_OPTS -jar $UTILDIR/support_scripts/ExitTester.jar 1";
+    $cmd = "java -Xmx4g -XX:ParallelGCThreads=$bflyGCThreads $JAVA_OPTS -jar $UTILDIR/support_scripts/ExitTester.jar 1"; # use 4G to ensure that it's 64-bit java here.
     eval {
         &process_cmd($cmd);
     };
@@ -2702,7 +2702,7 @@ sub test_java_failure_capture {
         print "-we properly captured the java failure status, as needed.  Looking good.\n" if $VERBOSE;
     }
     else {
-        print STDERR "-we are unable to properly capture java failure status.  Please be sure that java (or any wrapper around java that's being used) can properly capture and propagate failure status before proceeding.\n";
+        print STDERR "-we are unable to properly capture java failure status.  Please be sure that java (or any wrapper around java that's being used) can properly capture and propagate failure status before proceeding.  If your installed java is not 64-bit, note that 64-bit is required.\n";
         exit(1);
     }
 

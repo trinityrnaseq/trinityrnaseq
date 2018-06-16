@@ -28,7 +28,7 @@ main: {
     $cmd = "samtools view -bt $trinity_fasta.noheader.fai $outfile_prefix.sam > $outfile_prefix.bam";
     &process_cmd($cmd);
 
-    $cmd = "samtools sort $outfile_prefix.bam $outfile_prefix";
+    $cmd = "samtools sort $outfile_prefix.bam -o $outfile_prefix.bam ";
     &process_cmd($cmd);
 
     $cmd = "samtools index $outfile_prefix.bam";

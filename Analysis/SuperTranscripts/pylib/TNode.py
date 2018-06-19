@@ -301,6 +301,7 @@ class TNode:
         return merged_node
 
 
+
     def is_burr(self):
         """
         returns true if node (x) is in this graphical context:

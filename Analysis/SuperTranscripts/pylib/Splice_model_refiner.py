@@ -24,7 +24,8 @@ logger = logging.getLogger(__name__)
 MAX_MM_RATE = 0.05 
 
 
-def refine_alignment(node_alignment_obj, reset_node_ids=False, max_burr_length=25):
+def refine_alignment(node_alignment_obj, reset_node_ids=False,
+                     max_burr_length=25, max_bubble_pop_length=25):
 
     """
     Create a new splice graph based on the node alignment obj.
@@ -74,7 +75,9 @@ def refine_alignment(node_alignment_obj, reset_node_ids=False, max_burr_length=2
         refined_tgraph.draw_graph("ladeda.burr_removal.dot")
         logger.debug("# removing burrs tgraph:\n{}".format(refined_tgraph))
 
-    
+    compact_graph_pruner.pop_small_bubbles(refined_tgraph, max_bubble_pop_length)
+    refined_tgraph.draw_graph("ladeda.bubble_popping.dot")
+    logger.debug("# bubbles popped tgraph:\n{}".format(refined_tgraph))
     
         
     # convert compacted graph into a node alignment obj

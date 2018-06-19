@@ -1942,9 +1942,15 @@ sub run_chrysalis {
         $chrysalis_pipeliner->add_commands( new Command($graphFromFasta_cmd, "$welds_to_cluster_file.ok"));
 
 
+        my $welds_to_cluster_file_sorted = "$welds_to_cluster_file.sorted";
+        $chrysalis_pipeliner->add_commands( 
+            new Command("$sort_exec -T . -S $max_memory  -k9,9gr $welds_to_cluster_file > $welds_to_cluster_file_sorted",
+                        "$welds_to_cluster_file.sorted.ok"));
+        
+        
         ## now cluster into chrysalis components:
         
-        my $bubble_cluster_cmd = "$CHRYSALIS_DIR/BubbleUpClustering -i $inchworm_file  -weld_graph $welds_to_cluster_file -min_contig_length $min_contig_length ";
+        my $bubble_cluster_cmd = "$CHRYSALIS_DIR/BubbleUpClustering -i $inchworm_file  -weld_graph $welds_to_cluster_file_sorted -min_contig_length $min_contig_length ";
 
         if ($CHRYSALIS_DEBUG_WELD_ALL) {
             $bubble_cluster_cmd .= " -debug_weld_all ";

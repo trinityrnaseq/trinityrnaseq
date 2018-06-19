@@ -36,9 +36,6 @@ void PrintSeq(const DNAVector & d) {
 }
 
 
-
-
-
 void Add(vecDNAVector & all, DNAVector & add, int & counter) 
 {
     #pragma omp critical
@@ -103,7 +100,126 @@ bool sort_pool_sizes_descendingly(const Pool& a, const Pool& b) {
 }
 
 bool sort_pool_sizes_ascendingly(const Pool& a, const Pool& b) {
+
+    // cerr << "size comparison: " << a.size() << " vs. " << b.size() << endl;
     return (a.size() < b.size());
+}
+
+
+
+
+svec<Pool> grow_prioritized_clusters(string& weld_graph_file, map<int,Pool>& weld_reinforced_iworm_clusters) {
+
+    cerr << "Parsing weld graph file: " << weld_graph_file << endl;
+    
+    ifstream in (weld_graph_file.c_str());
+    if (! in.is_open()) {
+        cerr << "Error, cannot open file: " << weld_graph_file << endl;
+        exit(3);
+    }
+
+    // lines look like this:
+	// 716 -> 725 weldmers: 9 scaff_pairs: 69 total: 78
+    // 234 -> 717 weldmers: 61 scaff_pairs: 0 total: 61
+    // 717 -> 234 weldmers: 61 scaff_pairs: 0 total: 61
+    // 457 -> 466 weldmers: 0 scaff_pairs: 58 total: 58
+    // 2 -> 459 weldmers: 57 scaff_pairs: 0 total: 57
+    // 459 -> 2 weldmers: 57 scaff_pairs: 0 total: 57
+    // 2 -> 714 weldmers: 0 scaff_pairs: 43 total: 43
+    // 232 -> 493 weldmers: 7 scaff_pairs: 34 total: 41
+
+
+    svec<Pool> clustered_contigs;
+    map<unsigned int,unsigned int> id_to_cluster;
+        
+    while (! in.eof()) {
+        string line;
+        getline(in, line);
+        cerr << "input_line: " << line << "\n";
+        
+        istringstream token (line);
+
+        string tok;
+        token >> tok;
+
+        unsigned int node_id = atoi(tok.c_str());
+                
+        token >> tok; // pointer '->' separator string.
+
+        token >> tok;
+        unsigned int linked_node_id = atoi(tok.c_str());
+
+        // check both assigned.
+                
+        if (id_to_cluster.find(node_id) != id_to_cluster.end()
+            &&
+            id_to_cluster.find(linked_node_id) != id_to_cluster.end()) {
+
+            // try to merge the clusters
+            unsigned int node_id_cluster_id = id_to_cluster[node_id];
+            unsigned int linked_node_id_cluster_id = id_to_cluster[linked_node_id];
+
+            if (node_id_cluster_id == linked_node_id_cluster_id) {
+                // already in the same cluster. Must have been linked transitively
+                continue;
+            }
+            else if (clustered_contigs[node_id_cluster_id].size() + clustered_contigs[linked_node_id_cluster_id].size() <= MAX_CLUSTER_SIZE) {
+                // different clusters.
+                // merge clusters.
+                for (int i = 0; i < clustered_contigs[linked_node_id_cluster_id].size(); i++) {
+                    unsigned int node_to_migrate_id = clustered_contigs[linked_node_id_cluster_id][i];
+                    clustered_contigs[node_id_cluster_id].add(node_to_migrate_id);
+                    id_to_cluster[node_to_migrate_id] = node_id_cluster_id;
+                }
+                clustered_contigs[linked_node_id_cluster_id].clear();
+            }
+            else {
+                // ignoring this linkage between iworm contigs, as it'll over-aggregate the cluster sizes
+            }
+        }
+        else if (id_to_cluster.find(node_id) != id_to_cluster.end()
+                 || 
+                 id_to_cluster.find(linked_node_id) != id_to_cluster.end()) {
+
+            // one of them has a cluster assignment.
+            // add the other
+            if (id_to_cluster.find(node_id) != id_to_cluster.end()) {
+                unsigned int node_id_cluster_id = id_to_cluster[node_id];
+                clustered_contigs[node_id_cluster_id].add(linked_node_id);
+                id_to_cluster[linked_node_id] = node_id_cluster_id;
+            }
+            else {
+                // linked_node_id found in cluster.
+                unsigned int linked_node_id_cluster_id = id_to_cluster[linked_node_id];
+                clustered_contigs[linked_node_id_cluster_id].add(node_id);
+                id_to_cluster[node_id] = linked_node_id_cluster_id;
+            }
+        }
+        else {
+            // neither is in a cluster.
+            // make a new cluster, store both entries.
+            Pool tmp_pool;
+            tmp_pool.add(node_id);
+            tmp_pool.add(linked_node_id);
+            unsigned int new_cluster_idx = clustered_contigs.size();
+            clustered_contigs.push_back(tmp_pool);
+            id_to_cluster[node_id] = new_cluster_idx;
+            id_to_cluster[linked_node_id] = new_cluster_idx;
+        }
+    }
+
+
+    // remove the emtpy entries
+    svec<Pool> ret_clustered_contigs;
+    for (size_t i = 0; i < clustered_contigs.size(); i++) {
+        if (clustered_contigs[i].size() > 0) {
+            ret_clustered_contigs.push_back(clustered_contigs[i]);
+        }
+    }
+
+    return(ret_clustered_contigs);
+    
+            
 }
 
 
@@ -151,7 +267,9 @@ svec<Pool> bubble_up_cluster_growth(map<int,Pool>& pool) {
     // init 
     
     cerr << "bubble_up_cluster_growth(): got " << pool_vec.size() << " pools." << endl;
-    
+
+
+    // initializing containments
     for (size_t i = 0; i < pool_vec.size(); i++) {
         int pool_id = pool_vec[i].get_id();
         Pool tmp(pool_id);
@@ -558,6 +676,8 @@ void populate_weld_reinforced_iworm_clusters(string& weld_graph_file, map<int,Po
         exit(3);
     }
 
+    /*  old way (pre-June 2018)
+    
     // lines look like this:
     //    210 -> 735
     //    907 -> 242 506
@@ -594,8 +714,58 @@ void populate_weld_reinforced_iworm_clusters(string& weld_graph_file, map<int,Po
         }
     }
     
+    */
     
-    
+
+    //------------------------------------------------------
+    // new way:
+
+    // lines look like this:
+	// 716 -> 725 weldmers: 9 scaff_pairs: 69 total: 78
+    // 234 -> 717 weldmers: 61 scaff_pairs: 0 total: 61
+    // 717 -> 234 weldmers: 61 scaff_pairs: 0 total: 61
+    // 457 -> 466 weldmers: 0 scaff_pairs: 58 total: 58
+    // 2 -> 459 weldmers: 57 scaff_pairs: 0 total: 57
+    // 459 -> 2 weldmers: 57 scaff_pairs: 0 total: 57
+    // 2 -> 714 weldmers: 0 scaff_pairs: 43 total: 43
+    // 232 -> 493 weldmers: 7 scaff_pairs: 34 total: 41
+
+        
+    while (! in.eof()) {
+        string line;
+        getline(in, line);
+        //cerr << "input_line: " << line << "\n";
+        
+        istringstream token (line);
+
+        string tok;
+        token >> tok;
+
+        int node_id = atoi(tok.c_str());
+                
+        token >> tok; // pointer '->' separator string.
+
+        token >> tok;
+        int linked_node_id = atoi(tok.c_str());
+
+        if (weld_reinforced_iworm_clusters.find(node_id) != weld_reinforced_iworm_clusters.end()) {
+            Pool& p = weld_reinforced_iworm_clusters[node_id];
+            p.add(linked_node_id);
+            if (DEBUG) {
+                cerr << "Adding node_id [" << linked_node_id << "] to pool of " << node_id << " yielding " << p.str() << endl;
+            }
+        }
+        else {
+            Pool p(node_id);
+            p.add(linked_node_id);
+            weld_reinforced_iworm_clusters[ node_id ] = p;
+            if (DEBUG) {
+                cerr << "Initializing node_id [" << node_id << "] to pool: " << p.str() << endl;
+            }
+        }
+        
+    }
+        
     return;
 }
 
@@ -662,9 +832,11 @@ int main(int argc,char** argv)
         clustered_pools.push_back(p);
     }
     else {
-        populate_weld_reinforced_iworm_clusters(weld_graph_file, weld_reinforced_iworm_clusters);
-        clustered_pools = bubble_up_cluster_growth(weld_reinforced_iworm_clusters);
-            
+        //populate_weld_reinforced_iworm_clusters(weld_graph_file, weld_reinforced_iworm_clusters);
+        //clustered_pools = bubble_up_cluster_growth(weld_reinforced_iworm_clusters);
+
+        clustered_pools = grow_prioritized_clusters(weld_graph_file, weld_reinforced_iworm_clusters);
+        
         if (DEBUG) {
             cerr << "Final pool description: " << "\n";
             describe_poolings(clustered_pools);

@@ -189,7 +189,7 @@ my $trimmomatic_quality_trim_params = "ILLUMINACLIP:$TRIMMOMATIC_DIR/adapters/Tr
 ## Normalize reads
 my $NORMALIZE_READS_FLAG = 0; ## now on by default, unless told not to via --no_normalize_reads!  See below for logic.
 my $NO_NORMALIZE_READS_FLAG = 0; ## set to turn off normalization (will be turned on if trinity_complete_flag and ! --normalize_reads set. 
-my $normalize_max_read_cov = 50;
+my $normalize_max_read_cov = 200; # better for polymorphic transcriptomes
 my $normalize_max_pct_stdev = 10000; # effectively turn it off for this application.
 my $NORMALIZE_BY_READ_SET = 0; 
 
@@ -402,7 +402,7 @@ my $full_usage = qq^
 ################################################################################
 ####  In silico Read Normalization Options ###
 #
-#  --normalize_max_read_cov <int>       defaults to 50
+#  --normalize_max_read_cov <int>       defaults to $normalize_max_read_cov 
 #  --normalize_by_read_set              run normalization separate for each pair of fastq files,
 #                                       then one final normalization that combines the individual normalized reads.
 #                                       Consider using this if RAM limitations are a consideration.
@@ -448,8 +448,9 @@ my $usage_synopsis = qq^#
 #
 #        Trinity --seqType fq --max_memory 50G --left reads_1.fq  --right reads_2.fq --CPU 6
 #
+#            (if you have multiple samples, use --samples_file ... see above for details)
 #
-#    and for Genome-guided Trinity:
+#    and for Genome-guided Trinity, provide a coordinate-sorted bam:
 #
 #        Trinity --genome_guided_bam rnaseq_alignments.csorted.bam --max_memory 50G\
 #                --genome_guided_max_intron 10000 --CPU 6

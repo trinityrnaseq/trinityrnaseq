@@ -300,3 +300,47 @@ class TNode:
         
         return merged_node
 
+
+    def is_burr(self):
+        """
+        returns true if node (x) is in this graphical context:
+
+          X                               X
+            \           or               /
+         C-- A--?                   ?-- A--B
+
+         where X dangles.
+
+
+         So, X has only one parent or child and not otherwise connected in the graph.
+
+         """
+
+        if self.get_prev_nodes() and self.get_next_nodes():
+            return False
+
+        if len(self.get_prev_nodes()) > 1 or len(self.get_next_nodes()) > 1:
+            return False
+
+        # illustration above on left side
+        if (len(self.get_next_nodes()) == 1
+            and
+            len(self.get_prev_nodes()) == 0
+            and
+            len(self.get_next_nodes().pop().get_prev_nodes()) > 1):
+
+            return True
+
+        # illustration above on right side
+        if (len(self.get_next_nodes()) == 0
+            and
+            len(self.get_prev_nodes()) == 1
+            and
+            len(self.get_prev_nodes().pop().get_next_nodes()) > 1):
+
+            return True
+
+        # more complex structure
+        return False
+            
+    

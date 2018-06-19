@@ -946,9 +946,9 @@ string make_iworm_pair_token(int i_A, int i_B) {
     int iworm_A = i_A;
     int iworm_B = i_B;
     
-    if (iworm_A < iworm_B) {
-        i_A = iworm_A;
-        i_B = iworm_B;
+    if (iworm_A > iworm_B) {
+        i_A = iworm_B;
+        i_B = iworm_A;
     }
     
     stringstream iworm_pair_token;

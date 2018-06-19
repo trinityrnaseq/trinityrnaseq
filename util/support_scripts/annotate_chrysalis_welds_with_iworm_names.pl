@@ -28,7 +28,7 @@ my $iworm_cluster_welds_file = $ARGV[1] or die $usage;
      open(my $fh, $iworm_cluster_welds_file) or die "Error, cannot open file: $iworm_cluster_welds_file";
      while(<$fh>) {
          chomp;
-         my ($idx_A, $ptr, $idx_B) = split(/\s+/);
+         my ($idx_A, $ptr, $idx_B, @rest) = split(/\s+/);
          my $iworm_A = $counter_to_iworm{$idx_A};
 
          if (! defined $iworm_A) { die "Error, no iworm acc for index: $idx_A"; }
@@ -37,7 +37,7 @@ my $iworm_cluster_welds_file = $ARGV[1] or die $usage;
 
          if (! defined $iworm_B) { die "Error, no iworm acc for index: $idx_B"; }
          
-         print join("\t", $idx_A, $iworm_A, $ptr, $idx_B, $iworm_B) . "\n";
+         print join(" ", $idx_A, $iworm_A, $ptr, $idx_B, $iworm_B, @rest) . "\n";
      }
      close $fh;
 

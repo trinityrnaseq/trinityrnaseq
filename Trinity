@@ -1947,6 +1947,11 @@ sub run_chrysalis {
             new Command("$sort_exec -T . -S $max_memory  -k9,9gr $welds_to_cluster_file > $welds_to_cluster_file_sorted",
                         "$welds_to_cluster_file.sorted.ok"));
         
+
+        # annotate with iworm names
+        $chrysalis_pipeliner->add_commands(
+            new Command("$UTILDIR/support_scripts/annotate_chrysalis_welds_with_iworm_names.pl $inchworm_file $welds_to_cluster_file_sorted > $welds_to_cluster_file_sorted.wIwormNames",
+                        "$welds_to_cluster_file.sorted.wIwormNames.ok"));
         
         ## now cluster into chrysalis components:
         

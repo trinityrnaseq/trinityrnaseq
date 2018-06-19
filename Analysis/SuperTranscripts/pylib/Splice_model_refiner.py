@@ -64,7 +64,7 @@ def refine_alignment(node_alignment_obj, reset_node_ids=False,
     partial_graph_compactor.compact_graph(refined_tgraph)
     
     if TGLOBALS.DEBUG:
-        refined_tgraph.draw_graph("ladeda.final.dot")
+        refined_tgraph.draw_graph("ladeda.partial_compaction.dot")
         logger.debug("# post-refinement partial (suffix/prefix adjustments) tgraph:\n{}".format(refined_tgraph))
 
 
@@ -75,11 +75,18 @@ def refine_alignment(node_alignment_obj, reset_node_ids=False,
         refined_tgraph.draw_graph("ladeda.burr_removal.dot")
         logger.debug("# removing burrs tgraph:\n{}".format(refined_tgraph))
 
+
     compact_graph_pruner.pop_small_bubbles(refined_tgraph, max_bubble_pop_length)
-    refined_tgraph.draw_graph("ladeda.bubble_popping.dot")
-    logger.debug("# bubbles popped tgraph:\n{}".format(refined_tgraph))
+    if TGLOBALS.DEBUG:
+        refined_tgraph.draw_graph("ladeda.bubble_popping.dot")
+        logger.debug("# bubbles popped tgraph:\n{}".format(refined_tgraph))
+
+    # final compaction post bubble popping
+    graph_compactor.compact_unbranched(refined_tgraph)
+    if TGLOBALS.DEBUG:
+        refined_tgraph.draw_graph("ladeda.final.dot")
+        logger.debug("# final tgraph:\n{}".format(refined_tgraph))
     
-        
     # convert compacted graph into a node alignment obj
 
     splice_graph_node_alignment = splice_graph_to_node_alignment(refined_tgraph)

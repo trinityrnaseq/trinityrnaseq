@@ -29,19 +29,21 @@ class Compact_graph_whole:
     
     def compact_unbranched(self, tgraph):
 
-        all_nodes = list(tgraph.get_all_nodes())
+        all_nodes = Topological_sort.topologically_sort(tgraph.get_all_nodes())
         
         for node in all_nodes:
 
             if node.is_dead():
                 continue
 
+            logger.debug("compact_unbranched( {} )".format(node.toString()))
             prev_nodes = list(node.get_prev_nodes())
             if len(prev_nodes) == 1:
                 # merge them
                 prev_node = prev_nodes[0]
                 if len(prev_node.get_next_nodes()) != 1:
                     # prev node is downward branched... no dice
+                    logger.debug("prev node: {} id downward branched, so can't compact. {}".format(prev_node, prev_node.toString()))
                     continue
 
                 logger.debug("linear compaction of nodes {} and {}".format(prev_node, node))

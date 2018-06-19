@@ -72,6 +72,10 @@ sub generate_ascii_illustration {
             if ($pct_of_target_aligned < $MIN_PCT_ALIGNED) { next; }
 
             my $target_feature_name = "$target_acc $target_start-$target_end:$target_length ($pct_of_target_aligned\% aln, $per_id\% ID)";
+
+            if ($target_start > $target_end) {
+                ($ref_start, $ref_end) = ($ref_end, $ref_start);
+            }
             
             $ascii_illustration->add_feature($target_feature_name, $ref_start, $ref_end, "-");
             

@@ -135,7 +135,7 @@ svec<Pool> grow_prioritized_clusters(string& weld_graph_file, map<int,Pool>& wel
     while (! in.eof()) {
         string line;
         getline(in, line);
-        cerr << "input_line: " << line << "\n";
+        //cerr << "input_line: " << line << "\n";
         
         istringstream token (line);
 

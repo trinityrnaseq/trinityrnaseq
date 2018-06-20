@@ -27,7 +27,7 @@ static bool REPORT_WELDS = false;
 static int MAX_CLUSTER_SIZE = 100;
 static int MIN_CONTIG_LENGTH = 24;
 
-static int TOO_SIMILAR = 95;
+static int TOO_SIMILAR = 97;
 
 static bool DISABLE_REPEAT_CHECK = false;
 static bool __NO_GLUE_REQUIRED = false;
@@ -1564,28 +1564,19 @@ int main(int argc,char** argv)
                         continue;
                         
                     }
-                    else if ( ( encapsulates(d, dd, j, start)
-                                ||
-                                encapsulates(dd, d, start, j) )
+                    else if ( encapsulates(d, dd, j, start)
+                              &&
+                              d.isize()/10 > dd.isize()
                               &&
                               align_get_per_id(d, dd, j, start, k) > TOO_SIMILAR) {
                         
                         // toast the smaller one
 
-                        if (encapsulates(d, dd, j, start)) {
-                            #pragma omp critical
-                            toasted[c] = true;
+                        #pragma omp critical
+                        toasted[c] = true;
 
-                            cerr << "toasting based on alignment: " << dna.Name(c) << endl;
-                        }
-                        else {
-                            
-                            #pragma omp critical
-                            toasted[i] = true;
-                            
-                            cerr << "toasting based on alignment: " << dna.Name(i) << endl;
-                        }
-
+                        cerr << "toasting based on alignment: " << dna.Name(c) << endl;
+                        
                         continue;
                     }
                     else if (min_glue_required > 0 && !IsGoodCoverage(coverage, coverage_other, min_iso_ratio)) {
@@ -1699,28 +1690,20 @@ int main(int argc,char** argv)
                         continue;
                         
                     }
-                    else if ( ( encapsulates(d, dd, j, start)
-                                ||
-                                encapsulates(dd, d, start, j) )
+                    else if (encapsulates(d, dd, j, start)
+                              &&
+                              d.isize()/10 > dd.isize()
                               &&
                               align_get_per_id(d, dd, j, start, k) > TOO_SIMILAR) {
-                        
+
                         // toast the smaller one
 
-                        if (encapsulates(d, dd, j, start)) {
-                            #pragma omp critical
-                            toasted[c] = true;
 
-                            cerr << "toasting based on alignment: " << dna.Name(c) << endl;
-                        }
-                        else {
-                            
-                            #pragma omp critical
-                            toasted[i] = true;
-                            
-                            cerr << "toasting based on alignment: " << dna.Name(i) << endl;
-                        }
+                        #pragma omp critical
+                        toasted[c] = true;
 
+                        cerr << "toasting based on alignment: " << dna.Name(c) << endl;
+                        
                         continue;
                     }
                     else if (min_glue_required > 0 && !IsGoodCoverage(coverage, coverage_other, min_iso_ratio)) {

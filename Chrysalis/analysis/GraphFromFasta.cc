@@ -27,6 +27,8 @@ static bool REPORT_WELDS = false;
 static int MAX_CLUSTER_SIZE = 100;
 static int MIN_CONTIG_LENGTH = 24;
 
+static int TOO_SIMILAR = 95;
+
 static bool DISABLE_REPEAT_CHECK = false;
 static bool __NO_GLUE_REQUIRED = false;
 
@@ -321,6 +323,72 @@ bool IsShadow(const DNAVector & a, const DNAVector & b, int startA, int startB, 
     return false;
     
 }
+
+
+
+bool  encapsulates(const DNAVector & largerA, const DNAVector & smallerB, int startA, int startB) {
+
+    //  anchored at the kmer, assuming linear alignment across all bases,
+    //   does  largerA encapsulate smallerB like so?
+    //
+    //                          startA  (pos of Kmer match)
+    //                            |
+    //    largerA    -------------------------------------
+    //    smallerB         -------|---------
+    //                            | 
+    //                          startB
+    
+    if (startA > startB && (startA - startB) + smallerB.isize() < largerA.isize()) {
+        return(true);
+    }
+    else {
+        return(false);
+    }
+    
+}
+
+
+// possible snp contig
+float align_get_per_id(const DNAVector & a, const DNAVector & b, int startA, int startB, int k) 
+{
+    //return false;
+    
+    
+    int i;
+    int len = 0;
+    int mismatch = 0;
+    
+    if (startA < startB) {
+        startB -= startA;
+        startA = 0;
+    }
+    else {
+        startA -= startB;
+        startB = 0;
+    }
+
+    for (i=startA; i<a.isize(); i++) {
+        int x = i-startA + startB;
+        
+        if (x >= b.isize())
+            break;
+        len++;
+        if (a[i] != b[x]) {     
+            mismatch++;
+        }
+    }
+
+    float per_id = (len-mismatch)/float(len) * 100;
+
+    // cerr << "alignment test: " <<  per_id << endl;
+    
+    return(per_id);
+        
+}
+
+
+
+
 
 
 // e.g., given the string:
@@ -1480,6 +1548,12 @@ int main(int argc,char** argv)
                         
                         continue;
                     }
+
+                    // d: current iworm contig sequence
+                    // dd: matching iworm contig sequence
+                    // j: matching kmer starting position in d
+                    // start: matching kmer starting position in dd
+                    // k: kmer length
                     
                     if (IsShadow(d, dd, j, start, k) && coverage > 2*coverage_other) {
                         cerr << "Toasting shadow: " << dna.Name(c) << "\n";
@@ -1489,7 +1563,32 @@ int main(int argc,char** argv)
                         
                         continue;
                         
-                    } else if (min_glue_required > 0 && !IsGoodCoverage(coverage, coverage_other, min_iso_ratio)) {
+                    }
+                    else if ( ( encapsulates(d, dd, j, start)
+                                ||
+                                encapsulates(dd, d, start, j) )
+                              &&
+                              align_get_per_id(d, dd, j, start, k) > TOO_SIMILAR) {
+                        
+                        // toast the smaller one
+
+                        if (encapsulates(d, dd, j, start)) {
+                            #pragma omp critical
+                            toasted[c] = true;
+
+                            cerr << "toasting based on alignment: " << dna.Name(c) << endl;
+                        }
+                        else {
+                            
+                            #pragma omp critical
+                            toasted[i] = true;
+                            
+                            cerr << "toasting based on alignment: " << dna.Name(i) << endl;
+                        }
+
+                        continue;
+                    }
+                    else if (min_glue_required > 0 && !IsGoodCoverage(coverage, coverage_other, min_iso_ratio)) {
                         
                         if (DEBUG) {
                             cerr << "Rejecting fw merge between " << dna.Name(i)
@@ -1528,8 +1627,7 @@ int main(int argc,char** argv)
             // Process the RC matches now
             for (x=0; x<matchesRC.isize(); x++) {
                 int c = matchesRC[x].GetContig();
-                
-                
+                                
                 if (c == i) {
                     // ignore self matches
                     continue;
@@ -1600,7 +1698,32 @@ int main(int argc,char** argv)
                         
                         continue;
                         
-                    } else if (min_glue_required > 0 && !IsGoodCoverage(coverage, coverage_other, min_iso_ratio)) {
+                    }
+                    else if ( ( encapsulates(d, dd, j, start)
+                                ||
+                                encapsulates(dd, d, start, j) )
+                              &&
+                              align_get_per_id(d, dd, j, start, k) > TOO_SIMILAR) {
+                        
+                        // toast the smaller one
+
+                        if (encapsulates(d, dd, j, start)) {
+                            #pragma omp critical
+                            toasted[c] = true;
+
+                            cerr << "toasting based on alignment: " << dna.Name(c) << endl;
+                        }
+                        else {
+                            
+                            #pragma omp critical
+                            toasted[i] = true;
+                            
+                            cerr << "toasting based on alignment: " << dna.Name(i) << endl;
+                        }
+
+                        continue;
+                    }
+                    else if (min_glue_required > 0 && !IsGoodCoverage(coverage, coverage_other, min_iso_ratio)) {
                         
                         if (DEBUG) {
                             

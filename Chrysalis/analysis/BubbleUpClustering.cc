@@ -163,7 +163,7 @@ svec<Pool> grow_prioritized_clusters(string& weld_graph_file, map<int,Pool>& wel
                 // already in the same cluster. Must have been linked transitively
                 continue;
             }
-            else if (clustered_contigs[node_id_cluster_id].size() + clustered_contigs[linked_node_id_cluster_id].size() <= MAX_CLUSTER_SIZE) {
+            else if (clustered_contigs[node_id_cluster_id].size() + clustered_contigs[linked_node_id_cluster_id].size() + 2 <= MAX_CLUSTER_SIZE) {
                 // different clusters.
                 // merge clusters.
                 for (int i = 0; i < clustered_contigs[linked_node_id_cluster_id].size(); i++) {
@@ -185,14 +185,18 @@ svec<Pool> grow_prioritized_clusters(string& weld_graph_file, map<int,Pool>& wel
             // add the other
             if (id_to_cluster.find(node_id) != id_to_cluster.end()) {
                 unsigned int node_id_cluster_id = id_to_cluster[node_id];
-                clustered_contigs[node_id_cluster_id].add(linked_node_id);
-                id_to_cluster[linked_node_id] = node_id_cluster_id;
+                if (clustered_contigs[node_id_cluster_id].size() < MAX_CLUSTER_SIZE) {
+                    clustered_contigs[node_id_cluster_id].add(linked_node_id);
+                    id_to_cluster[linked_node_id] = node_id_cluster_id;
+                }
             }
             else {
                 // linked_node_id found in cluster.
                 unsigned int linked_node_id_cluster_id = id_to_cluster[linked_node_id];
-                clustered_contigs[linked_node_id_cluster_id].add(node_id);
-                id_to_cluster[node_id] = linked_node_id_cluster_id;
+                if (clustered_contigs[linked_node_id_cluster_id].size() < MAX_CLUSTER_SIZE) {
+                    clustered_contigs[linked_node_id_cluster_id].add(node_id);
+                    id_to_cluster[node_id] = linked_node_id_cluster_id;
+                }
             }
         }
         else {
@@ -221,246 +225,6 @@ svec<Pool> grow_prioritized_clusters(string& weld_graph_file, map<int,Pool>& wel
     
             
 }
-
-
-svec<Pool> bubble_up_cluster_growth(map<int,Pool>& pool) {
-    
-
-    /* 
-       Algorithm:
-       
-       A graph is provided as a list of 'node' -> (list of adjacent nodes)
-       
-       The list is sorted from smallest to largest sets of nodes.
-       
-       Starting from the smallest entry of {x}  -> { a, b, c}
-    
-       we start clustering nodes by 'bubbling' up from the smaller clusters to the larger hubs
-       by building containment lists and performing node substitutions with containment lists.
-
-       For example, we take 'a' and assign it a containment list [x] and then replace all incoming and outgoing
-       edges to x with connections to 'a'.  Now, 'a' represents both 'a' and 'x'.
-
-       We cycle through the lists until there is no more 'bubbling' that is possible.  The 'bubbles' end up representing
-       the final cluster memberships.  We put a cap on how big a bubble can grow in order to prevent overclustering.
-
-    */
-    
-    
-
-    vector<Pool> pool_vec;
-    for (map<int,Pool>::iterator it = pool.begin(); it != pool.end(); it++) {
-        pool_vec.push_back(it->second);
-    }
-    
-    sort (pool_vec.begin(), pool_vec.end(), sort_pool_sizes_ascendingly);
-    
-    if (DEBUG) {
-        cerr << "After sorting: " << "\n";
-        describe_poolings(pool_vec);
-    }
-
-    //TODO: nothing ignored ends up as a containment.
-
-    map<int,Pool> pool_idx_to_containment;
-    map<int,int>  pool_idx_to_vec_idx;
-    // init 
-    
-    cerr << "bubble_up_cluster_growth(): got " << pool_vec.size() << " pools." << endl;
-
-
-    // initializing containments
-    for (size_t i = 0; i < pool_vec.size(); i++) {
-        int pool_id = pool_vec[i].get_id();
-        Pool tmp(pool_id);
-        pool_idx_to_containment[pool_id] = tmp;
-        pool_idx_to_vec_idx[pool_id] = i;
-    }
-    
-    
-    cerr << "now bubbling: " << "\n" << "\n";
-    bool bubbling = true;
-    
-    int bubble_round = 0;
-    while (bubbling) {
-        bubble_round++;
-        bubbling = false;
-        
-        if (DEBUG) {
-            describe_bubblings(pool_vec, pool_idx_to_containment, bubble_round);
-            cerr << "bubbling up graph, round: " << bubble_round << "\n";
-        }
-        
-        
-        // iterate through pools from smaller to larger ones.
-        for (size_t i = 0; i < pool_vec.size(); i++) {
-                        
-            Pool& p = pool_vec[i];
-            int id = p.get_id();
-            
-            // cerr << "Bubble_round: " << bubble_round << ", processing pool(" << i << "), with id: " << id << " and size: " << p.size() << "\n";
-            
-            if (pool_idx_to_containment[id].size()) {
-                // remove any entries in the pool that are already stored in the containment list.
-                p.exclude(pool_idx_to_containment[id]);
-            }
-            
-            if (p.size() > 0) {
-                
-                // cerr << "Processing pool: " << p.get_id() << " with size: " << p.size() << "\n";
-                
-                // bubble upward
-                // get other id:
-                bool local_bubbled = false;
-                int other_id = -1;
-                
-                for (int j = 0; j < p.size(); j++) {
-                    
-
-                    // find another larger pool we can merge with
-
-                    other_id = p[j];
-                    if (other_id == id) {
-                        // shouldn't happen since id isn't stored in its own pool.
-                        cerr << "Error, other_id: " << other_id << " was stored in its own pool: " << id << endl;
-                        continue;
-                    } 
-                    
-                    if (pool_idx_to_containment[other_id].size() + pool_idx_to_containment[id].size() + 2 <= MAX_CLUSTER_SIZE) {  // + 2 since neither self is included in its containment list
-
-                        /////////////////////////////////////////////////////////////////////
-                        // begin bubbling of 'id's pool contents to 'other_id's pool contents.
-                        /////////////////////////////////////////////////////////////////////
-
-                        if (DEBUG) cerr << "bubbling at id: " << id << ", using " << other_id << " as proxy bubble" << endl;
-                        
-                        // move this id to the containment list of the 'other' 
-                        pool_idx_to_containment[other_id].add(id);
-                        
-                        // add this id's containment list to the 'other'
-                        pool_idx_to_containment[other_id].add(pool_idx_to_containment[id]);
-                        
-                        // remove 'other_id' from its own containment list.  (it's self-evident)
-                        pool_idx_to_containment[other_id].exclude(other_id);
-
-                        // remove 'id' from the other_id's pool
-                        pool_vec[ pool_idx_to_vec_idx[ other_id ] ].exclude( id ); 
-                        
-                        local_bubbled = true;
-                        break;
-                    }
-                }
-                if (local_bubbled) {
-
-                    ///////////////////////////////////////////////////////////////////////
-                    //  'other_id' is now a proxy for 'id' and all 'id's earlier contents.
-                    //   update links previously to (id) over to (other_id)
-                    ///////////////////////////////////////////////////////////////////////
-
-
-                    for (int j = 0; j < p.size(); j++) {
-                        
-                        int adjacent_id = p[j];
-                        Pool& adjacent_pool = pool_vec[ pool_idx_to_vec_idx[ adjacent_id ] ];
-                        
-
-                        if (adjacent_id != other_id && adjacent_id != id) {
-                            // p[j] should contain id, since id linked to p[j] and all should be reciprocal
-                                                        
-                            if (! adjacent_pool.contains( id )) {
-                                
-
-                                describe_bubblings(pool_vec, pool_idx_to_containment, -2);
-                                cerr << "Error, " << p[j] << " doesn't contain: " << id << " but vice-versa was true." << "\n";
-                                exit(4);
-                            }
-                            
-                            
-                            adjacent_pool.exclude( id );
-                            // replace it with a link to the other_id, if not already linked.
-                            if (! adjacent_pool.contains( other_id )) {
-                                adjacent_pool.add( other_id );
-                            }
-                            
-                            // links must be reciprocal
-                            int other_id_pool_vec_idx = pool_idx_to_vec_idx[ other_id ];
-                            Pool& other_id_pool = pool_vec[ other_id_pool_vec_idx ];
-                            if (! other_id_pool.contains( adjacent_id )) {
-                                other_id_pool.add( adjacent_id );
-                            } 
-                            
-                        }
-                    } // end of for j iteration through 'id' pool contents.
-                    
-                    
-                    // clear out this pool
-                    p.clear();
-                    
-                    // clear out the containment for this pool since fully covered by other_id's pool now.
-                    pool_idx_to_containment[id].clear();
-
-
-                    // if (DEBUG) describe_bubblings(pool_vec, pool_idx_to_containment, -1);
-                                        
-                    bubbling = true;
-                }
-            }
-            
-        }
-        
-    }
-    
-    cerr << "done bubbling.\n";
-
-
-    // Some entries might be linked but not contained, or exist as singletons.
-    map<int,bool> found_contained;
-    for (map<int,Pool>::iterator it = pool_idx_to_containment.begin(); it != pool_idx_to_containment.end(); it++) {
-        Pool& p = it->second;
-        if (p.size() > 0) {
-            found_contained[ p.get_id() ] = true; // include self since not in its own containment list.
-            for (int i = 0; i < p.size(); i++) {
-                int id = p.get(i);
-                found_contained[id] = true;
-            }
-        }
-    }
-
-    
-
-    
-    svec<Pool> bubbled_up_pools;
-    for (size_t i = 0; i < pool_vec.size(); i++) {
-                
-        Pool& p = pool_vec[i];
-        int id = p.get_id();
-        
-        map<int,Pool>::iterator it = pool_idx_to_containment.find(id);
-
-        if (it != pool_idx_to_containment.end() && (it->second).size() > 0 ) {
-            // Entry (id) has a containment list.
-
-            Pool containment_pool = it->second;
-            // add (id) and its containment list to the final pool
-            containment_pool.add(id);
-            bubbled_up_pools.push_back(containment_pool);
-        }
-        else if (found_contained.find(id) == found_contained.end()) { // not part of any containment list
-            
-            if (DEBUG) 
-                cerr << id << " is a loner, not contained." << "\n";
-        
-            Pool loner;
-            loner.add(id);
-            bubbled_up_pools.push_back(loner);
-        }
-    }
-
-        
-    return(bubbled_up_pools);
-
-}
-
     
 // Single-linkage clustering of iworm contigs in pools
 svec<Pool> sl_cluster_pools(map<int,Pool>& pool, map<int,bool>& ignore) {
@@ -832,8 +596,6 @@ int main(int argc,char** argv)
         clustered_pools.push_back(p);
     }
     else {
-        //populate_weld_reinforced_iworm_clusters(weld_graph_file, weld_reinforced_iworm_clusters);
-        //clustered_pools = bubble_up_cluster_growth(weld_reinforced_iworm_clusters);
 
         clustered_pools = grow_prioritized_clusters(weld_graph_file, weld_reinforced_iworm_clusters);
         

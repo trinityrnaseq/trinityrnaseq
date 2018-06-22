@@ -68,11 +68,14 @@ class Compact_graph_pruner:
 
     def _get_bubbles(self, tgraph, max_bubble_node_length):
 
+        logger.debug("Compact_graph_pruner::_get_bubbles()")
+        
         bubble_node_lists = list()
 
         node_found_in_bubble = dict()  # store T if in bubble
 
         for node in tgraph.get_all_nodes():
+
             
             if node in node_found_in_bubble:
                 # already identified as within a bubble as seeded by a different node.
@@ -108,13 +111,26 @@ class Compact_graph_pruner:
                 continue
 
             # got a simple bubble.  store it.
-            bubble_node_lists.append(selected_bubble_nodes)
+
             logger.debug("Found bubble: {} -- {} -- {}".format(child_node_A, selected_bubble_nodes, parent_node_B))
 
 
+            seen_bubble_node_already = False
+            for selected_bubble_node in selected_bubble_nodes:
+                if selected_bubble_node in node_found_in_bubble:
+                    seen_bubble_node_already = True
+
+            if seen_bubble_node_already:
+                # can happen if there's a larger bubble that contains a long sequence node as well as smaller bubble nodes.
+                continue
+            
             for selected_bubble_node in selected_bubble_nodes:
                 node_found_in_bubble[selected_bubble_node] = True
+                logger.debug("Compact_graph_pruner::_get_bubbles(): node {} identifed within a bubble".format(selected_bubble_node))
 
+            bubble_node_lists.append(selected_bubble_nodes)
+
+            
         return bubble_node_lists
 
 

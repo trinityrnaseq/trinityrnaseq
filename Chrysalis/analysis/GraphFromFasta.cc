@@ -24,7 +24,6 @@ static bool DEBUG = false;
 static float MAX_RATIO_INTERNALLY_REPETITIVE = 0.85;
 
 static bool REPORT_WELDS = false;
-static int MAX_CLUSTER_SIZE = 100;
 static int MIN_CONTIG_LENGTH = 24;
 
 static int TOO_SIMILAR = 97;
@@ -1124,7 +1123,6 @@ int main(int argc,char** argv)
     commandArg<bool> reportWeldsCmmd("-report_welds", "report the welding kmers", false);
     commandArg<bool> debugCmmd("-debug", "verbosely describes operations", false);
     commandArg<bool> noWeldsCmmd("-no_welds", "no clustering based on weld-reading", false);
-    commandArg<int>  maxClusterSizeCmmd("-max_cluster_size", "max size for an inchworm cluster", MAX_CLUSTER_SIZE);
     commandArg<int>  minContigLengthCmmd("-min_contig_length", "min sum cluster contig length", MIN_CONTIG_LENGTH);
     
     commandArg<bool> noGlueRequiredCmmd("-no_glue_required", "no glue required, only a kmer match required", false);
@@ -1144,7 +1142,6 @@ int main(int argc,char** argv)
     P.registerArg(glueFactorCmmd);
     P.registerArg(minGlueCmmd);
     P.registerArg(minIsoRatioCmmd);
-    P.registerArg(maxClusterSizeCmmd);
     
     P.registerArg(minKmerEntropyCmmd);
     P.registerArg(minWeldEntropyCmmd);
@@ -1193,7 +1190,6 @@ int main(int argc,char** argv)
     MIN_KMER_ENTROPY = P.GetDoubleValueFor(minKmerEntropyCmmd);
     MIN_WELD_ENTROPY = P.GetDoubleValueFor(minWeldEntropyCmmd);
     MAX_RATIO_INTERNALLY_REPETITIVE = P.GetDoubleValueFor(maxRatioInternalRepeatCmmd);
-    MAX_CLUSTER_SIZE = P.GetIntValueFor(maxClusterSizeCmmd);
     MIN_CONTIG_LENGTH = P.GetIntValueFor(minContigLengthCmmd);
     
     DEBUG = P.GetBoolValueFor(debugCmmd);

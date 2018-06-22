@@ -20,7 +20,7 @@
 
 
 static bool DEBUG = false;
-static int MAX_CLUSTER_SIZE = 100;
+static int MAX_CLUSTER_SIZE = 25;
 static int MIN_CONTIG_LENGTH = 24;
 
 

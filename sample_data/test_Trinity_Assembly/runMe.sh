@@ -14,6 +14,9 @@
 
 if [ $* ]; then
     # check full-length reconstruction stats:
+
+    ../../util/misc/illustrate_ref_comparison.pl __indiv_ex_sample_derived/refSeqs.fa trinity_out_dir/Trinity.fasta 90
+
     ./test_FL.sh --query trinity_out_dir/Trinity.fasta --target __indiv_ex_sample_derived/refSeqs.fa --no_reuse
 fi
 

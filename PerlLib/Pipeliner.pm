@@ -178,7 +178,7 @@ sub run {
                 if (-e $tmp_stderr) {
                     my $errmsg = `cat $tmp_stderr`;
                     if ($errmsg =~ /\w/) {
-                        print STDERR "\n\nError encountered::  <!----\n$errmsg\n--->\n\n";
+                        print STDERR "\n\nError encountered::  <!----\nCMD: $cmdstr\n\nErrmsg:\n$errmsg\n--->\n\n";
                     }
                     unlink($tmp_stderr);
                 }

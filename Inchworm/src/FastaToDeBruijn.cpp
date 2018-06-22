@@ -206,20 +206,9 @@ void createGraphPerRecord(vector<string> fasta_file_names, int kmer_length, bool
                 if (IRKE_COMMON::MONITOR > 2) 
                     cerr << "Adding sequence to graph: " << seq_region << endl;
 
-                g.add_sequence(seq_region);
+                g.add_sequence(seq_region, sStrand);
+
                 
-                if (! sStrand) {
-                    string revseq = revcomp(seq_region);
-                    
-                    if (IRKE_COMMON::MONITOR > 2) 
-                        cerr << "Adding sequence to graph: " << revseq << endl;
-
-
-                    g.add_sequence(revseq);
-                    
-                    
-
-                } 
             } // end sequence region
             
             if (args.isArgSet("--toString")) {
@@ -280,20 +269,9 @@ DeBruijnGraph constructDeBruijnGraph (vector<string> fasta_file_names, int kmer_
                 if (IRKE_COMMON::MONITOR > 2) 
                     cerr << "Adding sequence to graph: " << seq_region << endl;
 
-                g.add_sequence(seq_region);
+                g.add_sequence(seq_region, sStrand);
+
                 
-                if (! sStrand) {
-                    string revseq = revcomp(seq_region);
-                    
-                    if (IRKE_COMMON::MONITOR > 2) 
-                        cerr << "Adding sequence to graph: " << revseq << endl;
-
-
-                    g.add_sequence(revseq);
-                    
-                    
-
-                }
             }
         }
     }

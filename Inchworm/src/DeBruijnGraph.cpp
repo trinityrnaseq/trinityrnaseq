@@ -201,22 +201,60 @@ DeBruijnGraph::DeBruijnGraph(unsigned int kmer_length) {
 
 }
 
-void DeBruijnGraph::add_sequence(const string& sequence) {
+void DeBruijnGraph::add_sequence(const string& sequence, bool sStrand) {
 
     vector<kmer_int_type_t> kit_vec = sequence_string_to_kmer_int_type_vector(sequence, _kmer_length);
     
     for (int i = 0; i < (int) kit_vec.size(); i++) {
         kmer_int_type_t k = kit_vec[i];
+
+        kmer_int_type_t orig_sequence_k = k;
+        if (! sStrand) {
+            k = get_canonical_kmer_val(k, _kmer_length);
+        }
+        
         DeBruijnKmer& dk = get_kmer_node(k);
         if (i != 0) {
             // set prev kmer
             kmer_int_type_t pk = kit_vec[i-1];
-            dk.add_prev_kmer(pk, _kmer_length);
+
+            if (sStrand) {
+                // easy, use as is
+                dk.add_prev_kmer(pk, _kmer_length);
+            }
+            else {
+                // harder... see which orientation we're in.
+                if (k == orig_sequence_k) {
+                    // fine, in original orientation.
+                    dk.add_prev_kmer(pk, _kmer_length);
+                }
+                else {
+                    // must work in revcomp mode.
+                    pk = revcomp_val(pk, _kmer_length);
+                    dk.add_next_kmer(pk);
+                }
+            }
         }
         if (i != (int) kit_vec.size()-1) {
             // set next kmer
             kmer_int_type_t nk = kit_vec[i+1];
-            dk.add_next_kmer(nk);
+
+            if (sStrand) {
+                // easy, use as is
+                dk.add_next_kmer(nk);
+            }
+            else {
+                // harder.... see which orientation we're in.
+                if (k == orig_sequence_k) {
+                    // fine, in original orietation
+                    dk.add_next_kmer(nk);
+                }
+                else {
+                    // must work in revcomp model
+                    nk = revcomp_val(nk, _kmer_length);
+                    dk.add_prev_kmer(nk, _kmer_length);
+                }
+            }
         }
     }
 }
@@ -293,126 +331,11 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
 
     s << "Component " << component_id << endl;
     
-    vector<DeBruijnKmer> dk_vec;
-
-
-    map<long long,bool> selected;
-    if (! sStrand) {
-        // got DS mirror graph
-        //cerr << "Deconvoluting mirror graph." << endl;
-        dk_vec = deconvolute_DS_mirror_graph();
-        
-        for (vector<DeBruijnKmer>::iterator it = dk_vec.begin(); it != dk_vec.end(); it++) {
-            long long id = (*it).getID();
-            selected[id] = true;
-        }
-        
-    }
-    else {
-        for (DeBruijnKmerMap::iterator it = _kmer_map.begin();
-             it != _kmer_map.end();
-             it++) {
-            
-            DeBruijnKmer dk = it->second;
-            dk_vec.push_back(dk);
-        }
-    }
-    
-    // sort vector by id
-    
-    if (IRKE_COMMON::MONITOR >= 2) 
-        cerr << "Kmer map has size: " << _kmer_map.size() << ", and vector has size: " << dk_vec.size() << endl;
-    
-    
-    sort(dk_vec.begin(), dk_vec.end(), kmer_sorter);
-    
-
-
-    // create Chrysalis graph format
-    
-    for (int i = 0; i < (int) dk_vec.size(); i++) {
-        
-        DeBruijnKmer& dk = dk_vec[i];
-        long long node_id = dk.getID();
-        string kmer = decode_kmer_from_intval(dk.get_kmer_int_val(), _kmer_length);
-
-        if (IRKE_COMMON::MONITOR >= 3)
-            cerr << "Processing kmer: " << kmer << ", ID: " << node_id << endl;
-        
-        
-        vector<kmer_int_type_t> prev_kmers = dk.get_prev_kmers(_kmer_length);
-        
-        if ( ! prev_kmers.empty() ) {
-            for (int j = 0; j < (int) prev_kmers.size(); j++) {
-                kmer_int_type_t k = prev_kmers[j];
-                string prev_kmer = decode_kmer_from_intval(k, _kmer_length);
-                if (kmerExists(k)) {
-
-
-                    DeBruijnKmer& pdk = _kmer_map.find(k)->second;
-                    long long p_id = pdk.getID();
-                    
-                    if ( (! sStrand) && selected.find(p_id) == selected.end()) {
-                        
-                        // pdk wasn't selected as part of the mirror graph deconvolution.
-                        
-                        p_id = -1;
-                        
-                    }
-                    
-                    s << node_id << "\t" << p_id << "\t" << 1 << "\t" << kmer << "\t" << 1 << endl;
-                    
-                }
-                else {
-                    stringstream errstr;
-                    errstr << "Error, prev kmer: " << prev_kmer << " of kmer: " << dk.toString(_kmer_length) << " is not found in graph." << endl;
-                    cerr << errstr.str();
-                    throw(stacktrace() + errstr.str());
-                }
-            }
-        }
-        else {
-            // root kmer
-            s << node_id << "\t" << -1 << "\t" << 1 << "\t" << kmer << "\t" << 1 << endl;
-        }
-    }
-    
-    
-    
-    return(s.str());
-}
-
-vector<kmer_int_type_t> DeBruijnGraph::get_root_kmers() {
-
-    vector<kmer_int_type_t> kit_vec;
-
-    for (DeBruijnKmerMap::iterator it = _kmer_map.begin();
-         it != _kmer_map.end();
-         it++) {
-        
-        DeBruijnKmer& dk = it->second;
-        if (dk.get_prev_kmers(_kmer_length).size() == 0) {
-            kit_vec.push_back(it->first);
-        }
-        
-    }
-
-    return(kit_vec);
-}
-
-
-
-
-vector<DeBruijnKmer> DeBruijnGraph::deconvolute_DS_mirror_graph() {
-
-    // cout << "Deconvoluting DS mirror" << endl;
-    
+    //vector<DeBruijnKmer> dk_vec;
     map<kmer_int_type_t,bool> seen;
-    
 
-    vector<DeBruijnKmer> dk_vec;
-    
-    vector<kmer_int_type_t> root_kmers = get_root_kmers();
+
+    vector<kmer_int_type_t> root_kmers = get_root_kmers(sStrand);
     if (root_kmers.size() == 0) {
         // circular, initiate from the first kmer
         // cerr << "Missing root kmers, taking first kmer node instead." << endl;
@@ -420,99 +343,144 @@ vector<DeBruijnKmer> DeBruijnGraph::deconvolute_DS_mirror_graph() {
     }
 
 
-    queue<kmer_int_type_t> kmer_queue;
-
+    queue<kmer_int_type_t> kmer_queue; //kmers must be oriented to '+' here.
+    
     for (unsigned int r = 0; r < root_kmers.size(); r++) {
-
-        vector<kmer_int_type_t> collected_kmers;
-
-        kmer_int_type_t rk = root_kmers[r];
+            
+        kmer_int_type_t rk = root_kmers[r];  // should always be considered as the starting '+' orientation
         
         // cerr << "Got root node ID: " << rdk.getID() << endl;
         
-        kmer_queue.push(rk);
+        kmer_queue.push(rk); 
         
         while (! kmer_queue.empty()) {
 
-            kmer_int_type_t k = kmer_queue.front();
+            kmer_int_type_t k = kmer_queue.front();  // in the relevant orientation.
             kmer_queue.pop();
-            
+                        
             if (seen.find(k) != seen.end()) {
+                // already seen it.
                 continue;
             }
-            
-            DeBruijnKmer dk = _kmer_map.find(k)->second;
-            dk_vec.push_back(dk);
             seen[k] = true;
-            collected_kmers.push_back(k);
-            // cerr << "-adding: " << dk.getID() << endl;
+            if (! sStrand) {
+                seen[ revcomp_val(k, _kmer_length) ] = true;
+            }
             
-            kmer_int_type_t rev_k = revcomp_val(k, _kmer_length); // used below
+            string kmer_seq = decode_kmer_from_intval(k, _kmer_length);
+            
+            
+            // get the dk object:
+            // will depend on sStrand or not as to what the kmer represnetation is there.
+            kmer_int_type_t dk_stored_kmer_val = (sStrand) ? k : get_canonical_kmer_val(k, _kmer_length);
 
+            char dk_orient = (dk_stored_kmer_val == k) ? '+' : '-';
+            
+            DeBruijnKmer dk = _kmer_map.find(dk_stored_kmer_val)->second;
+            long long dk_id = dk.getID();
+
+            /////////////////////////////////////////////
             // populate overlapping kmers into the queue
-            vector<kmer_int_type_t> prev_kmers = dk.get_prev_kmers(_kmer_length);
-            for (int i = 0; i < (int) prev_kmers.size(); i++) {
-                kmer_int_type_t pk = prev_kmers[i];
-                if (seen.find(pk) == seen.end()) {
-                    
-                    // don't do it if both revcomp'd kmers have already been encountered.
-                    
-                    kmer_int_type_t rev_pk = revcomp_val(pk, _kmer_length);
 
-                    if (! (
-                           seen.find(rev_k) != seen.end()
-                           &&
-                           seen.find(rev_pk) != seen.end()
-                           )
-                        )
-                        {
-                        // cerr << "adding prev kmer: " << k << endl;
-                        
-                        kmer_queue.push(pk);
-                    }
+            /////////////////////////
+            // walk kmer to the left:
+            
+            vector<kmer_int_type_t> prev_kmers;
+            if (dk_orient == '+') {
+                prev_kmers = dk.get_prev_kmers(_kmer_length);
+            }
+            else {
+                // must get the next kmers, and revcomp them so they're in the correct orientation.
+                vector<kmer_int_type_t> tmp_prev_kmers = dk.get_next_kmers(_kmer_length);
+                for (int i=0; i < (int) tmp_prev_kmers.size(); i++) {
+                    prev_kmers.push_back(revcomp_val( tmp_prev_kmers[i], _kmer_length));
+                }
+            }
+
+
+            // kmer graph reporting.
+            if (prev_kmers.size() > 0) {
+                for (int i=0; i < (int) prev_kmers.size(); i++) {
+                    
+                    kmer_int_type_t pk_kmer = prev_kmers[i];
+                    kmer_int_type_t pk_stored_kmer = (sStrand) ? pk_kmer : get_canonical_kmer_val(pk_kmer, _kmer_length);
+                    DeBruijnKmer pkd = _kmer_map.find(pk_stored_kmer)->second; 
+                    long long pkd_id = pkd.getID();
+                    //string pk_kmer_seq = decode_kmer_from_intval(pk_kmer, _kmer_length);
+                    
+                    s << dk_id << "\t" << pkd_id << "\t" << 1 << "\t" << kmer_seq << "\t" << 1 << endl;
+                    
+                    kmer_queue.push(pk_kmer);
+                }
+            }
+            else {
+                // hit left end, no prev extension.
+                s << dk_id << "\t" << -1 << "\t" << 1 << "\t" << kmer_seq << "\t" << 1 << endl;
+            }
+
+
+            /////////////////////////
+            // walk kmer to the right:
+
+            // just add any next kmers to the queue.
+            
+            vector<kmer_int_type_t> next_kmers;
+            if (dk_orient == '+') {
+                next_kmers = dk.get_next_kmers(_kmer_length);
+            }
+            else {
+                // must get the prev kmers, and revcomp them so they're in the correct orientation.
+                vector<kmer_int_type_t> tmp_next_kmers = dk.get_prev_kmers(_kmer_length);
+                for (int i=0; i < (int) tmp_next_kmers.size(); i++) {
+                    next_kmers.push_back(revcomp_val( tmp_next_kmers[i], _kmer_length));
                 }
             }
             
-            // now check forward kmers
-            vector<kmer_int_type_t> next_kmers = dk.get_next_kmers(_kmer_length);
-            for (int i = 0; i < (int) next_kmers.size(); i++) {
-                kmer_int_type_t nk = next_kmers[i];
-                
-                kmer_int_type_t rev_nk = revcomp_val(nk, _kmer_length);
-                
-                if (seen.find(nk) == seen.end()) {
-
-                    // don't do it if both revcomp'd kmers have already been encountered.
-                    if (! (
-                           seen.find(rev_k) != seen.end()
-                           &&
-                           seen.find(rev_nk) != seen.end()
-                           )
-                        ) {
-                        
-                        // cerr << "adding next kmer: " << k << endl;
-                        kmer_queue.push(nk);
-                    }
+            if (next_kmers.size() > 0) {
+                for (int i=0; i < (int) next_kmers.size(); i++) {
+                    
+                    kmer_int_type_t nk_kmer = next_kmers[i];
+                    //kmer_int_type_t nk_stored_kmer = (sStrand) ? nk_kmer : get_canonical_kmer_val(nk_kmer, _kmer_length);
+                    //DeBruijnKmer nkd = _kmer_map.find(nk_stored_kmer)->second; 
+                    //long long nkd_id = nkd.getID();
+                    //string nk_kmer_seq = decode_kmer_from_intval(nk_kmer, _kmer_length);
+                    
+                    //s << nkd_id << "\t" << dk_id << "\t" << 1 << "\t" << nk_kmer_seq << "\t" << 1 << endl;
+                    
+                    kmer_queue.push(nk_kmer);
                 }
             }
-            
+                        
+        } // end of kmer queue
+
+    } // end of root kmer traversal
+
+    
+    return(s.str());
+}
+
+vector<kmer_int_type_t> DeBruijnGraph::get_root_kmers(bool sStrand) {
+
+    // start nodes
+    // or end nodes in the graph if not strand-specific
+    
+    vector<kmer_int_type_t> kit_vec;
+
+    for (DeBruijnKmerMap::iterator it = _kmer_map.begin();
+         it != _kmer_map.end();
+         it++) {
+        
+        DeBruijnKmer& dk = it->second;
+        if (dk.get_prev_kmers(_kmer_length).size() == 0
+            ||
+            ( (!sStrand) && dk.get_next_kmers(_kmer_length).size() == 0) // ds could go either way
+            ) {
+            kit_vec.push_back(it->first);
         }
         
-        // set revcomp of collected kmers to found
-        for (int i = 0; i < (int) collected_kmers.size(); i++) {
-            kmer_int_type_t k = collected_kmers[i];
-            k = revcomp_val(k, _kmer_length);
-            seen[k] = true;
-        }
-
-        
-
     }
-    
 
-    return(dk_vec);
-    
-
+    return(kit_vec);
 }
 
 

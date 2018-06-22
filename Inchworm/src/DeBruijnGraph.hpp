@@ -53,7 +53,7 @@ public:
 
     DeBruijnGraph(unsigned int kmer_length);
 
-    void add_sequence(const string& sequence);
+    void add_sequence(const string& sequence, bool sStrand);
     
     DeBruijnKmer& get_kmer_node(kmer_int_type_t t);    
     
@@ -61,7 +61,7 @@ public:
     
     string toChrysalisFormat(int component_id, bool sStrand);
     
-    vector<kmer_int_type_t> get_root_kmers();
+    vector<kmer_int_type_t> get_root_kmers(bool sStrand);
     
     bool kmerExists(kmer_int_type_t kval);
     
@@ -79,8 +79,6 @@ private:
     map<kmer_int_type_t,DeBruijnKmer> _kmer_map;
     
         
-    vector<DeBruijnKmer> deconvolute_DS_mirror_graph();
-    
     void recursively_construct_kmer_extensions(kmer_int_type_t seed_kmer_val, 
                                                vector<char>& kmer_extension_chars, 
                                                vector<string>& extension_kmer_strings, 

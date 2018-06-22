@@ -33,6 +33,7 @@ int base_to_int_value(char nucleotide); // (GATC) = {0 1 2 3}, others = -1
 kmer_int_type_t kmer_to_intval(string kmer); // must be less than 32 bases for 64-bit conversion
 string decode_kmer_from_intval (kmer_int_type_t intval, unsigned int kmer_length);
 kmer_int_type_t revcomp_val(kmer_int_type_t kmer, unsigned int kmer_length);
+kmer_int_type_t get_canonical_kmer_val(kmer_int_type_t kmer_val, unsigned int kmer_length);
 kmer_int_type_t get_DS_kmer_val(kmer_int_type_t kmer_val, unsigned int kmer_length);
 vector<kmer_int_type_t> sequence_string_to_kmer_int_type_vector(const string& sequence, int kmer_length);
 

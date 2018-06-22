@@ -194,6 +194,14 @@ kmer_int_type_t revcomp_val(kmer_int_type_t kmer, unsigned int kmer_length)
 	return rev_kmer;
 }
 
+kmer_int_type_t get_canonical_kmer_val(kmer_int_type_t kmer_val, unsigned int kmer_length) {
+    // same as DS kmer val
+    return(get_DS_kmer_val(kmer_val, kmer_length));
+}
+
+
+
+
 string remove_whitespace (string s) {
 
   string r = "";

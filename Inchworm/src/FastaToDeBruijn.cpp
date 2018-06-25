@@ -47,12 +47,15 @@ string usage (ArgProcessor) {
         << "**Required" << endl
         << "  --fasta  <str>      " << ":fasta file containing reads" << endl
         << "  -K  <int>           " << ":kmer length" << endl
+        << " and " << endl 
+        << "  -C <int>            " << ":component identifier" << endl
+        << " or " << endl
+        << "  --graph_per_record " << ": write separate graph for each fasta entry." << endl
         << endl
         << " **Optional" << endl
-        << "  -C <int>            " << ":component identifier" << endl
         << "  --SS                " << ":indicates strand-specific" << endl 
-        << "  --graph_per_record " << ": write separate graph for each fasta entry." << endl
         << "  --toString          " << ": dump graph as descriptive output" << endl
+        << "  --toDOT             " << ": dump graph in dot format " << endl
         << "  --monitor <int>     " << ": verbosity level" << endl
         << "  --threads <int>     " << ": number of threads to utilize. " << endl
         << endl;
@@ -179,23 +182,36 @@ void createGraphPerRecord(vector<string> fasta_file_names, int kmer_length, bool
             
             string accession = fe.get_accession();
             
+            
             // get component value
             vector<string> acc_pts;
             string_util::tokenize(accession, acc_pts, "_");
             int component_id = atoi(acc_pts[1].c_str());
+
+            // get iworm coverage values
+            string header = fe.get_header();
+            vector<string> iworm_cov_vals_str_vec;
+            string_util::tokenize(header, iworm_cov_vals_str_vec, " ");
+            iworm_cov_vals_str_vec.erase(iworm_cov_vals_str_vec.begin()); // remove acc value
             
             string sequence = fe.get_sequence();
             
-
             DeBruijnGraph g(kmer_length);
 
             vector<string> seq_regions;
             string_util::tokenize(sequence, seq_regions, "X"); // inchworm bundles concatenated with 'X' delimiters by Chrysalis 
-            
+
+            if (seq_regions.size() != iworm_cov_vals_str_vec.size()) {
+                cerr << "Error, number of seqs and number of cov vals don't match" << endl;
+                exit(1);
+            }
+                        
             for (size_t s = 0; s < seq_regions.size(); s++) { 
                 
                 string seq_region = seq_regions[s];
-
+                unsigned int cov_val = atoi(iworm_cov_vals_str_vec[s].c_str()); //FIXME: change to strtoul
+                
+                
                 if (seq_region.size() < kmer_length) { continue; }  // can be encountered in jaccard-clip mode (rarely)
                                 
                 if (contains_non_gatc(seq_region)) {
@@ -206,7 +222,7 @@ void createGraphPerRecord(vector<string> fasta_file_names, int kmer_length, bool
                 if (IRKE_COMMON::MONITOR > 2) 
                     cerr << "Adding sequence to graph: " << seq_region << endl;
 
-                g.add_sequence(seq_region, sStrand);
+                g.add_sequence(seq_region, sStrand, cov_val);
 
                 
             } // end sequence region
@@ -214,6 +230,10 @@ void createGraphPerRecord(vector<string> fasta_file_names, int kmer_length, bool
             if (args.isArgSet("--toString")) {
                 #pragma omp critical
                 cout << g.toString();
+            }
+            else if (args.isArgSet("--toDOT")) {
+                #pragma omp critical
+                cout << g.toDOT(sStrand);
             }
             else {
                 #pragma omp critical
@@ -253,6 +273,13 @@ DeBruijnGraph constructDeBruijnGraph (vector<string> fasta_file_names, int kmer_
             
             Fasta_entry fe = fasta_reader.getNext();
             string sequence = fe.get_sequence();
+
+            // get iworm coverage values
+            string header = fe.get_header();
+            vector<string> iworm_cov_vals_str_vec;
+            string_util::tokenize(header, iworm_cov_vals_str_vec, " ");
+            iworm_cov_vals_str_vec.erase(iworm_cov_vals_str_vec.begin()); // remove acc value
+
             
             vector<string> seq_regions;
             string_util::tokenize(sequence, seq_regions, "X"); // inchworm bundles concatenated with 'X' delimiters by Chrysalis 
@@ -260,6 +287,7 @@ DeBruijnGraph constructDeBruijnGraph (vector<string> fasta_file_names, int kmer_
             for (size_t s = 0; s < seq_regions.size(); s++) { 
                 
                 string seq_region = seq_regions[s];
+                unsigned int cov_val = atoi(iworm_cov_vals_str_vec[s].c_str()); //FIXME: change to strtoul
                 
                 if (contains_non_gatc(seq_region)) {
                     seq_region = replace_nonGATC_chars_with_A(seq_region);
@@ -269,7 +297,7 @@ DeBruijnGraph constructDeBruijnGraph (vector<string> fasta_file_names, int kmer_
                 if (IRKE_COMMON::MONITOR > 2) 
                     cerr << "Adding sequence to graph: " << seq_region << endl;
 
-                g.add_sequence(seq_region, sStrand);
+                g.add_sequence(seq_region, sStrand, cov_val);
 
                 
             }
@@ -280,6 +308,9 @@ DeBruijnGraph constructDeBruijnGraph (vector<string> fasta_file_names, int kmer_
 
     if (args.isArgSet("--toString")) {
         cout << g.toString();
+    }
+    else if (args.isArgSet("--toDOT")) {
+        cout << g.toDOT(sStrand);
     }
     else {
         cout << g.toChrysalisFormat(component_val, sStrand);

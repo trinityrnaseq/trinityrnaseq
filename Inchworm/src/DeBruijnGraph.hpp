@@ -24,11 +24,13 @@ public:
 
     string toString(int kmer_length);
     
+    unsigned int increment_kmer_count(unsigned int kmer_count);
     
     //private:
     
     long long id;
     kmer_int_type_t _kmer ;
+    unsigned int _kmer_count;
     
     char _prev; // bit array GATC indicating prev kmers
     char _next; // ditto for next kmers
@@ -53,12 +55,12 @@ public:
 
     DeBruijnGraph(unsigned int kmer_length);
 
-    void add_sequence(const string& sequence, bool sStrand);
+    void add_sequence(const string& sequence, bool sStrand, unsigned int cov_val);
     
     DeBruijnKmer& get_kmer_node(kmer_int_type_t t);    
     
     string toString();
-    
+    string toDOT(bool sStrand);    
     string toChrysalisFormat(int component_id, bool sStrand);
     
     vector<kmer_int_type_t> get_root_kmers(bool sStrand);

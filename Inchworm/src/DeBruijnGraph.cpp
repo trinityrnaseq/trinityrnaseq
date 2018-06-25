@@ -193,6 +193,21 @@ void DeBruijnKmer::add_next_kmer(kmer_int_type_t k) {
 
 }
 
+unsigned int DeBruijnKmer::increment_kmer_count(unsigned int kmer_count) {
+
+    _kmer_count += kmer_count;
+
+    return(_kmer_count);
+}
+
+
+
+
+//-------------------------------
+// DeBruijnGraph methods
+//-------------------------------
+
+
 
 DeBruijnGraph::DeBruijnGraph(unsigned int kmer_length) {
 
@@ -201,7 +216,7 @@ DeBruijnGraph::DeBruijnGraph(unsigned int kmer_length) {
 
 }
 
-void DeBruijnGraph::add_sequence(const string& sequence, bool sStrand) {
+void DeBruijnGraph::add_sequence(const string& sequence, bool sStrand, unsigned int cov_val) {
 
     vector<kmer_int_type_t> kit_vec = sequence_string_to_kmer_int_type_vector(sequence, _kmer_length);
     
@@ -214,6 +229,9 @@ void DeBruijnGraph::add_sequence(const string& sequence, bool sStrand) {
         }
         
         DeBruijnKmer& dk = get_kmer_node(k);
+
+        dk.increment_kmer_count(cov_val);
+        
         if (i != 0) {
             // set prev kmer
             kmer_int_type_t pk = kit_vec[i-1];
@@ -258,6 +276,7 @@ void DeBruijnGraph::add_sequence(const string& sequence, bool sStrand) {
         }
     }
 }
+
 
 
 DeBruijnKmer& DeBruijnGraph::get_kmer_node(kmer_int_type_t k) {
@@ -323,6 +342,124 @@ string DeBruijnGraph::toString() {
 }
 
 
+string DeBruijnGraph::toDOT(bool sStrand) {
+
+    stringstream ss;
+
+    string edge;
+    ss << "digraph G {" << endl;
+    edge = "->";
+    
+        
+    vector<DeBruijnKmer> dk_vec;
+
+    map<string,bool> seen_pair;
+    
+    for (DeBruijnKmerMap::iterator it = _kmer_map.begin();
+         it != _kmer_map.end();
+         it++) {
+
+        DeBruijnKmer dk = it->second;
+
+        vector<kmer_int_type_t> prev_kmers = dk.get_prev_kmers(_kmer_length);
+
+        for (int i=0; i < prev_kmers.size(); i++) {
+            kmer_int_type_t prev_kmer = prev_kmers[i];
+            char prev_kmer_orient = '+';
+            if (! sStrand) {
+                kmer_int_type_t prev_kmer_canonical = get_canonical_kmer_val(prev_kmer, _kmer_length);
+                if (prev_kmer_canonical != prev_kmer) {
+                    prev_kmer_orient = '-';
+                    prev_kmer = prev_kmer_canonical;
+                }
+            }
+            
+            
+            DeBruijnKmer prev_kmer_dk = _kmer_map.find(prev_kmer)->second;
+
+            // just store prev to current
+            stringstream node_pair_ss;
+            node_pair_ss << '"' << prev_kmer_dk.getID() << prev_kmer_orient << '"'
+                         <<  edge
+                         << '"' << dk.getID() << '+' << '"';
+            string node_pair_s = node_pair_ss.str();
+            if (seen_pair.find(node_pair_s) == seen_pair.end()) {
+                
+                ss << "    " << node_pair_s << endl;
+                seen_pair[node_pair_s] = true;
+            }
+
+            if (! sStrand) {
+                // draw the reciprocal edge
+                char opp_orient = (prev_kmer_orient == '+') ? '-' : '+';
+                stringstream node_pair_ss;
+                node_pair_ss << '"' << dk.getID() << '-' << '"'
+                             <<  edge
+                             << '"' << prev_kmer_dk.getID() << opp_orient << '"';
+                
+                string node_pair_s = node_pair_ss.str();
+                if (seen_pair.find(node_pair_s) == seen_pair.end()) {
+                    
+                    ss << "    " << node_pair_s << endl;
+                    seen_pair[node_pair_s] = true;
+                }
+            }
+
+        }
+        
+        // include the 'to' references as well.
+        vector<kmer_int_type_t> next_kmers = dk.get_next_kmers(_kmer_length);
+        
+        for (int i=0; i < next_kmers.size(); i++) {
+            kmer_int_type_t next_kmer = next_kmers[i];
+            char next_kmer_orient = '+';
+            if (! sStrand) {
+               kmer_int_type_t next_kmer_canonical = get_canonical_kmer_val(next_kmer, _kmer_length);
+               if (next_kmer_canonical != next_kmer) {
+                   next_kmer_orient = '-';
+                   next_kmer = next_kmer_canonical;
+               }
+            }
+            DeBruijnKmer next_kmer_dk = _kmer_map.find(next_kmer)->second;
+            
+            stringstream node_pair_ss;
+            node_pair_ss << '"' << dk.getID() << '+' << '"'
+                         << edge
+                         << '"' << next_kmer_dk.getID() << next_kmer_orient << '"';
+            
+            string node_pair_s = node_pair_ss.str();
+            if (seen_pair.find(node_pair_s) == seen_pair.end()) {
+                    
+                ss << "    " << node_pair_s << endl; 
+                seen_pair[node_pair_s] = true;
+            }
+
+            if (! sStrand) {
+                // reciprocal edge
+                char opp_orient = (next_kmer_orient == '+') ? '-' : '+';
+                stringstream node_pair_ss;
+                node_pair_ss << '"' << next_kmer_dk.getID() << opp_orient << '"'
+                             << edge
+                             << '"' << dk.getID() << '-' << '"';
+                string node_pair_s = node_pair_ss.str();
+                if (seen_pair.find(node_pair_s) == seen_pair.end()) {
+                    
+                    ss << "    " << node_pair_s << endl; 
+                    seen_pair[node_pair_s] = true;
+                }
+            }
+        }   
+        
+        
+    }
+    
+    ss << "}" << endl;
+    
+    return(ss.str());
+}
+
+
+
 
 
 string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
@@ -366,8 +503,12 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
             if (! sStrand) {
                 seen[ revcomp_val(k, _kmer_length) ] = true;
             }
+
+            if (k == revcomp_val(k, _kmer_length)) {
+                cerr << "WARNING:: palindromic kmer! " << decode_kmer_from_intval(k, _kmer_length) << endl;
+            }
             
-            string kmer_seq = decode_kmer_from_intval(k, _kmer_length);
+            string kmer_seq = decode_kmer_from_intval(k, _kmer_length); // should be in proper orientation already
             
             
             // get the dk object:

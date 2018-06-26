@@ -200,7 +200,11 @@ unsigned int DeBruijnKmer::increment_kmer_count(unsigned int kmer_count) {
     return(_kmer_count);
 }
 
+unsigned int DeBruijnKmer::get_kmer_count() {
 
+    return(_kmer_count);
+    
+}
 
 
 //-------------------------------
@@ -480,21 +484,33 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
     }
 
 
-    queue<kmer_int_type_t> kmer_queue; //kmers must be oriented to '+' here.
+    auto cmp = [](pair<kmer_int_type_t,unsigned int> a, pair<kmer_int_type_t,unsigned int> b) { return(a.second > b.second);};
+    
+    priority_queue<pair<kmer_int_type_t,unsigned int>,
+                   vector<pair<kmer_int_type_t, unsigned int>>,
+                   decltype(cmp)> kmer_queue(cmp); //kmers must be oriented to '+' here.
     
     for (unsigned int r = 0; r < root_kmers.size(); r++) {
             
         kmer_int_type_t rk = root_kmers[r];  // should always be considered as the starting '+' orientation
         
         // cerr << "Got root node ID: " << rdk.getID() << endl;
+
+        DeBruijnKmer dk = _kmer_map.find(rk)->second;
+
+        unsigned int dk_kmer_count = dk.get_kmer_count();
+
         
-        kmer_queue.push(rk); 
+        
+        kmer_queue.push(pair<kmer_int_type_t, unsigned int>(rk, dk_kmer_count)); 
         
         while (! kmer_queue.empty()) {
 
-            kmer_int_type_t k = kmer_queue.front();  // in the relevant orientation.
+
+            pair<kmer_int_type_t, unsigned int> pk = kmer_queue.top(); 
+            kmer_int_type_t k = pk.first;  // in the relevant orientation.
             kmer_queue.pop();
-                        
+            
             if (seen.find(k) != seen.end()) {
                 // already seen it.
                 continue;
@@ -547,11 +563,13 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
                     kmer_int_type_t pk_stored_kmer = (sStrand) ? pk_kmer : get_canonical_kmer_val(pk_kmer, _kmer_length);
                     DeBruijnKmer pkd = _kmer_map.find(pk_stored_kmer)->second; 
                     long long pkd_id = pkd.getID();
-                    //string pk_kmer_seq = decode_kmer_from_intval(pk_kmer, _kmer_length);
+                    unsigned int pk_kmer_count = pkd.get_kmer_count();
                     
                     s << dk_id << "\t" << pkd_id << "\t" << 1 << "\t" << kmer_seq << "\t" << 1 << endl;
+
+                    pair<kmer_int_type_t, unsigned int> pk_pair(pk_kmer, pk_kmer_count);
                     
-                    kmer_queue.push(pk_kmer);
+                    kmer_queue.push(pk_pair);
                 }
             }
             else {
@@ -581,21 +599,20 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
                 for (int i=0; i < (int) next_kmers.size(); i++) {
                     
                     kmer_int_type_t nk_kmer = next_kmers[i];
-                    //kmer_int_type_t nk_stored_kmer = (sStrand) ? nk_kmer : get_canonical_kmer_val(nk_kmer, _kmer_length);
-                    //DeBruijnKmer nkd = _kmer_map.find(nk_stored_kmer)->second; 
-                    //long long nkd_id = nkd.getID();
-                    //string nk_kmer_seq = decode_kmer_from_intval(nk_kmer, _kmer_length);
+                    kmer_int_type_t nk_stored_kmer = (sStrand) ? nk_kmer : get_canonical_kmer_val(nk_kmer, _kmer_length);
+                    DeBruijnKmer nkd = _kmer_map.find(nk_stored_kmer)->second; 
+                    unsigned int nk_count = nkd.get_kmer_count();
+
+                    pair<kmer_int_type_t, unsigned int> nk_pair(nk_kmer, nk_count);
                     
-                    //s << nkd_id << "\t" << dk_id << "\t" << 1 << "\t" << nk_kmer_seq << "\t" << 1 << endl;
-                    
-                    kmer_queue.push(nk_kmer);
+                    kmer_queue.push(nk_pair);
                 }
             }
                         
         } // end of kmer queue
 
     } // end of root kmer traversal
-
+    
     
     return(s.str());
 }

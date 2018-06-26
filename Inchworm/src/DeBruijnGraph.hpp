@@ -25,6 +25,7 @@ public:
     string toString(int kmer_length);
     
     unsigned int increment_kmer_count(unsigned int kmer_count);
+    unsigned int get_kmer_count();
     
     //private:
     

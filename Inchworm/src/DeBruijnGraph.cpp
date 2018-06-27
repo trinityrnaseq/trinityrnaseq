@@ -557,7 +557,7 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
     vector<kmer_int_type_t> collected_kmers;
     
 
-    auto cmp = [](pair<kmer_int_type_t,unsigned int> a, pair<kmer_int_type_t,unsigned int> b) { return(a.second > b.second);};
+    auto cmp = [](pair<kmer_int_type_t,unsigned int> a, pair<kmer_int_type_t,unsigned int> b) { return(a.second < b.second);};
     
     priority_queue<pair<kmer_int_type_t,unsigned int>,
                    vector<pair<kmer_int_type_t, unsigned int>>,
@@ -639,7 +639,11 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
                     long long pkd_id = pkd.getID();
                     unsigned int pk_kmer_count = pkd.get_kmer_count();
                     
-                    s << dk_id << "\t" << pkd_id << "\t" << 1 << "\t" << kmer_seq << "\t" << 1 << endl;
+                    s << dk_id << "\t" << pkd_id << "\t" << 1 << "\t" << kmer_seq << "\t" << 1;
+
+                    s << "\tkcov:" << dk.get_kmer_count() << "\tprevKcov:" << pk_kmer_count << "\t" << dk.get_annotations_string();
+                    
+                    s << endl;
 
                     pair<kmer_int_type_t, unsigned int> pk_pair(pk_kmer, pk_kmer_count);
                     

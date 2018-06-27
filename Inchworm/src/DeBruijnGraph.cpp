@@ -650,7 +650,8 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
                     
                     s << dk_id << "\t" << pkd_id << "\t" << 1 << "\t" << kmer_seq << "\t" << 1;
 
-                    s << "\tkcov:" << dk.get_kmer_count() << "\tprevKcov:" << pk_kmer_count << "\t" << dk.get_annotations_string();
+                    // for debugging:
+                    // s << "\tkcov:" << dk.get_kmer_count() << "\tprevKcov:" << pk_kmer_count << "\t" << dk.get_annotations_string();
                     
                     s << endl;
 

@@ -30,6 +30,8 @@ DeBruijnKmer::DeBruijnKmer(kmer_int_type_t k, long long kmer_id) {
     
     id = kmer_id;
     
+    _kmer_count = 0;
+    
 }
 
 
@@ -414,12 +416,21 @@ string DeBruijnGraph::toDOT(bool sStrand) {
          it++) {
 
         DeBruijnKmer dk = it->second;
-        
+
         stringstream label;
-        label << "    " << '"' << dk.getID() << '"'
+        label << "    " << '"' << dk.getID() << '+'<< '"'
               << " [label=" << '"' << dk.getID() << ",cov=" << dk.get_kmer_count() << "," << dk.get_annotations_string() << '"' << ']';
         
+        if (! sStrand) {
+            
+            label << "    " << '"' << dk.getID() << '-'<< '"'
+                  << " [label=" << '"' << dk.getID() << ",cov=" << dk.get_kmer_count() << "," << dk.get_annotations_string() << '"' << ']';
+        }
+        
         ss << label.str() << endl;
+        
+
+
         
         
         vector<kmer_int_type_t> prev_kmers = dk.get_prev_kmers(_kmer_length);
@@ -449,7 +460,9 @@ string DeBruijnGraph::toDOT(bool sStrand) {
                 ss << "    " << node_pair_s << endl;
                 seen_pair[node_pair_s] = true;
             }
-
+            
+            
+            
             if (! sStrand) {
                 // draw the reciprocal edge
                 char opp_orient = (prev_kmer_orient == '+') ? '-' : '+';

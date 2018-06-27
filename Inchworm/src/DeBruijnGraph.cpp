@@ -623,6 +623,7 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
                     kmer_int_type_t kmer = collected_kmers[i];
                     seen[ revcomp_val(k, _kmer_length) ] = true;
                 }
+                collected_kmers.clear();
             }
                         
         } // end of kmer queue

@@ -484,6 +484,9 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
     }
 
 
+    vector<kmer_int_type_t> collected_kmers;
+    
+
     auto cmp = [](pair<kmer_int_type_t,unsigned int> a, pair<kmer_int_type_t,unsigned int> b) { return(a.second > b.second);};
     
     priority_queue<pair<kmer_int_type_t,unsigned int>,
@@ -499,8 +502,6 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
         DeBruijnKmer dk = _kmer_map.find(rk)->second;
 
         unsigned int dk_kmer_count = dk.get_kmer_count();
-
-        
         
         kmer_queue.push(pair<kmer_int_type_t, unsigned int>(rk, dk_kmer_count)); 
         
@@ -516,10 +517,11 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
                 continue;
             }
             seen[k] = true;
-            if (! sStrand) {
-                seen[ revcomp_val(k, _kmer_length) ] = true;
-            }
 
+            if (! sStrand) {
+                collected_kmers.push_back(k);
+            }
+                        
             if (k == revcomp_val(k, _kmer_length)) {
                 cerr << "WARNING:: palindromic kmer! " << decode_kmer_from_intval(k, _kmer_length) << endl;
             }
@@ -541,6 +543,8 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
 
             /////////////////////////
             // walk kmer to the left:
+
+            bool reached_terminal_extension = false;
             
             vector<kmer_int_type_t> prev_kmers;
             if (dk_orient == '+') {
@@ -575,6 +579,8 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
             else {
                 // hit left end, no prev extension.
                 s << dk_id << "\t" << -1 << "\t" << 1 << "\t" << kmer_seq << "\t" << 1 << endl;
+
+                reached_terminal_extension = true;
             }
 
 
@@ -606,6 +612,16 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
                     pair<kmer_int_type_t, unsigned int> nk_pair(nk_kmer, nk_count);
                     
                     kmer_queue.push(nk_pair);
+                }
+            }
+            else {
+                reached_terminal_extension = true;
+            }
+
+            if ( (! sStrand) && reached_terminal_extension) {
+                for (int i = 0; i < collected_kmers.size(); i++) {
+                    kmer_int_type_t kmer = collected_kmers[i];
+                    seen[ revcomp_val(k, _kmer_length) ] = true;
                 }
             }
                         

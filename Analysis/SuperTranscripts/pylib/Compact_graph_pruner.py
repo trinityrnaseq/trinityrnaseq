@@ -24,6 +24,7 @@ class Compact_graph_pruner:
 
 
     def remove_burrs(self, tgraph, max_burr_length):
+
         nodes = tgraph.get_all_nodes()
 
                 

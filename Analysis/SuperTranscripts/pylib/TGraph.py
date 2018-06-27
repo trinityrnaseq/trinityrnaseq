@@ -63,7 +63,7 @@ class TGraph:
 
 
     def get_all_nodes(self):
-        return self.node_cache.values()
+        return list(self.node_cache.values())
     
     def clear_node_cache(self):
         """

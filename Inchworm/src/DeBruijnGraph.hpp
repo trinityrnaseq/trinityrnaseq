@@ -26,7 +26,7 @@ public:
     string toString(int kmer_length);
     
     unsigned int increment_kmer_count(unsigned int kmer_count);
-    unsigned int get_kmer_count();
+    unsigned int get_kmer_count() const;
 
     void add_kmer_annotation(string annotation);
     vector<string> get_kmer_annotations();
@@ -68,7 +68,7 @@ public:
     string toDOT(bool sStrand);    
     string toChrysalisFormat(int component_id, bool sStrand);
     
-    vector<kmer_int_type_t> get_root_kmers(bool sStrand);
+    vector<DeBruijnKmer> get_root_kmers(bool sStrand);
     
     bool kmerExists(kmer_int_type_t kval);
     

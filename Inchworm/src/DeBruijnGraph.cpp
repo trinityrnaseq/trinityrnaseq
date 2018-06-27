@@ -13,11 +13,18 @@ const char DeBruijnKmer::_A_mask = 4;
 const char DeBruijnKmer::_T_mask = 2;
 const char DeBruijnKmer::_C_mask = 1;
 
-struct DeBruijnKmerSorter {
+struct DeBruijnKmerSorterByID {
     bool operator() (const DeBruijnKmer& a, const DeBruijnKmer& b) {
         return (a.getID() < b.getID());
     }
-} kmer_sorter;
+} kmer_sorter_by_id;
+
+
+struct DeBruijnKmerSorterByCountDesc {
+    bool operator() (const DeBruijnKmer& a, const DeBruijnKmer& b) {
+        return (a.get_kmer_count() > b.get_kmer_count());
+    }
+} kmer_sorter_by_count_desc;
 
 
 
@@ -230,7 +237,7 @@ unsigned int DeBruijnKmer::increment_kmer_count(unsigned int kmer_count) {
     return(_kmer_count);
 }
 
-unsigned int DeBruijnKmer::get_kmer_count() {
+unsigned int DeBruijnKmer::get_kmer_count() const {
 
     return(_kmer_count);
     
@@ -375,7 +382,7 @@ string DeBruijnGraph::toString() {
     if (IRKE_COMMON::MONITOR >= 2) 
         cerr << "Kmer map has size: " << _kmer_map.size() << ", and vector has size: " << dk_vec.size() << endl;
     
-    sort(dk_vec.begin(), dk_vec.end(), kmer_sorter);
+    sort(dk_vec.begin(), dk_vec.end(), kmer_sorter_by_id);
 
     for (int i = 0; i < (int) dk_vec.size(); i++) {
         
@@ -546,14 +553,16 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
     map<kmer_int_type_t,bool> seen;
 
 
-    vector<kmer_int_type_t> root_kmers = get_root_kmers(sStrand);
+    vector<DeBruijnKmer> root_kmers = get_root_kmers(sStrand);
     if (root_kmers.size() == 0) {
         // circular, initiate from the first kmer
         // cerr << "Missing root kmers, taking first kmer node instead." << endl;
-        root_kmers.push_back(_kmer_map.begin()->first);
+        root_kmers.push_back(_kmer_map.begin()->second);
     }
-
-
+    
+    
+    sort(root_kmers.begin(), root_kmers.end(), kmer_sorter_by_count_desc);
+    
     vector<kmer_int_type_t> collected_kmers;
     
 
@@ -564,13 +573,13 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
                    decltype(cmp)> kmer_queue(cmp); //kmers must be oriented to '+' here.
     
     for (unsigned int r = 0; r < root_kmers.size(); r++) {
-            
-        kmer_int_type_t rk = root_kmers[r];  // should always be considered as the starting '+' orientation
-        
+                
         // cerr << "Got root node ID: " << rdk.getID() << endl;
 
-        DeBruijnKmer dk = _kmer_map.find(rk)->second;
+        DeBruijnKmer dk = root_kmers[r]; //_kmer_map.find(rk)->second;
 
+        kmer_int_type_t rk = dk.get_kmer_int_val();  // should always be considered as the starting '+' orientation
+        
         unsigned int dk_kmer_count = dk.get_kmer_count();
         
         kmer_queue.push(pair<kmer_int_type_t, unsigned int>(rk, dk_kmer_count)); 
@@ -712,12 +721,12 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
     return(s.str());
 }
 
-vector<kmer_int_type_t> DeBruijnGraph::get_root_kmers(bool sStrand) {
+vector<DeBruijnKmer> DeBruijnGraph::get_root_kmers(bool sStrand) {
 
     // start nodes
     // or end nodes in the graph if not strand-specific
     
-    vector<kmer_int_type_t> kit_vec;
+    vector<DeBruijnKmer> root_dbk_vec;
 
     for (DeBruijnKmerMap::iterator it = _kmer_map.begin();
          it != _kmer_map.end();
@@ -728,12 +737,12 @@ vector<kmer_int_type_t> DeBruijnGraph::get_root_kmers(bool sStrand) {
             ||
             ( (!sStrand) && dk.get_next_kmers(_kmer_length).size() == 0) // ds could go either way
             ) {
-            kit_vec.push_back(it->first);
+            root_dbk_vec.push_back(it->second);
         }
         
     }
-
-    return(kit_vec);
+    
+    return(root_dbk_vec);
 }
 
 

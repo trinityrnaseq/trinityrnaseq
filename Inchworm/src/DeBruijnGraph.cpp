@@ -32,6 +32,9 @@ DeBruijnKmer::DeBruijnKmer(kmer_int_type_t k, long long kmer_id) {
     
 }
 
+
+
+/*   use default copy constructor
 DeBruijnKmer::DeBruijnKmer(const DeBruijnKmer& dk) { 
     
     _kmer = dk._kmer;
@@ -39,15 +42,40 @@ DeBruijnKmer::DeBruijnKmer(const DeBruijnKmer& dk) {
     _next = dk._next;
     
     id = dk.id;
+
+    _annotations = dk._annotations;
+   
+        
+}
+*/
+
+
+string DeBruijnKmer::get_annotations_string() {
+
+    stringstream kmer_annots;
+
+    for (int i=0; i < _annotations.size(); i++) {
+
+        kmer_annots << _annotations[i] << "&";
+    }
     
+    return(kmer_annots.str());
 }
 
 
+
 string DeBruijnKmer::toString(int kmer_length) {
-    
+
+        
     stringstream text;
 
-    text << "[" << getID() << "\t" << (int) _prev << "\t" << decode_kmer_from_intval(_kmer, kmer_length) << "\t" << (int) _next << "]";
+    text << "["
+         << getID()
+         << "\tprev:" << (int) _prev
+         << "\t" << decode_kmer_from_intval(_kmer, kmer_length)
+         << "\tnext:" << (int) _next
+         << "\tannots:" << get_annotations_string()
+         << "]";
     
     return(text.str());
 }
@@ -206,6 +234,17 @@ unsigned int DeBruijnKmer::get_kmer_count() {
     
 }
 
+void DeBruijnKmer::add_kmer_annotation(string annotation) {
+    //cerr << "adding kmer annotation: " << annotation << endl;
+
+    #pragma omp critical
+    _annotations.push_back(annotation);
+}
+
+vector<string> DeBruijnKmer::get_kmer_annotations() {
+    return(_annotations);
+}
+
 
 //-------------------------------
 // DeBruijnGraph methods
@@ -220,7 +259,7 @@ DeBruijnGraph::DeBruijnGraph(unsigned int kmer_length) {
 
 }
 
-void DeBruijnGraph::add_sequence(const string& sequence, bool sStrand, unsigned int cov_val) {
+void DeBruijnGraph::add_sequence(const string& accession, const string& sequence, bool sStrand, unsigned int cov_val) {
 
     vector<kmer_int_type_t> kit_vec = sequence_string_to_kmer_int_type_vector(sequence, _kmer_length);
     
@@ -228,13 +267,20 @@ void DeBruijnGraph::add_sequence(const string& sequence, bool sStrand, unsigned 
         kmer_int_type_t k = kit_vec[i];
 
         kmer_int_type_t orig_sequence_k = k;
+        string kmer_orient = "+";
+
         if (! sStrand) {
-            k = get_canonical_kmer_val(k, _kmer_length);
+            kmer_int_type_t canonical_k = get_canonical_kmer_val(k, _kmer_length);
+
+            if (k != canonical_k) { kmer_orient = "-"; }
+
+            k = canonical_k;
         }
         
         DeBruijnKmer& dk = get_kmer_node(k);
 
         dk.increment_kmer_count(cov_val);
+        dk.add_kmer_annotation(accession + kmer_orient);
         
         if (i != 0) {
             // set prev kmer
@@ -334,12 +380,16 @@ string DeBruijnGraph::toString() {
         DeBruijnKmer& dk = dk_vec[i];
 
         kmer_int_type_t k = dk.get_kmer_int_val();
-        
+
+        s << dk.toString(_kmer_length) << endl;
+
+        /*
         string kmer = decode_kmer_from_intval(k, _kmer_length);
         s << "node:" << dk.getID() << "\t" 
           << (int) dk._prev << "\t" 
           << kmer << "\t" 
           << (int) dk._next << endl;
+        */
     }
     
     return(s.str());
@@ -364,7 +414,14 @@ string DeBruijnGraph::toDOT(bool sStrand) {
          it++) {
 
         DeBruijnKmer dk = it->second;
-
+        
+        stringstream label;
+        label << "    " << '"' << dk.getID() << '"'
+              << " [label=" << '"' << dk.getID() << ",cov=" << dk.get_kmer_count() << "," << dk.get_annotations_string() << '"' << ']';
+        
+        ss << label.str() << endl;
+        
+        
         vector<kmer_int_type_t> prev_kmers = dk.get_prev_kmers(_kmer_length);
 
         for (int i=0; i < prev_kmers.size(); i++) {
@@ -581,6 +638,8 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
                 s << dk_id << "\t" << -1 << "\t" << 1 << "\t" << kmer_seq << "\t" << 1 << endl;
 
                 reached_terminal_extension = true;
+
+                // s << "** Reached terminal extension" << endl;
             }
 
 
@@ -616,14 +675,16 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
             }
             else {
                 reached_terminal_extension = true;
+                // s << "** Reached terminal extension" << endl;
             }
 
             if ( (! sStrand) && reached_terminal_extension) {
                 for (int i = 0; i < collected_kmers.size(); i++) {
                     kmer_int_type_t kmer = collected_kmers[i];
-                    seen[ revcomp_val(k, _kmer_length) ] = true;
+                    seen[ revcomp_val(kmer, _kmer_length) ] = true;
                 }
                 collected_kmers.clear();
+                // s << " !! clearing collected kmers " << endl;
             }
                         
         } // end of kmer queue

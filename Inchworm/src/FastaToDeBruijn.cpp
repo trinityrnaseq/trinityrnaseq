@@ -222,8 +222,12 @@ void createGraphPerRecord(vector<string> fasta_file_names, int kmer_length, bool
                 if (IRKE_COMMON::MONITOR > 2) 
                     cerr << "Adding sequence to graph: " << seq_region << endl;
 
-                g.add_sequence(seq_region, sStrand, cov_val);
 
+                stringstream s_acc_val;
+                s_acc_val << accession << "^" << s;
+                
+                g.add_sequence(s_acc_val.str(), seq_region, sStrand, cov_val);
+                
                 
             } // end sequence region
             
@@ -266,14 +270,13 @@ DeBruijnGraph constructDeBruijnGraph (vector<string> fasta_file_names, int kmer_
             cerr << "Parsing file: " << fasta_filename << endl;
         
         Fasta_reader fasta_reader(fasta_filename);
-        
-        
-        
+                
         while (fasta_reader.hasNext()) {
             
             Fasta_entry fe = fasta_reader.getNext();
             string sequence = fe.get_sequence();
-
+            string accession = fe.get_accession();
+            
             // get iworm coverage values
             string header = fe.get_header();
             vector<string> iworm_cov_vals_str_vec;
@@ -297,7 +300,11 @@ DeBruijnGraph constructDeBruijnGraph (vector<string> fasta_file_names, int kmer_
                 if (IRKE_COMMON::MONITOR > 2) 
                     cerr << "Adding sequence to graph: " << seq_region << endl;
 
-                g.add_sequence(seq_region, sStrand, cov_val);
+                stringstream s_acc_val;
+                s_acc_val << accession << "^" << s;
+
+                
+                g.add_sequence(s_acc_val.str(), seq_region, sStrand, cov_val);
 
                 
             }

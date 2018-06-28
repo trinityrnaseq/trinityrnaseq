@@ -84,7 +84,7 @@ my $PE_path_reinforcement_distance = 25;
 my $SE_path_reinforcement_distance = 25;
 
 my $bfly_opts = "";
-my $bflyHeapSpaceMax = "4G";
+my $bflyHeapSpaceMax = "10G";
 my $bflyHeapSpaceInit = "1G";
 
 my $BFLY_JAR = "";

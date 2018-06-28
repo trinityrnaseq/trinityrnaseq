@@ -23,11 +23,14 @@ main: {
 	while (my $seq_obj = $fasta_reader->next()) {
 
 		my $acc = $seq_obj->get_accession();
-		my $seq = $seq_obj->get_sequence();
+		my $header = $seq_obj->get_header();
+        my $seq = $seq_obj->get_sequence();
 
 		my @parts = split(/;/, $acc);
 		my $kmer_cov = pop @parts;
 
+        my ($header_begin, $rest_header) = split(/\s+/, $header, 2);
+                
 		if (my $clips_aref = $trans_acc_to_clips{$acc}) {
 			
 			##
@@ -36,21 +39,21 @@ main: {
 				my $clip = shift @$clips_aref;
 				my $length = $clip - $start + 1;
 				my $subseq = substr($seq, $start-1, $length);
-				print ">$acc.$start-$clip;$kmer_cov\n$subseq\n";
+				print ">$acc.$start-$clip;$kmer_cov $rest_header\n$subseq\n";
 				$start = $clip + 1;
 			}
 			if ($start < length($seq) + 25) {
                 # require subseq to be at least 25 bases long (one kmer length)
                 my $subseq = substr($seq, $start-1, length($seq)-$start + 1);
-                print ">$acc.$start-" . length($seq) . ";$kmer_cov\n$subseq\n"; # coverage value needs to be the last piece of the accession for use by PASA
+                print ">$acc.$start-" . length($seq) . ";$kmer_cov $rest_header\n$subseq\n"; # coverage value needs to be the last piece of the accession for use by PASA
 			}
 		}
 		else {
             # no clippint
-			print ">$acc\n$seq\n";
+			print ">$header\n$seq\n";
 		}
 	}
-
+    
 
 	exit(0);
 

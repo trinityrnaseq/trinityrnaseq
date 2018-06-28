@@ -549,9 +549,10 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
 
     s << "Component " << component_id << endl;
     
-    //vector<DeBruijnKmer> dk_vec;
+    
     map<kmer_int_type_t,bool> seen;
-
+    map<kmer_int_type_t,bool> reported;
+    
 
     vector<DeBruijnKmer> root_kmers = get_root_kmers(sStrand);
     if (root_kmers.size() == 0) {
@@ -560,6 +561,7 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
         root_kmers.push_back(_kmer_map.begin()->second);
     }
     
+    long long total_kmer_count = _kmer_map.size();
     
     sort(root_kmers.begin(), root_kmers.end(), kmer_sorter_by_count_desc);
     
@@ -586,27 +588,11 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
         
         while (! kmer_queue.empty()) {
 
-
             pair<kmer_int_type_t, unsigned int> pk = kmer_queue.top(); 
             kmer_int_type_t k = pk.first;  // in the relevant orientation.
             kmer_queue.pop();
-            
-            if (seen.find(k) != seen.end()) {
-                // already seen it.
-                continue;
-            }
-            seen[k] = true;
 
-            if (! sStrand) {
-                collected_kmers.push_back(k);
-            }
-                        
-            if (k == revcomp_val(k, _kmer_length)) {
-                cerr << "WARNING:: palindromic kmer! " << decode_kmer_from_intval(k, _kmer_length) << endl;
-            }
-            
             string kmer_seq = decode_kmer_from_intval(k, _kmer_length); // should be in proper orientation already
-            
             
             // get the dk object:
             // will depend on sStrand or not as to what the kmer represnetation is there.
@@ -616,7 +602,31 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
             
             DeBruijnKmer dk = _kmer_map.find(dk_stored_kmer_val)->second;
             long long dk_id = dk.getID();
+            if (dk_orient == '-') {
+                dk_id += total_kmer_count;
+            }
+                        
+            if (seen.find(k) != seen.end()) {
+                // already seen it.
 
+                if ( (! sStrand) && (! reported[k]) ) {
+                    s << dk_id << "\t" << -1 << "\t" << 1 << "\t" << kmer_seq << "\t" << 1 << endl;
+                    reported[k] = true;
+                }
+                continue;
+            }
+            seen[k] = true;
+
+            kmer_int_type_t k_rc = revcomp_val(k, _kmer_length);
+            
+            if (! sStrand) {
+                collected_kmers.push_back(k);
+            }
+            
+            if (k == k_rc) {
+                cerr << "WARNING:: palindromic kmer! " << decode_kmer_from_intval(k, _kmer_length) << endl;
+            }
+                        
             /////////////////////////////////////////////
             // populate overlapping kmers into the queue
 
@@ -644,8 +654,14 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
                     
                     kmer_int_type_t pk_kmer = prev_kmers[i];
                     kmer_int_type_t pk_stored_kmer = (sStrand) ? pk_kmer : get_canonical_kmer_val(pk_kmer, _kmer_length);
+                    char pk_orient = (pk_kmer == pk_stored_kmer) ? '+' : '-';
+                    
                     DeBruijnKmer pkd = _kmer_map.find(pk_stored_kmer)->second; 
                     long long pkd_id = pkd.getID();
+                    if (pk_orient == '-') {
+                        pkd_id += total_kmer_count;
+                    }
+                    
                     unsigned int pk_kmer_count = pkd.get_kmer_count();
                     
                     s << dk_id << "\t" << pkd_id << "\t" << 1 << "\t" << kmer_seq << "\t" << 1;
@@ -665,11 +681,11 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
                 s << dk_id << "\t" << -1 << "\t" << 1 << "\t" << kmer_seq << "\t" << 1 << endl;
 
                 reached_terminal_extension = true;
-
                 // s << "** Reached terminal extension" << endl;
             }
-
-
+            reported[k] = true;
+            
+            
             /////////////////////////
             // walk kmer to the right:
 

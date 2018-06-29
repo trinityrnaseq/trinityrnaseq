@@ -388,7 +388,7 @@ string DeBruijnGraph::toString() {
         
         DeBruijnKmer& dk = dk_vec[i];
 
-        kmer_int_type_t k = dk.get_kmer_int_val();
+        // kmer_int_type_t k = dk.get_kmer_int_val();
 
         s << dk.toString(_kmer_length) << endl;
 
@@ -540,16 +540,19 @@ string DeBruijnGraph::toDOT(bool sStrand) {
 }
 
 
-
-
+template<typename T>
+struct kmer_count_comparer {
+    bool operator()(const pair<T, unsigned int>& a, const pair<T, unsigned int>& b) {
+        return(a.second < b.second);
+    }
+};
 
 string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
 
     stringstream s;
 
     s << "Component " << component_id << endl;
-    
-    
+        
     map<kmer_int_type_t,bool> seen;
     map<kmer_int_type_t,bool> reported;
     
@@ -567,12 +570,9 @@ string DeBruijnGraph::toChrysalisFormat(int component_id, bool sStrand) {
     
     vector<kmer_int_type_t> collected_kmers;
     
-
-    auto cmp = [](pair<kmer_int_type_t,unsigned int> a, pair<kmer_int_type_t,unsigned int> b) { return(a.second < b.second);};
-    
     priority_queue<pair<kmer_int_type_t,unsigned int>,
-                   vector<pair<kmer_int_type_t, unsigned int>>,
-                   decltype(cmp)> kmer_queue(cmp); //kmers must be oriented to '+' here.
+                   vector<pair<kmer_int_type_t, unsigned int> >,
+                   kmer_count_comparer<kmer_int_type_t> > kmer_queue; //kmers must be oriented to '+' here.
     
     for (unsigned int r = 0; r < root_kmers.size(); r++) {
                 

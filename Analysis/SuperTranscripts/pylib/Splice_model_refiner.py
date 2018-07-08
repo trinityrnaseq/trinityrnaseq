@@ -14,6 +14,8 @@ import Topological_sort
 
 from Compact_graph_whole import Compact_graph_whole
 from Compact_graph_partial import Compact_graph_partial
+from Compact_graph_pruner import Compact_graph_pruner
+
 import TGLOBALS
 
 logger = logging.getLogger(__name__)
@@ -22,7 +24,8 @@ logger = logging.getLogger(__name__)
 MAX_MM_RATE = 0.05 
 
 
-def refine_alignment(node_alignment_obj, reset_node_ids=False):
+def refine_alignment(node_alignment_obj, reset_node_ids=False,
+                     max_burr_length=25, max_bubble_pop_length=25):
 
     """
     Create a new splice graph based on the node alignment obj.
@@ -38,6 +41,7 @@ def refine_alignment(node_alignment_obj, reset_node_ids=False):
 
     if TGLOBALS.DEBUG:
         refined_tgraph.draw_graph("ladeda.pre.dot")
+        logger.debug("# pre-refinement tgraph:\n{}".format(refined_tgraph))
     
     graph_compactor = Compact_graph_whole()
     graph_compactor.compact_unbranched(refined_tgraph)
@@ -60,7 +64,28 @@ def refine_alignment(node_alignment_obj, reset_node_ids=False):
     partial_graph_compactor.compact_graph(refined_tgraph)
     
     if TGLOBALS.DEBUG:
+        refined_tgraph.draw_graph("ladeda.partial_compaction.dot")
+        logger.debug("# post-refinement partial (suffix/prefix adjustments) tgraph:\n{}".format(refined_tgraph))
+
+
+    compact_graph_pruner = Compact_graph_pruner()
+    compact_graph_pruner.remove_burrs(refined_tgraph, max_burr_length)
+
+    if TGLOBALS.DEBUG:
+        refined_tgraph.draw_graph("ladeda.burr_removal.dot")
+        logger.debug("# removing burrs tgraph:\n{}".format(refined_tgraph))
+
+
+    compact_graph_pruner.pop_small_bubbles(refined_tgraph, max_bubble_pop_length)
+    if TGLOBALS.DEBUG:
+        refined_tgraph.draw_graph("ladeda.bubble_popping.dot")
+        logger.debug("# bubbles popped tgraph:\n{}".format(refined_tgraph))
+
+    # final compaction post bubble popping
+    graph_compactor.compact_unbranched(refined_tgraph)
+    if TGLOBALS.DEBUG:
         refined_tgraph.draw_graph("ladeda.final.dot")
+        logger.debug("# final tgraph:\n{}".format(refined_tgraph))
     
     # convert compacted graph into a node alignment obj
 

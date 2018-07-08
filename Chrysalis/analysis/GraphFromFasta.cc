@@ -24,11 +24,35 @@ static bool DEBUG = false;
 static float MAX_RATIO_INTERNALLY_REPETITIVE = 0.85;
 
 static bool REPORT_WELDS = false;
-static int MAX_CLUSTER_SIZE = 100;
 static int MIN_CONTIG_LENGTH = 24;
+
+static int TOO_SIMILAR = 97;
 
 static bool DISABLE_REPEAT_CHECK = false;
 static bool __NO_GLUE_REQUIRED = false;
+
+
+static map<string,unsigned int> iworm_pair_to_weld_support;
+static map<string,unsigned int> iworm_pair_to_PE_scaffold_support;
+
+
+// some prototypes
+void add_iworm_link(map<int,Pool>& weld_reinforced_iworm_clusters, int iworm_index, int iworm_pool_addition);
+void add_reciprocal_iworm_link(map<int,Pool>& weld_reinforced_iworm_clusters, int iworm_A, int iworm_B, unsigned int welding_kmer_read_count);
+string make_iworm_pair_token(int i_A, int i_B);
+
+
+
+
+unsigned int get_scaffold_pair_support(unsigned int iworm_A, unsigned int iworm_B) {
+    string iworm_pair_token = make_iworm_pair_token(iworm_A, iworm_B);
+    if (iworm_pair_to_PE_scaffold_support.find(iworm_pair_token) != iworm_pair_to_PE_scaffold_support.end()) {
+        return(iworm_pair_to_PE_scaffold_support[iworm_pair_token]);
+    }
+    else {
+        return(0);
+    }
+}
 
 
 // print nucleotide sequence 80 chars per line
@@ -41,13 +65,6 @@ void PrintSeq(const DNAVector & d) {
     }
     cout << "\n";
 }
-
-
-// some prototypes
-void add_iworm_link(map<int,Pool>& weld_reinforced_iworm_clusters, int iworm_index, int iworm_pool_addition);
-void add_reciprocal_iworm_link(map<int,Pool>& weld_reinforced_iworm_clusters, int iworm_A, int iworm_B);
-
-
 
 
 bool is_simple_repeat(const DNAVector& kmer) {
@@ -307,6 +324,72 @@ bool IsShadow(const DNAVector & a, const DNAVector & b, int startA, int startB, 
 }
 
 
+
+bool  encapsulates(const DNAVector & largerA, const DNAVector & smallerB, int startA, int startB) {
+
+    //  anchored at the kmer, assuming linear alignment across all bases,
+    //   does  largerA encapsulate smallerB like so?
+    //
+    //                          startA  (pos of Kmer match)
+    //                            |
+    //    largerA    -------------------------------------
+    //    smallerB         -------|---------
+    //                            | 
+    //                          startB
+    
+    if (startA > startB && (startA - startB) + smallerB.isize() < largerA.isize()) {
+        return(true);
+    }
+    else {
+        return(false);
+    }
+    
+}
+
+
+// possible snp contig
+float align_get_per_id(const DNAVector & a, const DNAVector & b, int startA, int startB, int k) 
+{
+    //return false;
+    
+    
+    int i;
+    int len = 0;
+    int mismatch = 0;
+    
+    if (startA < startB) {
+        startB -= startA;
+        startA = 0;
+    }
+    else {
+        startA -= startB;
+        startB = 0;
+    }
+
+    for (i=startA; i<a.isize(); i++) {
+        int x = i-startA + startB;
+        
+        if (x >= b.isize())
+            break;
+        len++;
+        if (a[i] != b[x]) {     
+            mismatch++;
+        }
+    }
+
+    float per_id = (len-mismatch)/float(len) * 100;
+
+    // cerr << "alignment test: " <<  per_id << endl;
+    
+    return(per_id);
+        
+}
+
+
+
+
+
+
 // e.g., given the string:
 // >a1;74093 K: 25 length: 8833
 // extract "74093"
@@ -435,7 +518,7 @@ public:
     }
     
     
-    bool Weldable(const DNAVector & a, int one, const DNAVector & b, int two, int thresh, string& welding_kmer, int& weldable_kmer_read_count) 
+    bool Weldable(const DNAVector & a, int one, const DNAVector & b, int two, int thresh, string& welding_kmer, unsigned int& weldable_kmer_read_count) 
     {
         int i;
         DNAVector d; // stores the required weldabler kmer of length kk
@@ -606,7 +689,7 @@ void report_iworm_graph(map<int,Pool>& pool, map<int,bool>& toasted) {
     map<int,int>  pool_idx_to_vec_idx;
     // init 
     
-    cerr << "bubble_up_cluster_growth(): got " << pool_vec.size() << " pools." << endl;
+    cerr << "Got " << pool_vec.size() << " pools." << endl;
     
     for (size_t i = 0; i < pool_vec.size(); i++) {
         int pool_id = pool_vec[i].get_id();
@@ -626,12 +709,29 @@ void report_iworm_graph(map<int,Pool>& pool, map<int,bool>& toasted) {
             }
         }
         if (adjacent_nodes.size()) {
-            stringstream s;
-            s << pool_id << " ->";
+
             for (int j = 0; j < adjacent_nodes.size(); j++) {
-                s << " " << adjacent_nodes[j];
+
+                unsigned int iworm_A =  pool_id;
+                unsigned int iworm_B = adjacent_nodes[j];
+                string iworm_pair_token = make_iworm_pair_token(iworm_A, iworm_B);
+
+                unsigned int weld_support = iworm_pair_to_weld_support[iworm_pair_token];
+
+                // add in the PE scaffolding support
+                unsigned int scaffold_pairs = get_scaffold_pair_support(iworm_A, iworm_B);
+
+                unsigned int total_support = weld_support + scaffold_pairs;
+                
+                stringstream s;
+                s << iworm_A << " -> " << iworm_B
+                  << " " << "weldmers: " << weld_support
+                  << " scaff_pairs: " << scaffold_pairs
+                  << " total: " << total_support <<  endl;
+                
+                cout << s.str();
             }
-            cout << s.str() << endl;
+            
         }
         
     }
@@ -818,7 +918,7 @@ void add_scaffolds_to_clusters(map<int,Pool>& iworm_clusters, string scaffolding
 
             */
 
-
+            
             istringstream token (line);
             
             string iworm_acc_A, iworm_index_A_str, iworm_acc_B, iworm_index_B_str, count_str;
@@ -826,7 +926,7 @@ void add_scaffolds_to_clusters(map<int,Pool>& iworm_clusters, string scaffolding
             
             int iworm_index_A = atoi(iworm_index_A_str.c_str());
             int iworm_index_B = atoi(iworm_index_B_str.c_str());
-            int pair_link_count = atoi(count_str.c_str());
+            unsigned int pair_link_count = atoi(count_str.c_str());
             
             string iworm_A = dna.Name(iworm_index_A);
             string iworm_B = dna.Name(iworm_index_B);
@@ -861,8 +961,15 @@ void add_scaffolds_to_clusters(map<int,Pool>& iworm_clusters, string scaffolding
                 
                 // reciprocal linkage
                 
-                add_reciprocal_iworm_link(iworm_clusters, iworm_index_A, iworm_index_B);
-                                
+                add_reciprocal_iworm_link(iworm_clusters, iworm_index_A, iworm_index_B, 0);
+
+                string iworm_pair_token = make_iworm_pair_token(iworm_index_A, iworm_index_B);
+
+                #pragma omp critical
+                {
+                    iworm_pair_to_PE_scaffold_support[iworm_pair_token] = pair_link_count;
+                    //cerr << "SETTING PAIR SCAFFOLDING INFO: " << iworm_pair_token << " : " << pair_link_count << endl;
+                }
             }
             else {
                 if (DEBUG) 
@@ -901,13 +1008,49 @@ void add_iworm_link(map<int,Pool>& weld_reinforced_iworm_clusters, int iworm_ind
 }
 
 
-void add_reciprocal_iworm_link(map<int,Pool>& weld_reinforced_iworm_clusters, int iworm_A, int iworm_B) {
+string make_iworm_pair_token(int i_A, int i_B) {
 
-    add_iworm_link(weld_reinforced_iworm_clusters, iworm_A, iworm_B);
-    add_iworm_link(weld_reinforced_iworm_clusters, iworm_B, iworm_A);
+    int iworm_A = i_A;
+    int iworm_B = i_B;
+    
+    if (iworm_A > iworm_B) {
+        i_A = iworm_B;
+        i_B = iworm_A;
+    }
+    
+    stringstream iworm_pair_token;
+    iworm_pair_token << i_A << "^" << i_B;
 
+    string contig_pair_key = iworm_pair_token.str();
+
+    return(contig_pair_key);
 }
     
+
+void add_reciprocal_iworm_link(map<int,Pool>& weld_reinforced_iworm_clusters, int iworm_A, int iworm_B, unsigned int welding_kmer_read_count) {
+    
+    #pragma omp critical
+    {
+        add_iworm_link(weld_reinforced_iworm_clusters, iworm_A, iworm_B);
+        add_iworm_link(weld_reinforced_iworm_clusters, iworm_B, iworm_A);
+        
+        string contig_pair_key = make_iworm_pair_token(iworm_A, iworm_B);
+        
+        if (iworm_pair_to_weld_support.find(contig_pair_key) == iworm_pair_to_weld_support.end()) {
+            // adding entry
+            iworm_pair_to_weld_support[contig_pair_key] = welding_kmer_read_count;
+        }
+        else {
+            // already there... set to maximum weld support
+            if (iworm_pair_to_weld_support[contig_pair_key] < welding_kmer_read_count) {
+                iworm_pair_to_weld_support[contig_pair_key] = welding_kmer_read_count;
+            }
+            
+        }
+    }
+
+}
+
 
 void add_unclustered_iworm_contigs (svec<Pool>& clustered_pools, vecDNAVector& dna) {
 
@@ -980,7 +1123,6 @@ int main(int argc,char** argv)
     commandArg<bool> reportWeldsCmmd("-report_welds", "report the welding kmers", false);
     commandArg<bool> debugCmmd("-debug", "verbosely describes operations", false);
     commandArg<bool> noWeldsCmmd("-no_welds", "no clustering based on weld-reading", false);
-    commandArg<int>  maxClusterSizeCmmd("-max_cluster_size", "max size for an inchworm cluster", MAX_CLUSTER_SIZE);
     commandArg<int>  minContigLengthCmmd("-min_contig_length", "min sum cluster contig length", MIN_CONTIG_LENGTH);
     
     commandArg<bool> noGlueRequiredCmmd("-no_glue_required", "no glue required, only a kmer match required", false);
@@ -1000,7 +1142,6 @@ int main(int argc,char** argv)
     P.registerArg(glueFactorCmmd);
     P.registerArg(minGlueCmmd);
     P.registerArg(minIsoRatioCmmd);
-    P.registerArg(maxClusterSizeCmmd);
     
     P.registerArg(minKmerEntropyCmmd);
     P.registerArg(minWeldEntropyCmmd);
@@ -1049,7 +1190,6 @@ int main(int argc,char** argv)
     MIN_KMER_ENTROPY = P.GetDoubleValueFor(minKmerEntropyCmmd);
     MIN_WELD_ENTROPY = P.GetDoubleValueFor(minWeldEntropyCmmd);
     MAX_RATIO_INTERNALLY_REPETITIVE = P.GetDoubleValueFor(maxRatioInternalRepeatCmmd);
-    MAX_CLUSTER_SIZE = P.GetIntValueFor(maxClusterSizeCmmd);
     MIN_CONTIG_LENGTH = P.GetIntValueFor(minContigLengthCmmd);
     
     DEBUG = P.GetBoolValueFor(debugCmmd);
@@ -1200,7 +1340,7 @@ int main(int argc,char** argv)
                         continue;  // matches itself
                     
                     DNAVector & dd = dna[c];        
-                    int start = matchesFW[x].GetPosition();
+                    unsigned int start = matchesFW[x].GetPosition();
                     
                     if (DEBUG) {
                         cerr << "(Phase1: FW kmer [" << sub.AsString() << "] match between " << dna.Name(i) << " and " << dna.Name(c)
@@ -1380,14 +1520,12 @@ int main(int argc,char** argv)
                 
                 //cout << "TEST_WELD: " << I << " " << J << " ";
                 string welding_kmer;
-                int welding_kmer_read_count = 0;
+                unsigned int welding_kmer_read_count = 0;
                 
                 if (__NO_GLUE_REQUIRED)  {
                     
-                    #pragma omp critical
-                    {
-                        add_reciprocal_iworm_link(weld_reinforced_iworm_clusters, i, c);
-                    }
+                    add_reciprocal_iworm_link(weld_reinforced_iworm_clusters, i, c, welding_kmer_read_count);
+
                 }
                 else {
                     // glue required
@@ -1406,6 +1544,12 @@ int main(int argc,char** argv)
                         
                         continue;
                     }
+
+                    // d: current iworm contig sequence
+                    // dd: matching iworm contig sequence
+                    // j: matching kmer starting position in d
+                    // start: matching kmer starting position in dd
+                    // k: kmer length
                     
                     if (IsShadow(d, dd, j, start, k) && coverage > 2*coverage_other) {
                         cerr << "Toasting shadow: " << dna.Name(c) << "\n";
@@ -1415,7 +1559,23 @@ int main(int argc,char** argv)
                         
                         continue;
                         
-                    } else if (min_glue_required > 0 && !IsGoodCoverage(coverage, coverage_other, min_iso_ratio)) {
+                    }
+                    else if ( encapsulates(d, dd, j, start)
+                              &&
+                              d.isize()/10 > dd.isize()
+                              &&
+                              align_get_per_id(d, dd, j, start, k) > TOO_SIMILAR) {
+                        
+                        // toast the smaller one
+
+                        #pragma omp critical
+                        toasted[c] = true;
+
+                        cerr << "toasting based on alignment: " << dna.Name(c) << endl;
+                        
+                        continue;
+                    }
+                    else if (min_glue_required > 0 && !IsGoodCoverage(coverage, coverage_other, min_iso_ratio)) {
                         
                         if (DEBUG) {
                             cerr << "Rejecting fw merge between " << dna.Name(i)
@@ -1425,15 +1585,9 @@ int main(int argc,char** argv)
                         continue;
                     }
                     // cerr << "Accept (fw)!!" << "\n";
-                    
-                    #pragma omp critical
-                    {
-                        
-                        add_reciprocal_iworm_link(weld_reinforced_iworm_clusters, i, c);
-                        
-                        
-                    }
-                    
+                                            
+                    add_reciprocal_iworm_link(weld_reinforced_iworm_clusters, i, c, welding_kmer_read_count);
+                                        
                 } // end of glue check
                 
                 if (REPORT_WELDS || DEBUG) {
@@ -1460,8 +1614,7 @@ int main(int argc,char** argv)
             // Process the RC matches now
             for (x=0; x<matchesRC.isize(); x++) {
                 int c = matchesRC[x].GetContig();
-                
-                
+                                
                 if (c == i) {
                     // ignore self matches
                     continue;
@@ -1499,24 +1652,16 @@ int main(int argc,char** argv)
                 
                 
                 string welding_kmer;
-                int welding_kmer_read_count = 0;
+                unsigned int welding_kmer_read_count = 0;
                 
                 
                 if (__NO_GLUE_REQUIRED)  {
                     
-                    #pragma omp critical
-                    {
-                        
-                        add_reciprocal_iworm_link(weld_reinforced_iworm_clusters, i, c);
-                        
-                        
-                    }
+                    add_reciprocal_iworm_link(weld_reinforced_iworm_clusters, i, c, welding_kmer_read_count);
                     
                 }
                 else {
-                    
-                    
-                    
+                                        
                     if (!bNoWeld 
                         && 
                         !(weld.Weldable(d, j, dd, start, minCov, welding_kmer, welding_kmer_read_count) 
@@ -1540,7 +1685,24 @@ int main(int argc,char** argv)
                         
                         continue;
                         
-                    } else if (min_glue_required > 0 && !IsGoodCoverage(coverage, coverage_other, min_iso_ratio)) {
+                    }
+                    else if (encapsulates(d, dd, j, start)
+                              &&
+                              d.isize()/10 > dd.isize()
+                              &&
+                              align_get_per_id(d, dd, j, start, k) > TOO_SIMILAR) {
+
+                        // toast the smaller one
+
+
+                        #pragma omp critical
+                        toasted[c] = true;
+
+                        cerr << "toasting based on alignment: " << dna.Name(c) << endl;
+                        
+                        continue;
+                    }
+                    else if (min_glue_required > 0 && !IsGoodCoverage(coverage, coverage_other, min_iso_ratio)) {
                         
                         if (DEBUG) {
                             
@@ -1552,16 +1714,9 @@ int main(int argc,char** argv)
                         continue;
                     }
                     //cerr << "Accept (rc)!!" << "\n";
+                                        
+                    add_reciprocal_iworm_link(weld_reinforced_iworm_clusters, i, c, welding_kmer_read_count);
                     
-                    
-                    
-                    #pragma omp critical
-                    {
-                        
-                        add_reciprocal_iworm_link(weld_reinforced_iworm_clusters, i, c);
-                        
-                        
-                    }
                 }
                 
                 if (REPORT_WELDS || DEBUG) {

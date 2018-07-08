@@ -550,8 +550,11 @@ public class Path {
 		
 	}
 
-	public static PathOverlap pathB_extends_pathA_allowRepeats(List<Integer> pathB, List<Integer> pathA, HashSet<Integer> repeat_node_ids) {
-
+	public static PathOverlap pathB_extends_pathA_allowRepeats(List<Integer> pathB, 
+															   List<Integer> pathA, 
+															   HashSet<Integer> repeat_node_ids) {
+		
+		
 		int best_match_count = -1;
 		
 		PathOverlap path_overlap = new PathOverlap(0,0);

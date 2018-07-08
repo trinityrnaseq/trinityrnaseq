@@ -187,6 +187,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = foreign
+#SNP_stomper
 inchworm_SOURCES = Fasta_entry.cpp IRKE_run.cpp  sequenceUtil.cpp \
                    IRKE.cpp KmerCounter.cpp string_util.cpp \
                    Fasta_reader.cpp IRKE.hpp stacktrace.cpp argProcessor.cpp
@@ -518,6 +519,8 @@ uninstall-am: uninstall-binPROGRAMS
 	mostlyclean-generic pdf pdf-am ps ps-am tags uninstall \
 	uninstall-am uninstall-binPROGRAMS
 
+
+#SNP_stomper_SOURCES = SNP_stomper.cpp Fasta_reader.cpp Fasta_entry.cpp sequenceUtil.cpp MaskedKmerCounter.cpp string_util.cpp stacktrace.cpp argProcessor.cpp 
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

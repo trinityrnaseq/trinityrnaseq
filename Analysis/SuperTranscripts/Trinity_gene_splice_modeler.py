@@ -61,6 +61,7 @@ def main():
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
         TGLOBALS.DEBUG = True
+        args.verbose = True
 
     logger.info("-parsing Trinity fasta file: {}".format(args.trinity_fasta))
     trin_parser = Trinity_fasta_parser.Trinity_fasta_parser(args.trinity_fasta)
@@ -135,7 +136,8 @@ def main():
 
         ################################
         ## Splice graph refinement stage
-        
+
+        logger.info("Splice graph refinement underway")
         squeezed_splice_model = splice_model_alignment
 
         
@@ -148,7 +150,11 @@ def main():
             logger.debug("Squeezed splice model for Gene {}:\n{}\n".format(gene_name, str(squeezed_splice_model)))
 
         if not args.no_refinement:
-            squeezed_splice_model = Splice_model_refiner.refine_alignment(squeezed_splice_model, reset_node_ids=True) # True important here... can have repeat nodes
+            squeezed_splice_model = Splice_model_refiner.refine_alignment(squeezed_splice_model,
+                                                                          reset_node_ids=True, # True important here... can have repeat nodes
+                                                                          max_burr_length=25,
+                                                                          max_bubble_pop_length=25)
+            
             logger.debug("After seq-refinement of splice model for Gene {}:\n{}\n".format(gene_name, str(squeezed_splice_model)))
             squeezed_splice_model = Splice_model_refiner.remove_redundant_paths(squeezed_splice_model)
             logger.debug("After removing redundant paths of splice model for Gene {}:\n{}\n".format(gene_name, str(squeezed_splice_model)))

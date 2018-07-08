@@ -25,7 +25,7 @@ my $usage = <<__EOUSAGE__;
 #
 #  --CPU <int>              number of threads (default: $CPU)
 #
-#
+#  --max_hits <int>         default 10
 
  usage: $0  --target target.seq --left reads_1.fq [--right reads_2.fq --CPU 8]
     
@@ -46,13 +46,14 @@ my $help_flag;
 my $target_seq;
 my $reads_1_fq;
 my $reads_2_fq;
-
+my $max_hits = 10;
 
 &GetOptions ( 'h' => \$help_flag,
               'target=s' => \$target_seq,
               'left=s' => \$reads_1_fq,
               'right=s' => \$reads_2_fq,
               'CPU=i' => \$CPU,
+              'max_hits=i' => \$max_hits,
     );
 
 
@@ -71,7 +72,7 @@ main: {
     
     my $format = ($reads_1_fq =~ /\.fq|\.fastq/) ? "-q" : "-f";
     
-    my $bowtie2_cmd = "bowtie2 --threads $CPU --local --no-unal -x $target_seq $format ";
+    my $bowtie2_cmd = "bowtie2 --threads $CPU --local --no-unal -x $target_seq $format -k $max_hits";
     if ($reads_2_fq) {
         $bowtie2_cmd .= " -1 $reads_1_fq -2 $reads_2_fq ";
     }

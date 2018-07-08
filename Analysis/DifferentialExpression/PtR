@@ -584,7 +584,7 @@ main: {
              .  "    load(\"$R_data_file\")\n"
              .  "} else {\n"
              .  "    print('Reading matrix file.')\n"
-             .  "    primary_data = read.table(\"$matrix_file\", header=T, com=\'\', row.names=1, check.names=F)\n"
+             .  "    primary_data = read.table(\"$matrix_file\", header=T, com=\'\', row.names=1, check.names=F, sep=\'\\t\')\n"
              .  "    primary_data = as.matrix(primary_data)\n"
              .  "}\n";
     
@@ -621,7 +621,9 @@ main: {
         if ($order_columns_by_samples_file) {
             # restrict data to those entries in the samples file
             # and order according to rep names
+            $Rscript .= "# ordering columns according to samples file\n";
             $Rscript .= "data = data[, rep_names, drop=F ]\n";
+            
         }
         else {
             # default, restrict to columns described in samples file and retain ordering in matrix
@@ -1031,10 +1033,11 @@ main: {
             $Rscript .= "sample_dist = dist(t(data), method=\'$sample_dist\')\n";
         }
         
-        if ($sample_clust ne 'none') {
-            $Rscript .= "hc_samples = hclust(sample_dist, method=\'$sample_clust\')\n";
-        }
         
+        $Rscript .= "hc_samples = hclust(sample_dist, method=\'$sample_clust\')\n";
+        
+        
+                
     }
 
 
@@ -1480,7 +1483,7 @@ main: {
         
         my $dendrogram = 'both';
         my $Colv = "as.dendrogram(hc_samples)";
-        if ($sample_clust eq 'none') {
+        if ($sample_clust eq 'none' || $order_columns_by_samples_file) {
             $dendrogram = 'row';
             $Colv = "F";
         }

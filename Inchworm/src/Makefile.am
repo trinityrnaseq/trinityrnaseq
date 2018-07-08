@@ -1,6 +1,7 @@
 AUTOMAKE_OPTIONS = foreign
 
 bin_PROGRAMS = inchworm cigar_tweaker pull_reads_with_kmers FastaToDeBruijn fastaToKmerCoverageStats
+#SNP_stomper
 
 inchworm_SOURCES = Fasta_entry.cpp IRKE_run.cpp  sequenceUtil.cpp \
                    IRKE.cpp KmerCounter.cpp string_util.cpp \
@@ -15,3 +16,5 @@ pull_reads_with_kmers_SOURCES = pull_reads_with_kmers.cpp Fasta_reader.cpp Fasta
 FastaToDeBruijn_SOURCES = FastaToDeBruijn.cpp argProcessor.cpp Fasta_reader.cpp Fasta_entry.cpp sequenceUtil.cpp string_util.cpp stacktrace.cpp DeBruijnGraph.cpp
 
 fastaToKmerCoverageStats_SOURCES = fastaToKmerCoverageStats.cpp argProcessor.cpp Fasta_reader.cpp Fasta_entry.cpp sequenceUtil.cpp string_util.cpp stacktrace.cpp KmerCounter.cpp 
+
+#SNP_stomper_SOURCES = SNP_stomper.cpp Fasta_reader.cpp Fasta_entry.cpp sequenceUtil.cpp MaskedKmerCounter.cpp string_util.cpp stacktrace.cpp argProcessor.cpp 

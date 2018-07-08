@@ -148,6 +148,7 @@ main: {
         . " --twopassMode Basic "
         . " --alignSJDBoverhangMin 10 "
         . " --outSAMstrandField intronMotif "
+        . " --outSAMunmapped Within "
         . " --limitBAMsortRAM 20000000000";
 
     if ($chim_search) {

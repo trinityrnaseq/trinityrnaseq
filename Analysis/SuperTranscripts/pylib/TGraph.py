@@ -63,7 +63,7 @@ class TGraph:
 
 
     def get_all_nodes(self):
-        return self.node_cache.values()
+        return list(self.node_cache.values())
     
     def clear_node_cache(self):
         """
@@ -121,7 +121,8 @@ class TGraph:
 
 
     def draw_graph(self, filename):
-        
+
+        logger.debug("drawing graph: {}".format(filename))
         ofh = open(filename, 'w')
 
         ofh.write("digraph G {\n")
@@ -131,8 +132,15 @@ class TGraph:
             node_seq = node.get_seq()
             gene_node_id = node.get_gene_node_id()
             next_nodes = node.get_next_nodes()
+            node_seq_len = len(node_seq)
 
-            ofh.write("{} [label=\"{}:Len{}:T{}:{}\"]\n".format(node.get_id(), gene_node_id, len(node_seq),
+            max_len_show = 50
+            max_len_show_half = int(max_len_show/2)
+
+            if node_seq_len > max_len_show:
+                node_seq = node_seq[0:max_len_show_half] + "..." + node_seq[(node_seq_len-max_len_show_half):node_seq_len]
+            
+            ofh.write("{} [label=\"{}:Len{}:T{}:{}\"]\n".format(node.get_id(), gene_node_id, node_seq_len,
                                                                 node.get_topological_order(), node_seq))
             
             for next_node in next_nodes:
@@ -142,3 +150,9 @@ class TGraph:
 
         ofh.close()
     
+    def __repr__(self):
+        txt = ""
+        for node in self.get_all_nodes():
+            txt += node.toString() + "\n"
+
+        return txt

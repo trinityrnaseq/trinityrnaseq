@@ -41,7 +41,7 @@ bool Exists(const string & s)
 }
 
 
-void write_iworm_bundle (string filename, vector<string_vec>& bundled, vector<int>& component_ids) {
+void write_iworm_bundle (string filename, vector<string_vec>& bundled, vector<int>& component_ids, vector<string>& iworm_cov_vals) {
 
     ofstream ofh;
     ofh.open(filename.c_str());
@@ -51,10 +51,11 @@ void write_iworm_bundle (string filename, vector<string_vec>& bundled, vector<in
 
         int component_id = component_ids[i];
         string_vec bundled_iworms = bundled[i];
-
+        string iworm_cov_vals_str = iworm_cov_vals[i];
+        
         stringstream s;
 
-        s << ">s_" << component_id << endl;
+        s << ">s_" << component_id << iworm_cov_vals_str << endl;
         
         int num_iworms = bundled_iworms.size();
         
@@ -88,6 +89,30 @@ string get_seq_string(DNAVector& d) {
     return(s.str());
 }
 
+
+string get_iworm_coverage(string& iworm_info) {
+
+    // [iworm>a1;43_total_counts:_59920_Seed:_57_K:_25_length:_1402]
+
+    if (iworm_info.substr(0, 8) != "[iworm>a") {
+        cerr << "Error, iworm_info: " << iworm_info << " doesn't start with iworm>a";
+        exit(4);
+    }
+
+    int start = iworm_info.find(";");
+    int end = iworm_info.find("_");
+
+    if (start < 0 || end < 0 || start > end) {
+        cerr << "Error extracting coverage info from: " << iworm_info;
+        exit(5);
+    }
+    
+    
+    string cov_info = iworm_info.substr(start+1, end-start-1);
+
+    return(cov_info);
+    
+}
 
 
 
@@ -131,6 +156,7 @@ int main(int argc,char** argv)
     
     vecDNAVector tmpSeq;
     vector<int> component_ids;
+    vector<string> iworm_coverage_vals;
     
     vector<string_vec> bundled;
     //bundled.reserve(1000000);
@@ -138,6 +164,9 @@ int main(int argc,char** argv)
     string separator = "X";
     
     FILE * pOut = NULL;
+
+    string iworm_cov_vals_str = "";
+    
     
     while (parser.ParseLine()) {
         if (parser.GetItemCount() == 0)
@@ -152,6 +181,7 @@ int main(int argc,char** argv)
             int num_iworm_contigs = parser.AsInt(2);
             
             tmpSeq.resize(0); // hold the iworm seqs corresponding to a single component
+            iworm_cov_vals_str = "";
             
             while (parser.ParseLine()) {
                 
@@ -171,6 +201,9 @@ int main(int argc,char** argv)
                 if (ppp[0] == '>') {
                     DNAVector tmp;
                     tmpSeq.push_back(tmp);
+
+                    string iworm_info = parser.AsString(3);
+                    iworm_cov_vals_str += " " + get_iworm_coverage(iworm_info);
                     continue;
                 }
                 
@@ -204,15 +237,15 @@ int main(int argc,char** argv)
             
             bundled.push_back(iworm_bundle);
             component_ids.push_back(component_no);
-            
-            
+            iworm_coverage_vals.push_back(iworm_cov_vals_str);
+            iworm_cov_vals_str = "";
             tmpSeq.resize(0);
             
         }
         
     }
     
-    write_iworm_bundle(bundledName, bundled, component_ids);
+    write_iworm_bundle(bundledName, bundled, component_ids, iworm_coverage_vals);
         
     
     return(0);

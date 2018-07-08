@@ -245,6 +245,11 @@ class Node_alignment:
                         
             #ret_text += "Align [{}] trans {} : path {}".format(i, transcript_name, str(aligned_nodes_entry)) + "\n"
 
+
+        for i in range(0, align_width):
+            repr_node = self.get_representative_column_node(i)
+            ret_text += repr_node.toString() + "\n"
+
         return ret_text
     
 
@@ -396,6 +401,8 @@ class Node_alignment:
 
         for i in range(0,width):
             repr_node = self.get_representative_column_node(i)
+
+            logger.debug("repr node: {}".format(repr_node.toString()))
         
             transcripts = repr_node.get_transcripts()
 

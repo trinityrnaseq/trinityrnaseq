@@ -141,6 +141,8 @@ main: {
             . " --readFilesIn $left_fq $right_fq "
             . " --twopassMode Basic "
             . " --alignSJDBoverhangMin 10 "
+            . " --outSAMstrandField intronMotif "
+            . " --outSAMunmapped Within "
             . " --limitBAMsortRAM 20000000000";
         
             

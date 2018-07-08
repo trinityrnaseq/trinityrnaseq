@@ -276,20 +276,72 @@ class TNode:
         Merges linear stretches of nodes into a single new node that has
         concatenated sequences of the input nodes
         """
+
+        logger.debug("Merging nodes: {}".format(node_list))
         
         merged_node_seq = ""
         TNode.merged_nodeset_counter += 1
         merged_loc_node_id = "M{}".format(TNode.merged_nodeset_counter)
 
+        # transcript list should be the intersection from nodes being merged (not the union)
+        # because repeat nodes could be part of the merge.
+        transcripts = node_list[0].get_transcripts()
+
+
         for node_obj in node_list:
+            logger.debug("node being merge: {}".format(node_obj.toString()))
             seq = node_obj.get_seq()
             merged_node_seq += seq
+            transcripts = transcripts.intersection(node_obj.get_transcripts())
 
-
-        transcripts = node_list[0].get_transcripts()
         tgraph = node_list[0].get_graph()
 
         merged_node = TNode(tgraph, transcripts, merged_loc_node_id, merged_node_seq)
         
         return merged_node
 
+
+
+    def is_burr(self):
+        """
+        returns true if node (x) is in this graphical context:
+
+          X                               X
+            \           or               /
+         C-- A--?                   ?-- A--B
+
+         where X dangles.
+
+
+         So, X has only one parent or child and not otherwise connected in the graph.
+
+         """
+
+        if self.get_prev_nodes() and self.get_next_nodes():
+            return False
+
+        if len(self.get_prev_nodes()) > 1 or len(self.get_next_nodes()) > 1:
+            return False
+
+        # illustration above on left side
+        if (len(self.get_next_nodes()) == 1
+            and
+            len(self.get_prev_nodes()) == 0
+            and
+            len(self.get_next_nodes().pop().get_prev_nodes()) > 1):
+
+            return True
+
+        # illustration above on right side
+        if (len(self.get_next_nodes()) == 0
+            and
+            len(self.get_prev_nodes()) == 1
+            and
+            len(self.get_prev_nodes().pop().get_next_nodes()) > 1):
+
+            return True
+
+        # more complex structure
+        return False
+            
+    

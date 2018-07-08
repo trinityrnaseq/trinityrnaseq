@@ -15,6 +15,13 @@ my $usage = "usage: $0 EXPR.matrix Trinity.fasta\n\n";
 my $matrix_file = $ARGV[0] or die $usage;
 my $fasta_file = $ARGV[1] or die $usage;
 
+unless (-s $matrix_file) {
+    die "Error, cannot locate matrix file: $matrix_file";
+}
+unless (-s $fasta_file) {
+    die "Error, cannot locate fasta file: $fasta_file";
+}
+
 my %trans_lengths;
 {
     my $fasta_reader = new Fasta_reader($fasta_file);

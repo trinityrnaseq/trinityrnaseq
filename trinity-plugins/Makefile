@@ -41,7 +41,7 @@ collectl_target:
 clean:
 	rm -rf ./seqtk-trinity-0.0.2
 	cd scaffold_iworm_contigs && $(MAKE) clean
-	cd parafly-code && $(MAKE) clean
+	cd ${PARAFLY_CODE} && $(MAKE) clean
 	rm -f ./parafly # rm symlink
 	rm -f ./Trimmomatic # rm symlink
 	cd slclust && $(MAKE) clean

@@ -658,13 +658,13 @@ sub prep_seqs {
             
             if ($using_FIFO_flag) {
                 # can't symlink it, so just cat it
-                my $cmd = "cat $initial_file > $file_prefix.fa";
+                my $cmd = "cat $initial_file >> $file_prefix.fa";
                 &process_cmd($cmd);
             }
             else {
                 ## just symlink it here:
-                my $cmd = "ln -s $initial_file $file_prefix.fa";
-                &process_cmd($cmd) unless (-e "$file_prefix.fa");
+                my $cmd = "cat $initial_file >> $file_prefix.fa";
+                &process_cmd($cmd);
             }
         }
     }

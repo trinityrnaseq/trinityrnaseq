@@ -20,8 +20,8 @@ use Data::Dumper;
 
 
 
-my $VERSION = "Trinity-v2.6.6";
-#my $VERSION = "__BLEEDING_EDGE__"; 
+#my $VERSION = "Trinity-v2.6.6";
+my $VERSION = "__BLEEDING_EDGE__"; 
 
 
 BEGIN {
@@ -84,7 +84,7 @@ my $PE_path_reinforcement_distance = 25;
 my $SE_path_reinforcement_distance = 25;
 
 my $bfly_opts = "";
-my $bflyHeapSpaceMax = "4G";
+my $bflyHeapSpaceMax = "10G";
 my $bflyHeapSpaceInit = "1G";
 
 my $BFLY_JAR = "";
@@ -189,7 +189,7 @@ my $trimmomatic_quality_trim_params = "ILLUMINACLIP:$TRIMMOMATIC_DIR/adapters/Tr
 ## Normalize reads
 my $NORMALIZE_READS_FLAG = 0; ## now on by default, unless told not to via --no_normalize_reads!  See below for logic.
 my $NO_NORMALIZE_READS_FLAG = 0; ## set to turn off normalization (will be turned on if trinity_complete_flag and ! --normalize_reads set. 
-my $normalize_max_read_cov = 50;
+my $normalize_max_read_cov = 200; # better for polymorphic transcriptomes
 my $normalize_max_pct_stdev = 10000; # effectively turn it off for this application.
 my $NORMALIZE_BY_READ_SET = 0; 
 
@@ -209,6 +209,9 @@ my $trinity_banner = qq^
       |  |  |    \\  |  | |  |  | |  |   |  |  |___, |
       |  |  |  .  \\ |  | |  |  | |  |   |  |  |     |
       |__|  |__|\\_||____||__|__||____|  |__|  |____/
+
+    $VERSION
+
 ^;
 
 my $basic_usage = qq^
@@ -362,7 +365,7 @@ my $full_usage = qq^
 #
 #  By default, alternative transcript candidates are merged (in reality, discarded) if they are found to be too similar, according to the following logic:
 #
-#  (identity=(numberOfMatches/shorterLen) > 95.0% or if we have <= 2 mismatches) and if we have internal gap lengths <= 10
+#  (identity=(numberOfMatches/shorterLen) > 98.0% or if we have <= 2 mismatches) and if we have internal gap lengths <= 10
 #
 #  with parameters as:
 #      
@@ -402,7 +405,7 @@ my $full_usage = qq^
 ################################################################################
 ####  In silico Read Normalization Options ###
 #
-#  --normalize_max_read_cov <int>       defaults to 50
+#  --normalize_max_read_cov <int>       defaults to $normalize_max_read_cov 
 #  --normalize_by_read_set              run normalization separate for each pair of fastq files,
 #                                       then one final normalization that combines the individual normalized reads.
 #                                       Consider using this if RAM limitations are a consideration.
@@ -448,8 +451,9 @@ my $usage_synopsis = qq^#
 #
 #        Trinity --seqType fq --max_memory 50G --left reads_1.fq  --right reads_2.fq --CPU 6
 #
+#            (if you have multiple samples, use --samples_file ... see above for details)
 #
-#    and for Genome-guided Trinity:
+#    and for Genome-guided Trinity, provide a coordinate-sorted bam:
 #
 #        Trinity --genome_guided_bam rnaseq_alignments.csorted.bam --max_memory 50G\
 #                --genome_guided_max_intron 10000 --CPU 6
@@ -509,7 +513,8 @@ my $advanced_usage =  <<_ADVANCEDUSAGE_;
 #  --long_reads_mode               : run in long reads mode (requires --single and the long reads integrated with LR$| accession prefixes.
 #
 #  --no_check_coordsorted_bam      : in genome-guided mode, won't test the bam file for coordinate-sortedness#
-
+#
+#  --stomp_snps                    : stomp snps out of kmers before inchworm assembly
 
 _ADVANCEDUSAGE_
 
@@ -578,6 +583,7 @@ my $NO_CHECK_COORDSORTED_BAM = 0;
 
 my $NO_SALMON = 0;
 
+my $STOMP_SNPS = 0;
 
 &GetOptions( 
     
@@ -663,7 +669,8 @@ my $NO_SALMON = 0;
     'INCHWORM_CUSTOM_PARAMS=s' => \$INCHWORM_CUSTOM_PARAMS,
     'no_run_inchworm' => \$NO_RUN_INCHWORM_FLAG,
     'iworm_opts=s' => \$iworm_opts,
-    
+    'stomp_snps' => \$STOMP_SNPS,
+     
     'max_memory|M=s'          => \$max_memory, # in GB
     
     # Chrysalis -related opts
@@ -808,7 +815,7 @@ bypass_java_version_check
 ananas_dir
 samples_file
 workdir
-
+stomp_snps
 );   
 
 my %ACCEPTABLE_OPTS = map { + $_ => 1} @__ALL_TRINITY_PARAMS;
@@ -1076,6 +1083,12 @@ if ($inchworm_cpu > $CPU) {
     $inchworm_cpu = $CPU;
 }
 
+if ($TRINITY_COMPLETE_FLAG) {
+    # strict inchworm
+    $inchworm_cpu = 1; 
+    $NO_PARALLEL_IWORM = 1;
+}
+
 if ($bflyCalculateCPU && $jellyfish_ram) {
     $bflyCPU = int ($jellyfish_ram * 0.80 / $bflyHeapSpaceMaxBytes);
 }
@@ -1335,9 +1348,9 @@ main: {
             
             if ($VERBOSE || ! $TRINITY_COMPLETE_FLAG) {
                 print "\n\n"
-                    . "###################################################################\n"
-                    . "Butterfly assemblies are written to $final_Trinity_fasta_file\n"
-                    . "###################################################################\n\n\n";
+                    . "#############################################################################\n"
+                    . "Finished.  Final Trinity assemblies are written to $final_Trinity_fasta_file\n"
+                    . "#############################################################################\n\n\n";
             }
             
         }
@@ -1933,9 +1946,20 @@ sub run_chrysalis {
         $chrysalis_pipeliner->add_commands( new Command($graphFromFasta_cmd, "$welds_to_cluster_file.ok"));
 
 
+        my $welds_to_cluster_file_sorted = "$welds_to_cluster_file.sorted";
+        $chrysalis_pipeliner->add_commands( 
+            new Command("$sort_exec -T . -S $max_memory  -k9,9gr $welds_to_cluster_file > $welds_to_cluster_file_sorted",
+                        "$welds_to_cluster_file.sorted.ok"));
+        
+
+        # annotate with iworm names
+        $chrysalis_pipeliner->add_commands(
+            new Command("$UTILDIR/support_scripts/annotate_chrysalis_welds_with_iworm_names.pl $inchworm_file $welds_to_cluster_file_sorted > $welds_to_cluster_file_sorted.wIwormNames",
+                        "$welds_to_cluster_file.sorted.wIwormNames.ok"));
+        
         ## now cluster into chrysalis components:
         
-        my $bubble_cluster_cmd = "$CHRYSALIS_DIR/BubbleUpClustering -i $inchworm_file  -weld_graph $welds_to_cluster_file -min_contig_length $min_contig_length ";
+        my $bubble_cluster_cmd = "$CHRYSALIS_DIR/BubbleUpClustering -i $inchworm_file  -weld_graph $welds_to_cluster_file_sorted -min_contig_length $min_contig_length ";
 
         if ($CHRYSALIS_DEBUG_WELD_ALL) {
             $bubble_cluster_cmd .= " -debug_weld_all ";
@@ -2347,10 +2371,21 @@ sub run_inchworm {
             print STDERR "WARNING:  --no_run_inchworm parameter in effect.  Stopping here prior to running inchworm.\n";
             exit(0);
         }
-                
+
+        if ($STOMP_SNPS) {
+            print STDERR "-stomping snps out of kmers before inchworm assembly\n";
+            my $cmd = "$INCHWORM_DIR/SNP_stomper --reads $jelly_kmer_fa_file --kmers $jelly_kmer_fa_file -0kmer_size $KMER_SIZE"; 
+            if ($strand_specific_flag) {
+                $cmd .= " --SS";
+            }
+            $jelly_kmer_fa_file = "$jelly_kmer_fa_file.snps_stomped";
+            $cmd .= " > $jelly_kmer_fa_file 2> $jelly_kmer_fa_file.log";
+            $pipeliner->add_commands( new Command($cmd, ".jellyfish_snp_stomp.ok") );
+            $pipeliner->run();
+        }
         
         $inchworm_cmd = "$INCHWORM_DIR/inchworm --kmers $jelly_kmer_fa_file --run_inchworm -K $KMER_SIZE -L $MIN_IWORM_LEN --monitor 1 $iworm_opts ";
-
+            
         # hold on to the jellyfish file - we might use it for other applications.
         #push (@tmp_files, $jelly_finished_checkpoint_file, $jelly_kmer_fa_file) unless $NO_CLEANUP;
         
@@ -2673,7 +2708,7 @@ sub test_java_failure_capture {
         
     }
     
-    $cmd = "java -Xmx64m -XX:ParallelGCThreads=$bflyGCThreads $JAVA_OPTS -jar $UTILDIR/support_scripts/ExitTester.jar 1";
+    $cmd = "java -Xmx4g -XX:ParallelGCThreads=$bflyGCThreads $JAVA_OPTS -jar $UTILDIR/support_scripts/ExitTester.jar 1"; # use 4G to ensure that it's 64-bit java here.
     eval {
         &process_cmd($cmd);
     };
@@ -2682,7 +2717,7 @@ sub test_java_failure_capture {
         print "-we properly captured the java failure status, as needed.  Looking good.\n" if $VERBOSE;
     }
     else {
-        print STDERR "-we are unable to properly capture java failure status.  Please be sure that java (or any wrapper around java that's being used) can properly capture and propagate failure status before proceeding.\n";
+        print STDERR "-we are unable to properly capture java failure status.  Please be sure that java (or any wrapper around java that's being used) can properly capture and propagate failure status before proceeding.  If your installed java is not 64-bit, note that 64-bit is required.\n";
         exit(1);
     }
 
@@ -3157,14 +3192,15 @@ sub run_genome_guided_Trinity {
     ## Simply index it using samtools.  If it's not coord sorted, samtools will error
     
     my $cmd = "samtools index $genome_guided_bam";
-    eval {
-        &process_cmd($cmd);
-    };
-    if ($@) {
-        die "$@\n\nPlease be sure that your bam file: $genome_guided_bam is coordinate-sorted before running genome-guided Trinity.\n";
+    unless ("-s $genome_guided_bam.bai") {
+        eval {
+            &process_cmd($cmd);
+        };
+        if ($@) {
+            die "$@\n\nPlease be sure that your bam file: $genome_guided_bam is coordinate-sorted before running genome-guided Trinity.\n";
+        }
     }
     
-
     $cmd = "$UTILDIR/support_scripts/prep_rnaseq_alignments_for_genome_assisted_assembly.pl --coord_sorted_SAM $genome_guided_bam -I $genome_guided_max_intron --sort_buffer $max_memory --CPU $CPU ";
     
     if ($SS_lib_type) {
@@ -3366,17 +3402,16 @@ sub version_check {
     
     print "Trinity version: $VERSION\n";
     
-    my $url = "http://rt-trinity.uits.indiana.edu/flask/version/" . $VERSION . "?timestamp=" . time;
-    #print STDERR "curl --connect-timeout 10 -s \"$url\"";
-    my $content = `curl -m 5 --connect-timeout 5 --max-time 5 -s "$url" 2>&1`;
+    #my $url = "http://rt-trinity.uits.indiana.edu/flask/version/" . $VERSION . "?timestamp=" . time;
+    #my $content = `curl -m 5 --connect-timeout 5 --max-time 5 -s "$url" 2>&1`;
     
     
     
     ## get release info from here:
     ## https://api.github.com/repos/trinityrnaseq/trinityrnaseq/releases
 
-    $url = "https://api.github.com/repos/trinityrnaseq/trinityrnaseq/releases";
-    $content = `curl -m 5 --connect-timeout 5 --max-time 5 -s "$url" 2>&1 `;
+    my $url = "https://api.github.com/repos/trinityrnaseq/trinityrnaseq/releases";
+    my $content = `curl -m 5 --connect-timeout 5 --max-time 5 -s "$url" 2>&1 `;
     
     if ( (! $content) || $?) {
         

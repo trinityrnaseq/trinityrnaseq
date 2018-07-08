@@ -11,7 +11,8 @@ class DeBruijnKmer {
 public:
 
     DeBruijnKmer(kmer_int_type_t k, long long kmer_id); // kmer_id is just a unique identifier for that node, having nothing inherrently to do w/ sequence info itself.
-    DeBruijnKmer(const DeBruijnKmer& dk);
+
+    //DeBruijnKmer(const DeBruijnKmer& dk);    # use default copy constructor
     
     long long getID() const;
     kmer_int_type_t get_kmer_int_val() const;
@@ -24,11 +25,17 @@ public:
 
     string toString(int kmer_length);
     
-    
-    //private:
+    unsigned int increment_kmer_count(unsigned int kmer_count);
+    unsigned int get_kmer_count() const;
+
+    void add_kmer_annotation(string annotation);
+    vector<string> get_kmer_annotations();
     
     long long id;
     kmer_int_type_t _kmer ;
+    unsigned int _kmer_count;
+    vector<string> _annotations;
+    
     
     char _prev; // bit array GATC indicating prev kmers
     char _next; // ditto for next kmers
@@ -38,7 +45,7 @@ public:
     static const char _T_mask; // = 2;
     static const char _C_mask; // = 1;
     
-
+    string get_annotations_string();
     
     
 };
@@ -53,15 +60,15 @@ public:
 
     DeBruijnGraph(unsigned int kmer_length);
 
-    void add_sequence(const string& sequence);
+    void add_sequence(const string& accession, const string& sequence, bool sStrand, unsigned int cov_val);
     
     DeBruijnKmer& get_kmer_node(kmer_int_type_t t);    
     
     string toString();
-    
+    string toDOT(bool sStrand);    
     string toChrysalisFormat(int component_id, bool sStrand);
     
-    vector<kmer_int_type_t> get_root_kmers();
+    vector<DeBruijnKmer> get_root_kmers(bool sStrand);
     
     bool kmerExists(kmer_int_type_t kval);
     
@@ -79,8 +86,6 @@ private:
     map<kmer_int_type_t,DeBruijnKmer> _kmer_map;
     
         
-    vector<DeBruijnKmer> deconvolute_DS_mirror_graph();
-    
     void recursively_construct_kmer_extensions(kmer_int_type_t seed_kmer_val, 
                                                vector<char>& kmer_extension_chars, 
                                                vector<string>& extension_kmer_strings, 

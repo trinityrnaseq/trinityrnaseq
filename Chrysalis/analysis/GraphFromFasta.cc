@@ -669,7 +669,7 @@ bool sort_pool_sizes_ascendingly(const Pool& a, const Pool& b) {
 }
 
 
-void report_iworm_graph(map<int,Pool>& pool, map<int,bool>& toasted) {
+void report_iworm_graph(map<int,Pool>& pool, map<int,bool>& toasted, map<int,int>& iworm_lengths) {
 
     vector<Pool> pool_vec;
     for (map<int,Pool>::iterator it = pool.begin(); it != pool.end(); it++) {
@@ -714,6 +714,10 @@ void report_iworm_graph(map<int,Pool>& pool, map<int,bool>& toasted) {
 
                 unsigned int iworm_A =  pool_id;
                 unsigned int iworm_B = adjacent_nodes[j];
+
+                int iworm_A_length = iworm_lengths[iworm_A];
+                int iworm_B_length = iworm_lengths[iworm_B];
+
                 string iworm_pair_token = make_iworm_pair_token(iworm_A, iworm_B);
 
                 unsigned int weld_support = iworm_pair_to_weld_support[iworm_pair_token];
@@ -727,7 +731,9 @@ void report_iworm_graph(map<int,Pool>& pool, map<int,bool>& toasted) {
                 s << iworm_A << " -> " << iworm_B
                   << " " << "weldmers: " << weld_support
                   << " scaff_pairs: " << scaffold_pairs
-                  << " total: " << total_support <<  endl;
+                  << " total: " << total_support
+                  << " min_len: " << min(iworm_A_length, iworm_B_length)
+                  << endl;
                 
                 cout << s.str();
             }
@@ -1429,6 +1435,8 @@ int main(int argc,char** argv)
     cerr << "Phase 2: Reclustering iworm contigs using welds."  << "\n";
     
     iworm_counter = 0; // reset
+
+    map<int,int> iworm_lengths;
     
     #pragma omp parallel for schedule(dynamic, schedule_chunksize) private(j)
     for (i=0; i<dna.size(); i++) {
@@ -1445,6 +1453,8 @@ int main(int argc,char** argv)
         
         int cutoff = 0;
         DNAVector & d = dna[i];
+        iworm_lengths[i] = d.isize();
+        
         if (d.isize() < k) {
             
             if (DEBUG) {
@@ -1740,7 +1750,7 @@ int main(int argc,char** argv)
     
     // sl_clustered_pools = sl_cluster_pools(weld_reinforced_iworm_clusters, toasted);
     
-    report_iworm_graph(weld_reinforced_iworm_clusters, toasted);
+    report_iworm_graph(weld_reinforced_iworm_clusters, toasted, iworm_lengths);
         
     return 0;
     

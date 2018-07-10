@@ -905,16 +905,9 @@ if ($TRINITY_COMPLETE_FLAG) {
     
     ## iworm opts
 
-    #unless ($iworm_opts =~ /min_seed_entropy/) {
-    #    $iworm_opts .= " --min_seed_entropy 0.5 ";
-    #}
-    #unless ($iworm_opts =~ /min_ratio_non_error/) {
-    #    $iworm_opts .= " --min_ratio_non_error 0.02 ";
-    #}
+    $inchworm_cpu = 1; 
+    $NO_PARALLEL_IWORM = 1;
     
-    # $glue_factor = 0.03;
-
-
     unless ($NORMALIZE_READS_FLAG) {
         ## do not normalize by default when in trinity-complete mode. Normalizion should have been done earlier.
         $NO_NORMALIZE_READS_FLAG = 1;
@@ -1081,12 +1074,6 @@ if ($bflyHeapSpaceInitBytes > $bflyHeapSpaceMaxBytes) {
 
 if ($inchworm_cpu > $CPU) {
     $inchworm_cpu = $CPU;
-}
-
-if ($TRINITY_COMPLETE_FLAG) {
-    # strict inchworm
-    $inchworm_cpu = 1; 
-    $NO_PARALLEL_IWORM = 1;
 }
 
 if ($bflyCalculateCPU && $jellyfish_ram) {

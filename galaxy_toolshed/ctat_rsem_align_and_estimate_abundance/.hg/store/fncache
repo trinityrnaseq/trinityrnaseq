@@ -1,0 +1,12 @@
+data/ctat_rsem_align_and_estimate_abundance.xml.i
+data/test-data/reads.right.simPE.fq.i
+data/test-data/reads.right.simPE.fq.d
+data/test-data/Sp_hs.right.fq.d
+data/test-data/reads.left.simPE.fq.d
+data/test-data/Sp_hs.left.fq.i
+data/test-data/reads.left.simPE.fq.i
+data/test-data/Sp_hs.left.fq.d
+data/ctat_trinity_tool_wrapper.py.i
+data/test-data/Sp.Trinity.fasta.i
+data/test-data/reads.simPE.Trinity.fasta.i
+data/test-data/Sp_hs.right.fq.i

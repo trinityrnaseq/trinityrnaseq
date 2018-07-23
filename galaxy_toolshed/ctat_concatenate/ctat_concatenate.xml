@@ -1,0 +1,66 @@
+<tool id="ctat_concatenate" name="ctat_concatenate" version="1.0.0" profile="17.05">
+    <description> concatenate datasets from tail to head</description>
+    <requirements>
+        <requirement type="package" version="2.7">python</requirement>
+    </requirements>
+
+    <command detect_errors="exit_code">
+      <![CDATA[
+        python $__tool_directory__/ctat_bash_command_executer.py cat
+        $input1
+        #for $q in $queries
+            ${q.input2}
+        #end for
+        > $out_file1 
+      ]]>
+    </command>
+    <inputs>
+        <param name="input1" type="data" label="Concatenate Dataset"/>
+        <repeat name="queries" title="Dataset">
+            <param name="input2" type="data" label="Select" />
+        </repeat>
+    </inputs>
+    <outputs>
+        <data name="out_file1" format="input" metadata_source="input1"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <param name="input1" value="Sp_ds.left.fq"/>
+            <param name="input2" value="Sp_hs.left.fq"/>
+            <output name="out_file1" file="Sp.cat_ds_hs.left.fq">
+                <assert_contents>
+                    <has_line_matching expression=".+" />
+                </assert_contents>
+            </output>
+        </test>
+        <test>
+            <param name="input1" value="Sp_ds.right.fq"/>
+            <param name="input2" value="Sp_hs.right.fq"/>
+            <output name="out_file1" file="Sp.cat_ds_hs.right.fq">
+                <assert_contents>
+                    <has_line_matching expression=".+" />
+                </assert_contents>
+            </output>
+        </test>
+        <!--TODO: if possible, enhance the underlying test code to handle this test
+            the problem is multiple params with the same name "input2"
+        <test>
+            <param name="input1" value="1.bed"/>
+            <param name="input2" value="2.bed"/>
+            <param name="input2" value="3.bed"/>
+            <output name="out_file1" file="cat_wrapper_out2.bed"/>
+        </test>
+        -->
+    </tests>
+    <help>
+.. class:: infomark 
+
+Combine left and right reads of paired ends for different conditions into a single target for Trinity assembly.
+
+If you are following the Trinity RNA-seq protocol please go here_ for a galaxy tool walk through or the Nature Protocols paper_.
+
+.. _here: https://github.com/trinityrnaseq/GalaxyTrinityProtocol/wiki
+.. _paper: http://www.nature.com/nprot/journal/v8/n8/full/nprot.2013.084.html
+    </help>
+</tool>

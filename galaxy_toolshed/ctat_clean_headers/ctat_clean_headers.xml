@@ -1,0 +1,31 @@
+<tool id="ctat_clean_headers" name="ctat_clean_headers" version="1.0.0" profile="17.05">
+    <description>Clean read headers of fastq files</description>
+    <requirements>
+        <requirement type="package" version="5">perl</requirement>
+    </requirements>
+    <command detect_errors="exit_code">
+      perl -lpe 'if (m/^[@+]/){ s/ //g}' "$input" > "$output"
+    </command>
+    <macros>
+    </macros>
+    <stdio>
+      <exit_code range="1:"  level="fatal"   description="Error returned from pipeline" />
+    </stdio>
+    <regex match="Must investigate error above."
+           source="stderr"
+           level="fatal"
+           description="Unknown error encountered" />
+    <inputs>
+      <param format="fastq" name="input" type="data" label="Fastq file with reads to be cleaned" help=""/>
+    </inputs>
+    <outputs>
+      <data format="fastq" name="output" label="Cleaned ${on_string}" />
+    </outputs>
+    <tests>
+    </tests>
+    <help>
+      Removes whitespace from the header of each read in a fastq file. If your Trinity run gives you errors with dying threads during the normalization step, try this tool on each input first.
+    </help>
+    <citations>
+    </citations>
+</tool>

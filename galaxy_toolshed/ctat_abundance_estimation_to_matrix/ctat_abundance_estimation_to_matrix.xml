@@ -1,0 +1,101 @@
+<tool id="ctat_abundance_estimation_to_matrix" name="ctat_abundance_estimation_to_matrix" version="1.0.0" profile="17.05">
+
+    <description>Join RSEM estimates from multiple samples into a single matrix</description>
+    <requirements>
+        <requirement type="package" version="2.7">python</requirement>
+        <requirement type="package">subprocess32</requirement>
+        <requirement type="package">bzip2</requirement>
+        <requirement type="package" version="1.3.0">rsem</requirement>
+        <requirement type="package" version="3">bioconductor-edger</requirement>
+        <requirement type="package" version="2">bioconductor-qvalue</requirement>
+        <requirement type="package" version="2.6.6">trinity</requirement>
+    </requirements>
+    <command detect_errors="exit_code">
+        <![CDATA[
+        python $__tool_directory__/ctat_abundance_estimation_to_matrix.py 
+#for $q in $RSEM_samples
+${q.file} "${q.column_label}"
+#end for
+        ]]>
+
+    </command>
+    <inputs>
+
+       <repeat name="RSEM_samples" title="RSEM abundance estimates for samples">
+              <param name="file" label="Add file" type="data" format="txt"/>
+              <param name="column_label" label="column label" type="text" />
+       </repeat>
+
+    </inputs>
+    <outputs>
+        <data format="tabular" name="counts_matrix" label="${tool.name} on ${on_string}: Counts Matrix" from_work_dir="RSEM.isoform.counts.matrix"/>
+        <data format="tabular" name="tmm_expr_matrix" label="${tool.name} on ${on_string}: TMM EXPR Matrix" from_work_dir="RSEM.isoform.TMM.EXPR.matrix"/>
+</outputs>
+    <tests>
+<test>
+                <repeat name="RSEM_samples">
+                    <param name="file" value="Sp_ds.RSEM.genes.results" />
+                    <param name="column_label" value="Sp_ds" />
+                </repeat>
+                <repeat name="RSEM_samples">
+                    <param name="file" value="Sp_hs.RSEM.genes.results" />
+                    <param name="column_label" value="Sp_hs" />
+                </repeat>
+
+        <output name="counts_matrix" >
+                    <assert_contents>
+                        <has_line_matching expression=".+" />
+                        <has_line line="&#009;Sp_ds&#009;Sp_hs" />
+                        <has_n_columns n="3" />
+                        <has_line_matching expression="TRINITY_DN.+" />
+                    </assert_contents>
+                </output>
+        <output name="tmm_expr_matrix" >
+                    <assert_contents>
+                        <has_line_matching expression=".+" />
+                        <has_line line="&#009;Sp_ds&#009;Sp_hs" />
+                        <has_n_columns n="3" />
+                        <has_line_matching expression="TRINITY_DN.+" />
+                    </assert_contents>
+                </output>
+        </test>
+        <!-- The following test has not been tested to see if it works.
+<test>
+                <repeat name="RSEM_samples">
+                    <param name="file" value="Sp_ds.RSEM.isoforms.results" />
+                    <param name="column_label" value="Sp_ds" />
+                </repeat>
+                <repeat name="RSEM_samples">
+                    <param name="file" value="Sp_hs.RSEM.isoforms.results" />
+                    <param name="column_label" value="Sp_hs" />
+                </repeat>
+
+        <output name="counts_matrix" >
+                    <assert_contents>
+                        <has_line_matching expression=".+" />
+                    </assert_contents>
+                </output>
+        <output name="tmm_expr_matrix" >
+                    <assert_contents>
+                        <has_line_matching expression=".+" />
+                    </assert_contents>
+                </output>
+        </test>
+        -->
+    </tests>
+    <help>
+.. class:: infomark 
+
+This step will join the RSEM-computed gene or isoform fragment counts into a matrix file, which will be used to run edgeR and identify differentially expressed transcripts in next few steps. Execution of this will generate a counts matrix file with a name 'abundance_estimation_to_matrix: counts_matrix'.
+
+If you are following the Trinity RNA-seq protocol please go here_ for a galaxy tool walk through or the Nature Protocols paper_.
+
+.. _here: https://github.com/trinityrnaseq/GalaxyTrinityProtocol/wiki
+.. _paper: http://www.nature.com/nprot/journal/v8/n8/full/nprot.2013.084.html
+    </help>
+
+    <citations>
+        <citation type="doi">10.1038/nbt.1883</citation>
+    </citations>
+
+</tool>

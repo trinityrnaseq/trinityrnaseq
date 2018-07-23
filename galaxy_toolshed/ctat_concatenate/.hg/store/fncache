@@ -1,0 +1,10 @@
+data/ctat_bash_command_executer.py.i
+data/ctat_concatenate.xml.i
+data/test-data/Sp_ds.left.fq.i
+data/test-data/Sp_hs.right.fq.d
+data/test-data/Sp_ds.right.fq.i
+data/test-data/Sp_hs.left.fq.i
+data/test-data/Sp_hs.left.fq.d
+data/test-data/Sp_ds.left.fq.d
+data/test-data/Sp_ds.right.fq.d
+data/test-data/Sp_hs.right.fq.i

@@ -2,7 +2,8 @@
 
 use strict;
 use warnings;
-use lib ($ENV{EUK_MODULES});
+use FindBin;
+use lib ("$FindBin::Bin/../../PerlLib");
 use Fasta_reader;
 
 
@@ -14,7 +15,7 @@ my %seq_to_header;
 
 my $fasta_reader = new Fasta_reader($file);
 while (my $seq_obj = $fasta_reader->next()) {
-
+    
     my $sequence = $seq_obj->get_sequence();
     my $header = $seq_obj->get_header();
     
@@ -26,18 +27,20 @@ while (my $seq_obj = $fasta_reader->next()) {
     }
 }
 
+my $found_dups_flag = 0;
 foreach my $sequence (keys %seq_to_header) {
     my @dups  = @{$seq_to_header{$sequence}};
 
     if (scalar(@dups) > 1) {
-        print "# Repeated seqs\n";
+        print "# Repeated seqs found:\n";
         print join("\n", @dups) . "\n";
         print "$sequence\n\n";
+        $found_dups_flag = 1;
     }
     
 }
 
 
-exit(0);
+exit($found_dups_flag);
 
 

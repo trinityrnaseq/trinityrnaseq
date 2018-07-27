@@ -198,6 +198,8 @@ my $grid_node_max_memory = "1G";
 
 my $min_eff_read_cov = 2.0; # min effective read coverage (#reads * read_len / transcript_len)
 
+my $FORCE_FLAG = 0;
+
 # Note: For the Trinity logo below the backslashes are quoted in order to keep
 #   them from quoting the character than follows them.  "\\" keeps "\ " from occuring.
 
@@ -440,6 +442,10 @@ my $full_usage = qq^
 #            The --grid_node_CPU and --grid_node_max_memory are applied as 
 #              the --CPU and --max_memory parameters for the Trinity jobs run in 
 #              Trinity Phase 2 (assembly of read clusters)
+#
+#  --FORCE                               ignore failed commands from earlier run, continue on. 
+#                                          (Note, this should only be used after you've
+#                                           already dealt with these failed commands directly as needed)
 #
     ^;
 
@@ -728,6 +734,8 @@ my $STOMP_SNPS = 0;
     
 
     "ananas_dir=s" => \$ANANAS_DIR,
+
+    "FORCE" => \$FORCE_FLAG,
     
     );
 
@@ -816,6 +824,7 @@ ananas_dir
 samples_file
 workdir
 stomp_snps
+FORCE
 );   
 
 my %ACCEPTABLE_OPTS = map { + $_ => 1} @__ALL_TRINITY_PARAMS;
@@ -2246,9 +2255,14 @@ sub run_recursive_trinity {
                        . "###################################################################\n\n";
         exit(0);
     }
-    
-    &run_partitioned_cmds("recursive_trinity.cmds");
-    
+
+    if ($FORCE_FLAG) {
+        print STDERR "**  --FORCE flag in effect, moving on to capturing earlier-assembled transcripts.\n";
+    }
+    else {
+        &run_partitioned_cmds("recursive_trinity.cmds");
+    }
+        
     print STDERR "\n\n** Harvesting all assembled transcripts into a single multi-fasta file...\n\n" unless ($TRINITY_COMPLETE_FLAG);
 
 

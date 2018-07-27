@@ -1756,7 +1756,9 @@ sub run_Trinity {
                 
     }
     
-
+    &check_for_duplicate_seqs($Trinity_fasta_file);
+    
+    
     return($Trinity_fasta_file);
 }
 
@@ -1846,8 +1848,8 @@ sub run_chrysalis {
 
             my $bowtie_sam_file = "$chrysalis_output_dir/iworm.bowtie.nameSorted.bam";
             my $samtools_max_memory = int($jellyfish_ram/($CPU*2));
-            #my $bowtie2_scoring = "G,46,0";
-            my $bowtie2_scoring = "G,20,4";
+
+            my $bowtie2_scoring = "G,20,8"; # default bowtie2 params for local alignment
             
             
             $cmd = "bash -c \" set -o pipefail;$bowtie2_path --local -k 2 --no-unal --threads $CPU -f --score-min $bowtie2_scoring -x $iworm_min100_fa_file $bowtie_reads_fa  | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort -m $samtools_max_memory $PARALLEL_SAMTOOLS_SORT_TOKEN -no - - > $bowtie_sam_file\" ";  
@@ -3743,3 +3745,11 @@ sub check_required_3rd_party_tool_installations {
     return;
 }
 
+####
+sub check_for_duplicate_seqs {
+    my ($Trinity_fasta_file) = @_;
+
+    my $cmd = "$UTILDIR/support_scripts/fasta_find_duplicates.pl $Trinity_fasta_file";
+    &process_cmd($cmd);
+
+}

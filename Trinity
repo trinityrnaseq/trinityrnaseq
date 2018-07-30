@@ -1342,7 +1342,7 @@ main: {
         }
     }
 
-    print STDERR "Files: " . join("\n", $Trinity_tmp_fasta_file, $Trinity_tmp_supertranscripts_fasta_file, $Trinity_tmp_supertranscripts_gtf_file) . "\n";
+    #print STDERR "Files: " . join("\n", $Trinity_tmp_fasta_file, $Trinity_tmp_supertranscripts_fasta_file, $Trinity_tmp_supertranscripts_gtf_file) . "\n";
     
     my $final_Trinity_fasta_file;
     if ($FULL_CLEANUP) {

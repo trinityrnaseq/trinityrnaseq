@@ -144,9 +144,9 @@ unless ($matrix_file
     
 }
 
-if ($matrix_file =~ /fpkm/i) {
+if ($matrix_file =~ /fpkm|tpm/i) {
     die "Error, be sure you're using a matrix file that corresponds to raw counts, and not FPKM values.\n"
-        . "If this is correct, then please rename your file, and remove fpkm from the name.\n\n";
+        . "If this is correct, then please rename your file, and remove fpkm or tpm from the name.\n\n";
 }
 
 

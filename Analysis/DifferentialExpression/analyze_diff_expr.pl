@@ -528,7 +528,7 @@ sub write_matrix_generate_heatmap {
     
     foreach my $gene (sort {$genes_href->{$a}<=>$genes_href->{$b}} keys %$genes_href) { # output in rank of DE
         
-        my $row = $fpkm_matrix_rows_href->{$gene} or die "Error, no fpkm row for gene $gene";
+        my $row = $fpkm_matrix_rows_href->{$gene} or die "Error, no expression values row for gene $gene";
         print $ofh "$gene\t$row\n";
     }
     close $ofh;

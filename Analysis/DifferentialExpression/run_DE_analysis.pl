@@ -414,8 +414,9 @@ sub run_edgeR_sample_pair {
     print $ofh "exp_study = calcNormFactors(exp_study)\n";
     
     if ($num_rep_A > 1 && $num_rep_B > 1) {
-        print $ofh "exp_study = estimateCommonDisp(exp_study)\n";
-        print $ofh "exp_study = estimateTagwiseDisp(exp_study)\n";
+        #print $ofh "exp_study = estimateCommonDisp(exp_study)\n";
+        #print $ofh "exp_study = estimateTagwiseDisp(exp_study)\n";
+        print $ofh "exp_study = estimateDisp(exp_study)\n"; # new recommended way
         print $ofh "et = exactTest(exp_study, pair=c(\"$sample_A\", \"$sample_B\"))\n";
     }
     elsif (!$dispersion) {

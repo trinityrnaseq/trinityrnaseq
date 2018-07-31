@@ -1767,9 +1767,24 @@ sub run_Trinity {
         my $salmon_quant_file = "salmon_outdir/quant.sf";
         $cmd = "$UTILDIR/support_scripts/filter_transcripts_require_min_cov.pl $Trinity_fasta_file $inchworm_target_fa $salmon_quant_file $min_eff_read_cov > $Trinity_fasta_file.filt";
         $pipeliner->add_commands( new Command($cmd, "$polish_checkpoints_dir/salmon.filt.ok"));
-        
-        $pipeliner->run();
 
+        eval {
+            $pipeliner->run();
+            
+            
+        };
+
+        if ($@) {
+            print STDERR "-salmon error reported: $@";
+            if ($@ =~ /Salmon was only able to assign 0 fragments to transcripts/) {
+                print STDERR "-no contigs apparently allowed for read inclusion.  Skipping this cluster.\n";
+                return();
+            }
+            else {
+                confess $@;
+            }
+        }
+        
         $Trinity_fasta_file = "$Trinity_fasta_file.filt";
     }
     

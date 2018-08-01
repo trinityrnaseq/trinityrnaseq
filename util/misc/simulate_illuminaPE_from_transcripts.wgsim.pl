@@ -13,6 +13,11 @@ use Cwd;
 
 my $usage = <<__EOUSAGE__;
 
+
+##################################################################
+
+$0
+
 ##################################################################
 #
 # Required:
@@ -29,9 +34,26 @@ my $usage = <<__EOUSAGE__;
 #
 #  --depth_of_cov <int>         default: 100  (100x targeted base coverage)
 #
-#  --SS_lib_type <string>       RF or FR
+####
 #
-#################################################################
+#  following wgsim options are pass-through:
+#
+# Options: 
+#    -e FLOAT      base error rate [0.020]
+#    -s INT        standard deviation [50]
+#    -r FLOAT      rate of mutations [0.0010]
+#    -R FLOAT      fraction of indels [0.15]
+#    -X FLOAT      probability an indel is extended [0.30]
+#    -S INT        seed for random generator [-1]
+#    -A FLOAT      disgard if the fraction of ambiguous bases higher than FLOAT [0.05]
+#    -h            haplotype mode
+#    -Z INT        strand specific mode: 1=FR, 2=RF
+#    -D            debug mode... highly verbose
+#
+#
+############################################################################################
+
+
 
 __EOUSAGE__
 
@@ -43,27 +65,22 @@ my $require_proper_pairs_flag = 0;
 
 my $transcripts;
 my $read_length = 76;
-my $spacing = 1;
 my $frag_length = 300;
 my $help_flag;
 my $out_prefix = "reads";
 my $depth_of_cov = 100;
-my $SS_lib_type = "";
 
-&GetOptions ( 'h' => \$help_flag,
+&GetOptions ( 'help' => \$help_flag,
               'transcripts=s' => \$transcripts,
               'read_length=i' => \$read_length,
               'frag_length=i' => \$frag_length,
               'out_prefix=s' => \$out_prefix,
               'depth_of_cov=i' => \$depth_of_cov,
-              'SS_lib_type=s' => \$SS_lib_type,
+              
               
     );
 
 
-if (@ARGV) {
-    die "Error, dont understand params: @ARGV";
-}
 
 if ($help_flag) {
     die $usage;
@@ -83,27 +100,16 @@ main: {
     
     my $cmd = "wgsim-trans -N $number_reads -1 $read_length -2 $read_length "
         . " -d $frag_length "
-        . " -r 0 "
-        . " -e 0 "
-        ;
-
-    my $token = "wgsim_R${read_length}_F${frag_length}_D${depth_of_cov}";
+        . " @ARGV > $out_prefix.log"; # pass-through to wgsim
     
-    if ($SS_lib_type) {
-
-        $token .= "_${SS_lib_type}";
-        
-        if ($SS_lib_type eq 'FR') {
-            $cmd .= " -Z 1 ";
-        }
-        elsif ($SS_lib_type eq 'RF') {
-            $cmd .= " -Z 2 ";
-        }
-        else {
-            die "Error, don't recognize SS_lib_type: [$SS_lib_type] ";
-        }
+    
+    my $token = "wgsim_R${read_length}_F${frag_length}_D${depth_of_cov}";
+    if (grep { "-Z" } @ARGV) {
+        $token .= "_SS";
     }
-
+    
+    
+    
     my $left_prefix = "$out_prefix.$token.left";
     my $right_prefix = "$out_prefix.$token.right";
     

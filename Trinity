@@ -552,8 +552,6 @@ my $NO_CLEANUP = 0;
 my $FULL_CLEANUP = 0;
 my $NO_BOWTIE = 0;
 
-my $BOWTIE_COMP = 0;
-
 my $NO_RUN_INCHWORM_FLAG = 0;
 
 my $JELLY_S;
@@ -697,7 +695,6 @@ my $STOMP_SNPS = 0;
     'min_pct_read_mapping=i' => \$min_pct_read_mapping,
     'weldmer_size=i' => \$weldmer_size,
     "no_bowtie" => \$NO_BOWTIE,
-    "bowtie_components" => \$BOWTIE_COMP,
     "no_run_chrysalis" => \$NO_RUN_CHRYSALIS_FLAG,
 
     "show_advanced_options" => \$show_advanced_options,
@@ -1986,7 +1983,7 @@ sub run_chrysalis {
         
         my $welds_to_cluster_file = "$chrysalis_output_dir/iworm_cluster_welds_graph.txt";
         
-        my $graphFromFasta_cmd = "$CHRYSALIS_DIR/GraphFromFasta -i $inchworm_file -r $inchworm_target_fa -min_contig_length $min_contig_length -min_glue $min_glue -glue_factor $glue_factor -min_iso_ratio $min_iso_ratio -t $CPU -k " . ($KMER_SIZE-1) . " -kk $GRAPH_FROM_FASTA_KK $GRAPH_FROM_FASTA_CUSTOM_PARAMS";
+        my $graphFromFasta_cmd = "$CHRYSALIS_DIR/bin/GraphFromFasta -i $inchworm_file -r $inchworm_target_fa -min_contig_length $min_contig_length -min_glue $min_glue -glue_factor $glue_factor -min_iso_ratio $min_iso_ratio -t $CPU -k " . ($KMER_SIZE-1) . " -kk $GRAPH_FROM_FASTA_KK $GRAPH_FROM_FASTA_CUSTOM_PARAMS";
        
         if ($SS_lib_type) {
             $graphFromFasta_cmd .= " -strand ";
@@ -2015,7 +2012,7 @@ sub run_chrysalis {
         
         ## now cluster into chrysalis components:
         
-        my $bubble_cluster_cmd = "$CHRYSALIS_DIR/BubbleUpClustering -i $inchworm_file  -weld_graph $welds_to_cluster_file_sorted -min_contig_length $min_contig_length ";
+        my $bubble_cluster_cmd = "$CHRYSALIS_DIR/bin/BubbleUpClustering -i $inchworm_file  -weld_graph $welds_to_cluster_file_sorted -min_contig_length $min_contig_length ";
 
         if ($CHRYSALIS_DEBUG_WELD_ALL) {
             $bubble_cluster_cmd .= " -debug_weld_all ";
@@ -2035,7 +2032,7 @@ sub run_chrysalis {
         ## create iworm bundles
         
         
-        my $cmd = "$CHRYSALIS_DIR/CreateIwormFastaBundle -i $graphFromFasta_outfile -o $iworm_bundles_fasta_file -min $min_contig_length";
+        my $cmd = "$CHRYSALIS_DIR/bin/CreateIwormFastaBundle -i $graphFromFasta_outfile -o $iworm_bundles_fasta_file -min $min_contig_length";
         
         
         $chrysalis_pipeliner->add_commands( new Command($cmd, "$iworm_bundles_fasta_file.ok"));
@@ -2046,11 +2043,8 @@ sub run_chrysalis {
     my $reads_to_components_output_file = "$chrysalis_output_dir/readsToComponents.out";
     { 
         ## map reads to chrysalis components:
-        
-        
-        my $cmd = ($BOWTIE_COMP) ? "$CHRYSALIS_DIR/ReadsToComponents.pl" : "$CHRYSALIS_DIR/ReadsToTranscripts";
-        
-        $cmd .= " -i $chrysalis_reads_fa -f $iworm_bundles_fasta_file -o $reads_to_components_output_file -t $CPU -max_mem_reads $max_reads_per_loop ";
+                        
+        my $cmd .= "$CHRYSALIS_DIR/bin/ReadsToTranscripts -i $chrysalis_reads_fa -f $iworm_bundles_fasta_file -o $reads_to_components_output_file -t $CPU -max_mem_reads $max_reads_per_loop ";
         if ($SS_lib_type) {
             $cmd .= " -strand ";
         }
@@ -2161,7 +2155,7 @@ sub run_chrysalis {
 
             { # quantify graph command
                 
-                my $quantify_graph_cmd = "$CHRYSALIS_DIR/QuantifyGraph -g $base_filename.graph.tmp "
+                my $quantify_graph_cmd = "$CHRYSALIS_DIR/bin/QuantifyGraph -g $base_filename.graph.tmp "
                     . " -i $base_filename.reads.tmp "
                     . " -o $base_filename.graph.out "
                     . " -max_reads $max_reads_per_graph "

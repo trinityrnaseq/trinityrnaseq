@@ -50,8 +50,8 @@ set(FastaToDeBruijn_SOURCES src/FastaToDeBruijn.cpp
                             src/string_util.cpp
                             src/stacktrace.cpp
                             src/DeBruijnGraph.cpp)
-add_executable(FastaToDebruijn ${FastaToDeBruijn_SOURCES})
-install(TARGETS FastaToDebruijn DESTINATION bin)
+add_executable(FastaToDeBruijn ${FastaToDeBruijn_SOURCES})
+install(TARGETS FastaToDeBruijn DESTINATION bin)
 
 
 

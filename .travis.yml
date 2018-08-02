@@ -1,0 +1,99 @@
+dist: trusty
+sudo: false
+git:
+  depth: 1
+language: generic
+matrix:
+  include:
+    # http://www.cpan.org/src/
+    # X.XX-shrplib is a perl built with -Duseithreads.
+    # https://docs.travis-ci.com/user/languages/perl/
+    - language: perl
+      perl: "5.26-shrplib"
+    # https://docs.travis-ci.com/user/languages/cpp/
+    - language: cpp
+      compiler : gcc
+    - language: cpp
+      compiler : clang
+    # https://docs.travis-ci.com/user/languages/java/
+    - language: java
+      jdk: oraclejdk9
+    # https://docs.travis-ci.com/user/languages/python/
+    - language: python
+      python: "3.6"
+    # Test old version of the dependency packages.
+    - language: perl
+      perl: "5.18-shrplib"
+      env: BOWTIE2_VERSION=2.2.6
+  allow_failures:
+    - language: cpp
+      compiler : clang
+    - env: BOWTIE2_VERSION=2.2.6
+  fast_finish: true
+addons:
+  apt:
+    packages:
+      # Dependency packages for samtools.
+      - liblzma-dev
+      - libbz2-dev
+      # The samtools package version is 0.1.19.
+      # It's old version not supported for Trinity.
+      #- samtools
+install:
+  - pushd "${HOME}"
+
+  # htslib.
+  # A dependency of samtools.
+  - wget https://github.com/samtools/htslib/archive/1.9.tar.gz
+  - mv 1.9.tar.gz htslib-1.9.tar.gz
+  - tar xzf htslib-1.9.tar.gz
+  - pushd htslib-1.9
+  - make
+  - sudo make install
+  - popd
+
+  # Samtools.
+  # Install from autoconf to avoid a lib file load error on Trinity unit test.
+  - wget https://github.com/samtools/samtools/archive/1.9.tar.gz
+  - mv 1.9.tar.gz samtools-1.9.tar.gz
+  - tar xzf samtools-1.9.tar.gz
+  - pushd samtools-1.9
+  - autoheader
+  - autoconf -Wno-syntax
+  - ./configure
+  - make
+  - sudo make install
+  - popd
+
+  # Bowtie2
+  - export BOWTIE2_VERSION="${BOWTIE2_VERSION:-2.3.4.1}"
+  - wget https://github.com/BenLangmead/bowtie2/releases/download/v${BOWTIE2_VERSION}/bowtie2-${BOWTIE2_VERSION}-linux-x86_64.zip
+  - unzip bowtie2-${BOWTIE2_VERSION}-linux-x86_64.zip
+  - sudo cp -p bowtie2-${BOWTIE2_VERSION}*/bowtie2* /usr/local/bin/
+
+  # Jellyfish
+  - export JELLYFISH_VERSION="${JELLYFISH_VERSION:-2.2.10}"
+  - wget https://github.com/gmarcais/Jellyfish/releases/download/v${JELLYFISH_VERSION}/jellyfish-${JELLYFISH_VERSION}.tar.gz
+  - tar xzf jellyfish-${JELLYFISH_VERSION}.tar.gz
+  - pushd jellyfish-${JELLYFISH_VERSION}
+  - ./configure
+  - make
+  - sudo make install
+  - popd
+
+  # Salmon
+  - export SALMON_VERSION="${SALMON_VERSION:-0.11.2}"
+  - wget https://github.com/COMBINE-lab/salmon/releases/download/v${SALMON_VERSION}/salmon-${SALMON_VERSION}-linux_x86_64.tar.gz
+  - tar xzf salmon-${SALMON_VERSION}-linux_x86_64.tar.gz
+  - sudo ln -s $(pwd)/salmon-${SALMON_VERSION}-linux_x86_64/bin/salmon /usr/local/bin/salmon
+
+  # numpy
+  - sudo pip install numpy
+
+  - popd
+script:
+  - |
+    make && \
+    make plugins && \
+    sudo make install > /dev/null && \
+    make test -C sample_data/test_Trinity_Assembly

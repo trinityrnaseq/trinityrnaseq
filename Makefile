@@ -23,8 +23,7 @@ install:
 
 inchworm_target:
 	@echo Using $(TRINITY_COMPILER) compiler for Inchworm and Chrysalis
-	cd Inchworm && (test -e configure || autoreconf) \
-                && sh ./configure --prefix=`pwd` $(INCHWORM_CONFIGURE_FLAGS) && $(MAKE) install
+	cd Inchworm && make
 
 chrysalis_target:
 	cd Chrysalis && $(MAKE) UNSUPPORTED=yes $(CHRYSALIS_MAKE_FLAGS)

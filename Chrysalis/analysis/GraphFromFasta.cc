@@ -1453,6 +1453,8 @@ int main(int argc,char** argv)
         
         int cutoff = 0;
         DNAVector & d = dna[i];
+        
+        #pragma omp critical
         iworm_lengths[i] = d.isize();
         
         if (d.isize() < k) {

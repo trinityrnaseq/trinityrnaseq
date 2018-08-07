@@ -51,7 +51,7 @@
 # DEFINE GENERAL VARIABLES
 ##############################################################################
 
-DATE = $(shell date)
+DATE = $(shell date --rfc-3339=seconds)
 BUILD_DATETIME ?= $(DATE)  # allow for overrides to enable reproducible builds
 OS_NAME = $(shell uname -s)
 NODE_NAME = $(shell uname -n)

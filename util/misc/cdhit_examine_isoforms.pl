@@ -3,7 +3,9 @@
 use strict;
 use warnings;
 
-my $usage = "\n\tusage: $0 cd-hit.clstr\n\n";
+my $usage = "\n\tusage: $0 cd-hit.clstr\n\n" .
+    "try running cd-hit first like so:\n" .
+    "\tcd-hit-est -o cdhit -c 0.98 -i Trinity.fasta -p 1 -d 0 -b 3 -T 10\n\n";
 
 my $cdhit_file = $ARGV[0] or die $usage;
 

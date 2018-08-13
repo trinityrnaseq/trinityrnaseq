@@ -10,14 +10,14 @@ matrix:
     # https://docs.travis-ci.com/user/languages/perl/
     - language: perl
       perl: "5.26-shrplib"
+      env: CC=gcc-8 CXX=g++-8
     # https://docs.travis-ci.com/user/languages/cpp/
     - language: cpp
-      compiler : gcc
-    - language: cpp
-      compiler : clang
+      compiler: clang
     # https://docs.travis-ci.com/user/languages/java/
     - language: java
       jdk: oraclejdk9
+      env: CC=gcc-6 CXX=g++-6
     # https://docs.travis-ci.com/user/languages/python/
     - language: python
       python: "3.6"
@@ -25,21 +25,54 @@ matrix:
     - language: perl
       perl: "5.18-shrplib"
       env: BOWTIE2_VERSION=2.2.6
+    # https://docs.travis-ci.com/user/reference/osx
+    - os: osx
+      language: cpp
+      # Do not have to set "compiler: gcc" as it is actually clang on osx.
+      compiler: clang
+    - os: osx
+      osx_image: xcode9.4
+      env: CC=gcc-8 CXX=g++-8
   allow_failures:
     - language: cpp
-      compiler : clang
+      compiler: clang
     - env: BOWTIE2_VERSION=2.2.6
   fast_finish: true
-addons:
-  apt:
-    packages:
-      # Dependency packages for samtools.
-      - liblzma-dev
-      - libbz2-dev
-      # The samtools package version is 0.1.19.
-      # It's old version not supported for Trinity.
-      #- samtools
 install:
+  - |
+    if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+      # https://launchpad.net/~ubuntu-toolchain-r/+archive/ubuntu/test
+      sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+      sudo apt-get update -qq
+      # Dependency packages for samtools.
+      sudo apt-get install -qq \
+        liblzma-dev \
+        libbz2-dev
+      if [[ "${CC}" =~ gcc- ]]; then
+        echo "Installing ${CC}."
+        sudo apt-get install -qq "${CC}"
+      fi
+      if [[ "${CXX}" =~ g\+\+- ]]; then
+        echo "Installing ${CXX}."
+        sudo apt-get install -qq "${CXX}"
+      fi
+    else
+      # osx
+      if [[ "${CC}" =~ gcc- ]]; then
+        # Update command line tool to avoid an error:
+        # "_stdio.h: No such file or directory", when building samtools.
+        softwareupdate --list
+        softwareupdate --install "Command Line Tools (macOS High Sierra version 10.13) for Xcode-9.4"
+
+        # Uninstall oclint to install gcc on OSX.
+        # https://github.com/travis-ci/travis-ci/issues/8826
+        brew cask uninstall oclint
+        CC_PKG="$(echo "${CC}" | sed -e 's/-/@/')"
+        echo "Installing ${CC_PKG}."
+        brew install "${CC_PKG}"
+      fi
+    fi
+
   - pushd "${HOME}"
 
   # htslib.
@@ -64,12 +97,21 @@ install:
   - make
   - sudo make install
   - popd
+  - samtools --version
 
   # Bowtie2
   - export BOWTIE2_VERSION="${BOWTIE2_VERSION:-2.3.4.1}"
-  - wget https://github.com/BenLangmead/bowtie2/releases/download/v${BOWTIE2_VERSION}/bowtie2-${BOWTIE2_VERSION}-linux-x86_64.zip
-  - unzip bowtie2-${BOWTIE2_VERSION}-linux-x86_64.zip
+  - |
+    if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+      BOWTIE2_OS_NAME="${TRAVIS_OS_NAME}"
+    else
+      # osx
+      BOWTIE2_OS_NAME=macos
+    fi
+  - wget https://github.com/BenLangmead/bowtie2/releases/download/v${BOWTIE2_VERSION}/bowtie2-${BOWTIE2_VERSION}-${BOWTIE2_OS_NAME}-x86_64.zip
+  - unzip bowtie2-${BOWTIE2_VERSION}-${BOWTIE2_OS_NAME}-x86_64.zip
   - sudo cp -p bowtie2-${BOWTIE2_VERSION}*/bowtie2* /usr/local/bin/
+  - bowtie2 --version
 
   # Jellyfish
   - export JELLYFISH_VERSION="${JELLYFISH_VERSION:-2.2.10}"
@@ -80,12 +122,28 @@ install:
   - make
   - sudo make install
   - popd
+  - jellyfish --version
 
   # Salmon
-  - export SALMON_VERSION="${SALMON_VERSION:-0.11.2}"
-  - wget https://github.com/COMBINE-lab/salmon/releases/download/v${SALMON_VERSION}/salmon-${SALMON_VERSION}-linux_x86_64.tar.gz
-  - tar xzf salmon-${SALMON_VERSION}-linux_x86_64.tar.gz
-  - sudo ln -s $(pwd)/salmon-${SALMON_VERSION}-linux_x86_64/bin/salmon /usr/local/bin/salmon
+  - |
+    if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+      export SALMON_VERSION="${SALMON_VERSION:-0.11.2}"
+      wget https://github.com/COMBINE-lab/salmon/releases/download/v${SALMON_VERSION}/salmon-${SALMON_VERSION}-linux_x86_64.tar.gz
+      tar xzf salmon-${SALMON_VERSION}-linux_x86_64.tar.gz
+      sudo ln -s $(pwd)/salmon-${SALMON_VERSION}-linux_x86_64/bin/salmon /usr/local/bin/salmon
+    else
+      # osx
+      # osx binary archive with required shared library files (tbb + libc++).
+      # https://github.com/COMBINE-lab/salmon/issues/260
+      wget https://github.com/COMBINE-lab/salmon/files/2284726/salmon-latest_mac_osx_sierra_x86_64.tar.gz
+      tar xzvf salmon-latest_mac_osx_sierra_x86_64.tar.gz
+      sudo cp -p salmon-*/bin/salmon /usr/local/bin/salmon
+      # Check used shared libraries.
+      otool -L /usr/local/bin/salmon
+      # Copy the bundled required library files.
+      sudo cp -p salmon-*/lib/*.{a,dylib} /usr/local/lib/
+    fi
+  - salmon --version
 
   # numpy
   - sudo pip install numpy

@@ -13,27 +13,27 @@ then
 else
 	echo "Inchworm Installation appears to have FAILED"
 fi
-if [ -e "Chrysalis/Chrysalis" ]
+if [ -e "Chrysalis/bin/Chrysalis" ]
 then
 	echo "Chrysalis:               has been Installed Properly"
 else
 	echo "Chrysalis Installation appears to have FAILED"
 fi
-if [ -e "Chrysalis/QuantifyGraph" ]
+if [ -e "Chrysalis/bin/QuantifyGraph" ]
 then
 	echo "QuantifyGraph:           has been Installed Properly"
 else
 	echo "QuantifyGraph Installation appears to have FAILED"
 fi
 
-if [ -e "Chrysalis/GraphFromFasta" ]
+if [ -e "Chrysalis/bin/GraphFromFasta" ]
 then
 	echo "GraphFromFasta:          has been Installed Properly"
 else
 	echo "GraphFromFasta Installation appears to have FAILED"
 fi
 
-if [ -e "Chrysalis/ReadsToTranscripts" ]
+if [ -e "Chrysalis/bin/ReadsToTranscripts" ]
 then
 	echo "ReadsToTranscripts:      has been Installed Properly"
 else

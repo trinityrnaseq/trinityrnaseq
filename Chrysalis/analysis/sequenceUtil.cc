@@ -50,7 +50,7 @@ bool contains_non_gatc (string kmer) {
 string read_sequence_from_file (string filename) {
   
   ifstream fileReader (filename.c_str());
-  if (fileReader == 0) { // couldn't open file
+  if (! fileReader.is_open()) { // couldn't open file
 	throw(stacktrace() + "\n\nCould not open " + filename + "\n");
   }
   

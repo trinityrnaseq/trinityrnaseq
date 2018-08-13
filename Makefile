@@ -23,11 +23,10 @@ install:
 
 inchworm_target:
 	@echo Using $(TRINITY_COMPILER) compiler for Inchworm and Chrysalis
-	cd Inchworm && (test -e configure || autoreconf) \
-                && sh ./configure --prefix=`pwd` $(INCHWORM_CONFIGURE_FLAGS) && $(MAKE) install
+	cd Inchworm && $(MAKE)
 
 chrysalis_target:
-	cd Chrysalis && $(MAKE) UNSUPPORTED=yes $(CHRYSALIS_MAKE_FLAGS)
+	cd Chrysalis && $(MAKE)
 
 
 trinity_essentials:
@@ -48,10 +47,10 @@ test:
 	@echo "Run 'make test_trinity' if you want to test Trinity execution on a small data set"
 
 clean:
-	cd Inchworm && make clean
-	cd Chrysalis && $(MAKE) clean UNSUPPORTED=yes
+	cd Inchworm && $(MAKE) clean
+	cd Chrysalis && $(MAKE) clean 
 	cd trinity-plugins && $(MAKE) clean 
-	cd sample_data/ && make clean
+	cd sample_data/ && $(MAKE) clean
 
 
 test_trinity:

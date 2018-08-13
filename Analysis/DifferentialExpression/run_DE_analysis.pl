@@ -144,9 +144,9 @@ unless ($matrix_file
     
 }
 
-if ($matrix_file =~ /fpkm/i) {
+if ($matrix_file =~ /fpkm|tpm/i) {
     die "Error, be sure you're using a matrix file that corresponds to raw counts, and not FPKM values.\n"
-        . "If this is correct, then please rename your file, and remove fpkm from the name.\n\n";
+        . "If this is correct, then please rename your file, and remove fpkm or tpm from the name.\n\n";
 }
 
 
@@ -395,10 +395,13 @@ sub run_edgeR_sample_pair {
 
     ## write R-script to run edgeR
     open (my $ofh, ">$Rscript_name") or die "Error, cannot write to $Rscript_name";
-    
-    print $ofh "library(edgeR)\n";
 
-    print $ofh "\n";
+    print $ofh "if (! require(edgeR)) {\n";
+    print $ofh "   source(\"https://bioconductor.org/biocLite.R\")\n";
+    print $ofh "   biocLite(\"edgeR\")\n";
+    print $ofh "   library(edgeR)\n";
+    print $ofh "}\n\n";
+    
     
     print $ofh "data = read.table(\"$matrix_file\", header=T, row.names=1, com='')\n";
     print $ofh "col_ordering = c(" . join(",", @rep_column_indices) . ")\n";
@@ -411,8 +414,9 @@ sub run_edgeR_sample_pair {
     print $ofh "exp_study = calcNormFactors(exp_study)\n";
     
     if ($num_rep_A > 1 && $num_rep_B > 1) {
-        print $ofh "exp_study = estimateCommonDisp(exp_study)\n";
-        print $ofh "exp_study = estimateTagwiseDisp(exp_study)\n";
+        #print $ofh "exp_study = estimateCommonDisp(exp_study)\n";
+        #print $ofh "exp_study = estimateTagwiseDisp(exp_study)\n";
+        print $ofh "exp_study = estimateDisp(exp_study)\n"; # new recommended way
         print $ofh "et = exactTest(exp_study, pair=c(\"$sample_A\", \"$sample_B\"))\n";
     }
     elsif (!$dispersion) {
@@ -489,9 +493,16 @@ sub run_DESeq2_sample_pair {
 
     ## write R-script to run DESeq
     open (my $ofh, ">$Rscript_name") or die "Error, cannot write to $Rscript_name";
-    print $ofh "library(edgeR)\n";
-    print $ofh "library(DESeq2)\n";
-    print $ofh "\n";
+    print $ofh "if (! require(edgeR)) {\n";
+    print $ofh "   source(\"https://bioconductor.org/biocLite.R\")\n";
+    print $ofh "   biocLite(\"edgeR\")\n";
+    print $ofh "   library(edgeR)\n";
+    print $ofh "}\n\n";
+    print $ofh "if (! require(DESeq2)) {\n";
+    print $ofh "   source(\"https://bioconductor.org/biocLite.R\")\n";
+    print $ofh "   biocLite(\"DESeq2\")\n";
+    print $ofh "   library(DESeq2)\n";
+    print $ofh "}\n\n";
 
     print $ofh "data = read.table(\"$matrix_file\", header=T, row.names=1, com='')\n";
     print $ofh "col_ordering = c(" . join(",", @rep_column_indices) . ")\n";

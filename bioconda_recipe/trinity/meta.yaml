@@ -43,8 +43,7 @@ source:
   url: https://github.com/trinityrnaseq/trinityrnaseq/archive/Trinity-v2.6.6.tar.gz
   sha256: 868dfadeefaf2d3c6150a88d5e86fbc09466d69bbf4a65f70b4f5a7485668984
   patches:
-    - makefile.clean.patch
-    - trinity-plugins.makefile.clean.patch
+    - chrysalis.bioconda.patch
 
 test:
   commands:

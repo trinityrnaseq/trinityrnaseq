@@ -15,28 +15,9 @@ fi
 ##  Run Trinity to Generate Transcriptome Assemblies ##
 #######################################################
 
-## use jellyfish
-../../Trinity --seqType fq --max_memory 2G --left reads.left.fq --right reads.right.fq --SS_lib_type RF --CPU 4 --trimmomatic --normalize_reads --output __test_trinity_qual_and_norm
+
+${TRINITY_HOME}/Trinity --seqType fq --max_memory 2G --left reads.left.fq --right reads.right.fq --SS_lib_type RF --CPU 4 --trimmomatic --normalize_reads --output __test_trinity_qual_and_norm
 
 ##### Done Running Trinity #####
 
-if [ ! $* ]; then
-    exit 0
-fi
-
-
-sleep 2
-
-
-###########################################
-# use RSEM to estimate read abundance  ####
-###########################################
-
-sleep 2
-
-../../util/RSEM_util/run_RSEM_align_n_estimate.pl  --transcripts trinity_out_dir/Trinity.fasta --seqType fq --left reads.left.fq --right reads.right.fq --SS_lib_type RF 
-
-###### Done running RSEM ########
-
-
-
+exit 0

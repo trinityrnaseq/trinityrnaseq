@@ -1,6 +1,6 @@
 
-PROJECT_ROOT   = ..
-LIBDIR         = ${PROJECT_ROOT}/lib
+__PROJECT_ROOT   = ..
+LIBDIR         = ${__PROJECT_ROOT}/lib
 
 # Individual Program Modifications Should Begin Here
 
@@ -27,8 +27,8 @@ LOCAL_CXXFLAGS   = -Wall
 # THE REST OF THE MAKEFILE SHOULD NOT NEED TO BE MODIFIED
 # (EXCEPT BY THE PROJECT SOFTWARE DEVELOPMENT MANAGER)
 
-BIN           = ${PROJECT_ROOT}/bin
-INCLUDE       = ${PROJECT_ROOT}/include
+BIN           = ${__PROJECT_ROOT}/bin
+INCLUDE       = ${__PROJECT_ROOT}/include
 
 DEBUG         = DEBUG
 CXXFLAGS        += -I${INCLUDE} ${LOCAL_CXXFLAGS}

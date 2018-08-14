@@ -133,14 +133,35 @@ ENV LD_LIBRARY_PATH=/usr/local/lib
 RUN pip install numpy
 
 
+RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("fastcluster", dep = TRUE)'
+
+## patch the RSEM install... need convert-sam-for-rsem  too!
+WORKDIR $SRC
+RUN wget https://github.com/deweylab/RSEM/archive/v1.3.0.tar.gz && \
+	 tar xvf v1.3.0.tar.gz && \
+     cd RSEM-1.3.0 && \
+     make && \
+     cp rsem-* $BIN && \
+     cp convert-sam-for-rsem $BIN && \
+     cp rsem_perl_utils.pm /usr/local/lib/site_perl/ && \
+     cd ../ && rm -r RSEM-1.3.0
+
+# adding multiqc
+RUN pip install git+https://github.com/ewels/MultiQC.git
+
+
+
+
 ##########
 ## Trinity
 
 
 WORKDIR $SRC
 
-ENV TRINITY_VERSION="2.6.6"
-ENV TRINITY_CO="06f284a"
+RUN apt-get update && apt-get install -y cmake
+
+ENV TRINITY_VERSION="2.8.0"
+ENV TRINITY_CO="fb053c9e187c36a8896fa3f73941ea05a2280cf8"
 
 WORKDIR $SRC
 
@@ -158,19 +179,3 @@ ENV PATH=${TRINITY_HOME}:${PATH}
 COPY Dockerfile $SRC/Dockerfile.$TRINITY_VERSION
 
 
-
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("fastcluster", dep = TRUE)'
-
-## patch the RSEM install... need convert-sam-for-rsem  too!
-WORKDIR $SRC
-RUN wget https://github.com/deweylab/RSEM/archive/v1.3.0.tar.gz && \
-    tar xvf v1.3.0.tar.gz && \
-            cd RSEM-1.3.0 && \
-                        make && \
-                                        cp rsem-* $BIN && \
-                                                        cp convert-sam-for-rsem $BIN && \
-                                                                            cp rsem_perl_utils.pm /usr/local/lib/site_perl/ && \
-                                                                                                    cd ../ && rm -r RSEM-1.3.0
-
-# adding multiqc
-RUN pip install git+https://github.com/ewels/MultiQC.git

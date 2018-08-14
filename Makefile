@@ -6,6 +6,9 @@
 # to build Inchworm and Chrysalis with the Intel compiler.
 #
 
+
+export TRINITY_HOME = $(PWD)
+
 ifeq ($(TRINITY_COMPILER),intel)
  INCHWORM_CONFIGURE_FLAGS = CXX=icpc CXXFLAGS="-fast"
  CHRYSALIS_MAKE_FLAGS = COMPILER=icpc

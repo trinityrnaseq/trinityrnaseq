@@ -1,10 +1,20 @@
-# Patch Release v2.6.6
+# Release v2.8.0
+-now using cmake for Inchworm and Chrysalis builds
+-new option '--include_supertranscripts' to output the supertranscripts in addition to the Trinity.fasta file.
+-Updates for improved handling of non-strand-specific RNA-Seq and high polymorphism containing transcriptomes. (from v2.7.0-prerelease)
+
+
+# Trinity v2.7.0-PRERELEASE  July 8, 2018
+Updates for improved handling of non-strand-specific RNA-Seq and high polymorphism containing transcriptomes.
+
+
+# Patch Release v2.6.6  Mar 12, 2018
 
 -minor updates to trinity gene splice modeler for python-3 compatibility
 -update to R command execution that improves use on computing grids.
 
 
-# Release v2.6.5
+# Release v2.6.5  Feb 13, 2018
 -incorporates salmon for quick expression estimates and filtering of likely artifacts
 -drops bundling of jellyfish and samtools - now leverages user-installed versions of tools.
 -overhauled supertranscript module, improvements around high-polymorphism situations.

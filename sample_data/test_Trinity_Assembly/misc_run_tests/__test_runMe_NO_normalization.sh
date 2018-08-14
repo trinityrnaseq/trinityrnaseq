@@ -16,7 +16,7 @@ fi
 #######################################################
 
 ## use jellyfish
-../../Trinity --seqType fq \
+${TRINITY_HOME}/Trinity --seqType fq \
               --max_memory 2G \
               --left reads.left.fq \
               --right reads.right.fq \

@@ -15,13 +15,16 @@ fi
 ##  Run Trinity to Generate Transcriptome Assemblies ##
 #######################################################
 
-../../Trinity --seqType fq --max_memory 2G \
+${TRINITY_HOME}/Trinity --seqType fq --max_memory 2G \
               --left reads.left.fq \
               --right reads.right.fq \
               --SS_lib_type RF \
               --CPU 4 \
               --output trinity_with_workdir \
               --workdir  /tmp/trinity.workdir.$$ --full_cleanup
+
+
+exit 0
 
 
 

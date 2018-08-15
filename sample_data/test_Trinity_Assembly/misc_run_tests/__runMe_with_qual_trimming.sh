@@ -15,8 +15,8 @@ fi
 ##  Run Trinity to Generate Transcriptome Assemblies ##
 #######################################################
 
-## use jellyfish
-../../Trinity \
+
+${TRINITY_HOME}/Trinity \
     --seqType fq \
     --max_memory 2G \
     --left reads.left.fq \

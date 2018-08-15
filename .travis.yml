@@ -93,6 +93,7 @@ install:
   - popd
 script:
   - |
+    export TRINITY_HOME=`pwd` && \
     make && \
     make plugins && \
     sudo make install > /dev/null && \

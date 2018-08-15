@@ -14,8 +14,7 @@ trimmomatic_target:
 
 
 seqtk_target:
-	tar xvf seqtk-trinity.v0.0.2.tar.gz
-	cd seqtk-trinity-0.0.2 && $(MAKE)
+	cd seqtk-trinity-0.0.2 && $(MAKE) CXX=g++ CC=gcc
 	mv seqtk-trinity-0.0.2/seqtk-trinity ./BIN/.
 
 parafly_target:
@@ -39,7 +38,7 @@ collectl_target:
 	cd COLLECTL && tar xvf ${COLLECTL_CODE}.src.tar.gz && ln -sf ${COLLECTL_CODE} collectl
 
 clean:
-	rm -rf ./seqtk-trinity-0.0.2
+	cd seqtk-trinity-0.0.2 && $(MAKE) clean
 	cd scaffold_iworm_contigs && $(MAKE) clean
 	rm -rf ${PARAFLY_CODE}
 	rm -f ./Trimmomatic # rm symlink

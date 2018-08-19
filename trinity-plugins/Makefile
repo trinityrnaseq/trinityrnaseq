@@ -1,6 +1,8 @@
 
 OS := $(shell uname)
 
+CXX ?= g++
+CC ?= gcc
 COLLECTL_CODE="collectl-4.1.0"
 PARAFLY_CODE="ParaFly-0.1.0"
 TRIMMOMATIC_CODE=Trimmomatic-0.36
@@ -14,12 +16,12 @@ trimmomatic_target:
 
 
 seqtk_target:
-	cd seqtk-trinity-0.0.2 && $(MAKE) CXX=g++ CC=gcc
+	cd seqtk-trinity-0.0.2 && $(MAKE) CXX=$(CXX) CC=$(CC)
 	mv seqtk-trinity-0.0.2/seqtk-trinity ./BIN/.
 
 parafly_target:
 	tar -zxvf ${PARAFLY_CODE}.tar.gz && \
-	cd ${PARAFLY_CODE} && sh ./configure --prefix=`pwd` CXX=g++ CC=gcc CFLAGS="-fopenmp" CXXFLAGS="-fopenmp" && $(MAKE) install && \
+	cd ${PARAFLY_CODE} && sh ./configure --prefix=`pwd` CXX=$(CXX) CC=$(CC) CFLAGS="-fopenmp" CXXFLAGS="-fopenmp" && $(MAKE) install && \
 	cp bin/ParaFly ../BIN/
 
 
@@ -32,7 +34,7 @@ plugins: slclust_target collectl_target
 
 
 slclust_target:
-	cd slclust && $(MAKE) CXX=g++ CC=gcc install
+	cd slclust && $(MAKE) CXX=$(CXX) CC=$(CC) install
 
 collectl_target:
 	cd COLLECTL && tar xvf ${COLLECTL_CODE}.src.tar.gz && ln -sf ${COLLECTL_CODE} collectl

@@ -3810,7 +3810,13 @@ sub check_required_3rd_party_tool_installations {
 sub check_for_duplicate_seqs {
     my ($Trinity_fasta_file) = @_;
 
-    my $cmd = "$UTILDIR/support_scripts/fasta_find_duplicates.pl $Trinity_fasta_file";
-    &process_cmd($cmd);
-
+    eval {
+        my $cmd = "$UTILDIR/support_scripts/fasta_find_duplicates.pl $Trinity_fasta_file";
+        &process_cmd($cmd);
+    };
+    if ($@) {
+        print STDERR "WARNING - please share w/ Trinity Developers:  $@\n";
+    }
+    
+    return;
 }

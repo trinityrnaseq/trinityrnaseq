@@ -1782,11 +1782,15 @@ sub run_Trinity {
                 return();
             }
             else {
-                confess $@;
+                print STDERR "WARNING - salmon failure mode not recognized by Trinity:\n"
+                    . "$@\n"
+                    . " - retaining Trinity transcripts provided as input to salmon, w/o filtering (pre-salmon mode).\n";
             }
         }
-        
-        $Trinity_fasta_file = "$Trinity_fasta_file.filt";
+        else {
+            # all good wrt salmon exec, use the expression-filtered transcripts.
+            $Trinity_fasta_file = "$Trinity_fasta_file.filt";
+        }
     }
     
     if (-s $Trinity_fasta_file && ! $NO_SUPERTRANS_FLAG) {

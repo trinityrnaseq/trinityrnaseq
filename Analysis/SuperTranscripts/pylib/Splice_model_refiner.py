@@ -52,12 +52,15 @@ def refine_alignment(node_alignment_obj, reset_node_ids=False,
     ###########
     #
     
-    for allowed_variants in (0, 1, 2):
-        graph_compactor.compact_graph(refined_tgraph, allowed_variants)
-        if TGLOBALS.DEBUG:
-            refined_tgraph.draw_graph("ladeda.compact.m{}.dot".format(allowed_variants))
+    #for allowed_variants in (0, 1, 2):
+    #    graph_compactor.compact_graph(refined_tgraph, allowed_variants)
+    #    if TGLOBALS.DEBUG:
+    #        refined_tgraph.draw_graph("ladeda.compact.m{}.dot".format(allowed_variants))
         
-
+    graph_compactor.compact_graph(refined_tgraph, 0)
+    if TGLOBALS.DEBUG:
+        refined_tgraph.draw_graph("ladeda.compact.m{}.dot".format(0))
+    
     ## now extract prefix and suffix matches
 
     partial_graph_compactor = Compact_graph_partial()

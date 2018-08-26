@@ -11,6 +11,7 @@ import subprocess
 import shlex
 import logging
 import re
+import math
 
 sys.path.insert(0, os.path.sep.join([os.path.dirname(os.path.realpath(__file__)),
                                      "..", "..", "..", "PyLib"]))
@@ -150,13 +151,18 @@ def main():
 
     # generate genome folder for STAR's first pass
     logger.info("Generating genome folder for STAR")
-    
+
+    # from Alex D.:
+    # scale down the --genomeSAindexNbases parameter as log2(GenomeLength)/2 - 1
+                
+    genomeSAindexNbases = int(math.log(os.path.getsize(st_fa_path)) / math.log(2) / 2)
+
     star_genome_generate_cmd = str("STAR --runThreadN " +
                                    args.nthreads +
                                    " --runMode genomeGenerate" +
                                    " --genomeDir star_genome_idx " +
                                    " --genomeFastaFiles {} ".format(st_fa_path) +
-                                   " --genomeSAindexNbases 8 " +  # as per A. Dobin
+                                   " --genomeSAindexNbases {} ".format(genomeSAindexNbases) + 
                                    " --sjdbGTFfile {} ".format(st_gtf_path) +
                                    " --sjdbOverhang {} ".format(args.sjdbOverhang) +
                                    " --limitGenomeGenerateRAM {}".format(args.maxram) +

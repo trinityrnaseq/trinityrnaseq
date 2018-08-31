@@ -544,6 +544,7 @@ int main(int argc,char** argv)
     commandArg<bool> debugCmmd("-debug", "verbosely describes operations", false);
     commandArg<int>  minContigLengthCmmd("-min_contig_length", "min sum cluster contig length", MIN_CONTIG_LENGTH);
     commandArg<bool>  debugWeldAllCmmd("-debug_weld_all", "creates a single cluster of all contigs, for debugging only", false);
+    commandArg<int> max_cluster_size_Cmmd("-max_cluster_size", "max num if iworms in a single cluster", MAX_CLUSTER_SIZE);
     
     commandLineParser P(argc,argv);
     P.SetDescription("Makes a graph out of a fasta");
@@ -552,6 +553,7 @@ int main(int argc,char** argv)
     P.registerArg(debugCmmd);
     P.registerArg(minContigLengthCmmd);
     P.registerArg(debugWeldAllCmmd);
+    P.registerArg(max_cluster_size_Cmmd);
     
     P.parse();
     
@@ -564,9 +566,9 @@ int main(int argc,char** argv)
     DEBUG = P.GetBoolValueFor(debugCmmd);
     string weld_graph_file = P.GetStringValueFor(weldGraphCmmd);
     MIN_CONTIG_LENGTH = P.GetIntValueFor(minContigLengthCmmd);
-
-    bool DEBUG_WELD_ALL = P.GetBoolValueFor(debugWeldAllCmmd);
     
+    bool DEBUG_WELD_ALL = P.GetBoolValueFor(debugWeldAllCmmd);
+    MAX_CLUSTER_SIZE = P.GetIntValueFor(max_cluster_size_Cmmd);
     if (! Exists(iworm_contigs_filename)) {
         cerr << "ERROR, cannot open iworm contigs file: " << iworm_contigs_filename << "\n";
         exit(2);

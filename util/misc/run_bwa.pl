@@ -128,7 +128,7 @@ main: {
         $cmd = "bwa aln @ARGV $target_db $right_file > $right_file.sai";
         &process_cmd($cmd);
         
-        $cmd = "bwa sampe $target_db $left_file.sai $right_file.sai $left_file $right_file | samtools view -bS -F 4 - | samtools sort - $output_prefix";
+        $cmd = "bwa sampe $target_db $left_file.sai $right_file.sai $left_file $right_file | samtools view -bS -F 4 - | samtools sort -o $output_prefix.bam";
         &process_cmd($cmd);
         
     }
@@ -137,7 +137,7 @@ main: {
         $cmd = "bwa aln @ARGV $target_db $single_file > $single_file.sai";
         &process_cmd($cmd);
         
-        $cmd = "bwa samse $target_db $single_file.sai $single_file | samtools view -bS -F 4 - | samtools sort - $output_prefix";
+        $cmd = "bwa samse $target_db $single_file.sai $single_file | samtools view -bS -F 4 - | samtools sort -o $output_prefix.bam";
         &process_cmd($cmd);
     }
     

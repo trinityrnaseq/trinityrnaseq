@@ -207,6 +207,7 @@ my $FORCE_FLAG = 0;
 my $INCLUDE_SUPERTRANSCRIPTS_FLAG = 0;
 my $NO_SUPERTRANS_FLAG = 0; # for debugging
 
+my $MAX_CHRYSALIS_CLUSTER_SIZE = 25; # might need to set higher for highly polymorphic transcriptomes.
 
 my $trinity_banner = qq^
      ______  ____   ____  ____   ____  ______  __ __
@@ -341,6 +342,8 @@ my $full_usage = qq^
 #                                  a single graph (default: $max_reads_per_graph)
 #  --min_glue <int>               :min number of reads needed to glue two inchworm contigs
 #                                  together. (default: $min_glue) 
+#
+#  --max_chrysalis_cluster_size <int>  :max number of Inchworm contigs to be included in a single Chrysalis cluster. (default: $MAX_CHRYSALIS_CLUSTER_SIZE)
 #
 #  --no_bowtie                    :dont run bowtie to use pair info in chrysalis clustering.
 #
@@ -697,7 +700,8 @@ my $STOMP_SNPS = 0;
     'weldmer_size=i' => \$weldmer_size,
     "no_bowtie" => \$NO_BOWTIE,
     "no_run_chrysalis" => \$NO_RUN_CHRYSALIS_FLAG,
-
+    "max_chrysalis_cluster_size=i" => \$MAX_CHRYSALIS_CLUSTER_SIZE,
+        
     "show_advanced_options" => \$show_advanced_options,
     
     # Grid computing options
@@ -722,7 +726,7 @@ my $STOMP_SNPS = 0;
     
     'NO_PARALLEL_IWORM' => \$NO_PARALLEL_IWORM,
     'chrysalis_debug_weld_all' => \$CHRYSALIS_DEBUG_WELD_ALL,
-             
+    
     
     # genome guided
     "genome_guided_bam=s" => \$genome_guided_bam,
@@ -836,6 +840,7 @@ stomp_snps
 FORCE
 include_supertranscripts
 NO_SUPERTRANS
+max_chrysalis_cluster_size
 );   
 
 my %ACCEPTABLE_OPTS = map { + $_ => 1} @__ALL_TRINITY_PARAMS;
@@ -2017,7 +2022,7 @@ sub run_chrysalis {
         
         ## now cluster into chrysalis components:
         
-        my $bubble_cluster_cmd = "$CHRYSALIS_DIR/bin/BubbleUpClustering -i $inchworm_file  -weld_graph $welds_to_cluster_file_sorted -min_contig_length $min_contig_length ";
+        my $bubble_cluster_cmd = "$CHRYSALIS_DIR/bin/BubbleUpClustering -i $inchworm_file  -weld_graph $welds_to_cluster_file_sorted -min_contig_length $min_contig_length -max_cluster_size $MAX_CHRYSALIS_CLUSTER_SIZE ";
 
         if ($CHRYSALIS_DEBUG_WELD_ALL) {
             $bubble_cluster_cmd .= " -debug_weld_all ";

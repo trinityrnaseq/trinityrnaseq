@@ -922,6 +922,8 @@ sub run_salmon {
         &process_cmd($cmd);
     }
 
+    my $num_failures = 0;
+    
     foreach my $sample_href (@samples) {
         
         my ($output_dir, $left_file, $right_file, $single_file) = ($sample_href->{output_dir},
@@ -932,49 +934,66 @@ sub run_salmon {
 
         
         my $outdir = $output_dir; #"$output_dir.$salmon_idx_type";
-        
-        
-        if ($left_file && $right_file) {
-            ## PE mode
-            my $cmd;
-            my $libtype = ($SS_lib_type) ? "IS" . substr($SS_lib_type, 0, 1) : "IU";
-            
-            if ($salmon_idx_type eq 'quasi') {
-                $cmd = "salmon quant -i $salmon_index -l $libtype -1 $left_file -2 $right_file -o $outdir $salmon_add_opts -p $thread_count";
-            }
-            elsif ($salmon_idx_type eq 'fmd') {
-                $cmd = "salmon quant -i $salmon_index -l $libtype -1 $left_file -2 $right_file -k $salmon_fmd_kmer_length -o $outdir $salmon_add_opts -p $thread_count";
-            }
-            else {
-                die "Error, not recognizing salmon_idx_type: $salmon_idx_type";
-            }
-            
-            &process_cmd($cmd);
-            
-        }
-        elsif ($single_file) {
-            my $libtype = ($SS_lib_type) ? "S" . substr($SS_lib_type, 0, 1) : "U";
-            my $cmd;
-            
-            if ($salmon_idx_type eq 'quasi') {
-                $cmd = "salmon quant -i $salmon_index -l $libtype -r $single_file -o $outdir $salmon_add_opts -p $thread_count";
-            }
-            elsif ($salmon_idx_type eq 'fmd') {
-                $cmd = "salmon quant -i $salmon_index -l $libtype -r $single_file -k $salmon_fmd_kmer_length -o $outdir $salmon_add_opts -p $thread_count";
-            }
-            else {
-                die "Error, not recognizing salmon_idx_type: $salmon_idx_type";
-            }
-            
-            &process_cmd($cmd);
-            
+
+        if (-s "$outdir/quant.sf") {
+            print STDERR "-output already exists: $outdir/quant.sf, skipping.\n";
+            next;
         }
         
-        if ($gene_trans_map_file) {
+
+        eval {
+        
+            if ($left_file && $right_file) {
+                ## PE mode
+                my $cmd;
+                my $libtype = ($SS_lib_type) ? "IS" . substr($SS_lib_type, 0, 1) : "IU";
+                
+                if ($salmon_idx_type eq 'quasi') {
+                    $cmd = "salmon quant -i $salmon_index -l $libtype -1 $left_file -2 $right_file -o $outdir $salmon_add_opts -p $thread_count";
+                }
+                elsif ($salmon_idx_type eq 'fmd') {
+                    $cmd = "salmon quant -i $salmon_index -l $libtype -1 $left_file -2 $right_file -k $salmon_fmd_kmer_length -o $outdir $salmon_add_opts -p $thread_count";
+                }
+                else {
+                    die "Error, not recognizing salmon_idx_type: $salmon_idx_type";
+                }
+                
+                &process_cmd($cmd);
             
-            my $cmd = "$FindBin::RealBin/support_scripts/salmon_trans_to_gene_results.pl $output_dir/quant.sf $gene_trans_map_file > $output_dir/quant.sf.genes";
-            &process_cmd($cmd);
+            }
+            elsif ($single_file) {
+                my $libtype = ($SS_lib_type) ? "S" . substr($SS_lib_type, 0, 1) : "U";
+                my $cmd;
+                
+                if ($salmon_idx_type eq 'quasi') {
+                    $cmd = "salmon quant -i $salmon_index -l $libtype -r $single_file -o $outdir $salmon_add_opts -p $thread_count";
+                }
+                elsif ($salmon_idx_type eq 'fmd') {
+                    $cmd = "salmon quant -i $salmon_index -l $libtype -r $single_file -k $salmon_fmd_kmer_length -o $outdir $salmon_add_opts -p $thread_count";
+                }
+                else {
+                    die "Error, not recognizing salmon_idx_type: $salmon_idx_type";
+                }
+                
+                &process_cmd($cmd);
+                
+            }
+            
+            if ($gene_trans_map_file) {
+                
+                my $cmd = "$FindBin::RealBin/support_scripts/salmon_trans_to_gene_results.pl $output_dir/quant.sf $gene_trans_map_file > $output_dir/quant.sf.genes";
+                &process_cmd($cmd);
+            }
+        };
+        if ($@) {
+            $num_failures++;
+            print STDERR "Error detected: $@";
         }
+    }
+
+
+    if ($num_failures) {
+        die "Error, encountered $num_failures failed salmon jobs. See errors above";
     }
     
     return;

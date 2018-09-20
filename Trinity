@@ -211,6 +211,9 @@ my $NO_SUPERTRANS_FLAG = 0; # for debugging
 
 my $MAX_CHRYSALIS_CLUSTER_SIZE = 25; # might need to set higher for highly polymorphic transcriptomes.
 
+
+my $JUST_NORMALIZE_READS_FLAG = 0;
+
 my $trinity_banner = qq^
      ______  ____   ____  ____   ____  ______  __ __
     |      ||    \\ |    ||    \\ |    ||      ||  |  |
@@ -423,6 +426,8 @@ my $full_usage = qq^
 #  --normalize_by_read_set              run normalization separate for each pair of fastq files,
 #                                       then one final normalization that combines the individual normalized reads.
 #                                       Consider using this if RAM limitations are a consideration.
+#
+#  --just_normalize_reads               stop after performing read normalization
 #
 ################################################################################
 #### Genome-guided de novo assembly
@@ -655,8 +660,8 @@ my $STOMP_SNPS = 0;
              'no_normalize_reads' => \$NO_NORMALIZE_READS_FLAG,  ## new setting to turn it off.
              'normalize_max_read_cov=i' => \$normalize_max_read_cov,
              'normalize_by_read_set' =>  \$NORMALIZE_BY_READ_SET,
-             
-             
+    'just_normalize_reads' => \$JUST_NORMALIZE_READS_FLAG,
+    
     # Butterfly opts
     "group_pairs_distance=i" => \$group_pairs_distance,
     'bfly_opts=s'           => \$bfly_opts,
@@ -786,6 +791,7 @@ trimmomatic
 quality_trimming_params
 normalize_reads
 no_normalize_reads
+just_normalize_reads
 normalize_max_read_cov
 normalize_by_read_set
 group_pairs_distance
@@ -1329,6 +1335,12 @@ main: {
         elsif (@single_files) {
             @single_files = &run_normalization($normalize_max_read_cov, \@single_files);
         }
+
+        if ($JUST_NORMALIZE_READS_FLAG) {
+            print STDERR "-only performing read normalization as per --just_normalize_reads param.  Stopping now.\n";
+            exit(0);
+        }
+        
     }
        
     if ($genome_guided_bam) {

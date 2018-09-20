@@ -130,6 +130,8 @@ my $NO_RUN_CHRYSALIS_FLAG = 0;
 
 my $NO_DISTRIBUTED_TRINITY_EXEC = 0;
 
+my $IWORM_CDHIT;
+
 my $help_flag;
 my $advanced_help_flag;
 my $SHOW_CITATION_FLAG = 0;
@@ -499,6 +501,8 @@ my $advanced_usage =  <<_ADVANCEDUSAGE_;
 #  --NO_PARALLEL_IWORM                : turn off parallel iworm assembly
 #  --iworm_opts <string>              : options for inchworm
 #
+#  --iworm_cdhit                      : perform iworm contig database reduction using cdhit
+#
 #
 #  Chyrsalis-related options:
 #
@@ -688,6 +692,7 @@ my $STOMP_SNPS = 0;
     'stomp_snps' => \$STOMP_SNPS,
      
     'max_memory|M=s'          => \$max_memory, # in GB
+    'iworm_cdhit' => \$IWORM_CDHIT,
     
     # Chrysalis -related opts
     'min_glue=i' => \$min_glue,
@@ -841,6 +846,7 @@ FORCE
 include_supertranscripts
 NO_SUPERTRANS
 max_chrysalis_cluster_size
+iworm_cdhit
 );   
 
 my %ACCEPTABLE_OPTS = map { + $_ => 1} @__ALL_TRINITY_PARAMS;
@@ -1465,7 +1471,7 @@ sub run_Trinity {
 
     ## Don't prep the inputs if Inchworm already exists.... Resuming earlier operations.
     my $inchworm_finished_checkpoint_file = "$inchworm_file.finished";
-    if (-s $inchworm_file && -e $inchworm_finished_checkpoint_file) {
+    if (-e $inchworm_finished_checkpoint_file) {
         print "\n\n#######################################################################\n"
             . "Inchworm file: $inchworm_file detected.\n"
             . "Skipping Inchworm Step, Using Previous Inchworm Assembly\n"
@@ -1658,8 +1664,12 @@ sub run_Trinity {
         die "NON_FATAL_EXCEPTION: WARNING, no Inchworm output is detected at: $inchworm_file";
     }
     
+    if ($IWORM_CDHIT) {
+
+        $inchworm_file = &run_cdhit($inchworm_file);
     
-    
+    }
+        
     if ($jaccard_clip && $TRINITY_COMPLETE_FLAG) {
         
         if ($jaccard_clip && -s 'left.fa' && -s 'right.fa') {
@@ -3829,3 +3839,36 @@ sub check_for_duplicate_seqs {
     
     return;
 }
+
+
+####
+sub run_cdhit {
+    my ($input_file) = @_;
+
+    my $memory;
+    if ($max_memory =~ /^(\d+)G/) {
+        $memory = $1 * 1024;
+    }
+    else {
+        die "Error, can't decipher max memory value of: ($max_memory) ";
+    }
+        
+    my $output_file = "$input_file.cdhit";
+    my $checkpoint_file = "$output_file.ok";
+
+    if (-e $checkpoint_file && -s $output_file) {
+        return($output_file);
+    }
+    else {
+    
+        my $cmd = "cd-hit-est -o $output_file -c 0.978 -i $input_file -d 0 -b 3 -T $CPU -M $memory";
+        if ($TRINITY_COMPLETE_FLAG && ! $VERBOSE) {
+            $cmd .= " > /dev/null 2>&1"
+        }
+        &process_cmd($cmd);
+        
+        return($output_file);
+    }
+
+}
+

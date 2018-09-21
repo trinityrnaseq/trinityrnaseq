@@ -113,6 +113,12 @@ int runMe(int argc, char* argv[]) {
     
     int start_time = time(NULL);
 
+    cout << "acc" << "\t"
+         << "median_cov" << "\t"
+         << "mean_cov" << "\t"
+         << "stdev" << "\t"
+         << "tid" << endl;
+    
     #pragma omp parallel
     while (true) {
 
@@ -131,14 +137,13 @@ int runMe(int argc, char* argv[]) {
         unsigned int median_cov = median_coverage(kmer_coverage);
         float mean_cov = mean(kmer_coverage);
         float stdev = stDev(kmer_coverage);
-        float pct_stdev_of_avg = stdev/mean_cov*100;
         stringstream stats_text;
                 
-        stats_text << median_cov << "\t"
+        stats_text << fe.get_accession() << "\t"
+                   << median_cov << "\t"
                    << mean_cov << "\t"
-                   << stdev << "\t"
-                   << pct_stdev_of_avg << "\t"
-                   << fe.get_accession();
+                   << stdev;
+        
 
         stats_text << "\tthread:" << myTid;
         

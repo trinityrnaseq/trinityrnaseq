@@ -193,7 +193,7 @@ my $trimmomatic_quality_trim_params = "ILLUMINACLIP:$TRIMMOMATIC_DIR/adapters/Tr
 my $NORMALIZE_READS_FLAG = 0; ## now on by default, unless told not to via --no_normalize_reads!  See below for logic.
 my $NO_NORMALIZE_READS_FLAG = 0; ## set to turn off normalization (will be turned on if trinity_complete_flag and ! --normalize_reads set. 
 my $normalize_max_read_cov = 200; # better for polymorphic transcriptomes
-my $normalize_max_pct_stdev = 10000; # effectively turn it off for this application.
+my $normalize_max_CV = 10000; # effectively turn it off for this application.
 my $NORMALIZE_BY_READ_SET = 0; 
 
 my $grid_node_CPU = 1;
@@ -3216,7 +3216,7 @@ sub normalize {
     print STDERR "# running normalization on reads: " . Dumper(\@read_files) . "\n\n";
     
     my $cmd = "$UTILDIR/insilico_read_normalization.pl --seqType $seqType --JM $max_memory "
-        . " --max_cov $max_read_coverage --min_cov $min_kmer_cov --CPU $CPU --output $normalize_outdir   --max_pct_stdev $normalize_max_pct_stdev ";
+        . " --max_cov $max_read_coverage --min_cov $min_kmer_cov --CPU $CPU --output $normalize_outdir --max_CV $normalize_max_CV ";
     
     if ($SS_lib_type) {
         $cmd .= " --SS_lib_type $SS_lib_type ";

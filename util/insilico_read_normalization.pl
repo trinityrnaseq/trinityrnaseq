@@ -43,7 +43,7 @@ my $CPU = 2;
 my $MIN_KMER_COV_CONST = 2;  ## DO NOT CHANGE
 my $max_cov;
 my $pairs_together_flag = 0;
-my $max_pct_stdev = 10000; # effectively turning this off
+my $max_CV = 10000; # effectively turning this off
 my $KMER_SIZE = 25;
 my $MIN_COV = 0;
 
@@ -98,7 +98,7 @@ my $usage = <<_EOUSAGE_;
 #
 #  --KMER_SIZE <int>               :default $KMER_SIZE
 #
-#  --max_pct_stdev <int>           :maximum pct of mean for stdev of kmer coverage across read (default: $max_pct_stdev)
+#  --max_CV <int>                   :maximum coeff of var (default: $max_CV)
 #
 #  --min_cov <int>                 :minimum kmer coverage for a read to be retained (default: $MIN_COV)
 #
@@ -154,7 +154,7 @@ my $TMP_DIR_NAME = "tmp_normalized_reads";
     'CPU=i' => \$CPU,
     'PARALLEL_STATS' => \$PARALLEL_STATS,
     'kmer_size=i' => \$KMER_SIZE,
-    'max_pct_stdev=i' => \$max_pct_stdev,
+    'max_CV=i' => \$max_CV,
     'pairs_together' => \$pairs_together_flag,
 
      'no_cleanup' => \$NO_CLEANUP,
@@ -373,9 +373,9 @@ main: {
     &generate_stats_files(\@files_need_stats, $kmer_file, $SS_lib_type);
 
     if ($pairs_together_flag) {
-        &run_nkbc_pairs_together(\@files_need_stats, $kmer_file, $SS_lib_type, $max_cov, $MIN_COV, $max_pct_stdev);
+        &run_nkbc_pairs_together(\@files_need_stats, $kmer_file, $SS_lib_type, $max_cov, $MIN_COV, $max_CV);
     } else {
-        &run_nkbc_pairs_separate(\@files_need_stats, $kmer_file, $SS_lib_type, $max_cov, $MIN_COV, $max_pct_stdev);
+        &run_nkbc_pairs_separate(\@files_need_stats, $kmer_file, $SS_lib_type, $max_cov, $MIN_COV, $max_CV);
     }
         
     my @outputs;
@@ -388,7 +388,7 @@ main: {
 
         my $base = (scalar @$orig_file == 1) ? basename($orig_file->[0]) : basename($orig_file->[0]) . "_ext_all_reads";
         
-        my $normalized_filename_prefix = $output_directory . "/$base.normalized_K${KMER_SIZE}_maxC${max_cov}_minC${MIN_COV}_pctSD${max_pct_stdev}";
+        my $normalized_filename_prefix = $output_directory . "/$base.normalized_K${KMER_SIZE}_maxC${max_cov}_minC${MIN_COV}_maxCV${max_CV}";
         my $outfile;
         
         if ($seqType eq 'fq') {
@@ -825,7 +825,9 @@ sub generate_stats_files {
         foreach my $info_aref (@$files_need_stats_aref) {
             my $stats_file = $info_aref->[-1];
             my $sorted_stats_file = $stats_file . ".sort";
-            my $cmd = "$sort_exec -k5,5 -T . -S $sort_mem $stats_file > $sorted_stats_file";
+            
+            # retain column headers, sort the rest.
+            my $cmd = "head -n1 $stats_file > $sorted_stats_file && tail -n +2 $stats_file | $sort_exec -k1,1 -T . -S $sort_mem >> $sorted_stats_file";
             push (@cmds, $cmd) unless (-e "$sorted_stats_file.ok");
             $info_aref->[-1] = $sorted_stats_file;
             push (@checkpoints, [$sorted_stats_file, "$sorted_stats_file.ok"]);
@@ -867,7 +869,7 @@ sub process_checkpoints {
 
 ####
 sub run_nkbc_pairs_separate {
-    my ($files_need_stats_aref, $kmer_file, $SS_lib_type, $max_cov, $min_cov, $max_pct_stdev) = @_;
+    my ($files_need_stats_aref, $kmer_file, $SS_lib_type, $max_cov, $min_cov, $max_CV) = @_;
 
     my @cmds;
 
@@ -875,11 +877,11 @@ sub run_nkbc_pairs_separate {
     foreach my $info_aref (@$files_need_stats_aref) {
         my ($orig_file, $converted_file, $stats_file) = @$info_aref;
                 
-        my $selected_entries = "$stats_file.maxC$max_cov.minC$min_cov.pctSD$max_pct_stdev.accs";
+        my $selected_entries = "$stats_file.maxC$max_cov.minC$min_cov.maxCV$max_CV.accs";
         my $cmd = "$UTILDIR/nbkc_normalize.pl --stats_file $stats_file "
             . " --max_cov $max_cov "
             . " --min_cov $MIN_COV "
-            . " --max_pct_stdev $max_pct_stdev > $selected_entries";
+            . " --max_CV $max_CV > $selected_entries";
         
         push (@cmds, $cmd) unless (-e "$selected_entries.ok");
         
@@ -901,11 +903,11 @@ sub run_nkbc_pairs_separate {
 
 ####
 sub run_nkbc_pairs_together {
-    my ($files_need_stats_aref, $kmer_file, $SS_lib_type, $max_cov, $min_cov, $max_pct_stdev) = @_;
+    my ($files_need_stats_aref, $kmer_file, $SS_lib_type, $max_cov, $min_cov, $max_CV) = @_;
 
     my $left_stats_file = $files_need_stats_aref->[0]->[2];
     my $right_stats_file = $files_need_stats_aref->[1]->[2];
-        
+    
     my $pair_out_stats_filename = "pairs.K$KMER_SIZE.stats";
     
     my $cmd = "$UTILDIR/nbkc_merge_left_right_stats.pl --left $left_stats_file --right $right_stats_file --sorted";
@@ -921,9 +923,9 @@ sub run_nkbc_pairs_together {
         die "Error, $pair_out_stats_filename is empty.  Be sure to check your fastq reads and ensure that the read names are identical except for the /1 or /2 designation.";
     }
     
-    my $selected_entries = "$pair_out_stats_filename.C$max_cov.pctSD$max_pct_stdev.accs";
+    my $selected_entries = "$pair_out_stats_filename.C$max_cov.maxCV$max_CV.accs";
     $cmd = "$UTILDIR/nbkc_normalize.pl --stats_file $pair_out_stats_filename --max_cov $max_cov "
-        . " --min_cov $MIN_COV --max_pct_stdev $max_pct_stdev > $selected_entries";
+        . " --min_cov $MIN_COV --max_CV $max_CV > $selected_entries";
     &process_cmd($cmd) unless (-e "$selected_entries.ok");
     @checkpoints = ( [$selected_entries, "$selected_entries.ok"] );
     &process_checkpoints(@checkpoints);

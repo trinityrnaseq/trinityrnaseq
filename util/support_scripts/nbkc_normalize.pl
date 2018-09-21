@@ -3,13 +3,18 @@
 use strict;
 use warnings;
 
+use FindBin;
+use lib ("$FindBin::Bin/../../PerlLib");
+
+use DelimParser;
+
 use Getopt::Long qw(:config posix_default no_ignore_case bundling pass_through);
 
 
 my $pair_stats_file;
 my $max_cov;
-my $min_cov;
-my $max_pct_stdev;
+my $min_cov=1;
+my $max_CV;
 
 
 my $usage = <<__EOUSAGE__;
@@ -24,7 +29,7 @@ my $usage = <<__EOUSAGE__;
 #
 #  --min_cov <int>           : minimum coverage
 #
-#  --max_pct_stdev <int>     : maximum pct stdev
+#  --max_CV <int>            : maximum coeff. var.
 #
 #
 #############################################################
@@ -42,7 +47,7 @@ my $help_flag;
               'stats_file=s' => \$pair_stats_file,
               'max_cov=i' => \$max_cov,
               'min_cov=i' => \$min_cov,
-              'max_pct_stdev=i' => \$max_pct_stdev,
+              'max_CV=i' => \$max_CV,
 
               
 );
@@ -51,7 +56,7 @@ my $help_flag;
 unless ($pair_stats_file &&
         $max_cov &&
         defined($min_cov) &&
-        $max_pct_stdev) {
+        defined($max_CV)) {
     
     die $usage;
 
@@ -61,40 +66,37 @@ unless ($pair_stats_file &&
 
 main: {
 
-    my $count_no_cov = 0;
     my $count_aberrant_and_discarded = 0;
     my $count_selected = 0;
     my $count_total = 0;
 
     my $count_below_min_cov = 0;
-    
+
     open (my $fh, $pair_stats_file) or die $!;
-    while (<$fh>) {
+
+    my $delim_parser = new DelimParser::Reader($fh, "\t");
+    
+    while (my $row = $delim_parser->get_row()) {
         
         $count_total++;
 
-        chomp;
-        my $line = $_;
-
-        my ($med_cov, $avg_cov, $stdev, $pct_dev, $core_acc) = split(/\t/);
+        my $core_acc = $row->{acc};
         
         $core_acc =~ s|/[12]$||;
-        
-        if ($med_cov < 1) { 
-            
-            $count_no_cov++;   ## this shouldn't happen in modern versions of this process. (bh 10-2013)
-            next; 
-        }
+
+        my $med_cov = ($row->{median_cov});
 
         if ($med_cov < $min_cov) {
             $count_below_min_cov++;
             next;
         }
+
+        my $sd = $row->{stdev};
+        my $u = $row->{mean_cov};
         
-        if ($pct_dev > $max_pct_stdev) { 
-            
-            # print STDERR "// excluding $_ as aberrant\n";
-            
+        my $cv = $sd/$u;
+        
+        if ($cv > $max_CV) {
             $count_aberrant_and_discarded++;
             next; 
         }
@@ -108,7 +110,6 @@ main: {
     
     print STDERR "$count_selected / $count_total = " . sprintf("%.2f", $count_selected/$count_total*100) . "% reads selected during normalization.\n";
     print STDERR "$count_aberrant_and_discarded / $count_total = " . sprintf("%.2f", $count_aberrant_and_discarded/$count_total*100) . "% reads discarded as likely aberrant based on coverage profiles.\n";
-    print STDERR "$count_no_cov / $count_total = " . sprintf("%.2f", $count_no_cov/$count_total*100) . "% reads missing kmer coverage (N chars included?).\n";
     print STDERR "$count_below_min_cov / $count_total = " . sprintf("%.2f", $count_below_min_cov/$count_total*100) . "% reads discarded as below minimum coverage threshold=$min_cov\n";
     
     exit(0);

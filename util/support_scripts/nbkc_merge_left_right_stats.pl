@@ -3,6 +3,10 @@
 use strict;
 use warnings;
 
+use FindBin;
+use lib ("$FindBin::Bin/../../PerlLib");
+use DelimParser;
+
 use Getopt::Long qw(:config no_ignore_case bundling pass_through);
 
 my $usage = <<__EOUSAGE__;
@@ -68,26 +72,37 @@ main: {
 
     print STDERR "-done opening files.\n";
     
-    my $left_text = <$left_fh>;
-    my $right_text = <$right_fh>;
+    my $left_delim_parser = new DelimParser::Reader($left_fh, "\t");
+    my $right_delim_parser = new DelimParser::Reader($right_fh, "\t");
 
+    
+    # print header:
+    print join("\t", "acc", 
+               "left_acc", "left_median_cov", "left_mean_cov", "left_stdev",
+               "right_acc", "right_median_cov", "right_mean_cov", "right_stdev",
+               "median_cov", "mean_cov", "stdev"
+        ) . "\n";
+    
+    my $left_row = $left_delim_parser->get_row();
+    my $right_row = $right_delim_parser->get_row();
+    
     while (1) {
-
-        #print STDERR "$left_text\n$right_text\n\n";
-
-                
-        if ( (! $left_text) || (! $right_text)) {
+        
+        if ( (! $left_row) || (! $right_row)) {
             last;
         }
-
+        
+        my $left_acc = $left_row->{acc};
+        my $left_median = $left_row->{median_cov};
+        my $left_mean = $left_row->{mean_cov}; 
+        my $left_stdev = $left_row->{stdev};
+            
+        my $right_acc = $right_row->{acc};
+        my $right_median = $right_row->{median_cov};
+        my $right_mean = $right_row->{mean_cov};
+        my $right_stdev = $right_row->{stdev};
 
                 
-        chomp $left_text;
-        chomp $right_text;
-
-        my ($left_median, $left_avg, $left_stdev, $left_pct, $left_acc, $left_cov) = split(/\t/, $left_text);
-        my ($right_median, $right_avg, $right_stdev, $right_pct, $right_acc, $right_cov) = split(/\t/, $right_text);
-        
         my $core_acc = $left_acc;
         if ($left_acc =~ /^(\S+)\/\d$/) {
             $core_acc = $1;
@@ -98,18 +113,15 @@ main: {
             $right_core = $1;
         }
 
-        #print STDERR "$core_acc\t$right_core";
-        #if ($core_acc eq $right_core) { print STDERR "\tYES\n";} else { print STDERR "\n"; }
-        
         unless ($right_core eq $core_acc) {
             
             if ($sorted_flag) {
                 if ($left_acc lt $right_acc) {
-                    $left_text = <$left_fh>; # advance left
+                    $left_row = $left_delim_parser->get_row(); # advance left
                 }
                 else {
                     # advance right
-                    $right_text = <$right_fh>;
+                    $right_row = $right_delim_parser->get_row();
                 }
                 next;
             }
@@ -118,23 +130,20 @@ main: {
             }
         }
         
-        my $median_pair_cov = int( ($left_median+$right_median)/2 + 0.5);
-        my $avg_pair_cov = int ( ($left_avg + $right_avg)/2 + 0.5);
-        my $avg_stdev = int( ($left_stdev + $right_stdev)/2 + 0.5);
         
-        if ($median_pair_cov != 0) { 
-            ## ignore bad reads.
-            
-            my $avg_pair_pct = int( ($left_pct + $right_pct) / 2 + 0.5);
-            
-            print join("\t", $median_pair_cov, $avg_pair_cov, $avg_stdev, $avg_pair_pct, $core_acc) . "\n";
-        }
-    
-
+        print join("\t", $core_acc,
+                   $left_acc, $left_median, $left_mean, $left_stdev,
+                   $right_acc, $right_median, $right_mean, $right_stdev,
+                   sprintf("%.1f", ($left_median + $right_median)/2), 
+                   sprintf("%.1f", ($left_mean + $right_mean)/2), 
+                   sprintf("%.1f", ($left_stdev + $right_stdev)/2)
+            ) . "\n";
+        
+        
         ## advance next entries.
         
-        $left_text = <$left_fh>;
-        $right_text = <$right_fh>;
+        $left_row = $left_delim_parser->get_row();
+        $right_row = $right_delim_parser->get_row();
         
     }
     

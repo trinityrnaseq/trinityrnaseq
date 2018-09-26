@@ -52,6 +52,8 @@ my $__devel_report_kmer_cov_stats = 0;
 my $PARALLEL_STATS = 0;
 my $JELLY_S;
 
+my $NO_SEQTK = 0;
+
 my $usage = <<_EOUSAGE_;
 
 
@@ -164,6 +166,8 @@ my $TMP_DIR_NAME = "tmp_normalized_reads";
     'jelly_s=i' => \$JELLY_S,
 
     'tmp_dir_name=s' => \$TMP_DIR_NAME, 
+
+    "NO_SEQTK" => \$NO_SEQTK,
     
 );
 
@@ -641,13 +645,28 @@ sub prep_seqs {
     
     if ($seqType eq "fq") {
         # make fasta
-        my $cmd = "seqtk-trinity seq -A";
-        if ($SS_lib_type && $SS_lib_type eq "R") {
-            $cmd  =~ s/trinity seq /trinity seq -r /;
+        
+        if ($NO_SEQTK) {
+            my $perlcmd = "$UTILDIR/fastQ_to_fastA.pl -I $initial_file ";
+            
+            if ($SS_lib_type && $SS_lib_type eq "R") {
+                $perlcmd .= " --rev ";
+                
+            }
+            $perlcmd .= " >> $file_prefix.fa 2> $file_prefix.readcount ";
+            
+            &process_cmd($perlcmd);
         }
-        $cmd .= " $initial_file >> $file_prefix.fa";
-                        
-        &process_cmd($cmd);
+        else {
+            # using seqtk
+            my $cmd = "seqtk-trinity seq -A";
+            if ($SS_lib_type && $SS_lib_type eq "R") {
+                $cmd  =~ s/trinity seq /trinity seq -r /;
+            }
+            $cmd .= " $initial_file >> $file_prefix.fa";
+            
+            &process_cmd($cmd);
+        }
     }
     elsif ($seqType eq "fa") {
         if ($SS_lib_type && $SS_lib_type eq "R") {

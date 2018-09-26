@@ -214,6 +214,8 @@ my $MAX_CHRYSALIS_CLUSTER_SIZE = 25; # might need to set higher for highly polym
 
 my $JUST_NORMALIZE_READS_FLAG = 0;
 
+my $NO_SEQTK = 0;
+
 my $trinity_banner = qq^
      ______  ____   ____  ____   ____  ______  __ __
     |      ||    \\ |    ||    \\ |    ||      ||  |  |
@@ -542,6 +544,9 @@ my $advanced_usage =  <<_ADVANCEDUSAGE_;
 #  --stomp_snps                    : stomp snps out of kmers before inchworm assembly
 #
 #  --NO_SUPERTRANS                 : disable supertranscripts
+#
+#  --NO_SEQTK                      :disable seqtk for fq->fa conversions, instead use slower perl code
+#
 
 _ADVANCEDUSAGE_
 
@@ -759,6 +764,8 @@ my $STOMP_SNPS = 0;
     "FORCE" => \$FORCE_FLAG,
 
     "NO_SUPERTRANS" => \$NO_SUPERTRANS_FLAG,
+
+    "NO_SEQTK" => \$NO_SEQTK,
     
     );
 
@@ -2573,30 +2580,45 @@ sub prep_seqs {
             
             # make fasta
             foreach my $f (@initial_files){
-                my $cmd = "cat $f | seqtk-trinity seq -A -";
-                my $linecount_cmd = "cat $f | wc -l";
-                if ($f=~/\.gz$/){
-                    $cmd = "gunzip -c $f | seqtk-trinity seq -A -";
-                    $linecount_cmd = "gunzip -c $f | wc -l";
-                } elsif ($f=~/\.bz2$/){
-                    $cmd = "bunzip2 -dkc $f | seqtk-trinity seq -A -";
-                    $linecount_cmd = "bunzip2 -dkc $f | wc -l";
-                } elsif ($f =~ /\.xz/) {
-                    $cmd = "xz -dc ${f} | seqtk-trinity seq -A -";
-                    $linecount_cmd = "xz -dc ${f} | wc -l";
-                    ## I would like to suggest that these if statements are not necessary if one just does
-                    ## qx"less ${f} |" because less has smart input filters in place and will automagically
-                    ## handle all the likely compression formats.
+                
+                if ($NO_SEQTK) {
+                    my $perlcmd = "$UTILDIR/support_scripts/fastQ_to_fastA.pl -I $f ";
+
+                    if ($SS_lib_type && $SS_lib_type eq "R") {
+                        $perlcmd .= " --rev ";
+                   
+                    }
+                    $perlcmd .= " >> $file_prefix.fa 2> $f.readcount ";
+                    
+                    &process_cmd($perlcmd);
                 }
+                else {
+                    ## using seqtk (trinity-mod'd version)
                 
-                if ($SS_lib_type && $SS_lib_type eq "R") {
-                    $cmd =~ s/trinity seq /trinity seq -r /;
+                    my $cmd = "cat $f | seqtk-trinity seq -A -";
+                    my $linecount_cmd = "cat $f | wc -l";
+                    if ($f=~/\.gz$/){
+                        $cmd = "gunzip -c $f | seqtk-trinity seq -A -";
+                        $linecount_cmd = "gunzip -c $f | wc -l";
+                    } elsif ($f=~/\.bz2$/){
+                        $cmd = "bunzip2 -dkc $f | seqtk-trinity seq -A -";
+                        $linecount_cmd = "bunzip2 -dkc $f | wc -l";
+                    } elsif ($f =~ /\.xz/) {
+                        $cmd = "xz -dc ${f} | seqtk-trinity seq -A -";
+                        $linecount_cmd = "xz -dc ${f} | wc -l";
+                        ## I would like to suggest that these if statements are not necessary if one just does
+                        ## qx"less ${f} |" because less has smart input filters in place and will automagically
+                        ## handle all the likely compression formats.
+                    }
+                    
+                    if ($SS_lib_type && $SS_lib_type eq "R") {
+                        $cmd =~ s/trinity seq /trinity seq -r /;
+                    }
+                    
+                    $cmd .= " >> $file_prefix.fa";
+                    
+                    &process_cmd($cmd);
                 }
-                
-                $cmd .= " >> $file_prefix.fa";
-                                
-                &process_cmd($cmd);
-                
             }
             
         }
@@ -3225,6 +3247,10 @@ sub normalize {
     if ($NO_CLEANUP) {
         $cmd .= " --no_cleanup ";
     }
+    if ($NO_SEQTK) {
+        $cmd .= " --NO_SEQTK ";
+    }
+    
     
     #@read_files = &add_fifo_for_gzip(@read_files);
     

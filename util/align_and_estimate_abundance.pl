@@ -105,7 +105,7 @@ my $usage = <<__EOUSAGE__;
 #  
 #
 #  if alignment_based est_method:
-#       --aln_method <string>            bowtie|bowtie2 alignment method.  (note: RSEM requires bowtie)
+#       --aln_method <string>            bowtie|bowtie2 alignment method.  (note: RSEM requires either bowtie or bowtie2)
 #                                       
 ###########
 # Optional:

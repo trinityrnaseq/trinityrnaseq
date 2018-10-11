@@ -1077,18 +1077,29 @@ else {
 ## Check Java version:
 unless ($NO_RUN_INCHWORM_FLAG || $NO_RUN_CHRYSALIS_FLAG || $bypass_java_version_check || $TRINITY_COMPLETE_FLAG) {
     my $java_version = `java -Xmx64m -version 2>&1 `;
+
+    unless ($java_version) {
+        die "Error, cannot detect java via. 'java -Xmx64m -version'";
+    }
+    
+    my $version_id;
     if ($java_version =~ /(java|openjdk) version \"1\.(\d)\./) {
-      my $version_id = $2;
-      if ($version_id < $JAVA_VERSION_REQUIRED) {
-          die "Error, Trinity requires access to Java version 1.$JAVA_VERSION_REQUIRED or higher.  Currently installed version is: $java_version";
-      }
-  }
-  else {
-      print STDERR "\n\n\n********************************************************************\n"
-                       . "** Warning, Trinity cannot determine which version of Java is being used.  Version 1.$JAVA_VERSION_REQUIRED is required. \n\nAttempting to continue in 30 seconds\n"
-                       . "********************************************************************\n\n\n";
-      sleep(30);
-  }
+        $version_id = $2;
+    }
+    elsif ($java_version =~ /java version \"(\d+)\" /) {
+        $version_id = $1;
+    }
+    elsif ($java_version =~ /java (\d+) /) {
+        $version_id = $1;
+    }
+    else {
+        die "Error, cannot extract java version info from: ($java_version) ...  run with --bypass_java_version_check if you're sure that you have at least java version: $JAVA_VERSION_REQUIRED installed ";
+    }
+    
+    if ($version_id < $JAVA_VERSION_REQUIRED) {
+        die "Error, Trinity requires access to Java version 1.$JAVA_VERSION_REQUIRED or higher.  Currently installed version is: $java_version";
+    }
+
 }
 
 

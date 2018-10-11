@@ -1,8 +1,8 @@
 
 OS := $(shell uname)
 
-CXX ?= g++
-CC ?= gcc
+CXX=g++
+CC=gcc
 COLLECTL_CODE="collectl-4.1.0"
 PARAFLY_CODE="ParaFly-0.1.0"
 TRIMMOMATIC_CODE=Trimmomatic-0.36

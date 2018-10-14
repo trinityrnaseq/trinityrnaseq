@@ -3,6 +3,9 @@ sudo: false
 git:
   depth: 1
 language: generic
+# Custom definitions
+.conditions:
+  if: &secondary type = cron OR env(SECONDARY) = true
 matrix:
   include:
     # http://www.cpan.org/src/
@@ -11,9 +14,6 @@ matrix:
     - language: perl
       perl: "5.26-shrplib"
       env: CC=gcc-8 CXX=g++-8
-    # https://docs.travis-ci.com/user/languages/cpp/
-    - language: cpp
-      compiler: clang
     # https://docs.travis-ci.com/user/languages/java/
     - language: java
       jdk: oraclejdk9
@@ -21,22 +21,50 @@ matrix:
     # https://docs.travis-ci.com/user/languages/python/
     - language: python
       python: "3.6"
+    - language: generic
+      env: CC=clang-3.9 CXX=clang++-3.9 LDFLAGS="-fopenmp=libiomp5"
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.9
+          packages:
+            - clang-3.9
+      if: *secondary
+    - language: generic
+      # Open MP support is available from clang-3.7.
+      env: CC=clang-3.7 CXX=clang++-3.7 LDFLAGS="-fopenmp=libiomp5"
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.7
+          packages:
+            - clang-3.7
+      if: *secondary
     # Test old version of the dependency packages.
     - language: perl
       perl: "5.18-shrplib"
       env: BOWTIE2_VERSION=2.2.6
+      if: *secondary
     # https://docs.travis-ci.com/user/reference/osx
-    - os: osx
-      language: cpp
-      # Do not have to set "compiler: gcc" as it is actually clang on osx.
-      compiler: clang
     - os: osx
       osx_image: xcode9.4
       env: CC=gcc-8 CXX=g++-8
+    - os: osx
+      osx_image: xcode9.4
+      # "clang++" installed by llvm@3.9 instead of "clang++-3.9".
+      env: CC=clang-3.9 CXX=clang++
+      if: *secondary
+    - os: osx
+      osx_image: xcode9.4
+      env: CC=clang-3.7 CXX=clang++-3.7
+      if: *secondary
   allow_failures:
-    - language: cpp
-      compiler: clang
     - env: BOWTIE2_VERSION=2.2.6
+    - env: CC=clang-3.7 CXX=clang++-3.7 LDFLAGS="-fopenmp=libiomp5"
+    - os: osx
+      env: CC=clang-3.7 CXX=clang++-3.7
   fast_finish: true
 install:
   - |
@@ -56,8 +84,13 @@ install:
         echo "Installing ${CXX}."
         sudo apt-get install -qq "${CXX}"
       fi
+      if [[ "${CC}" =~ clang- ]]; then
+        echo "Installing ${CC}."
+        sudo apt-get install -qq "${CC}" libiomp-dev
+      fi
     else
       # osx
+      export HOMEBREW_NO_AUTO_UPDATE=1
       if [[ "${CC}" =~ gcc- ]]; then
         # Update command line tool to avoid an error:
         # "_stdio.h: No such file or directory", when building samtools.
@@ -70,6 +103,16 @@ install:
         CC_PKG="$(echo "${CC}" | sed -e 's/-/@/')"
         echo "Installing ${CC_PKG}."
         brew install "${CC_PKG}"
+      fi
+      if [[ "${CC}" =~ clang- ]]; then
+        echo "Installing ${CC}."
+        CC_VERSION=$(echo "${CC}" | sed -e 's/^clang-//')
+        brew install "llvm@${CC_VERSION}"
+        brew install libomp
+        CC_PREFIX=$(brew --prefix "llvm@${CC_VERSION}")
+        export PATH="${CC_PREFIX}/bin:$PATH"
+        export LDFLAGS="-L${CC_PREFIX}/lib -Wl,-rpath,${CC_PREFIX}/lib"
+        export CPPFLAGS="-I${CC_PREFIX}/include"
       fi
     fi
 
@@ -93,7 +136,7 @@ install:
   - pushd samtools-1.9
   - autoheader
   - autoconf -Wno-syntax
-  - ./configure
+  - ./configure || (cat config.log; false)
   - make
   - sudo make install
   - popd
@@ -118,7 +161,7 @@ install:
   - wget https://github.com/gmarcais/Jellyfish/releases/download/v${JELLYFISH_VERSION}/jellyfish-${JELLYFISH_VERSION}.tar.gz
   - tar xzf jellyfish-${JELLYFISH_VERSION}.tar.gz
   - pushd jellyfish-${JELLYFISH_VERSION}
-  - ./configure
+  - ./configure || (cat config.log; false)
   - make
   - sudo make install
   - popd

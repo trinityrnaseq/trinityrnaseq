@@ -10,7 +10,7 @@ import argparse
 import collections
 import numpy
 import time
-
+import hashlib
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +35,8 @@ class Trinity_fasta_parser:
 
         self.trinity_gene_to_isoform_seqs = collections.defaultdict(list) #instantiate member 
 
+        seen = dict()
+
         with open(trinity_fasta_filename) as fh:
             header = ""
             sequence = ""
@@ -44,7 +46,13 @@ class Trinity_fasta_parser:
                     # got header line
                     # process earlier entry
                     if header != "" and sequence != "":
-                        self.add_trinity_seq_entry(header, sequence)
+                        shaval = hashlib.sha224(sequence.encode('utf-8')).hexdigest()
+                        if shaval in seen:
+                            sys.stderr.write("warning, ignoring duplicate sequence entry {}".format(header))
+                        else:
+                            self.add_trinity_seq_entry(header, sequence)
+                            seen[shaval] = True
+                            
                     # init new entry                        
                     header = line
                     sequence = ""
@@ -53,8 +61,13 @@ class Trinity_fasta_parser:
                     sequence += line
             # get last one
             if sequence != "":
-                self.add_trinity_seq_entry(header, sequence)
-
+                shaval = hashlib.sha224(sequence.encode('utf-8')).hexdigest()
+                if shaval in seen:
+                    sys.stderr.write("warning, ignoring duplicate sequence entry {}".format(header))
+                else:
+                    self.add_trinity_seq_entry(header, sequence)
+                    seen[shaval] = True
+    
 
     def add_trinity_seq_entry(self, header, sequence):
         """

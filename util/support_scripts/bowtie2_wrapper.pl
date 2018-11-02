@@ -226,7 +226,7 @@ main: {
     my $cmd;
     if ($left_file && $right_file) {
 
-        $cmd = "bash -c \"set -o pipefail; bowtie2 --local -k $num_top_hits --threads $CPU --no-unal $format -x $max_dist_between_pairs -x $target_db -1 $left_file -2 $right_file | samtools sort -@ $CPU -o - - > $output_file\" ";
+        $cmd = "bash -c \"set -o pipefail; bowtie2 --local -k $num_top_hits --threads $CPU --no-unal $format -X $max_dist_between_pairs -x $target_db -1 $left_file -2 $right_file | samtools sort -@ $CPU -o - - > $output_file\" ";
         
 
     }

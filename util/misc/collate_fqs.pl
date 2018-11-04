@@ -72,6 +72,8 @@ main: {
         
         foreach my $sample (@samples) {
 
+            if ($sample->{done}) { next; }
+            
             my $sample_name = $sample->{sample_name};
             
             my $left_fq_reader = $sample->{left_fq_reader};
@@ -89,25 +91,31 @@ main: {
                 print $right_ofh $right_fq_entry->get_fastq_record();
                 
                 $samples_remaining = 1;
+                
+                $counter++;
+                
+                if ($counter % 100000 == 0) {
+                    print STDERR "\r[$counter]        ";
+                }
+                
+            }
+            else {
+                $sample->{done} = 1;
+                $sample->{left_fq_reader}->finish();
+                $sample->{right_fq_reader}->finish();
             }
             
         }
 
-        $counter++;
-
-        if ($counter % 100000 == 0) {
-            print STDERR "\r[$counter]        ";
-        }
     } # end of while samples remaining
 
     close $left_ofh;
     close $right_ofh;
 
-    print STDERR "\n\nDone.\n";
+    print STDERR "\n\nDone. Output $counter fastq records per file.\n";
     
     exit(0);
-    
-}
+    }
 
 
 

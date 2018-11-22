@@ -95,11 +95,8 @@ install:
         # Update command line tool to avoid an error:
         # "_stdio.h: No such file or directory", when building samtools.
         softwareupdate --list
-        softwareupdate --install "Command Line Tools (macOS High Sierra version 10.13) for Xcode-9.4"
+        softwareupdate --install "Command Line Tools (macOS High Sierra version 10.13) for Xcode-10.1"
 
-        # Uninstall oclint to install gcc on OSX.
-        # https://github.com/travis-ci/travis-ci/issues/8826
-        brew cask uninstall oclint
         CC_PKG="$(echo "${CC}" | sed -e 's/-/@/')"
         echo "Installing ${CC_PKG}."
         brew install "${CC_PKG}"

@@ -51,7 +51,7 @@ my %aligner_params = (
     );
 
 my $rsem_add_opts = "";
-my $eXpress_add_opts = "";
+
 my $kallisto_add_opts = "";
 my $salmon_add_opts= "";
 my $salmon_idx_type = 'quasi';
@@ -93,7 +93,7 @@ my $usage = <<__EOUSAGE__;
 #
 #
 #  --est_method <string>           abundance estimation method.
-#                                        alignment_based:  RSEM|eXpress       
+#                                        alignment_based:  RSEM
 #                                        alignment_free: kallisto|salmon
 #  
 ###################################
@@ -151,13 +151,6 @@ my $usage = <<__EOUSAGE__;
 #
 #  --include_rsem_bam              provide the RSEM enhanced bam file including posterior probabilities of read assignments.
 #  --rsem_add_opts <string>        additional parameters to pass on to rsem-calculate-expression
-#
-##########################################################################
-#  eXpress opts:
-#
-#  --bowtie_eXpress <string>  default: \"$aligner_params{bowtie_eXpress}\"
-#  --bowtie2_eXpress <string> default: \"$aligner_params{bowtie2_eXpress}\"
-#  --eXpress_add_opts <string>  default: "$eXpress_add_opts"
 #
 ##########################################################################
 #  kallisto opts:
@@ -274,11 +267,9 @@ my $samples_idx = 0;
               #
               'bowtie_RSEM=s' => \($aligner_params{'bowtie_RSEM'}),
               'bowtie2_RSEM=s' => \($aligner_params{'bowtie2_RSEM'}),
-              'bowtie_eXpress=s' => \($aligner_params{'bowtie_eXpress'}),
-              'bowtie2_eXpress=s' => \($aligner_params{'bowtie2_eXpress'}),
+
               
               'rsem_add_opts=s' => \$rsem_add_opts,
-              'eXpress_add_opts=s' => \$eXpress_add_opts,
               'kallisto_add_opts=s' => \$kallisto_add_opts,
               'salmon_add_opts=s' => \$salmon_add_opts,
     
@@ -304,8 +295,8 @@ unless ($est_method) {
     die $usage;
 }
 
-my @EST_METHODS = qw(RSEM express kallisto salmon);
-my %ALIGNMENT_BASED_EST_METHODS = map { + $_ => 1 } qw (RSEM express eXpress);
+my @EST_METHODS = qw(RSEM kallisto salmon);
+my %ALIGNMENT_BASED_EST_METHODS = map { + $_ => 1 } qw (RSEM);
 my %ALIGNMENT_FREE_EST_METHODS = map { + $_ => 1 } qw (kallisto salmon);
 
 
@@ -331,7 +322,7 @@ elsif ($aln_method !~ /bowtie2?/) {
 }
 
 
-unless ($est_method =~ /^(RSEM|express|kallisto|salmon|none)$/i) {
+unless ($est_method =~ /^(RSEM|kallisto|salmon|none)$/i) {
     die "Error, --est_method @EST_METHODS only\n";
 }
 
@@ -405,9 +396,6 @@ if ( $thread_count !~ /^\d+$/ ) {
     if ($est_method =~ /^RSEM$/i) {
         push (@tools, 'rsem-calculate-expression');
     }
-    elsif ($est_method =~ /^express$/i) {
-        push (@tools, 'express');
-    }
     elsif ($est_method eq 'kallisto') {
         push (@tools, 'kallisto');
     }
@@ -424,7 +412,7 @@ if ( $thread_count !~ /^\d+$/ ) {
         }
     }
     if ($missing) {
-        die "Please be sure bowtie and express are installed and the utilities @tools are available via your PATH setting.\n";
+        die "Please be sure the utilities @tools are available via your PATH setting.\n";
     }
 }
 
@@ -628,10 +616,7 @@ sub run_alignment_do_quant {
     &process_cmd("touch $bam_file_ok") unless (-e $bam_file_ok);
     
         
-    if ($est_method =~ /express/i) {
-        &run_eXpress($bam_file);
-    }
-    elsif ($est_method eq "RSEM") {
+    if ($est_method eq "RSEM") {
         
         # convert bam file for use with rsem:
         &process_cmd("convert-sam-for-rsem $bam_file $bam_file.for_rsem");
@@ -672,48 +657,6 @@ sub sort_bam_file {
         &process_cmd("touch $sorted_bam_file.bam.ok");
     }
 
-    return;
-}
-
-
-
-####
-sub run_eXpress {
-    my ($bam_file) = @_;
-    
-    my $SS_opt = "";
-    if ($SS_lib_type) {
-        if ($SS_lib_type eq "F") {
-            $SS_opt = "--f-stranded";
-        }
-        elsif ($SS_lib_type eq "R") {
-            $SS_opt = "--r-stranded";
-        }
-        elsif ($SS_lib_type eq "FR") {
-            $SS_opt = "--fr-stranded";
-        }
-        elsif ($SS_lib_type eq "RF") {
-            $SS_opt = "--rf-stranded";
-        }
-    }
-    
-    ## run eXpress
-    my $fraglength_param = "";
-    if ($single) {
-        $fraglength_param = "--frag-len-mean $fragment_length --frag-len-stddev $fragment_std";
-    }
-    
-    my $express_cmd = "express $SS_opt $fraglength_param $eXpress_add_opts $transcripts";
-    
-    my $cmd = "$express_cmd $bam_file";
-    &process_cmd($cmd);
-    
-    if ($gene_trans_map_file) {
-        
-        my $cmd = "$FindBin::RealBin/support_scripts/eXpress_trans_to_gene_results.pl results.xprs $gene_trans_map_file > results.xprs.genes";
-        &process_cmd($cmd);
-    }
-    
     return;
 }
 
@@ -1035,7 +978,7 @@ sub parse_samples_file {
             }
             $left_fq = &create_full_path($left_fq);
             if ($left_fq =~ /\.gz$/) {
-                $left_fq = &add_zcat_gz($left_fq);
+                $left_fq = &add_zcat_gz($left_fq) if ($aln_method eq "bowtie");
             }
         }
         else {
@@ -1048,7 +991,7 @@ sub parse_samples_file {
             }
             $right_fq = &create_full_path($right_fq);
             if ($right_fq =~ /\.gz$/) {
-                $right_fq = &add_zcat_gz($right_fq);
+                $right_fq = &add_zcat_gz($right_fq) if ($aln_method eq "bowtie");
             } 
         }
 
@@ -1081,16 +1024,15 @@ sub create_sample_definition {
     $single = &create_full_path($single) if $single;
 
     if ($left && $left =~ /\.gz$/) {
-        $left = &add_zcat_gz($left);
+        $left = &add_zcat_gz($left) if ($aln_method eq "bowtie");
     }
     if ($right && $right =~ /\.gz$/) {
-        $right = &add_zcat_gz($right);
+        $right = &add_zcat_gz($right) if ($aln_method eq "bowtie");
     }
     if ($single && $single =~ /\.gz$/) {
-        $single = &add_zcat_gz($single);
+        $single = &add_zcat_gz($single) if ($aln_method eq "bowtie");
     }
     
-
     
     if ($left && $right) {
         return ( { left => $left,

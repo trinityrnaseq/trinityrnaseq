@@ -189,10 +189,17 @@ install:
   - sudo pip install numpy
 
   - popd
-script:
+before_script:
   - |
-    export TRINITY_HOME=`pwd` && \
-    make && \
-    make plugins && \
-    sudo make install > /dev/null && \
-    make test -C sample_data/test_Trinity_Assembly
+    function show_log {
+      for file in $(find . -name config.log); do
+        echo "config.log File: ${file}"
+        cat "${file}"
+      done
+    }
+  - export TRINITY_HOME=`pwd`
+  - make || (show_log; false)
+  - make plugins || (show_log; false)
+  - sudo make install > /dev/null
+script:
+  - make test -C sample_data/test_Trinity_Assembly

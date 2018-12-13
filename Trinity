@@ -3804,7 +3804,7 @@ sub check_required_3rd_party_tool_installations {
     if ($samtools_path =~ /\w/) {
         print "Found samtools at: $samtools_path\n" if $VERBOSE;
     
-        my $version_info = `samtools --version`;
+        my $version_info = `samtools --version 2>&1`;
         my @pts = split(/\s+/, $version_info);
         my $version = $pts[1];
         my ($major, $minor, $patch) = split(/[\.\-]/, $version);

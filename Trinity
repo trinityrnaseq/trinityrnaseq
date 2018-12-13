@@ -1086,7 +1086,7 @@ unless ($NO_RUN_INCHWORM_FLAG || $NO_RUN_CHRYSALIS_FLAG || $bypass_java_version_
     if ($java_version =~ /(java|openjdk) version \"1\.(\d)\./) {
         $version_id = $2;
     }
-    elsif ($java_version =~ /java version \"(\d+)\" /) {
+    elsif ($java_version =~ /java version \"(\d+)(\.)?([._\d])+?\" ?/) {
         $version_id = $1;
     }
     elsif ($java_version =~ /java (\d+) /) {

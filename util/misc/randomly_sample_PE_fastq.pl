@@ -7,15 +7,6 @@
 ## Usage: $0 left.fq right.fq num_entries
 ##
 
-## See:
-## * https://en.wikipedia.org/wiki/Reservoir_sampling
-##
-## The current implementation requires the selected entries to be
-## stored in memory, but passes over the input file(s) only once. If
-## the array loading / reading is too slow or memory intensive, this
-## could be implemented in a two-pass fashion by first getting
-## indexes, and then getting the reads
-
 use strict;
 use warnings;
 

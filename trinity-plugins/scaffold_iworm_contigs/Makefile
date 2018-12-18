@@ -1,4 +1,4 @@
-CXX    = g++
+CXX    ?= g++
 prefix = ../htslib
 
 ScaffoldIwormContigs:

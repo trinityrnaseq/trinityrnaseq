@@ -951,7 +951,7 @@ sub parse_samples_file {
     my @samples_to_process;
 
     my %seen;
-    open (my $fh, $samples_file) or die "Error, cannot open file: $samples_file";
+    open (my $fh, $samples_file) or die "Error, cannot open file: [$samples_file]";
     while (<$fh>) {
         chomp;
         if (/^\#/) { next; }

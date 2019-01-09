@@ -30,7 +30,13 @@ main: {
     srand();
     my @selected_indices = &get_random_indices($num_entries, $num_total_records);
     
-
+    if (scalar(@selected_indices) != $num_entries) {
+        die "Error, get_random_indices returned "  . scalar(@selected_indices) . " instead of $num_total_records";
+    }
+    else {
+        print STDERR "-selected  $num_entries indices. Now outputting selected records\n";
+    }
+    
     my %selected = map { + $_ => 1 } @selected_indices;
 
     @selected_indices = ();
@@ -62,8 +68,6 @@ main: {
                 . "Right: " . $right_entry->get_core_read_name() . "\n";
         }
         
-        $counter++;
-
         if ($selected{$counter}) {
             
             print $left_ofh $left_entry->get_fastq_record();
@@ -73,18 +77,25 @@ main: {
             delete($selected{$counter});
 
         }
+
+        $counter++;
+        if ($counter % 100000 == 0) {
+            print STDERR "\r[$counter]   ";
+        }
     }
-
-    print STDERR " done.\n";
-
+    
+    print STDERR "\n\ndone.\n";
+    
     close $left_ofh;
     close $right_ofh;
-
-
+    
     if (%selected) {
         die "Error, missing indices: " . Dumper(\%selected);
     }
-        
+    else {
+        print STDERR "-all records located and output.\n";
+    }
+    
     exit(0);
 }
 

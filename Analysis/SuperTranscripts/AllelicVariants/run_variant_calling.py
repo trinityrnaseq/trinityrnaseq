@@ -12,6 +12,7 @@ import shlex
 import logging
 import re
 import math
+import glob
 
 sys.path.insert(0, os.path.sep.join([os.path.dirname(os.path.realpath(__file__)),
                                      "..", "..", "..", "PyLib"]))
@@ -88,7 +89,13 @@ def main():
     GATK_HOME = os.getenv("GATK_HOME")
     if not GATK_HOME:
         exit("Error, missing path to GATK in $GATK.")
-
+        
+    # identify gatk4_jar file
+    gatk4_jar = glob.glob(os.path.join(GATK_HOME, "gatk-package-4.*-local.jar"))
+    if len(gatk4_jar) != 1:
+        raise RuntimeError("Error, cannot locate single gatk-package-4.*-local.jar in {}".format(GATK_HOME))
+    gatk_path = os.path.abspath(gatk4_jar[0])
+    
     # get real paths before changing working directory in case they are relative paths
     if args.paired_reads:
         reads_paths = [os.path.realpath(f) for f in args.paired_reads]
@@ -231,10 +238,10 @@ def main():
         Pipeliner.Command(UTILDIR + "/clean_bam.pl dedupped.bam dedupped.bam.validation dedupped.valid.bam",
                           "make_valid_dedupped_bam.ok"),
         
-        Pipeliner.Command("java -jar " + GATK_HOME + "/GenomeAnalysisTK.jar " +
-                          "-T SplitNCigarReads -R " + st_fa_path +
-                          " -I dedupped.valid.bam -o splitNCigar.bam " +
-                          " -rf ReassignOneMappingQuality -RMQF 255 -RMQT 60 -U ALLOW_N_CIGAR_READS  --validation_strictness LENIENT",
+        Pipeliner.Command("java -jar " + gatk_path +
+                          " SplitNCigarReads -R " + st_fa_path +
+                          " -I dedupped.valid.bam -O splitNCigar.bam " +
+                          " --read-validation-stringency LENIENT",
                           "splitNCigarReads.ok")
         ])
     pipeliner.run()
@@ -245,9 +252,9 @@ def main():
     logger.info("Variant Calling using Haplotype Caller.")
 
     pipeliner.add_commands([
-        Pipeliner.Command("java -jar " + GATK_HOME + "/GenomeAnalysisTK.jar " +
-                          "-T HaplotypeCaller -R " + st_fa_path +
-                          " -I ./splitNCigar.bam -dontUseSoftClippedBases -stand_call_conf 20.0 -o output.vcf",
+        Pipeliner.Command("java -jar " + gatk_path + 
+                          " HaplotypeCaller -R " + st_fa_path +
+                          " -I ./splitNCigar.bam -dont-use-soft-clipped-bases -stand-call-conf 20.0 -O output.vcf",
                           "haplotypecaller.ok")
         ])
     pipeliner.run()
@@ -256,16 +263,16 @@ def main():
     logger.info("Doing some basic filtering of vcf.")
     
     pipeliner.add_commands([
-        Pipeliner.Command("java -jar " + GATK_HOME + "/GenomeAnalysisTK.jar " +
-                          "-T VariantFiltration -R " + st_fa_path +
+        Pipeliner.Command("java -jar " + gatk_path +
+                          " VariantFiltration -R " + st_fa_path +
                           " -V output.vcf -window 35 -cluster 3 " +
-                          "-filterName FS -filter \"FS > 30.0\" " +
-                          "-filterName QD -filter \"QD < 2.0\" -o filtered_output.vcf",
+                          "--filter-name FS -filter \"FS > 30.0\" " +
+                          "--filter-name QD -filter \"QD < 2.0\" -O filtered_output.vcf",
                           "variant_filt.ok")
         ])
 
     pipeliner.run()
-
+    
     
     logger.info("Done!")
 

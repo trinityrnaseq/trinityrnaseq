@@ -588,13 +588,13 @@ sub run_alignment_do_quant {
         if ($PE_mode) {
             my ($left_file, $right_file) = ($sample_href->{left}, $sample_href->{right});
             ## PE alignment
-            $bowtie_cmd = "set -o pipefail && bowtie $read_type " . $aligner_params{"${aln_method}_${est_method}"} . " -X $max_ins_size -S -p $thread_count $db_index_name -1 $left_file -2 $right_file | samtools view -F 4 -S -b | samtools sort -n -o $bam_file ";
+            $bowtie_cmd = "set -o pipefail && bowtie $read_type " . $aligner_params{"${aln_method}_${est_method}"} . " -X $max_ins_size -S -p $thread_count $db_index_name -1 $left_file -2 $right_file | samtools view -@ $thread_count -F 4 -S -b | samtools sort -@ $thread_count -n -o $bam_file ";
             
         }
         else {
             my $single_file = $sample_href->{single};
             # SE alignment
-            $bowtie_cmd = "set -o pipefail && bowtie $read_type " . $aligner_params{"${aln_method}_${est_method}"} . " -S -p $thread_count $db_index_name $single_file | samtools view -F 4 -S -b | samtools sort -n -o $bam_file ";
+            $bowtie_cmd = "set -o pipefail && bowtie $read_type " . $aligner_params{"${aln_method}_${est_method}"} . " -S -p $thread_count $db_index_name $single_file | samtools view -@ $thread_count -F 4 -S -b | samtools sort -@ $thread_count -n -o $bam_file ";
         }
     }
     elsif ($aln_method eq 'bowtie2') {
@@ -602,12 +602,12 @@ sub run_alignment_do_quant {
         if ($PE_mode) {
             ## PE alignment
             my ($left_file, $right_file) = ($sample_href->{left}, $sample_href->{right});
-            $bowtie_cmd = "set -o pipefail && bowtie2 " . $aligner_params{"${aln_method}_${est_method}"} . " $read_type -X $max_ins_size -x $db_index_name -1 $left_file -2 $right_file -p $thread_count | samtools view -F 4 -S -b | samtools sort -n -o $bam_file ";
+            $bowtie_cmd = "set -o pipefail && bowtie2 " . $aligner_params{"${aln_method}_${est_method}"} . " $read_type -X $max_ins_size -x $db_index_name -1 $left_file -2 $right_file -p $thread_count | samtools view -@ $thread_count -F 4 -S -b | samtools sort -@ $thread_count -n -o $bam_file ";
         }
         else {
             # SE alignment
             my $single_file = $sample_href->{single};
-            $bowtie_cmd = "set -o pipefail && bowtie2 " . $aligner_params{"${aln_method}_${est_method}"} . " $read_type -x $db_index_name -U $single_file -p $thread_count | samtools view -F 4 -S -b | samtools sort -n -o $bam_file ";
+            $bowtie_cmd = "set -o pipefail && bowtie2 " . $aligner_params{"${aln_method}_${est_method}"} . " $read_type -x $db_index_name -U $single_file -p $thread_count | samtools view -@ $thread_count -F 4 -S -b | samtools sort -@ $thread_count -n -o $bam_file ";
         }
     }
     

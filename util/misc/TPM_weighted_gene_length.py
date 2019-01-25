@@ -102,7 +102,7 @@ def parse_TPM_matrix(TPM_matrix_file):
     trans_to_TPM_vals_dict = {}
     
     with open(TPM_matrix_file) as f:
-        header = f.next()
+        header = next(f)
         for line in f:
             line = line.rstrip()
             vals = line.split("\t")

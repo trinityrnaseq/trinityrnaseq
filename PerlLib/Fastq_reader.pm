@@ -2,6 +2,7 @@ package Fastq_reader;
 
 use strict;
 use warnings;
+use Carp;
 
 sub new {
     my ($packagename, $fastqFile) = @_;
@@ -22,7 +23,8 @@ sub new {
 	}
 	else {
 		if ( $fastqFile =~ /\.gz$/ ) {
-		    open ($filehandle, "gunzip -c $fastqFile | ") or die "Error: Couldn't open compressed $fastqFile\n";
+		    ## TODO:  need to handle the failure case, since not picked up here as I thought it would!!
+            open ($filehandle, "gunzip -c $fastqFile | ") or die "Error: Couldn't open compressed $fastqFile\n";
         }
         elsif ($fastqFile =~ /\.bz2$/) {
             open ($filehandle, "bunzip2 -c $fastqFile | ") or die "Error, couldn't open compressed $fastqFile $!";
@@ -58,8 +60,12 @@ sub next {
     
 	if ($next_text_input) {
         
-		
-		$read_obj = Fastq_record->new($next_text_input);
+		eval {
+            $read_obj = Fastq_record->new($next_text_input);
+        };
+        if ($@) {
+            confess "Error, $@ :: fastq file: " . $self->{fastqFile};
+        }
     }
         
     return ($read_obj); #returns null if not instantiated.

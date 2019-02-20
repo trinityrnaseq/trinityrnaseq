@@ -39,7 +39,7 @@ my %trans_lengths;
 open (my $fh, $matrix_file) or die $!;
 my $header = <$fh>;
 
-my @trans;
+my %gene_to_trans;
 
 my $sum_expr = 0;
 
@@ -61,18 +61,59 @@ while (<$fh>) {
     }
     
     my $seq_len = $trans_lengths{$acc} or die "Error, no seq length for acc: $acc";
+
+    my $gene_id = $acc;
+    if ($acc =~ /^(\S+)_i\d+/) {
+        $gene_id = $1;
+    }
     
-    push (@trans, { acc => $acc,
-                    len => $seq_len,
-                    sum_expr => $trans_sum_expr,
-                    max_expr => $max_expr,
-                });
+    push (@{$gene_to_trans{$gene_id}}, { acc => $acc,
+                                      len => $seq_len,
+                                      sum_expr => $trans_sum_expr,
+                                      max_expr => $max_expr,
+          });
     
 }
 
-@trans = reverse sort { $a->{sum_expr} <=> $b->{sum_expr}
+my @genes;
+
+## make expression weighted gene length
+foreach my $gene (keys %gene_to_trans) {
+    my @trans_structs = @{$gene_to_trans{$gene}};
+
+    my $sum_expr = 0;
+    my $sum_expr_n_len = 0;
+    my $max_expr = 0;
+    foreach my $trans_struct (@trans_structs) {
+        my $len = $trans_struct->{len};
+        my $expr = $trans_struct->{sum_expr} || 1;
+        $sum_expr_n_len += $len * $expr;
+        $sum_expr += $expr;
+
+        my $m_expr = $trans_struct->{max_expr};
+        if ($m_expr > $max_expr) {
+            $max_expr = $m_expr;
+        }
+        
+    }
+    
+    my $gene_len = $sum_expr_n_len / $sum_expr;
+    
+    push (@genes, { acc => $gene,
+                    sum_expr => $sum_expr,
+                    len => $gene_len,
+                    max_expr => $max_expr } );
+}
+
+
+@genes = reverse sort { $a->{sum_expr} <=> $b->{sum_expr}
                         ||
-                            $a->{len} <=> $b->{len} } @trans;
+                            $a->{len} <=> $b->{len} } @genes;
+
+
+
+
+
 
 
 ## write output table
@@ -87,20 +128,20 @@ print "Ex\tExN50\tnum_transcripts\n";
 my $prev_pct = 0;
 my $sum = 0;
 my @captured;
-while (@trans) {
+while (@genes) {
     
-    my $t = shift @trans;
+    my $t = shift @genes;
 
     $sum += $t->{sum_expr};
 
     my $pct = int($sum/$sum_expr * 100);
     
-    print $ofh join("\t", $pct, $t->{acc}, $t->{len}, sprintf("%.1f", $t->{max_expr}), sprintf("%.1f", $t->{sum_expr})) . "\n";
+    print $ofh join("\t", $pct, $t->{acc}, int($t->{len}), sprintf("%.1f", $t->{max_expr}), sprintf("%.1f", $t->{sum_expr})) . "\n";
     
     if ($prev_pct > 0 && $pct > $prev_pct) {
         
                         
-        my $N50 = &calc_N50(@captured);
+        my $N50 = int(&calc_N50(@captured));
         my $num_trans = scalar(@captured);
         
         print "$prev_pct\t$N50\t$num_trans\n";
@@ -114,8 +155,8 @@ while (@trans) {
 # do last one
 
 my $N50 = &calc_N50(@captured);
-my $num_trans = scalar(@captured);
-print "100\t$N50\t$num_trans\n";
+my $num_genes = scalar(@captured);
+print "100\t$N50\t$num_genes\n";
 
 
 exit(0);

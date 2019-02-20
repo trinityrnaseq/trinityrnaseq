@@ -238,8 +238,6 @@ my $sort_mem;
 if ($max_memory) {
     $max_memory =~ /^([\d\.]+)G$/ or die "Error, cannot parse max_memory value of $max_memory.  Set it to 'xG' where x is a numerical value\n";
     
-
-
     $max_memory = $1;
     
     # prep the sort memory usage 
@@ -301,6 +299,7 @@ main: {
     my @checkpoints;
 
 
+    print STDERR "-prepping seqs\n";
     if ( (@left_files && @right_files) || 
          ($left_list_file && $right_list_file) ) {
         
@@ -309,13 +308,13 @@ main: {
             ($left_SS_type, $right_SS_type) = split(//, $SS_lib_type);
         }
 
-        print("Converting input files. (both directions in parallel)");
-
+        print STDERR "Converting input files. (both directions in parallel)";
+        
         my $thr1;
         my $thr2;
 
         if (-s "left.fa" && -e "left.fa.ok") {
-            $thr1 = threads->create(sub { print ("left file exists, nothing to do");});
+            $thr1 = threads->create(sub { print STDERR ("left file exists, nothing to do");});
         }
         else {
             $thr1 = threads->create('prep_list_of_seqs', \@left_files, $seqType, "left", $left_SS_type);
@@ -323,7 +322,7 @@ main: {
         }
         
         if (-s "right.fa" && -e "right.fa.ok") {
-            $thr2 = threads->create(sub { print ("right file exists, nothing to do");});
+            $thr2 = threads->create(sub { print STDERR ("right file exists, nothing to do");});
         }
         else {
             $thr2 = threads->create('prep_list_of_seqs', \@right_files, $seqType, "right", $right_SS_type);
@@ -339,7 +338,7 @@ main: {
         
         &process_checkpoints(@checkpoints);
         
-		print("Done converting input files.");
+		print STDERR "Done converting input files.";
         
         push (@files_need_stats, 
               [\@left_files, "left.fa"], 
@@ -351,16 +350,15 @@ main: {
             die "$trinity_target_fa (".(-s $trinity_target_fa)." bytes) is different from the combined size of left.fa and right.fa (".((-s "left.fa") + (-s "right.fa"))." bytes)\n";
         }
         push (@checkpoints, [ $trinity_target_fa, "$trinity_target_fa.ok" ]);
-        
-        
+                
     } 
     elsif (@single_files) {
-
+        
         ## Single-mode
-
+        
         unless (-s "single.fa" && -e "single.fa.ok") {
             &prep_list_of_seqs(\@single_files, $seqType, "single", $SS_lib_type);
-
+            
         }
         push (@files_need_stats, [\@single_files, "single.fa"]);
         push (@checkpoints, [ "single.fa", "single.fa.ok" ]);
@@ -371,17 +369,21 @@ main: {
     }
 
     &process_checkpoints(@checkpoints);
-    
+
+    print STDERR "-kmer counting.\n";
     my $kmer_file = &run_jellyfish($trinity_target_fa, $SS_lib_type);
 
+    print STDERR "-generating stats files\n";
     &generate_stats_files(\@files_need_stats, $kmer_file, $SS_lib_type);
 
+    print STDERR "-defining normalized reads\n";
     if ($pairs_together_flag) {
         &run_nkbc_pairs_together(\@files_need_stats, $kmer_file, $SS_lib_type, $max_cov, $MIN_COV, $max_CV);
     } else {
         &run_nkbc_pairs_separate(\@files_need_stats, $kmer_file, $SS_lib_type, $max_cov, $MIN_COV, $max_CV);
     }
-        
+
+    print STDERR "-search and capture.\n";
     my @outputs;
     @checkpoints = ();
     my @threads;
@@ -389,7 +391,7 @@ main: {
         my ($orig_file, $converted_file, $stats_file, $selected_entries) = @$info_aref;
 
         ## do multi-threading
-
+        
         my $base = (scalar @$orig_file == 1) ? basename($orig_file->[0]) : basename($orig_file->[0]) . "_ext_all_reads";
         
         my $normalized_filename_prefix = $output_directory . "/$base.normalized_K${KMER_SIZE}_maxC${max_cov}_minC${MIN_COV}_maxCV${max_CV}";
@@ -409,7 +411,7 @@ main: {
         my $checkpoint_file = "$outfile.ok";
         unless (-e $checkpoint_file) {
             my $thread = threads->create('make_normalized_reads_file', $orig_file, $seqType, $selected_entries, $outfile);
-                
+            
             push (@threads, $thread);
             push (@checkpoints, [$outfile, $checkpoint_file]);
         }
@@ -433,6 +435,7 @@ main: {
     
     ## link them up with simpler names so they're easy to find by downstream scripts.
     if (scalar @outputs == 2) {
+        # paired
         my $left_out = $outputs[0];
         my $right_out = $outputs[1];
         
@@ -451,7 +454,7 @@ main: {
         }
     }
     
-    print "\n\nNormalization complete. See outputs: \n\t" . join("\n\t", @outputs) . "\n";
+    print STDERR "\n\nNormalization complete. See outputs: \n\t" . join("\n\t", @outputs) . "\n";
     
 
     exit(0);
@@ -487,16 +490,20 @@ sub build_selected_index {
 sub make_normalized_reads_file {
     my ($source_files_aref, $seq_type, $selected_entries, $outfile) = @_;
 
+    print STDERR "-preparing to extract selected reads from: @$source_files_aref ...";
     open (my $ofh, ">$outfile") or die "Error, cannot write to $outfile";
 
     my @source_files = @$source_files_aref;
     
     my %idx = &build_selected_index( $selected_entries );
-
+    print STDERR " done prepping, now search and capture.\n";
+    
     #print STDERR Dumper(\%idx);
     
     for my $orig_file ( @source_files ) {
         my $reader;
+
+        print STDERR "-capturing normalized reads from: $orig_file\n";
         
         # if we had a consistent interface for the readers, we wouldn't have to code this up separately below... oh well.
         ##  ^^ I enjoyed this lamentation, so I left it in the rewrite - JO
@@ -567,16 +574,16 @@ sub run_jellyfish {
     
     my $jelly_kmer_fa_file = "jellyfish.K${KMER_SIZE}.min${MIN_KMER_COV_CONST}.kmers.fa";
     
-    print STDERR "-------------------------------------------\n"
-        . "----------- Jellyfish  --------------------\n"
-        . "-- (building a k-mer catalog from reads) --\n"
-        . "-------------------------------------------\n\n";
-    
     my $jellyfish_checkpoint = "$jelly_kmer_fa_file.success";
     
     unless (-e $jellyfish_checkpoint) {
 
-
+        print STDERR "-------------------------------------------\n"
+            . "----------- Jellyfish  --------------------\n"
+            . "-- (building a k-mer catalog from reads) --\n"
+            . "-------------------------------------------\n\n";
+        
+        
         my $read_file_size = -s $reads;
         
         my $jelly_hash_size = int( ($max_memory - $read_file_size)/7); # decided upon by Rick Westerman
@@ -771,7 +778,7 @@ sub read_list_file {
 sub process_cmd {
     my ($cmd) = @_;
 
-    print "CMD: $cmd\n";
+    print STDERR "CMD: $cmd\n";
 
     my $start_time = time();
     my $ret = system("bash", "-c", $cmd);
@@ -781,7 +788,7 @@ sub process_cmd {
         die "Error, cmd: $cmd died with ret $ret";
     }
     
-    print "CMD finished (" . ($end_time - $start_time) . " seconds)\n";    
+    print STDERR "CMD finished (" . ($end_time - $start_time) . " seconds)\n";    
 
     return;
 }
@@ -838,7 +845,6 @@ sub generate_stats_files {
     
     {
         ## sort by read name
-        print STDERR "-sorting each stats file by read name.\n";
         my @cmds;
         @checkpoints = ();
         foreach my $info_aref (@$files_need_stats_aref) {
@@ -854,16 +860,18 @@ sub generate_stats_files {
         }
         
         if (@cmds) {
+            print STDERR "-sorting each stats file by read name.\n";
+            
             if ($PARALLEL_STATS) {
                 &process_cmds_parallel(@cmds);
             }
             else {
                 &process_cmds_serial(@cmds);
             }
-            
-        }
 
-        &process_checkpoints(@checkpoints);        
+            &process_checkpoints(@checkpoints);        
+        }
+                
         
     }
     

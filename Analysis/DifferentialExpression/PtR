@@ -1033,9 +1033,9 @@ main: {
             $Rscript .= "sample_dist = dist(t(data), method=\'$sample_dist\')\n";
         }
         
-        
-        $Rscript .= "hc_samples = hclust(sample_dist, method=\'$sample_clust\')\n";
-        
+        if ($sample_clust ne 'none') {
+            $Rscript .= "hc_samples = hclust(sample_dist, method=\'$sample_clust\')\n";
+        }
         
                 
     }

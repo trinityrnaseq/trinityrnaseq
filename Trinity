@@ -1075,6 +1075,7 @@ else {
 
 
 ## Check Java version:
+$bypass_java_version_check = 1; ####  NOTE: turning off java version check for now. 
 unless ($NO_RUN_INCHWORM_FLAG || $NO_RUN_CHRYSALIS_FLAG || $bypass_java_version_check || $TRINITY_COMPLETE_FLAG) {
     my $java_version = `java -Xmx64m -version 2>&1 `;
 

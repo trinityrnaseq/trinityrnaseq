@@ -853,10 +853,10 @@ sub run_salmon {
         my $cmd;
         
         if ($salmon_idx_type eq 'quasi') {
-            $cmd = "salmon index -t $transcripts -i $salmon_index --type quasi -k $salmon_quasi_kmer_length -p $thread_count";
+            $cmd = "salmon index -t $transcripts --keepDuplicates -i $salmon_index --type quasi -k $salmon_quasi_kmer_length -p $thread_count";
         }
         elsif ($salmon_idx_type eq 'fmd') {
-            $cmd = "salmon index -t $transcripts -i $salmon_index --type fmd -p $thread_count";
+            $cmd = "salmon index -t $transcripts --keepDuplicates -i $salmon_index --type fmd -p $thread_count";
         }
         else {
             die "Error, not recognizing idx type: $salmon_idx_type";

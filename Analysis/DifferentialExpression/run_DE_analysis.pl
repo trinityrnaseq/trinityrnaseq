@@ -692,7 +692,7 @@ sub run_ROTS_sample_pair {
     print $ofh "voom.data = voom(x, design, lib.size=lib_sizes*tmm_norm_factors, plot=F)\n";
     print $ofh "input_voom = voom.data\$E\n";
     print $ofh "# run ROTS for DE analysis\n";
-    print $ofh "res_voom <- ROTS(data=input_voom,groups=conditions,B=$ROTS_B, K=$ROTS_K)\n";
+    print $ofh "res_voom <- ROTS(data=input_voom,groups=as.numeric(conditions),B=$ROTS_B, K=$ROTS_K)\n";
     print $ofh "results = summary(res_voom, fdr=0.1)\n";
 
     print $ofh "# add logFC and logCPM to result table.\n";

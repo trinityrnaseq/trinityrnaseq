@@ -89,7 +89,7 @@ def compute_weighted_gene_lengths(trans_to_gene_id_dict, trans_lengths_dict, tra
             weighted_gene_length = sum_length_x_expr / sum_expr
             gene_id_to_length[gene_id] = int(round(weighted_gene_length))
 
-            logger.debug("Computing weighted length of {}: {} => {}".format(gene_id,
+            logger.debug("Computing weighted length of {0}: {1} => {2}".format(gene_id,
                                                                             trans_expr_lengths,
                                                                             weighted_gene_length))
             
@@ -129,7 +129,7 @@ def parse_trans_lengths_file(trans_lengths_file):
             if re.match("^\d+$", length):
                 trans_id_to_length[trans_id] = int(length)
             else:
-                print("Warning - ignoring line: [{}] since not parsing length value as number".format(line), file=sys.stderr)
+                print("Warning - ignoring line: [{0}] since not parsing length value as number".format(line), file=sys.stderr)
 
     return trans_id_to_length
 

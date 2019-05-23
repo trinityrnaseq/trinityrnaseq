@@ -6,7 +6,7 @@ dat_filename = args[1]
 pdf_filename = paste(dat_filename, ".plot.pdf", sep='')
 pdf(pdf_filename)
 data = read.table(dat_filename, header=T)
-plot(data$Ex, data$ExN50, xlab="Pct. Ex.", ylab="N50 contig length", col='blue', t='b')
+plot(data$Ex, data$ExN50, xlab="Pct. Ex.", ylab="N50 contig length", col='blue', t='b', xlim=c(30,100))
 
 write(cat("ExN50 data plotted as:", pdf_filename), stderr())
 

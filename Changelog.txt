@@ -1,3 +1,37 @@
+
+# Trinity-v2.8.5, May 24, 2019
+- exn50 plots start at 30%
+- turned off java version checking
+- exclude duplicate sequence artifacts
+- multithreading parameters added for samtools view & sort
+- 'express' quant removed in favor of alternatives
+
+
+
+# Trinity-v2.8.4 Patch Release Sept 12, 2018
+Removed the -march=native from inchworm and chrysalis makefiles
+
+
+# Trinity v2.8.3 Patch Release  Aug 22, 2018
+Patch release, more effectively dealing with new failure modes.
+
+-if salmon fails for unexpected reasons, retain the pre-salmon results in that case
+
+-no fatal error on finding duplicate seqs, instead reports error message and indicates to share it with the trinity developers to guide further improvements
+
+
+# Release v2.8.2 Aug 15, 2018
+minor adjustments to more easily support bioconda integration
+
+
+# Release v2.8.1  August 13, 2018
+-now using cmake for Inchworm and Chrysalis builds
+-new option '--include_supertranscripts' to output the supertranscripts in addition to the Trinity.fasta file.
+-Updates for improved handling of non-strand-specific RNA-Seq and high polymorphism containing transcriptomes. (from v2.7.0-prerelease)
+
+minor update... when running 'make' the installer now finds the chrysalis binaries in the right place. This is a cosmetic update. No change in function from v2.8.0
+
+
 # Release v2.8.0
 -now using cmake for Inchworm and Chrysalis builds
 -new option '--include_supertranscripts' to output the supertranscripts in addition to the Trinity.fasta file.

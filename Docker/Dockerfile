@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 MAINTAINER bhaas@broadinstitute.org
 
 RUN apt-get update && apt-get install -y gcc g++ perl python automake make \
@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y gcc g++ perl python automake make \
 				       build-essential libghc-zlib-dev libncurses-dev libbz2-dev liblzma-dev libpcre3-dev libxml2-dev \
 				       libblas-dev gfortran git unzip ftp libzmq3-dev nano ftp fort77 libreadline-dev \
 				       libcurl4-openssl-dev libx11-dev libxt-dev \
-				       x11-common libcairo2-dev libpng12-dev libreadline6-dev libjpeg8-dev pkg-config libtbb-dev \
+				       x11-common libcairo2-dev libpng-dev libreadline-dev libjpeg-dev pkg-config libtbb-dev \
                    && apt-get clean
 
 RUN curl -L https://cpanmin.us | perl - App::cpanminus
@@ -32,7 +32,7 @@ ENV BIN /usr/local/bin
 
 WORKDIR $SRC
 
-ENV R_VERSION=R-3.4.1
+ENV R_VERSION=R-3.5.2
 
 RUN curl https://cran.r-project.org/src/base/R-3/$R_VERSION.tar.gz -o $R_VERSION.tar.gz && \
         tar xvf $R_VERSION.tar.gz && \
@@ -54,6 +54,11 @@ RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstall
 RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("argparse", dep = TRUE)'
 RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("sm", dep = TRUE)'
 RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("fastcluster", dep = TRUE)'
+RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("vioplot", dep = TRUE)'
+RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("DEXSeq", dep = TRUE)'
+RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("tximport", dep = TRUE)'
+RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("tximportData", dep = TRUE)'
+
 
 
 ## bowtie
@@ -161,8 +166,10 @@ WORKDIR $SRC
 
 RUN apt-get update && apt-get install -y cmake
 
-ENV TRINITY_VERSION="2.8.4"
-ENV TRINITY_CO="1d079c1"
+RUN apt-get install -y rsync
+
+ENV TRINITY_VERSION="2.8.5"
+ENV TRINITY_CO="d35f3c1149bab077ca7c83f209627784469c41c6"
 
 WORKDIR $SRC
 

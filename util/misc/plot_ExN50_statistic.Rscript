@@ -2,11 +2,37 @@
 
 args<-commandArgs(TRUE)
 
-dat_filename = args[1]
-pdf_filename = paste(dat_filename, ".plot.pdf", sep='')
+if (length(args) == 0) {
+    stop("\n\n\tusage: plot_ExN50_statistic.Rscript sampleA.ExN50.stats [ sampleB.ExN50.stats ... ] \n\n\n")
+}
+
+
+library(tidyverse)
+
+alldata = NULL
+
+for (i in 1:length(args)) {
+    filename = args[i]
+
+    message(sprintf("parsing: %s", filename))
+    data = read.table(filename, header=T, row.names=NULL)
+
+    data$sample = filename
+
+    if (is.null(alldata)) {
+        alldata <- data
+    } else {
+        alldata <- rbind(alldata, data)
+    }
+}
+
+
+pdf_filename = "ExN50_plot.pdf"
 pdf(pdf_filename)
-data = read.table(dat_filename, header=T)
-plot(data$Ex, data$ExN50, xlab="Pct. Ex.", ylab="N50 contig length", col='blue', t='b', xlim=c(30,100))
+
+p = alldata %>% ggplot(aes(x=Ex, y=ExN50, color=sample)) + geom_line() + xlim(c(30,100))
+
+plot(p)
 
 write(cat("ExN50 data plotted as:", pdf_filename), stderr())
 

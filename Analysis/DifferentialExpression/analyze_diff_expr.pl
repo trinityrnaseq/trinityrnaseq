@@ -296,10 +296,11 @@ sub parse_result_files_find_diffExp {
             ## write a samples file
             open (my $ofh, ">$pairwise_samples_file") or die "Error, cannot write to $pairwise_samples_file";
             foreach my $cond ($condA, $condB) {
-                if (! exists $samples_to_replicates_href->{$cond}) {
-                    die "\n\n\tError, not finding replicates corresponding to cond: $cond.  Please use the --samples parameter to specify sample/replicate relationships\n\n" . Dumper($samples_to_replicates_href);
+                my @replicates = ($cond);
+                if (exists $samples_to_replicates_href->{$cond}) {
+                   @replicates = @{$samples_to_replicates_href->{$cond}}; 
                 }
-                my @replicates = @{$samples_to_replicates_href->{$cond}};
+                
                 foreach my $replicate (@replicates) {
                     print $ofh join("\t", $cond, $replicate) . "\n";
                 }

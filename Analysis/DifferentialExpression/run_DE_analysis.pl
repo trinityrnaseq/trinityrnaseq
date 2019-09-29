@@ -27,7 +27,7 @@ my $usage = <<__EOUSAGE__;
 #
 #  --matrix|m <string>               matrix of raw read counts (not normalized!)
 #
-#  --method <string>               edgeR|DESeq2|voom|ROTS
+#  --method <string>               edgeR|DESeq2|voom
 #                                     note: you should have biological replicates.
 #                                           edgeR will support having no bio replicates with
 #                                           a fixed dispersion setting. 
@@ -67,10 +67,6 @@ my $usage = <<__EOUSAGE__;
 #
 #  --dispersion <float>            edgeR dispersion value (Read edgeR manual to guide your value choice)
 #                                    http://www.bioconductor.org/packages/release/bioc/html/edgeR.html
-#  ## ROTS parameters
-#  --ROTS_B <int>                   : number of bootstraps and permutation resampling (default: $ROTS_B)
-#  --ROTS_K <int>                   : largest top genes size (default: $ROTS_K)
-#
 #
 ###############################################################################################
 #
@@ -80,7 +76,6 @@ my $usage = <<__EOUSAGE__;
 #  edgeR:       http://www.bioconductor.org/packages/release/bioc/html/edgeR.html
 #  DESeq2:      http://bioconductor.org/packages/release/bioc/html/DESeq2.html    
 #  voom/limma:  http://bioconductor.org/packages/release/bioc/html/limma.html
-#  ROTS:        http://www.btk.fi/research/research-groups/elo/software/rots/
 #
 ###############################################################################################
 
@@ -90,6 +85,13 @@ __EOUSAGE__
 
 
     ;
+
+
+#  ## ROTS parameters
+#  --ROTS_B <int>                   : number of bootstraps and permutation resampling (default: $ROTS_B)
+#  --ROTS_K <int>                   : largest top genes size (default: $ROTS_K)
+#
+#  ROTS:        http://www.btk.fi/research/research-groups/elo/software/rots/
 
 
 my $matrix_file;

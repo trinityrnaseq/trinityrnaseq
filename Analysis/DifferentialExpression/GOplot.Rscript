@@ -10,7 +10,7 @@ parser$add_argument("--pdf_outfile", help="pdf output filename", required=TRUE)
 args = parser$parse_args()
 
 library(GOplot)
-EC.david = read.table(args$EC_david, sep='\t', header=T)
+EC.david = read.table(args$EC_david, sep='\t', header=T, quote="")
 EC.genelist = read.table(args$EC_genelist, sep='\t', header=T)
 
 # plotting commands from: https://wencke.github.io/
@@ -23,13 +23,16 @@ pdf(file=args$pdf_outfile)
 ## The modified barplot (GOBar)
 ###############################
 
-# Generate a simple barplot
+## Generate a simple barplot
+message("GOBar, circ, BP")
 GOBar(subset(circ, category == 'BP'))
 
-# Facet the barplot according to the categories of the terms
+## Facet the barplot according to the categories of the terms
+message("GOBar, circ, multiple")
 GOBar(circ, display = 'multiple')
 
 # Facet the barplot, add a title and change the colour scale for the z-score
+message("GOBar, multiple, Z-scores")
 GOBar(circ, display = 'multiple', title = 'Z-score coloured barplot', zsc.col = c('yellow', 'black', 'cyan'))
 
 
@@ -39,18 +42,22 @@ GOBar(circ, display = 'multiple', title = 'Z-score coloured barplot', zsc.col = 
 
 
 # Generate the bubble plot with a label threshold of 3
-GOBubble(circ, labels = 3)
+#message("GOBubble, circ")
+#GOBubble(circ, labels = 3)
 
 # Add a title, change the colour of the circles, facet the plot according to the categories and change the label threshold
+message("GOBubble, multiple")
 GOBubble(circ, title = 'Bubble plot', col = c('orange', 'darkred', 'gold'), display = 'multiple', labels = 3)
 
-# Colour the background according to the category
+## Colour the background according to the category
+message("GOBubble, bckgrd color")
 GOBubble(circ, title = 'Bubble plot with background colour', display = 'multiple', labels = 3)
 
 # Reduce redundant terms with a gene overlap >= 0.75...
-reduced_circ <- reduce_overlap(circ, overlap = 0.75)
-# ...and plot it
-GOBubble(reduced_circ, labels = 2.8)
+#reduced_circ <- reduce_overlap(circ, overlap = 0.75)
+## ...and plot it
+#message("GOBubble, reduced")
+#GOBubble(reduced_circ, labels = 2.8)
 
 
 
@@ -60,6 +67,7 @@ GOBubble(reduced_circ, labels = 2.8)
 
 
 #Generate a circular visualization of the results of gene- annotation enrichment analysis
+message("GOCircle")
 GOCircle(circ)
 
 # Generate a circular visualization of selected terms
@@ -68,6 +76,7 @@ GOCircle(circ)
 #GOCircle(circ, nsub = IDs)
 
 # Generate a circular visualization for 10 terms
+message("GOcircule, nsub=10")
 GOCircle(circ, nsub = 10)
 
 

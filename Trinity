@@ -292,22 +292,11 @@ $trinity_banner
 #
 #  --trimmomatic                   :run Trimmomatic to quality trim reads
 #                                        see '--quality_trimming_params' under full usage info for tailored settings.
-#                                  
-#
-#  --no_normalize_reads            :Do *not* run in silico normalization of reads. Defaults to max. read coverage of $normalize_max_read_cov.
-#                                       see '--normalize_max_read_cov' under full usage info for tailored settings.
-#                                       (note, as of Sept 21, 2016, normalization is on by default)
-#     
-#  --no_distributed_trinity_exec   :do not run Trinity phase 2 (assembly of partitioned reads), and stop after generating command list.
-#
 #
 #  --output <string>               :name of directory for output (will be
 #                                   created if it doesn't already exist)
 #                                   default( your current working directory: "$output_directory" 
 #                                    note: must include 'trinity' in the name as a safety precaution! )
-#             
-#  --workdir <string>              :where Trinity phase-2 assembly computation takes place (defaults to --output setting).
-#                                  (can set this to a node-local drive or RAM disk)     
 #  
 #  --full_cleanup                  :only retain the Trinity fasta file, rename as \${output_dir}.Trinity.fasta
 #
@@ -333,6 +322,11 @@ my $full_usage = qq^
 #  --monitoring                    :use collectl to monitor all steps of Trinity
 #     --monitor_sec <int>          : number of seconds for each interval of runtime monitoring (default: $COLLECTL_INTERVAL_SECONDS)
 #  
+#  --no_distributed_trinity_exec   :do not run Trinity phase 2 (assembly of partitioned reads), and stop after generating command list.
+#
+#  --workdir <string>              :where Trinity phase-2 assembly computation takes place (defaults to --output setting).
+#                                  (can set this to a node-local drive or RAM disk)     
+#
 ####################################################
 # Inchworm and K-mer counting-related options: #####
 #
@@ -431,7 +425,13 @@ my $full_usage = qq^
 #
 #  --just_normalize_reads               stop after performing read normalization
 #
-################################################################################
+#  --no_normalize_reads            :Do *not* run in silico normalization of reads. Defaults to max. read coverage of $normalize_max_read_cov.
+#                                       see '--normalize_max_read_cov' under full usage info for tailored settings.
+#                                       (Note, as of Sept 21, 2016, normalization is on by default)
+#                                       (*Turning off normalization is not recommended for most applications)
+#     
+#
+###############################################################################
 #### Genome-guided de novo assembly
 # 
 #  * required:

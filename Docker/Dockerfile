@@ -184,6 +184,64 @@ ENV TRINITY_HOME /usr/local/bin/trinityrnaseq
 
 ENV PATH=${TRINITY_HOME}:${PATH}
 
-COPY Dockerfile $SRC/Dockerfile.$TRINITY_VERSION
+
+RUN apt-get install -y libssl-dev
+RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller);  biocLite("goseq", dep = TRUE)'
 
 
+RUN pip install HTSeq
+
+
+
+
+##############
+## STAR
+
+ENV STAR_VERSION=2.7.2b
+RUN STAR_URL="https://github.com/alexdobin/STAR/archive/${STAR_VERSION}.tar.gz" &&\
+    wget -P $SRC $STAR_URL &&\
+        tar -xvf $SRC/${STAR_VERSION}.tar.gz -C $SRC && \
+            mv $SRC/STAR-${STAR_VERSION}/bin/Linux_x86_64_static/STAR /usr/local/bin
+
+
+#####
+## FeatureCounts
+
+RUN wget https://sourceforge.net/projects/subread/files/subread-2.0.0/subread-2.0.0-Linux-x86_64.tar.gz/download -O subread-2.0.0-Linux-x86_64.tar.gz && \
+    tar xvf subread-2.0.0-Linux-x86_64.tar.gz && \
+    cp -r subread-2.0.0-Linux-x86_64/bin/* $BIN/
+RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller);  biocLite("DEXSeq", dep = TRUE)'
+
+
+#####
+## Hisat2
+
+RUN wget ftp://ftp.ccb.jhu.edu/pub/infphilo/hisat2/downloads/hisat2-2.1.0-Linux_x86_64.zip && \
+    unzip hisat2-2.1.0-Linux_x86_64.zip && \
+    cp hisat2-2.1.0/hisat2* $BIN/
+
+
+####
+## Picard tools
+
+WORKDIR $SRC
+RUN wget https://github.com/broadinstitute/picard/releases/download/2.20.3/picard.jar
+ENV PICARD_HOME $SRC
+
+####
+## GATK4 installation
+
+WORKDIR $SRC
+
+ENV GATK_VERSION=4.1.4.0
+RUN wget https://github.com/broadinstitute/gatk/releases/download/${GATK_VERSION}/gatk-${GATK_VERSION}.zip && \
+    unzip gatk-${GATK_VERSION}.zip
+
+ENV GATK_HOME $SRC/gatk-${GATK_VERSION}
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get install -y tzdata
+
+################################################
+## be sure this is last!
+COPY Dockerfile $SRC/Dockerfile.$TRINITY_VERSION  

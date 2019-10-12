@@ -156,33 +156,9 @@ RUN wget https://github.com/deweylab/RSEM/archive/v1.3.0.tar.gz && \
 RUN pip install git+https://github.com/ewels/MultiQC.git
 
 
-
-
-##########
-## Trinity
-
-
-WORKDIR $SRC
-
 RUN apt-get update && apt-get install -y cmake
 
 RUN apt-get install -y rsync
-
-ENV TRINITY_VERSION="2.8.5"
-ENV TRINITY_CO="d35f3c1149bab077ca7c83f209627784469c41c6"
-
-WORKDIR $SRC
-
-RUN git clone https://github.com/trinityrnaseq/trinityrnaseq.git && \
-    cd trinityrnaseq && \
-    git checkout $TRINITY_CO && \
-    make && make plugins && \
-    make install && \
-    cd ../ && rm -r trinityrnaseq
-
-ENV TRINITY_HOME /usr/local/bin/trinityrnaseq
-
-ENV PATH=${TRINITY_HOME}:${PATH}
 
 
 RUN apt-get install -y libssl-dev
@@ -241,6 +217,30 @@ ENV GATK_HOME $SRC/gatk-${GATK_VERSION}
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get install -y tzdata
+
+
+##########
+## Trinity
+
+WORKDIR $SRC
+
+ENV TRINITY_VERSION="2.8.6"
+ENV TRINITY_CO="51b032a9bee1ae9b4b5aab0c021d1360b8b35770"
+
+WORKDIR $SRC
+
+RUN git clone https://github.com/trinityrnaseq/trinityrnaseq.git && \
+    cd trinityrnaseq && \
+    git checkout $TRINITY_CO && \
+    make && make plugins && \
+    make install && \
+    cd ../ && rm -r trinityrnaseq
+
+ENV TRINITY_HOME /usr/local/bin/trinityrnaseq
+
+ENV PATH=${TRINITY_HOME}:${PATH}
+
+RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("tidyverse", dep = TRUE)'
 
 ################################################
 ## be sure this is last!

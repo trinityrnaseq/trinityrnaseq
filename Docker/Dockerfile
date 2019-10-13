@@ -242,6 +242,13 @@ ENV PATH=${TRINITY_HOME}:${PATH}
 
 RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("tidyverse", dep = TRUE)'
 
+
+# some cleanup
+WORKDIR $SRC
+RUN rm -r R-3.5.2/ *.tar.gz *.zip *.bz2
+
+RUN apt-get clean
+
 ################################################
 ## be sure this is last!
 COPY Dockerfile $SRC/Dockerfile.$TRINITY_VERSION  

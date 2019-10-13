@@ -1,3 +1,10 @@
+# Trinity release v2.8.6
+-docker fortified to support extended downstream analyses (including STAR, GATK, and others)
+-don't absolutely require replicates for analyze_diff_expr.pl
+-improved support for Singularity
+-prettier ExN50 plots and multiple sample support
+
+
 
 # Trinity-v2.8.5, May 24, 2019
 - exn50 plots start at 30%

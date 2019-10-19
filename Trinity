@@ -19,8 +19,6 @@ use List::Util qw(min max);
 use Data::Dumper;
 
 
-
-
 #my $VERSION = "Trinity-v2.8.6";
 my $VERSION = "__BLEEDING_EDGE__"; 
 
@@ -114,6 +112,8 @@ my $bflyGCThreads = 2;
 
 my $long_reads = "";
 my $LONG_READS_MODE = 0;
+
+my $SUPER_READS_FLAG = 0;
 
 ## ADVANCED OPTIONS:
 
@@ -312,6 +312,8 @@ $trinity_banner
 my $full_usage = qq^
 #
 #  --KMER_SIZE <int>               :kmer length to use (default: 25)  max=32
+#
+#  --SUPER_READS                   :invoke super-reads mode
 #
 #  --prep                          :Only prepare files (high I/O usage) and stop before kmer counting.
 #
@@ -766,6 +768,9 @@ my $STOMP_SNPS = 0;
     "NO_SUPERTRANS" => \$NO_SUPERTRANS_FLAG,
 
     "NO_SEQTK" => \$NO_SEQTK,
+
+    "SUPER_READS" => \$SUPER_READS_FLAG,
+    
     
     );
 
@@ -1672,6 +1677,35 @@ sub run_Trinity {
     }
     
     
+    if ($SUPER_READS_FLAG) {
+
+        ## Couple of settings we'll reset here under super-reads mode:  
+        # turn off bowtie
+        $NO_BOWTIE = 1;
+        # set the target inchworm kmer size to max val
+        $KMER_SIZE = 32;
+        
+        
+        my $super_reads_supp_fasta = "$inchworm_target_fa.SR_supp.fa";
+        my $super_reads_checkpoint = "SR_supp.checkpoint.ok";    
+        
+        if ( ! (-s $super_reads_supp_fasta && -e $super_reads_checkpoint) ) {
+            my @super_read_files;
+            for my $SR_kmer_size (22, 24, 26, 28, 30, 32) {
+                my $sr_file = "$inchworm_file.SR.$SR_kmer_size";
+                &run_inchworm($sr_file, $inchworm_target_fa, $SS_lib_type, $kmer_method, $SR_kmer_size, 1);
+                push(@super_read_files, $sr_file);
+            }
+            &process_cmd("cat @super_read_files $inchworm_target_fa > $super_reads_supp_fasta");
+            &process_cmd("touch $super_reads_checkpoint");
+            unless ($NO_CLEANUP) {
+                &process_cmd("rm -f @super_read_files");
+            }
+        }
+        
+        $inchworm_target_fa = $super_reads_supp_fasta;
+    }
+    
     
     if ($prep_only){
         print "Data has been prepared. Exiting now as per user request\n";
@@ -1682,9 +1716,8 @@ sub run_Trinity {
     ## Inchworm step:
     $pm_inchworm_start = time();
     unless (-s $inchworm_file && -e $inchworm_finished_checkpoint_file) {
-                    
-
-        &run_inchworm($inchworm_file, $inchworm_target_fa, $SS_lib_type, $kmer_method);
+        
+        &run_inchworm($inchworm_file, $inchworm_target_fa, $SS_lib_type, $kmer_method, $KMER_SIZE, 0);
         &process_cmd("touch $inchworm_finished_checkpoint_file");
     }
     $pm_inchworm_end = time();
@@ -2395,8 +2428,14 @@ sub run_recursive_trinity {
 
 ####
 sub run_inchworm {
-    my ($inchworm_outfile, $reads, $strand_specific_flag, $kmer_method) = @_;
-    
+    my ($inchworm_outfile, $reads, $strand_specific_flag, $kmer_method, $kmer_size, $super_read_mode) = @_;
+
+    if ($NO_RUN_INCHWORM_FLAG && ! $TRINITY_COMPLETE_FLAG) {
+        print STDERR "WARNING:  --no_run_inchworm parameter in effect.  Stopping here prior to running inchworm.\n";
+        exit(0);
+    }
+        
+    my $SR_flag = ($super_read_mode) ? "SR" : "asm"; 
     
     ## get count of number of reads to be assembled.
     my $read_count_file = "$reads.read_count";
@@ -2413,7 +2452,6 @@ sub run_inchworm {
         chomp $pm_read_count;
     }
     
-
     my $inchworm_cmd;
     
     my @tmp_files; # to be deleted after successful inchworm run.
@@ -2425,13 +2463,13 @@ sub run_inchworm {
 
     if (! ($FORCE_INCHWORM_KMER_METHOD || $TRINITY_COMPLETE_FLAG) ) {
         
-        my $jelly_kmer_fa_file = "jellyfish.kmers.fa";
+        my $jelly_kmer_fa_file = "jellyfish.kmers.$kmer_size.$SR_flag.fa";
 
         
         
         print STDERR "-------------------------------------------\n"
             . "----------- Jellyfish  --------------------\n"
-            . "-- (building a k-mer catalog from reads) --\n"
+            . "-- (building a k-mer ($kmer_size) catalog from reads) --\n"
             . "-------------------------------------------\n\n";
         
         my $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
@@ -2450,8 +2488,10 @@ sub run_inchworm {
         if ($JELLY_S) {
             $jelly_hash_size = $JELLY_S;
         }
+
+        my $jelly_db = "mer_counts.$kmer_size.$SR_flag.jf";        
         
-        my $cmd = "jellyfish count -t $CPU -m $KMER_SIZE -s $jelly_hash_size ";
+        my $cmd = "jellyfish count -t $CPU -m $kmer_size -s $jelly_hash_size -o $jelly_db";
         
         unless ($SS_lib_type) {
             ## count both strands
@@ -2460,45 +2500,42 @@ sub run_inchworm {
         
         $cmd .= " $reads";
         
-        $pipeliner->add_commands(new Command($cmd, ".jellyfish_count.ok") );
+        $pipeliner->add_commands(new Command($cmd, ".jellyfish_count.$kmer_size.$SR_flag.ok") );
                 
         
-        my $jelly_db = "mer_counts.jf";
+
         
         $cmd = "jellyfish dump -L $min_kmer_cov $jelly_db > $jelly_kmer_fa_file";
         
-        $pipeliner->add_commands(new Command($cmd, ".jellyfish_dump.ok") );        
+        $pipeliner->add_commands(new Command($cmd, ".jellyfish_dump.$kmer_size.$SR_flag.ok") );        
         
         ## write a histogram of the kmer counts.
         $cmd = "jellyfish histo -t $CPU -o $jelly_kmer_fa_file.histo $jelly_db";
         
-        $pipeliner->add_commands( new Command($cmd, ".jellyfish_histo.ok") );
-        
-                
+        $pipeliner->add_commands( new Command($cmd, ".jellyfish_histo.$kmer_size.$SR_flag.ok") );
+                        
         $pipeliner->run();
 
         if (-s $jelly_db) {
             unlink($jelly_db);
         }
 
-        if ($NO_RUN_INCHWORM_FLAG && ! $TRINITY_COMPLETE_FLAG) {
-            print STDERR "WARNING:  --no_run_inchworm parameter in effect.  Stopping here prior to running inchworm.\n";
-            exit(0);
-        }
 
-        if ($STOMP_SNPS) {
-            print STDERR "-stomping snps out of kmers before inchworm assembly\n";
-            my $cmd = "$INCHWORM_DIR/SNP_stomper --reads $jelly_kmer_fa_file --kmers $jelly_kmer_fa_file -0kmer_size $KMER_SIZE"; 
-            if ($strand_specific_flag) {
-                $cmd .= " --SS";
-            }
-            $jelly_kmer_fa_file = "$jelly_kmer_fa_file.snps_stomped";
-            $cmd .= " > $jelly_kmer_fa_file 2> $jelly_kmer_fa_file.log";
-            $pipeliner->add_commands( new Command($cmd, ".jellyfish_snp_stomp.ok") );
-            $pipeliner->run();
-        }
+        #if ($STOMP_SNPS) {
+        #    print STDERR "-stomping snps out of kmers before inchworm assembly\n";
+         #   my $cmd = "$INCHWORM_DIR/SNP_stomper --reads $jelly_kmer_fa_file --kmers $jelly_kmer_fa_file -0kmer_size $KMER_SIZE"; 
+         #   if ($strand_specific_flag) {
+         #       $cmd .= " --SS";
+         #   }
+         #   $jelly_kmer_fa_file = "$jelly_kmer_fa_file.snps_stomped";
+         #   $cmd .= " > $jelly_kmer_fa_file 2> $jelly_kmer_fa_file.log";
+         #   $pipeliner->add_commands( new Command($cmd, ".jellyfish_snp_stomp.ok") );
+         #   $pipeliner->run();
+        #}
         
-        $inchworm_cmd = "$INCHWORM_DIR/inchworm --kmers $jelly_kmer_fa_file --run_inchworm -K $KMER_SIZE -L $MIN_IWORM_LEN --monitor 1 $iworm_opts ";
+        my $min_iworm_len = ($super_read_mode) ? $min_contig_length : $MIN_IWORM_LEN;
+
+        $inchworm_cmd = "$INCHWORM_DIR/inchworm --kmers $jelly_kmer_fa_file --run_inchworm -K $kmer_size -L $min_iworm_len --monitor 1 $iworm_opts ";
             
         # hold on to the jellyfish file - we might use it for other applications.
         #push (@tmp_files, $jelly_finished_checkpoint_file, $jelly_kmer_fa_file) unless $NO_CLEANUP;
@@ -2513,7 +2550,8 @@ sub run_inchworm {
         ## Using Inchworm kmer method (original, slow w/ large data)
         ######################################################
                 
-        $inchworm_cmd = "$INCHWORM_DIR/inchworm --reads $reads --run_inchworm -K $KMER_SIZE -L $MIN_IWORM_LEN --monitor 1 $iworm_opts ";
+        my $min_iworm_len = ($super_read_mode) ? $min_contig_length : $MIN_IWORM_LEN;
+        $inchworm_cmd = "$INCHWORM_DIR/inchworm --reads $reads --run_inchworm -K $kmer_size -L $min_iworm_len --monitor 1 $iworm_opts ";
         if ($min_kmer_cov > 1) {
             $inchworm_cmd .= " --minKmerCount $min_kmer_cov ";
         }
@@ -2545,7 +2583,7 @@ sub run_inchworm {
     $inchworm_cmd .= " > $inchworm_outfile.tmp"; 
     
     print STDERR "----------------------------------------------\n"
-               . "--------------- Inchworm ---------------------\n"
+               . "--------------- Inchworm (K=$kmer_size, $SR_flag) ---------------------\n"
                . "-- (Linear contig construction from k-mers) --\n"
                . "----------------------------------------------\n\n" if (! $TRINITY_COMPLETE_FLAG);
 
@@ -2553,8 +2591,14 @@ sub run_inchworm {
     eval {
         
         my $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
-        $pipeliner->add_commands( new Command($inchworm_cmd, ".iworm.ok") );
-        $pipeliner->add_commands( new Command("mv $inchworm_outfile.tmp $inchworm_outfile", ".iworm_renamed.ok") );
+        $pipeliner->add_commands( new Command($inchworm_cmd, ".iworm.$kmer_size.$SR_flag.ok") );
+        if ($super_read_mode) {
+            my $cmd = "sed -e \'s/>/>SR${kmer_size}_/\' < $inchworm_outfile.tmp > $inchworm_outfile";
+            $pipeliner->add_commands(new Command($cmd, "iworm_renamed.$kmer_size.$SR_flag.ok"));
+        } 
+        else {
+            $pipeliner->add_commands( new Command("mv $inchworm_outfile.tmp $inchworm_outfile", ".iworm_renamed.$kmer_size.$SR_flag.ok") );
+        }
         $pipeliner->run();
         
     };
@@ -2566,7 +2610,7 @@ sub run_inchworm {
         print STDERR "\n\nIf it indicates bad_alloc(), then Inchworm ran out of memory.  You'll need to either reduce the size of your data set or run Trinity on a server with more memory available.\n\n";
         exit(1);
     }
-            
+    
     return;
     
 }

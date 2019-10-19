@@ -1502,6 +1502,7 @@ int main(int argc,char** argv)
                     continue;
                 }
                 
+                if (toasted[c]) { continue; }
                 
                 if (DEBUG) {
                     cerr << "kmer: " << sub.AsString() << " supports match between " << dna.Name(i) << " and " << dna.Name(c) << "\n";
@@ -1583,7 +1584,7 @@ int main(int argc,char** argv)
                         #pragma omp critical
                         toasted[c] = true;
 
-                        cerr << "toasting based on alignment: " << dna.Name(c) << endl;
+                        cerr << "toasting based on alignment: " << dna.Name(c) << " comparison to keeper: " << dna.Name(i) << endl;
                         
                         continue;
                     }
@@ -1627,11 +1628,14 @@ int main(int argc,char** argv)
             for (x=0; x<matchesRC.isize(); x++) {
                 int c = matchesRC[x].GetContig();
                                 
+                
                 if (c == i) {
                     // ignore self matches
                     continue;
                 }
                 
+                if (toasted[c]) { continue; }
+
                 
                 if (DEBUG) {
                     cerr << "RCkmer: " << sub.AsString() << " supports match between " << dna.Name(i) << " and " << dna.Name(c) << "\n";
@@ -1710,7 +1714,7 @@ int main(int argc,char** argv)
                         #pragma omp critical
                         toasted[c] = true;
 
-                        cerr << "toasting based on alignment: " << dna.Name(c) << endl;
+                        cerr << "toasting based on alignment: " << dna.Name(c) << " comparison to keeper: " << dna.Name(i) << endl;
                         
                         continue;
                     }

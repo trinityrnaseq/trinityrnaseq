@@ -41,8 +41,7 @@ samples.PE.txt
 
 my %keep = map { + $_ => 1 } @files_to_keep;
 
-
-`rm -rf ./trinity_out_dir` if (-d "trinity_out_dir");
+`rm -rf ./trinity_out_dir*`;
 `rm -rf ./bowtie_out` if (-d "bowtie_out");
 `rm -rf ./RSEM.stat` if (-d "RSEM.stat");
 `rm -rf ./trinity_single_outdir` if (-d "trinity_single_outdir");
@@ -69,7 +68,6 @@ my %keep = map { + $_ => 1 } @files_to_keep;
 `rm -rf ./test_trinity_bowtie2`;
 `rm -rf ./trinity_test_samples_SE`;
 `rm -rf ./trinity_test_samples_PE`;
-`rm -rf ./trinity_out_dir_monitored`;
 `rm -rf ./trinity_piecemeal`;
 `rm -rf ./trinity_test_samples_PE_min_kmer_cov_3`;
 `rm -rf ./trinity_complete`;

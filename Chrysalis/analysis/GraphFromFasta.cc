@@ -1502,7 +1502,7 @@ int main(int argc,char** argv)
                     continue;
                 }
                 
-                if (toasted[c]) { continue; }
+                if (toasted.find(c) == toasted.end()) { continue; }
                 
                 if (DEBUG) {
                     cerr << "kmer: " << sub.AsString() << " supports match between " << dna.Name(i) << " and " << dna.Name(c) << "\n";
@@ -1634,8 +1634,8 @@ int main(int argc,char** argv)
                     continue;
                 }
                 
-                if (toasted[c]) { continue; }
-
+                if (toasted.find(c) == toasted.end()) { continue; }
+                
                 
                 if (DEBUG) {
                     cerr << "RCkmer: " << sub.AsString() << " supports match between " << dna.Name(i) << " and " << dna.Name(c) << "\n";

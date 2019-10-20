@@ -1489,7 +1489,7 @@ main: {
 sub run_Trinity {
     
     ## create inchworm file name
-    my $inchworm_file = "inchworm.K$KMER_SIZE.L$MIN_IWORM_LEN";
+    my $inchworm_file = "inchworm";
     unless ($SS_lib_type) {
         $inchworm_file .= ".DS";
     }
@@ -1691,7 +1691,7 @@ sub run_Trinity {
         
         if ( ! (-s $super_reads_supp_fasta && -e $super_reads_checkpoint) ) {
             my @super_read_files;
-            for my $SR_kmer_size (22, 24, 26, 28, 30, 32) {
+            for my $SR_kmer_size (22) { #22, 24, 26, 28, 30, 32) {
                 my $sr_file = "$inchworm_file.SR.$SR_kmer_size";
                 &run_inchworm($sr_file, $inchworm_target_fa, $SS_lib_type, $kmer_method, $SR_kmer_size, 1);
                 push(@super_read_files, $sr_file);
@@ -1704,6 +1704,7 @@ sub run_Trinity {
         }
         
         $inchworm_target_fa = $super_reads_supp_fasta;
+        $chrysalis_reads_fa = $super_reads_supp_fasta; ## important!
     }
     
     
@@ -1914,9 +1915,9 @@ sub run_chrysalis {
                . "-------------------- Chrysalis -------------------------\n"
                . "-- (Contig Clustering & de Bruijn Graph Construction) --\n"
                . "--------------------------------------------------------\n\n" if (! $TRINITY_COMPLETE_FLAG);
-
+    
     print STDERR "inchworm_target: $inchworm_target_fa\n"
-        . "bowite_reads_fa: $bowtie_reads_fa\n"
+        . "bowtie_reads_fa: $bowtie_reads_fa\n"
         . "chrysalis_reads_fa: $chrysalis_reads_fa\n" if ($VERBOSE || ! $TRINITY_COMPLETE_FLAG);
     
     
@@ -2533,9 +2534,8 @@ sub run_inchworm {
          #   $pipeliner->run();
         #}
         
-        my $min_iworm_len = ($super_read_mode) ? $min_contig_length : $MIN_IWORM_LEN;
-
-        $inchworm_cmd = "$INCHWORM_DIR/inchworm --kmers $jelly_kmer_fa_file --run_inchworm -K $kmer_size -L $min_iworm_len --monitor 1 $iworm_opts ";
+        
+        $inchworm_cmd = "$INCHWORM_DIR/inchworm --kmers $jelly_kmer_fa_file --run_inchworm -K $kmer_size --monitor 1 $iworm_opts ";
             
         # hold on to the jellyfish file - we might use it for other applications.
         #push (@tmp_files, $jelly_finished_checkpoint_file, $jelly_kmer_fa_file) unless $NO_CLEANUP;
@@ -2549,9 +2549,8 @@ sub run_inchworm {
         ######################################################
         ## Using Inchworm kmer method (original, slow w/ large data)
         ######################################################
-                
-        my $min_iworm_len = ($super_read_mode) ? $min_contig_length : $MIN_IWORM_LEN;
-        $inchworm_cmd = "$INCHWORM_DIR/inchworm --reads $reads --run_inchworm -K $kmer_size -L $min_iworm_len --monitor 1 $iworm_opts ";
+        
+        $inchworm_cmd = "$INCHWORM_DIR/inchworm --reads $reads --run_inchworm -K $kmer_size --monitor 1 $iworm_opts ";
         if ($min_kmer_cov > 1) {
             $inchworm_cmd .= " --minKmerCount $min_kmer_cov ";
         }
@@ -2577,6 +2576,13 @@ sub run_inchworm {
     
     if ($INCHWORM_CUSTOM_PARAMS) {
         $inchworm_cmd .= " $INCHWORM_CUSTOM_PARAMS ";
+    }
+
+    my $min_iworm_len = ($super_read_mode) ? $min_contig_length : $MIN_IWORM_LEN;
+    $inchworm_cmd .= " -L $min_iworm_len ";
+    
+    if ($super_read_mode) {
+        $inchworm_cmd .= " --SUPER_READS ";
     }
     
     #$inchworm_cmd .= " 2>inchworm.log > $inchworm_outfile.tmp";

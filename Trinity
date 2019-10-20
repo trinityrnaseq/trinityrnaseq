@@ -2473,7 +2473,7 @@ sub run_inchworm {
             . "-- (building a k-mer ($kmer_size) catalog from reads) --\n"
             . "-------------------------------------------\n\n";
         
-        my $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
+        my $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(2, $VERBOSE));
         
         
         my $read_file_size = -s $reads;

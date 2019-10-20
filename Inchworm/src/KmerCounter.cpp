@@ -244,12 +244,12 @@ bool KmerCounter::prune_some_kmers(unsigned int min_count, float min_entropy, bo
         }
     }
     
+    cerr << "Pruned " << count_pruned << " kmers from catalog." << endl;
     
     
     if (count_pruned > 0) {  //deletion_list.size() > 0) {
         
-        cerr << "Pruned " << count_pruned << " kmers from catalog." << endl;
-        
+                
         /* dont waste time shrinking hashtable
            for (unsigned int i=0; i<deletion_list.size(); i++) {
            prune_kmer(deletion_list[i]);
@@ -291,19 +291,19 @@ bool KmerCounter::prune_branched_kmers() {
                 string kmer_str = get_kmer_string(kmer);
                 
                 cerr << "Pruning kmer: " << kmer_str << " as branched kmer " << endl;
-                
-                it->second = 0;
-                count_pruned++;
-                continue;
             }
+
+            it->second = 0;
+            count_pruned++;
+                        
         }
 
     }
     
+    cerr << "Pruned " << count_pruned << " branched kmers from catalog." << endl;
+    
     if (count_pruned > 0) {  //deletion_list.size() > 0) {
-        
-        cerr << "Pruned " << count_pruned << " branched kmers from catalog." << endl;
-        
+                
         return(true);
     }
     else {

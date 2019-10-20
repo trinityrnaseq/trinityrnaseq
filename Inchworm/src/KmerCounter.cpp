@@ -167,8 +167,10 @@ bool KmerCounter::prune_some_kmers(unsigned int min_count, float min_entropy, bo
 
         if (prune_error_kmers)
         {
-        	vector<Kmer_Occurence_Pair> candidates = get_forward_kmer_candidates(kmer); //sorted descendingly
 
+            // examine forward extension kmers
+            vector<Kmer_Occurence_Pair> candidates = get_forward_kmer_candidates(kmer); //sorted descendingly
+            
             if (candidates.size() > 1) {
                 
                 int dominant_count = candidates[0].second;
@@ -199,7 +201,46 @@ bool KmerCounter::prune_some_kmers(unsigned int min_count, float min_entropy, bo
                                 }
                             }
                     }
-            }
+            } // end forward kmer pruning.
+
+
+
+            // examine reverse extension kmers
+            candidates = get_reverse_kmer_candidates(kmer); //sorted descendingly
+            
+            if (candidates.size() > 1) {
+                
+                int dominant_count = candidates[0].second;
+                
+                for (unsigned int i = 1; i < candidates.size(); i++)
+                    {
+                        if (candidates[i].second)
+                            {
+                                int candidate_count = candidates[i].second;
+                                
+                                float ratio_dominant_count = (float) candidate_count/dominant_count;
+                                
+                                if (dominant_count > 0 && ratio_dominant_count < min_ratio_non_error) {
+                                    
+                                    Kmer_counter_map_iterator kmer_candidate = find_kmer(candidates[i].first);
+                                    
+                                    if (IRKE_COMMON::MONITOR >= 2) {
+                                        string kmer_ext_str = get_kmer_string(kmer_candidate->first);
+                                        cerr << "Pruning kmer: " << kmer_ext_str << " extension of: " <<  describe_kmer(kmer_str)
+                                             << " with ratio dominant count: " << ratio_dominant_count << endl;
+                                    }
+                                    
+                                    // deletion_list.push_back(kmer_candidate->first);
+                                    kmer_candidate->second = 0; // disable when encountered in further iterations.
+                                    count_pruned++;
+                                    
+                                    
+                                }
+                            }
+                    }
+            } // end reverse kmer pruning.
+            
+                        
         }
     }
     
@@ -221,6 +262,57 @@ bool KmerCounter::prune_some_kmers(unsigned int min_count, float min_entropy, bo
         return(false);
     }
 }
+
+
+bool KmerCounter::prune_branched_kmers() {
+
+    Kmer_counter_map_iterator it;
+    // vector<kmer_int_type_t> deletion_list;
+
+    int count_pruned = 0;
+
+    for (it = _kmer_counter.begin(); it != _kmer_counter.end(); it++)
+    {
+        kmer_int_type_t kmer = it->first;
+        unsigned int count = it->second;
+
+        if (count == 0)
+        	continue;
+
+        // examine forward extension kmers
+        vector<Kmer_Occurence_Pair> forward_candidates = get_forward_kmer_candidates(kmer); //sorted descendingly
+        vector<Kmer_Occurence_Pair> reverse_candidates = get_reverse_kmer_candidates(kmer); //sorted descendingly
+        
+        if (forward_candidates.size() > 1 || reverse_candidates.size() > 1) {
+            // branched kmer
+
+            
+            if (IRKE_COMMON::MONITOR >= 2) {
+                string kmer_str = get_kmer_string(kmer);
+                
+                cerr << "Pruning kmer: " << kmer_str << " as branched kmer " << endl;
+                
+                it->second = 0;
+                count_pruned++;
+                continue;
+            }
+        }
+
+    }
+    
+    if (count_pruned > 0) {  //deletion_list.size() > 0) {
+        
+        cerr << "Pruned " << count_pruned << " branched kmers from catalog." << endl;
+        
+        return(true);
+    }
+    else {
+        return(false);
+    }
+}
+
+
+
 
 void KmerCounter::dump_kmers_to_file(string& filename) {
     

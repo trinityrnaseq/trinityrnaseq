@@ -312,6 +312,12 @@ bool IRKE::prune_some_kmers(unsigned int min_count, float min_entropy, bool prun
 }
 
 
+bool IRKE::prune_branched_kmers() {
+
+    return(kcounter.prune_branched_kmers());
+}
+
+
 unsigned long IRKE::get_graph_size() {
 	
 	// proxy call

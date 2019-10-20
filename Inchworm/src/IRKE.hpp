@@ -57,6 +57,8 @@ public:
     bool prune_kmer_extensions(float min_ratio_non_error);
     
     bool prune_some_kmers(unsigned int min_count, float min_entropy, bool prune_error_kmers, float min_ratio_non_error);
+
+    bool prune_branched_kmers();
     
     //void report_connected_components (float min_connectivity, unsigned int min_component_size, bool summarize_size_only_flag = false);
     

@@ -137,12 +137,15 @@ int run_IRKE(int argc, char* argv[]) {
 
     bool PARALLEL_IWORM = false;
     bool SINGLE_PHASE = false;
-            
+
+    
+    bool SUPER_READS_MODE = false;
+    
     /***************************************/
     /***   Option Processing   ************/
     /**************************************/
     
-    
+        
     try {
         
         ArgProcessor args(argc, argv);
@@ -152,6 +155,7 @@ int run_IRKE(int argc, char* argv[]) {
             ||  (! (args.isArgSet("--reads") || args.isArgSet("--kmers") || args.isArgSet("--kmer_files_listing") ) )
             
             || (! (args.isArgSet("--run_inchworm") 
+                   || args.isArgSet("--make_super_reads")
                    || args.isArgSet("--checkFastaPath")
                    || args.isArgSet("--threadFasta")
                    || args.isArgSet("--describe_kmers")
@@ -201,8 +205,13 @@ int run_IRKE(int argc, char* argv[]) {
             MIN_ASSEMBLY_COVERAGE = args.getIntVal("--min_assembly_coverage");
             cerr << "Min assembly coverage set to: " << MIN_ASSEMBLY_COVERAGE << endl;
         }
-        
 
+        if (args.isArgSet("--make_super_reads")) {
+            SUPER_READS_MODE = true;
+            run_inchworm = true;
+            cerr << "Running Inchworm in Super-Reads mode" << endl;
+        }
+        
         /* CRAWL was experimental
            
         if (args.isArgSet("--crawl")) {
@@ -493,6 +502,12 @@ int run_IRKE(int argc, char* argv[]) {
         
             cerr << endl << "TIMING PRUNING " << pruning_time << " s." << endl;
         }
+
+        
+        if (SUPER_READS_MODE) {
+            cerr << "Pruning branched kmers under super-reads mode:" << endl;
+            irke.prune_branched_kmers();
+        }
         
         if (describe_kmers) {
             irke.describe_kmers();
@@ -647,7 +662,8 @@ string usage (ArgProcessor args) {
     usage_info
         << endl
         << "** Run modes:" << endl
-        << "  --run_inchworm           " << ":run inchworm, report sequences" << endl;
+        << "  --run_inchworm           " << ":run inchworm, report sequences" << endl
+        << "  --make_super_reads       " << ":generates super-reads" << endl;
     
     if (show_advanced) {
         usage_info 

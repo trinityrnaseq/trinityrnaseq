@@ -99,6 +99,9 @@ public:
     bool prune_kmer(string kmer); // remove kmer from map
     bool prune_kmer(kmer_int_type_t kmer_val);
     bool prune_some_kmers(unsigned int min_count, float min_entropy, bool prune_error_kmers, float min_ratio_non_error);
+
+    bool prune_branched_kmers();
+    
     void prune_kmers_min_count(unsigned int count);
     void prune_kmers_min_entropy(float min_entropy);
     

@@ -1691,7 +1691,7 @@ sub run_Trinity {
         
         if ( ! (-s $super_reads_supp_fasta && -e $super_reads_checkpoint) ) {
             my @super_read_files;
-            for my $SR_kmer_size (22) { #22, 24, 26, 28, 30, 32) {
+            for my $SR_kmer_size (22, 24, 26, 28, 30, 32) {
                 my $sr_file = "$inchworm_file.SR.$SR_kmer_size";
                 &run_inchworm($sr_file, $inchworm_target_fa, $SS_lib_type, $kmer_method, $SR_kmer_size, 1);
                 push(@super_read_files, $sr_file);
@@ -2582,7 +2582,7 @@ sub run_inchworm {
     $inchworm_cmd .= " -L $min_iworm_len ";
     
     if ($super_read_mode) {
-        $inchworm_cmd .= " --SUPER_READS ";
+        $inchworm_cmd .= " --make_super_reads ";
     }
     
     #$inchworm_cmd .= " 2>inchworm.log > $inchworm_outfile.tmp";
@@ -2596,7 +2596,7 @@ sub run_inchworm {
     
     eval {
         
-        my $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
+        my $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(2, $VERBOSE));
         $pipeliner->add_commands( new Command($inchworm_cmd, ".iworm.$kmer_size.$SR_flag.ok") );
         if ($super_read_mode) {
             my $cmd = "sed -e \'s/>/>SR${kmer_size}_/\' < $inchworm_outfile.tmp > $inchworm_outfile";

@@ -135,10 +135,11 @@ bool KmerCounter::prune_kmer_extensions( float min_ratio_non_error) {
 bool KmerCounter::prune_some_kmers(unsigned int min_count, float min_entropy, bool prune_error_kmers, float min_ratio_non_error) {
 
     Kmer_counter_map_iterator it;
-    // vector<kmer_int_type_t> deletion_list;
+    vector<kmer_int_type_t> deletion_list;
 
     int count_pruned = 0;
 
+        
     for (it = _kmer_counter.begin(); it != _kmer_counter.end(); it++)
     {
         kmer_int_type_t kmer = it->first;
@@ -151,20 +152,20 @@ bool KmerCounter::prune_some_kmers(unsigned int min_count, float min_entropy, bo
 
         if (count < min_count)
         {
-        	// deletion_list.push_back(it->first);
-        	it->second = 0;
+        	
+        	it->second = 0; // immediate removal
         	count_pruned++;
             continue;
         }
 
         if (compute_entropy(kmer,_kmer_length) < min_entropy)
         {
-        	// deletion_list.push_back(it->first);
-        	it->second = 0;
+        	
+        	it->second = 0;  // immediate removal
         	count_pruned++;
             continue;
         }
-
+        
         if (prune_error_kmers)
         {
 
@@ -174,7 +175,9 @@ bool KmerCounter::prune_some_kmers(unsigned int min_count, float min_entropy, bo
             if (candidates.size() > 1) {
                 
                 int dominant_count = candidates[0].second;
+        
                 
+        
                 for (unsigned int i = 1; i < candidates.size(); i++)
                     {
                         if (candidates[i].second)
@@ -183,18 +186,25 @@ bool KmerCounter::prune_some_kmers(unsigned int min_count, float min_entropy, bo
                                 
                                 float ratio_dominant_count = (float) candidate_count/dominant_count;
                                 
-                                if (dominant_count > 0 && ratio_dominant_count < min_ratio_non_error) {
+                                float ratio_curr_count = (float) candidate_count / count;
+     
+                                if (dominant_count > 0 
+                                    && 
+                                    ratio_dominant_count < min_ratio_non_error
+                                    &&
+                                    ratio_curr_count < min_ratio_non_error 
+                                    ) {
                                     
                                     Kmer_counter_map_iterator kmer_candidate = find_kmer(candidates[i].first);
                                     
                                     if (IRKE_COMMON::MONITOR >= 2) {
                                         string kmer_ext_str = get_kmer_string(kmer_candidate->first);
-                                        cerr << "Pruning kmer: " << kmer_ext_str << " extension of: " <<  describe_kmer(kmer_str)
+                                        cerr << "Pruning kmer: " << kmer_ext_str << " FORWARD extension of: " <<  describe_kmer(kmer_str)
                                              << " with ratio dominant count: " << ratio_dominant_count << endl;
                                     }
                                     
-                                    // deletion_list.push_back(kmer_candidate->first);
-                                    kmer_candidate->second = 0; // disable when encountered in further iterations.
+                                    deletion_list.push_back(kmer_candidate->first);
+                                    //kmer_candidate->second = 0; // disable when encountered in further iterations.
                                     count_pruned++;
                                     
                                     
@@ -219,19 +229,26 @@ bool KmerCounter::prune_some_kmers(unsigned int min_count, float min_entropy, bo
                                 int candidate_count = candidates[i].second;
                                 
                                 float ratio_dominant_count = (float) candidate_count/dominant_count;
+
+                                float ratio_curr_count = (float) candidate_count / count;
                                 
-                                if (dominant_count > 0 && ratio_dominant_count < min_ratio_non_error) {
+                                if (dominant_count > 0 
+                                    && 
+                                    ratio_dominant_count < min_ratio_non_error
+                                    &&
+                                    ratio_curr_count < min_ratio_non_error
+                                    ) {
                                     
                                     Kmer_counter_map_iterator kmer_candidate = find_kmer(candidates[i].first);
                                     
                                     if (IRKE_COMMON::MONITOR >= 2) {
                                         string kmer_ext_str = get_kmer_string(kmer_candidate->first);
-                                        cerr << "Pruning kmer: " << kmer_ext_str << " extension of: " <<  describe_kmer(kmer_str)
+                                        cerr << "Pruning kmer: " << kmer_ext_str << " REVERSE extension of: " <<  describe_kmer(kmer_str)
                                              << " with ratio dominant count: " << ratio_dominant_count << endl;
                                     }
                                     
-                                    // deletion_list.push_back(kmer_candidate->first);
-                                    kmer_candidate->second = 0; // disable when encountered in further iterations.
+                                    deletion_list.push_back(kmer_candidate->first);
+                                    //kmer_candidate->second = 0; // disable when encountered in further iterations.
                                     count_pruned++;
                                     
                                     
@@ -246,15 +263,14 @@ bool KmerCounter::prune_some_kmers(unsigned int min_count, float min_entropy, bo
     
     cerr << "Pruned " << count_pruned << " kmers from catalog." << endl;
     
-    
-    if (count_pruned > 0) {  //deletion_list.size() > 0) {
         
-                
-        /* dont waste time shrinking hashtable
-           for (unsigned int i=0; i<deletion_list.size(); i++) {
-           prune_kmer(deletion_list[i]);
-           }
-        */
+    if (count_pruned > 0) { 
+        
+        for (unsigned int i=0; i<deletion_list.size(); i++) {
+            //prune_kmer(deletion_list[i]);  // dont bother shrinking hashtable
+            Kmer_counter_map_iterator kmer_candidate = find_kmer(deletion_list[i]); 
+            kmer_candidate->second = 0; // disable when encountered in further iterations.
+        }
         
         return(true);
     }
@@ -267,7 +283,7 @@ bool KmerCounter::prune_some_kmers(unsigned int min_count, float min_entropy, bo
 bool KmerCounter::prune_branched_kmers() {
 
     Kmer_counter_map_iterator it;
-    // vector<kmer_int_type_t> deletion_list;
+    vector<kmer_int_type_t> deletion_list;
 
     int count_pruned = 0;
 
@@ -285,7 +301,6 @@ bool KmerCounter::prune_branched_kmers() {
         
         if (forward_candidates.size() > 1 || reverse_candidates.size() > 1) {
             // branched kmer
-
             
             if (IRKE_COMMON::MONITOR >= 2) {
                 string kmer_str = get_kmer_string(kmer);
@@ -293,7 +308,8 @@ bool KmerCounter::prune_branched_kmers() {
                 cerr << "Pruning kmer: " << kmer_str << " as branched kmer " << endl;
             }
 
-            it->second = 0;
+            //it->second = 0;
+            deletion_list.push_back(kmer);
             count_pruned++;
                         
         }
@@ -303,7 +319,13 @@ bool KmerCounter::prune_branched_kmers() {
     cerr << "Pruned " << count_pruned << " branched kmers from catalog." << endl;
     
     if (count_pruned > 0) {  //deletion_list.size() > 0) {
-                
+        
+        for (unsigned int i=0; i<deletion_list.size(); i++) {
+            //prune_kmer(deletion_list[i]);  // dont bother shrinking hashtable
+            Kmer_counter_map_iterator kmer_candidate = find_kmer(deletion_list[i]); 
+            kmer_candidate->second = 0; // disable when encountered in further iterations.
+        }   
+        
         return(true);
     }
     else {

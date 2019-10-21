@@ -132,7 +132,7 @@ int run_IRKE(int argc, char* argv[]) {
     
     // error-containing kmer removal:
     bool prune_error_kmers = true;
-    float min_ratio_non_error = 0.05f;
+    float min_ratio_non_error = 0.005f;
     
 
     bool PARALLEL_IWORM = false;
@@ -685,7 +685,7 @@ string usage (ArgProcessor args) {
         << "  --coverage_outfile <str>         " << ":file to store per-base kmer coverage for contigs" << endl
         << "  --DS                             " << ":double-stranded RNA-Seq mode (not strand-specific)" << endl
         << "  --no_prune_error_kmers           " << ":disable pruning of kmers that occur at below --min_ratio_non_error " << endl
-        << "  --min_ratio_non_error <float>    " << ":min ratio for low/high alternative extension that is not an error (default: 0.05)" << endl
+        << "  --min_ratio_non_error <float>    " << ":min ratio for low/high alternative extension that is not an error (default: 0.005)" << endl
         << "  --num_threads <int>              " << ":number of threads to use. (by default, uses OMP_NUM_THREADS env var setting)" << endl
         << "  --PARALLEL_IWORM                 " << ":run the contig building in parallel; by default, only does parallel read parsing." << endl
       

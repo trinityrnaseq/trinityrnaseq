@@ -1679,22 +1679,18 @@ sub run_Trinity {
     
     if ($SUPER_READS_FLAG) {
 
-        ## Couple of settings we'll reset here under super-reads mode:  
-        # turn off bowtie
-        $NO_BOWTIE = 1;
-        # set the target inchworm kmer size to max val
-        $KMER_SIZE = 32;
-        
-        
         my $super_reads_supp_fasta = "$inchworm_target_fa.SR_supp.fa";
         my $super_reads_checkpoint = "SR_supp.checkpoint.ok";    
         
         if ( ! (-s $super_reads_supp_fasta && -e $super_reads_checkpoint) ) {
             my @super_read_files;
             for my $SR_kmer_size (22, 24, 26, 28, 30, 32) {
-                my $sr_file = "$inchworm_file.SR.$SR_kmer_size";
-                &run_inchworm($sr_file, $inchworm_target_fa, $SS_lib_type, $kmer_method, $SR_kmer_size, 1);
-                push(@super_read_files, $sr_file);
+                if ($SR_kmer_size <= $KMER_SIZE) {
+                    my $sr_file = "$inchworm_file.SR.$SR_kmer_size";
+                    &run_inchworm($sr_file, $inchworm_target_fa, $SS_lib_type, $kmer_method, $SR_kmer_size, 1);
+                    push(@super_read_files, $sr_file);
+                }
+
             }
             &process_cmd("cat @super_read_files $inchworm_target_fa > $super_reads_supp_fasta");
             &process_cmd("touch $super_reads_checkpoint");
@@ -2274,6 +2270,8 @@ sub run_chrysalis {
                 }
                 
                 $bfly_cmd .= " --path_reinforcement_distance=$path_reinforcement_distance ";
+
+                $bfly_cmd .= " --NO_EM_REDUCE "; ## relying on salmon for more accurate expr estimations and filtering
                 
                 if ($NO_PATH_MERGING) {
                     $bfly_cmd .= " --no_path_merging ";
@@ -2583,6 +2581,12 @@ sub run_inchworm {
     
     if ($super_read_mode) {
         $inchworm_cmd .= " --make_super_reads ";
+    }
+
+
+    if ( (! $TRINITY_COMPLETE_FLAG) && (! $super_read_mode) ) {
+        # turn off error pruning step
+        $inchworm_cmd .= " --no_prune_error_kmers ";
     }
     
     #$inchworm_cmd .= " 2>inchworm.log > $inchworm_outfile.tmp";

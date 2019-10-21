@@ -1502,7 +1502,10 @@ int main(int argc,char** argv)
                     continue;
                 }
                 
-                if (toasted.find(c) == toasted.end()) { continue; }
+                if (toasted.find(c) != toasted.end()) { 
+                    // iworm(c) was toasted and no longer relevant
+                    continue; 
+                }
                 
                 if (DEBUG) {
                     cerr << "kmer: " << sub.AsString() << " supports match between " << dna.Name(i) << " and " << dna.Name(c) << "\n";
@@ -1634,7 +1637,10 @@ int main(int argc,char** argv)
                     continue;
                 }
                 
-                if (toasted.find(c) == toasted.end()) { continue; }
+                if (toasted.find(c) != toasted.end()) { 
+                    // iworm(c) was toasted and no longer relevant
+                    continue; 
+                }
                 
                 
                 if (DEBUG) {

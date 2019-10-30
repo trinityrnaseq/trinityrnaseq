@@ -1,3 +1,0 @@
-Started
-using Path alignment for path comparisons
-combine paths if (identity=(numberOfMatches/shorterLen) > 95.0% or if we have <= 2 mismatches) and if we have internal gap lengths <= 10

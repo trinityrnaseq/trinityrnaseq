@@ -5,3 +5,12 @@
 [submodule "trinity_ext_sample_data"]
 	path = trinity_ext_sample_data
 	url = https://github.com/trinityrnaseq/trinity_ext_sample_data.git
+[submodule "Inchworm"]
+	path = Inchworm
+	url = https://github.com/trinityrnaseq/Inchworm.git
+[submodule "Chrysalis"]
+	path = Chrysalis
+	url = https://github.com/trinityrnaseq/Chrysalis.git
+[submodule "Butterfly"]
+	path = Butterfly
+	url = https://github.com/trinityrnaseq/Butterfly.git

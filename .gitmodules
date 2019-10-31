@@ -11,6 +11,4 @@
 [submodule "Chrysalis"]
 	path = Chrysalis
 	url = https://github.com/trinityrnaseq/Chrysalis.git
-[submodule "Butterfly"]
-	path = Butterfly
-	url = https://github.com/trinityrnaseq/Butterfly.git
+

@@ -1684,7 +1684,7 @@ sub run_Trinity {
         
         if ( ! (-s $super_reads_supp_fasta && -e $super_reads_checkpoint) ) {
             my @super_read_files;
-            for my $SR_kmer_size (22, 24, 26, 28, 30, 32) {
+            for (my $SR_kmer_size=18; $SR_kmer_size < $KMER_SIZE; $SR_kmer_size += 2) {
                 if ($SR_kmer_size <= $KMER_SIZE) {
                     my $sr_file = "$inchworm_file.SR.$SR_kmer_size";
                     &run_inchworm($sr_file, $inchworm_target_fa, $SS_lib_type, $kmer_method, $SR_kmer_size, 1);
@@ -1713,13 +1713,11 @@ sub run_Trinity {
     ## Inchworm step:
     $pm_inchworm_start = time();
     unless (-s $inchworm_file && -e $inchworm_finished_checkpoint_file) {
-        
         &run_inchworm($inchworm_file, $inchworm_target_fa, $SS_lib_type, $kmer_method, $KMER_SIZE, 0);
         &process_cmd("touch $inchworm_finished_checkpoint_file");
     }
     $pm_inchworm_end = time();
-    
-    
+        
     unless (-s $inchworm_file) {
         
         die "NON_FATAL_EXCEPTION: WARNING, no Inchworm output is detected at: $inchworm_file";
@@ -2576,7 +2574,7 @@ sub run_inchworm {
         $inchworm_cmd .= " $INCHWORM_CUSTOM_PARAMS ";
     }
 
-    my $min_iworm_len = ($super_read_mode) ? $min_contig_length : $MIN_IWORM_LEN;
+    my $min_iworm_len = ($super_read_mode) ? (2 * $MIN_IWORM_LEN) : $MIN_IWORM_LEN;
     $inchworm_cmd .= " -L $min_iworm_len ";
     
     if ($super_read_mode) {

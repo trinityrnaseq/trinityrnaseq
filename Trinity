@@ -2286,9 +2286,11 @@ sub run_chrysalis {
                     }
                 }
                 
-                #if ($PASAFLY_MODE) {
-                #    $bfly_cmd .= " --PasaFly ";
-                #}
+              
+                ## doing this now as standard.
+                $bfly_cmd .= " --PasaFly ";
+                
+                
                 #elsif ($CUFFFLY_MODE) {
                 #    $bfly_cmd .= " --CuffFly ";
                 #}

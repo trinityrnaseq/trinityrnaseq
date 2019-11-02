@@ -2290,7 +2290,7 @@ sub run_chrysalis {
                 
               
                 ## doing this now as standard.
-                $bfly_cmd .= " --PasaFly --FAST_PASA";
+                $bfly_cmd .= " --PasaFly ";
                 
                 
                 #elsif ($CUFFFLY_MODE) {

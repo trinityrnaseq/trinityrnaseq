@@ -94,7 +94,8 @@ my $NO_PATH_MERGING = 0;
 my $MIN_PER_ID_SAME_PATH;  # leave these at the butterfy defaults
 my $MAX_DIFFS_SAME_PATH;
 my $MAX_INTERNAL_GAP_SAME_PATH;
-
+my @BFLY_ALGORITHMS = ("ORIGINAL", "PASAFLY");
+my $BFLY_ALGORITHM = "PASAFLY"; # default
 
 # misc opts
 my $min_kmer_cov = 1;
@@ -354,6 +355,8 @@ my $full_usage = qq^
 #
 #####################################
 ###  Butterfly-related options:  ####
+#
+#  --bfly_algorithm <string>       : assembly algorithm to use. Options: @BFLY_ALGORITHMS
 #
 #  --bfly_opts <string>            :additional parameters to pass through to butterfly
 #                                   (see butterfly options: java -jar Butterfly.jar ).
@@ -670,6 +673,7 @@ my $STOMP_SNPS = 0;
     'just_normalize_reads' => \$JUST_NORMALIZE_READS_FLAG,
     
     # Butterfly opts
+    "-bfly_algorithm=s" => \$BFLY_ALGORITHM,
     "group_pairs_distance=i" => \$group_pairs_distance,
     'bfly_opts=s'           => \$bfly_opts,
     'bflyHeapSpaceMax=s'    => \$bflyHeapSpaceMax,
@@ -865,6 +869,7 @@ include_supertranscripts
 NO_SUPERTRANS
 max_chrysalis_cluster_size
 iworm_cdhit
+bfly_algorithm
 );   
 
 my %ACCEPTABLE_OPTS = map { + $_ => 1} @__ALL_TRINITY_PARAMS;
@@ -881,6 +886,10 @@ for my $opt (@ARGV) {
 }
 if ($opts_not_recognized_flag) {
     die "Please review usage info for accepted parameters.\n";
+}
+
+if (! grep { $_ eq $BFLY_ALGORITHM } @BFLY_ALGORITHMS) {
+    die "Error, dont recognize bfly algorithm: $BFLY_ALGORITHM,  choices are: @BFLY_ALGORITHMS";
 }
 
 
@@ -1186,12 +1195,7 @@ my $MKDIR_OUTDIR_FLAG = 0; ## only purging output_directory if we create it in t
 
 ## Regular run.  Name the output based on the butterfly reconstruction mode.
 my $butterfly_output_filename = "Trinity.fasta";
-#if ($PASAFLY_MODE) {
-#    $butterfly_output_filename = "Trinity.Pasafly.fasta";
-#}
-#elsif ($CUFFFLY_MODE) {
-#    $butterfly_output_filename = "Trinity.Cufffly.fasta";
-#}
+
 $butterfly_output_filename = "$output_directory/$butterfly_output_filename";
 
 my $PARALLEL_SAMTOOLS_SORT_TOKEN = "-\@ $CPU";
@@ -2287,9 +2291,9 @@ sub run_chrysalis {
                 }
                 
               
-                ## doing this now as standard.
-                $bfly_cmd .= " --PasaFly ";
-                
+                if ($BFLY_ALGORITHM eq "PASAFLY") {
+                    $bfly_cmd .= " --PasaFly ";
+                }
                 
                 #elsif ($CUFFFLY_MODE) {
                 #    $bfly_cmd .= " --CuffFly ";

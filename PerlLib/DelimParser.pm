@@ -149,10 +149,10 @@ sub get_row {
         return(undef); # eof
     }
     
-    chomp $line;
-    
     my $delim = $self->get_delim();
     my @fields = split(/$delim/, $line);
+    chomp $fields[$#fields]; ## it's important that this is done after the delimiter splitting in case the last field is actually empty.
+    
     
     my @column_headers = $self->get_column_headers();
 
@@ -160,7 +160,7 @@ sub get_row {
     my $num_fields = scalar(@fields);
 
     if ($num_col != $num_fields) {
-        confess "Error, line is lacking $num_col fields: " . Dumper(\@column_headers);
+        confess "Error, line: [$line] " . Dumper(\@fields) . " is lacking $num_col fields: " . Dumper(\@column_headers);
     }
     
     my %dict;
@@ -171,6 +171,19 @@ sub get_row {
     
     return(\%dict);
 }
+
+
+####
+sub get_row_val {
+    my ($self, $row_href, $key) = @_;
+
+    if (! exists $row_href->{$key}) {
+        confess "Error, row: " . Dumper($row_href) . " doesn't include key: [$key]";
+    }
+
+    return($row_href->{$key});
+}
+
 
 
 ##################################################

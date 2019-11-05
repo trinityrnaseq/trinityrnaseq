@@ -41,6 +41,11 @@ my $CHRYSALIS_DIR = "$ROOTDIR/Chrysalis";
 my $BUTTERFLY_DIR = "$ROOTDIR/Butterfly";
 my $COLLECTL_DIR = "$ROOTDIR/trinity-plugins/COLLECTL/collectl";
 my $PARAFLY = "$ROOTDIR/trinity-plugins/BIN/ParaFly";
+
+if ($ENV{TRINITY_NO_RETRIES}) {
+    $PARAFLY .= " -max_retry 1 ";
+}
+
 my $TRIMMOMATIC = "$ROOTDIR/trinity-plugins/Trimmomatic/trimmomatic.jar";
 my $TRIMMOMATIC_DIR = "$ROOTDIR/trinity-plugins/Trimmomatic";
 
@@ -616,7 +621,7 @@ my $WORKDIR;
 
 my $NO_CHECK_COORDSORTED_BAM = 0;
 
-my $NO_SALMON = 0;
+my $NO_SALMON = $ENV{TRINITY_NO_SALMON} || 0;
 
 my $STOMP_SNPS = 0;
 

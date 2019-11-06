@@ -93,6 +93,11 @@ main: {
 
         my $sd = $row->{stdev};
         my $u = $row->{mean_cov};
+
+        if ($u <= 0) {
+            $count_aberrant_and_discarded++;
+            next; 
+        }   
         
         my $cv = $sd/$u;
         

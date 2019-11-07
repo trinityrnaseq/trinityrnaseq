@@ -1686,7 +1686,7 @@ sub run_Trinity {
     }
     
     
-    if ($SUPER_READS_FLAG) {
+    if ($SUPER_READS_FLAG && $TRINITY_COMPLETE_FLAG) {
 
         my $super_reads_supp_fasta = "$inchworm_target_fa.SR_supp.fa";
         my $super_reads_checkpoint = "SR_supp.checkpoint.ok";    

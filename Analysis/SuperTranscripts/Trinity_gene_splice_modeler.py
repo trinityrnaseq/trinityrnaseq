@@ -165,9 +165,16 @@ def main():
                 logger.debug("Post-refinement and final squeeze of splice model for Gene {}:\n{}\n".format(gene_name, str(squeezed_splice_model)))
 
 
-        # done with splice graph refinement.
+        # remove redundant sequence entries (created during the refinement process)
+        if squeezed_splice_model.remove_redundant_sequences():
+            # resqueeze
+            squeezed_splice_model = squeezed_splice_model.squeeze()
         
+                
+        # done with splice graph refinement.
+                
         squeezed_splice_model.reassign_node_loc_ids_by_align_order()
+        
         
         (gene_seq, gtf_txt, trinity_fa_text, malign_dict) = squeezed_splice_model.to_gene_fasta_and_gtf(gene_name)
 

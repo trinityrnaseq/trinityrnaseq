@@ -32,7 +32,9 @@ main: {
             }
         }
         
-        print join("\t", $A_FL, $B_FL) . "\n";
+        my ($trans, $gene) = split(/;/, $trans_acc);
+
+        print join("\t", $gene, $trans, $trans_acc, $A_FL, $B_FL) . "\n";
         
     }
     

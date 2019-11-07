@@ -432,3 +432,70 @@ class Node_alignment:
 
 
         return refined_tgraph
+
+
+
+
+
+    def get_transcript_seqs(self):
+
+        transcript_names = self.get_transcript_names()
+
+        transcript_to_Trinity_fa_seq = dict()
+        
+        for transcript_name in transcript_names:
+            transcript_to_Trinity_fa_seq[ transcript_name ] = ""
+
+            
+        for i in range(0,self.width()):
+            node_obj = self.get_representative_column_node(i)
+
+            node_seq = node_obj.get_seq()
+            if len(node_seq) == 0:
+                raise RuntimeError("Error, node seq of length zero: node=" + str(node_obj))
+
+            node_id = node_obj.get_loc_id()
+
+            node_occupancy = self.get_node_occupancy_at_column_pos(i)
+
+            # include gtf record for transcripts
+            for j in range(0,len(transcript_names)):
+                transcript_name = transcript_names[ j ]
+                if node_occupancy[ j ] is True:
+                    transcript_to_Trinity_fa_seq[ transcript_name ] += node_seq
+
+        return transcript_to_Trinity_fa_seq
+
+
+    def remove_redundant_sequences(self):
+        
+        transcripts_remove = set()
+        
+        transcript_seqs = self.get_transcript_seqs();
+        seen = dict()
+        for transcript_acc in transcript_seqs:
+            transcript_seq = transcript_seqs[transcript_acc]
+            if transcript_seq in seen:
+                sys.stderr.writeln("warning, transcript polishing yielded duplicate seq entry... targeting {} for removal.".format(transcript_acc))
+                transcripts_remove.add(transcript_acc)
+            seen[transcript_seq] = True
+
+        if transcripts_remove:
+            revised_transcript_names = list()
+            revised_aligned_nodes = list()
+
+            for i in range(0, len(self.transcript_names)):
+                transcript_name = self.transcript_names[i]
+                aligned_nodes = self.aligned_nodes[i]
+                if transcript_name not in transcripts_remove:
+                    revised_transcript_names.append(transcript_name)
+                    revised_aligned_nodes.append(aligned_nodes)
+
+            self.transcript_names = revised_transcript_names
+            self.aligned_nodes = revised_aligned_nodes
+
+            return True
+                    
+        else:
+            return False
+    

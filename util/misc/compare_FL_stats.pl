@@ -3,10 +3,10 @@
 use strict;
 use warnings;
 
-my $usage = "\n\tusage: $0 before.stats after.stats [RESTRICT_TO_FAILURES]\n\n";
+my $usage = "\n\tusage: $0 A.FL_selected B.FL_selected [RESTRICT_TO_FAILURES]\n\n";
 
-my $before_stats_file = $ARGV[0] or die $usage;
-my $after_stats_file = $ARGV[1] or die $usage;
+my $A_stats_file = $ARGV[0] or die $usage;
+my $B_stats_file = $ARGV[1] or die $usage;
 
 my $RESTRICT_TO_FAILURES = $ARGV[2] || 0;
 
@@ -15,31 +15,27 @@ my $MAX_PER_GAP = 1;
 
 main: {
     
-    my %before_stats = &parse_stats($before_stats_file);
-    my %after_stats = &parse_stats($after_stats_file);
+    my %A_stats = &parse_stats($A_stats_file);
+    my %B_stats = &parse_stats($B_stats_file);
 
-    my %trans = map { + $_ => 1 } (keys %before_stats, keys %after_stats);
+    my %trans = map { + $_ => 1 } (keys %A_stats, keys %B_stats);
 
     foreach my $trans_acc (keys %trans) {
 
-
-        my $before = $before_stats{$trans_acc} || "";
+        my $A_FL = $A_stats{$trans_acc} || ".";
         
-        my $after = $after_stats{$trans_acc} || "";
+        my $B_FL = $B_stats{$trans_acc} || ".";
         
         if ($RESTRICT_TO_FAILURES) {
-            unless ($before =~ /\*\*/ && $after !~ /\*\*/) {
-
+            unless ($A_FL eq "." || $B_FL eq ".") {
                 next;
             }
         }
         
-        print "// $trans_acc\n";
-                print "# before\n$before\n";
-                print "# after\n$after\n\n";
-
+        print join("\t", $A_FL, $B_FL) . "\n";
+        
     }
-
+    
     exit(0);
         
 }
@@ -48,7 +44,7 @@ main: {
 sub parse_stats {
     my ($stats_file) = @_;
 
-    my %tran_to_stats;
+    my %trans_to_stats;
     
     open (my $fh, $stats_file) or die $!;
     while (<$fh>) {
@@ -59,22 +55,14 @@ sub parse_stats {
         my @x = split(/\t/);
         
 
-        my $acc = $x[0];
-        my $per_gap = $x[3];
-        my $per_len = $x[10];
+        my $trans = $x[0];
+        my $reco = $x[1];
 
-        if ($per_len >= $MIN_PER_LEN && $per_gap <= $MAX_PER_GAP) {
-
-            $line .= "\t**";
-        }
-
-        $tran_to_stats{$acc} .= "$line\n";
+        $trans_to_stats{$trans} = $reco;
 
     }
     close $fh;
-    
-    return(%tran_to_stats);
-    
-}
 
+    return (%trans_to_stats);
+}
 

@@ -27,11 +27,9 @@ DE_results_file = args$DE_results
 counts_matrix_file = args$counts_matrix
 samples_file = args$samples_file
 
-
-source("https://bioconductor.org/biocLite.R")
-biocLite("Glimma")
-biocLite("argparse")
-biocLite("edgeR")
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager","Glimma","argparse","edgeR")
+BiocManager::install()
 
 library(edgeR)
 library(limma)

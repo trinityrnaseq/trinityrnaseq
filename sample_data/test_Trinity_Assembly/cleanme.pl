@@ -11,35 +11,6 @@ chdir $FindBin::RealBin or die "error, cannot cd to $FindBin::RealBin";
 
 
 
-my @files_to_keep = qw (cleanme.pl 
-                        README
-                        reads.left.fq.gz
-                        reads.right.fq.gz
-                        runMe.sh
-                        __indiv_ex_sample_derived
-                        misc_run_tests
-                        run_abundance_estimation_procedure.sh
-
-                        reads2.left.fq.gz
-                        reads2.right.fq.gz
-
-                        longReads.fa
-                        Makefile
- test_FL.sh
-
-
-
-reads.left.fa.gz
-reads.right.fa.gz
-
-samples.SE.txt
-samples.PE.txt
-
-
-                        );
-
-
-my %keep = map { + $_ => 1 } @files_to_keep;
 
 `rm -rf ./trinity_out_dir*`;
 `rm -rf ./bowtie_out` if (-d "bowtie_out");
@@ -72,14 +43,6 @@ my %keep = map { + $_ => 1 } @files_to_keep;
 `rm -rf ./trinity_test_samples_PE_min_kmer_cov_3`;
 `rm -rf ./trinity_complete`;
 `rm -rf ./trinity_incl_supertrans`;
-
-foreach my $file (<*>) {
-	
-	if (! $keep{$file}) {
-		print STDERR "-removing file: $file\n";
-		unlink($file);
-	}
-}
 
 
 exit(0);

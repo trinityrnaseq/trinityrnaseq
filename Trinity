@@ -678,7 +678,7 @@ my $STOMP_SNPS = 0;
     'just_normalize_reads' => \$JUST_NORMALIZE_READS_FLAG,
     
     # Butterfly opts
-    "-bfly_algorithm=s" => \$BFLY_ALGORITHM,
+    "bfly_algorithm=s" => \$BFLY_ALGORITHM,
     "group_pairs_distance=i" => \$group_pairs_distance,
     'bfly_opts=s'           => \$bfly_opts,
     'bflyHeapSpaceMax=s'    => \$bflyHeapSpaceMax,

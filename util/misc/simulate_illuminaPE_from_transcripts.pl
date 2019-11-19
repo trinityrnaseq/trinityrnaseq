@@ -12,6 +12,8 @@ use Getopt::Long qw(:config no_ignore_case bundling pass_through);
 use Cwd;
 
 
+my $volcano_spacing = 25;
+
 my $usage = <<__EOUSAGE__;
 
 ##################################################################
@@ -34,6 +36,7 @@ my $usage = <<__EOUSAGE__;
 #  --require_proper_pairs       default(off)
 #
 #  --include_volcano_spread     default(off)
+#  --volcano_spacing <int>      default: $volcano_spacing
 #
 #  --error_rate <float>         default(0), for 1%, set to 0.01
 #
@@ -78,7 +81,7 @@ my $make_fastq_flag = 0;
               'error_rate=f' => \$error_rate,
               'max_depth=i' => \$MAX_DEPTH,
               'make_fastq' => \$make_fastq_flag,
-    
+              'volcano_spacing=i' => \$volcano_spacing,
     );
 
 
@@ -185,39 +188,32 @@ main: {
         if ($include_volcano_spread) {
             
             ## volcano spread
-            for (my $i = 0; $i <= length($seq)/2; $i+=$spacing) {
-                
-                my $left_read_seq = "";
-                my $right_read_seq = "";
-                my $ill_acc = $read_acc . "_Bp$i-F$frag_length";
-                
-                
-                my $left_start = $i;
-                if ($left_start >= 0) {
-                        $left_read_seq = substr($seq, $left_start, $read_length);
-                }
-                
-                my $right_start = length($seq)-$read_length -$i + 1;
-                
-                if ($left_start + $read_length >= $right_start) { next; } ## don't overlap them.
-                
-                if ($right_start + $read_length  <= length($seq)) {
-                    $right_read_seq = substr($seq, $right_start, $read_length);
-                }
-                
-                
-                if ($require_proper_pairs_flag && ! ($left_read_seq && $right_read_seq)) { next; }
-                
-                if ($left_read_seq) {
+            for (my $i = 0; $i < length($seq) - 2 * $read_length; $i+=$volcano_spacing) {
+
+                for (my $j = $i + 2 * $read_length; $j < length($seq) - $read_length; $j += $volcano_spacing) {
+
+                    $i += 1;
                     
+                    my $ill_acc = $read_acc . "_Bp-${i}-${j}_volcano";
+                                    
+                    my $left_start = $i;
+                    my $left_read_seq = substr($seq, $left_start, $read_length);
+                                    
+                    my $right_start = $j;
+                
+                    if ($left_start + $read_length >= $right_start) { next; } ## don't overlap them.
+                
+                    my $right_read_seq = substr($seq, $right_start, $read_length);
+                    
+                    
+                    if ($require_proper_pairs_flag && ! ($left_read_seq && $right_read_seq)) { next; }
+                
                     if ($error_rate > 0) {
                         $left_read_seq = &introduce_errors($left_read_seq, $error_rate);
                     }
                     
                     &write_seq($left_ofh, "$ill_acc/1", $left_read_seq);
                     
-                }
-                if ($right_read_seq) {
                     
                     $right_read_seq = &reverse_complement($right_read_seq);
                     

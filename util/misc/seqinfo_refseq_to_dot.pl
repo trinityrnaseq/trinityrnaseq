@@ -41,11 +41,14 @@ main: {
             }
         }
     }
+
+    my $dot_file = "$graph_seqinfo_file.dot";
+    open(my $ofh, ">$dot_file") or die "Error, cannot write to file: $dot_file";
     
     # print Dumper(\%refseq_to_nodes_list);
 
     ## output graph:
-    print "digraph G {\n" 
+    print $ofh "digraph G {\n" 
         . "    node [width=0.1,height=0.1,fontsize=10];\n"
         . "    edge [fontsize=12];\n"
         . "    margin=1.0;\n"
@@ -57,7 +60,7 @@ main: {
     
     foreach my $node_seq (keys %$node_seq_to_node_id_href) {
         my $node_info_txt = $node_seq_to_node_id_href->{$node_seq};
-        print "    $node_info_txt\n";
+        print $ofh "    $node_info_txt\n";
     }
     
     ## get a different color for each refseq acc:
@@ -74,15 +77,22 @@ main: {
             my $node_id_begin = $structs[$i]->{node_id};
             my $node_id_end = $structs[$i+1]->{node_id};
 
-            print "    $node_id_begin->$node_id_end [label=\"$acc\", color=\"$color\"];\n";
+            print $ofh "    $node_id_begin->$node_id_end [label=\"$acc\", color=\"$color\"];\n";
         }
     }
     
     foreach my $edge (@$edges_aref) {
-        print "    $edge;\n";
+        print $ofh "    $edge;\n";
     }
 
-    print "}\n";
+    print $ofh "}\n";
+
+    close $ofh;
+
+
+    exit(system("dot -Tpdf $dot_file > $dot_file.pdf"));
+    
+    
     
 }
 

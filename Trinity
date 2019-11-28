@@ -100,7 +100,7 @@ my $MIN_PER_ID_SAME_PATH;  # leave these at the butterfy defaults
 my $MAX_DIFFS_SAME_PATH;
 my $MAX_INTERNAL_GAP_SAME_PATH;
 my @BFLY_ALGORITHMS = ("ORIGINAL", "PASAFLY");
-my $BFLY_ALGORITHM = "PASAFLY"; # default
+my $BFLY_ALGORITHM = "ORIGINAL"; # default
 
 # misc opts
 my $min_kmer_cov = 1;
@@ -119,7 +119,7 @@ my $bflyGCThreads = 2;
 my $long_reads = "";
 my $LONG_READS_MODE = 0;
 
-my $SUPER_READS_FLAG = 0;
+my $NO_SUPER_READS_FLAG = 0;
 
 ## ADVANCED OPTIONS:
 
@@ -319,7 +319,7 @@ my $full_usage = qq^
 #
 #  --KMER_SIZE <int>               :kmer length to use (default: 25)  max=32
 #
-#  --SUPER_READS                   :invoke super-reads mode
+#  --no_super_reads                :turn off super-reads mode
 #
 #  --prep                          :Only prepare files (high I/O usage) and stop before kmer counting.
 #
@@ -778,7 +778,7 @@ my $STOMP_SNPS = 0;
 
     "NO_SEQTK" => \$NO_SEQTK,
 
-    "SUPER_READS" => \$SUPER_READS_FLAG,
+    "no_super_reads" => \$NO_SUPER_READS_FLAG,
     
     
     );
@@ -1686,8 +1686,8 @@ sub run_Trinity {
     }
     
     
-    if ($SUPER_READS_FLAG && $TRINITY_COMPLETE_FLAG) {
-
+    if ( (! $NO_SUPER_READS_FLAG) && $TRINITY_COMPLETE_FLAG) {
+        
         my $super_reads_supp_fasta = "$inchworm_target_fa.SR_supp.fa";
         my $super_reads_checkpoint = "SR_supp.checkpoint.ok";    
         

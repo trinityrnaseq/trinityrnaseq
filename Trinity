@@ -2673,16 +2673,16 @@ sub prep_seqs {
                 else {
                     ## using seqtk (trinity-mod'd version)
                 
-                    my $cmd = "cat $f | seqtk-trinity seq -A -";
+                    my $cmd = "cat $f | seqtk-trinity seq -A -R $read_type -";
                     my $linecount_cmd = "cat $f | wc -l";
                     if ($f=~/\.gz$/){
-                        $cmd = "gunzip -c $f | seqtk-trinity seq -A -";
+                        $cmd = "gunzip -c $f | seqtk-trinity seq -A $read_type -";
                         $linecount_cmd = "gunzip -c $f | wc -l";
                     } elsif ($f=~/\.bz2$/){
-                        $cmd = "bunzip2 -dkc $f | seqtk-trinity seq -A -";
+                        $cmd = "bunzip2 -dkc $f | seqtk-trinity seq -A $read_type -";
                         $linecount_cmd = "bunzip2 -dkc $f | wc -l";
                     } elsif ($f =~ /\.xz/) {
-                        $cmd = "xz -dc ${f} | seqtk-trinity seq -A -";
+                        $cmd = "xz -dc ${f} | seqtk-trinity seq -A $read_type -";
                         $linecount_cmd = "xz -dc ${f} | wc -l";
                         ## I would like to suggest that these if statements are not necessary if one just does
                         ## qx"less ${f} |" because less has smart input filters in place and will automagically

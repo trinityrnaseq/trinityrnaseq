@@ -2640,6 +2640,9 @@ sub prep_seqs {
  
     my @initial_files = @$initial_files_ref;
     
+
+    my $read_type = ($file_prefix eq "right") ? "2" : "1";  # puts the /1 or /2 on the end of the read name.
+
     return if -e "$file_prefix.fa.ok";
    	
     my $initial_file_str = join(" ",@initial_files);

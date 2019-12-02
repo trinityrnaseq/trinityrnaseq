@@ -16,8 +16,8 @@ trimmomatic_target:
 
 
 seqtk_target:
-	cd seqtk-trinity-0.0.2 && $(MAKE) CXX=$(CXX) CC=$(CC)
-	mv seqtk-trinity-0.0.2/seqtk-trinity ./BIN/.
+	cd seqtk-trinity && $(MAKE) CXX=$(CXX) CC=$(CC)
+	mv seqtk-trinity/seqtk-trinity ./BIN/.
 
 parafly_target:
 	tar -zxvf ${PARAFLY_CODE}.tar.gz && \

@@ -517,6 +517,8 @@ sub make_normalized_reads_file {
         
             if ($seqType eq 'fq') {
                 $acc = $seq_obj->get_core_read_name();
+                $acc =~ s/_forward//;
+                $acc =~ s/_reverse//;
             } 
             elsif ($seqType eq 'fa') {
                 $acc = $seq_obj->get_accession();
@@ -644,6 +646,9 @@ sub run_jellyfish {
 sub prep_seqs {
     my ($initial_file, $seqType, $file_prefix, $SS_lib_type) = @_;
 
+    my $read_type = ($file_prefix eq "right") ? "2" : "1";
+
+
     my $using_FIFO_flag = 0;
     if ($initial_file =~ /\.gz$|\.xz$|\.bz2$/) {
         ($initial_file) = &add_fifo_for_gzip($initial_file);
@@ -666,7 +671,7 @@ sub prep_seqs {
         }
         else {
             # using seqtk
-            my $cmd = "seqtk-trinity seq -A";
+            my $cmd = "seqtk-trinity seq -A -R $read_type ";
             if ($SS_lib_type && $SS_lib_type eq "R") {
                 $cmd  =~ s/trinity seq /trinity seq -r /;
             }

@@ -12,3 +12,6 @@
 	path = Chrysalis
 	url = https://github.com/trinityrnaseq/Chrysalis.git
 
+[submodule "trinity-plugins/seqtk-trinity"]
+	path = trinity-plugins/seqtk-trinity
+	url = https://github.com/trinityrnaseq/seqtk-trinity.git

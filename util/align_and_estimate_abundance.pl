@@ -54,9 +54,8 @@ my $rsem_add_opts = "";
 
 my $kallisto_add_opts = "";
 my $salmon_add_opts= "";
-my $salmon_idx_type = 'quasi';
-my $salmon_quasi_kmer_length = 31;
-my $salmon_fmd_kmer_length = 19;
+
+my $salmon_kmer_length = 31;
 
 my $usage = <<__EOUSAGE__;
 
@@ -161,7 +160,6 @@ my $usage = <<__EOUSAGE__;
 #
 #  salmon opts:
 #
-#  --salmon_idx_type <string>    quasi|fmd (defalt: $salmon_idx_type)
 #  --salmon_add_opts <string>    default: $salmon_add_opts
 #
 #
@@ -274,10 +272,8 @@ my $samples_idx = 0;
               'salmon_add_opts=s' => \$salmon_add_opts,
     
               'coordsort_bam' => \$coordsort_bam_flag,
-
-             'salmon_idx_type=s' => \$salmon_idx_type,
-             'salmon_quasi_kmer_length=i' => \$salmon_quasi_kmer_length,
-             'salmon_fmd_kmer_length=i' => \$salmon_fmd_kmer_length,
+    
+              'salmon_kmer_length=i' => \$salmon_kmer_length,
     
     );
 
@@ -842,7 +838,7 @@ sub run_kallisto {
 sub run_salmon {
     my (@samples) = @_;
     
-    my $salmon_index = "$transcripts.salmon_${salmon_idx_type}.idx";
+    my $salmon_index = "$transcripts.salmon.idx";
     
     if ( (! $prep_reference) && (! -e $salmon_index)) {
         confess "Error, no salmon index file: $salmon_index, and --prep_reference not set.  Re-run with --prep_reference";
@@ -850,17 +846,7 @@ sub run_salmon {
     if ($prep_reference && ! -e $salmon_index) {
         
         ## Prep salmon index
-        my $cmd;
-        
-        if ($salmon_idx_type eq 'quasi') {
-            $cmd = "salmon index -t $transcripts --keepDuplicates -i $salmon_index --type quasi -k $salmon_quasi_kmer_length -p $thread_count";
-        }
-        elsif ($salmon_idx_type eq 'fmd') {
-            $cmd = "salmon index -t $transcripts --keepDuplicates -i $salmon_index --type fmd -p $thread_count";
-        }
-        else {
-            die "Error, not recognizing idx type: $salmon_idx_type";
-        }
+        my $cmd = "salmon index -t $transcripts --keepDuplicates -i $salmon_index -k $salmon_kmer_length -p $thread_count";
         
         &process_cmd($cmd);
     }
@@ -888,36 +874,16 @@ sub run_salmon {
         
             if ($left_file && $right_file) {
                 ## PE mode
-                my $cmd;
                 my $libtype = ($SS_lib_type) ? "IS" . substr($SS_lib_type, 0, 1) : "IU";
                 
-                if ($salmon_idx_type eq 'quasi') {
-                    $cmd = "salmon quant -i $salmon_index -l $libtype -1 $left_file -2 $right_file -o $outdir $salmon_add_opts -p $thread_count";
-                }
-                elsif ($salmon_idx_type eq 'fmd') {
-                    $cmd = "salmon quant -i $salmon_index -l $libtype -1 $left_file -2 $right_file -k $salmon_fmd_kmer_length -o $outdir $salmon_add_opts -p $thread_count";
-                }
-                else {
-                    die "Error, not recognizing salmon_idx_type: $salmon_idx_type";
-                }
+                my $cmd = "salmon quant -i $salmon_index -l $libtype -1 $left_file -2 $right_file -o $outdir $salmon_add_opts -p $thread_count --validateMappings ";
                 
                 &process_cmd($cmd);
-            
+                
             }
             elsif ($single_file) {
                 my $libtype = ($SS_lib_type) ? "S" . substr($SS_lib_type, 0, 1) : "U";
-                my $cmd;
-                
-                if ($salmon_idx_type eq 'quasi') {
-                    $cmd = "salmon quant -i $salmon_index -l $libtype -r $single_file -o $outdir $salmon_add_opts -p $thread_count";
-                }
-                elsif ($salmon_idx_type eq 'fmd') {
-                    $cmd = "salmon quant -i $salmon_index -l $libtype -r $single_file -k $salmon_fmd_kmer_length -o $outdir $salmon_add_opts -p $thread_count";
-                }
-                else {
-                    die "Error, not recognizing salmon_idx_type: $salmon_idx_type";
-                }
-                
+                my $cmd = "salmon quant -i $salmon_index -l $libtype -r $single_file -o $outdir $salmon_add_opts -p $thread_count --validateMappings ";
                 &process_cmd($cmd);
                 
             }

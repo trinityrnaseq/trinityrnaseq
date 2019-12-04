@@ -3924,8 +3924,8 @@ sub check_required_3rd_party_tool_installations {
 
             if ($version_info =~ /\s(\d+)\.(\d+)\.(\d+)/) {
                 my ($major, $minor, $patch) = ($1, $2, $3);
-                if ($major == 0 && $minor < 9) {
-                    die "Error, please install a version of salmon that is at least as new as version 0.9.  Get it here: https://combine-lab.github.io/salmon/";
+                if ($major < 1 && $minor < 0) {
+                    die "Error, please install a version of salmon that is at least as new as version 1.0.  Get it here: https://combine-lab.github.io/salmon/";
                 }
             }
             else {

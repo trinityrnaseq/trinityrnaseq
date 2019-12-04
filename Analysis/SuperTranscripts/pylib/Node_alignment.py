@@ -476,7 +476,7 @@ class Node_alignment:
         for transcript_acc in transcript_seqs:
             transcript_seq = transcript_seqs[transcript_acc]
             if transcript_seq in seen:
-                sys.stderr.writeln("warning, transcript polishing yielded duplicate seq entry... targeting {} for removal.".format(transcript_acc))
+                sys.stderr.write("warning, transcript polishing yielded duplicate seq entry... targeting {} for removal.\n".format(transcript_acc))
                 transcripts_remove.add(transcript_acc)
             seen[transcript_seq] = True
 

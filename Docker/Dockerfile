@@ -1,6 +1,8 @@
 FROM ubuntu:18.04
 MAINTAINER bhaas@broadinstitute.org
 
+ENV DEBIAN_FRONTEND=noninteractive
+
 RUN apt-get update && apt-get install -y gcc g++ perl python automake make \
                                        wget git curl libdb-dev \
                                        zlib1g-dev bzip2 libncurses5-dev \
@@ -12,12 +14,15 @@ RUN apt-get update && apt-get install -y gcc g++ perl python automake make \
 				       libblas-dev gfortran git unzip ftp libzmq3-dev nano ftp fort77 libreadline-dev \
 				       libcurl4-openssl-dev libx11-dev libxt-dev \
 				       x11-common libcairo2-dev libpng-dev libreadline-dev libjpeg-dev pkg-config libtbb-dev \
-                   && apt-get clean
+					   cmake rsync libssl-dev tzdata \
+	&& apt-get clean
 
+
+
+
+## Perl stuff
 RUN curl -L https://cpanmin.us | perl - App::cpanminus
-
 RUN cpanm install DB_File
-
 RUN cpanm install URI::Escape
 
 
@@ -58,7 +63,19 @@ RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstall
 RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("DEXSeq", dep = TRUE)'
 RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("tximport", dep = TRUE)'
 RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("tximportData", dep = TRUE)'
+RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("tidyverse", dep = TRUE)'
+RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("fastcluster", dep = TRUE)'
+RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller);  biocLite("goseq", dep = TRUE)'
 
+
+
+ENV LD_LIBRARY_PATH=/usr/local/lib
+
+
+## some python modules
+RUN pip install numpy
+RUN pip install git+https://github.com/ewels/MultiQC.git
+RUN pip install HTSeq
 
 
 ## bowtie
@@ -119,6 +136,7 @@ RUN wget https://github.com/samtools/samtools/releases/download/1.7/samtools-1.7
     cd samtools-1.7/ && \
     ./configure && make && make install
     
+
 ## Jellyfish
 RUN wget https://github.com/gmarcais/Jellyfish/releases/download/v2.2.7/jellyfish-2.2.7.tar.gz && \
     tar xvf jellyfish-2.2.7.tar.gz && \
@@ -126,22 +144,7 @@ RUN wget https://github.com/gmarcais/Jellyfish/releases/download/v2.2.7/jellyfis
     ./configure && make && make install
 
 
-## Salmon
-WORKDIR $SRC
-RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v0.9.1/Salmon-0.9.1_linux_x86_64.tar.gz && \
-    tar xvf Salmon-0.9.1_linux_x86_64.tar.gz && \
-    ln -s $SRC/Salmon-latest_linux_x86_64/bin/salmon $BIN/.
-    
-
-
-ENV LD_LIBRARY_PATH=/usr/local/lib
-
-RUN pip install numpy
-
-
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("fastcluster", dep = TRUE)'
-
-## patch the RSEM install... need convert-sam-for-rsem  too!
+## RSEM
 WORKDIR $SRC
 RUN wget https://github.com/deweylab/RSEM/archive/v1.3.0.tar.gz && \
 	 tar xvf v1.3.0.tar.gz && \
@@ -152,21 +155,14 @@ RUN wget https://github.com/deweylab/RSEM/archive/v1.3.0.tar.gz && \
      cp rsem_perl_utils.pm /usr/local/lib/site_perl/ && \
      cd ../ && rm -r RSEM-1.3.0
 
-# adding multiqc
-RUN pip install git+https://github.com/ewels/MultiQC.git
 
-
-RUN apt-get update && apt-get install -y cmake
-
-RUN apt-get install -y rsync
-
-
-RUN apt-get install -y libssl-dev
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller);  biocLite("goseq", dep = TRUE)'
-
-
-RUN pip install HTSeq
-
+## Salmon
+WORKDIR $SRC
+ENV SALMON_VERSION=1.0.0
+RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v${SALMON_VERSION}/Salmon-${SALMON_VERSION}_linux_x86_64.tar.gz && \
+    tar xvf Salmon-${SALMON_VERSION}_linux_x86_64.tar.gz && \
+    ln -s $SRC/Salmon-latest_linux_x86_64/bin/salmon $BIN/.
+    
 
 
 
@@ -178,7 +174,6 @@ RUN STAR_URL="https://github.com/alexdobin/STAR/archive/${STAR_VERSION}.tar.gz" 
     wget -P $SRC $STAR_URL &&\
         tar -xvf $SRC/${STAR_VERSION}.tar.gz -C $SRC && \
             mv $SRC/STAR-${STAR_VERSION}/bin/Linux_x86_64_static/STAR /usr/local/bin
-
 
 #####
 ## FeatureCounts
@@ -195,6 +190,17 @@ RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstall
 RUN wget ftp://ftp.ccb.jhu.edu/pub/infphilo/hisat2/downloads/hisat2-2.1.0-Linux_x86_64.zip && \
     unzip hisat2-2.1.0-Linux_x86_64.zip && \
     cp hisat2-2.1.0/hisat2* $BIN/
+
+
+####
+## GMAP
+
+ENV GMAP_VERSION=2017-11-15
+WORKDIR $SRC
+RUN GMAP_URL="http://research-pub.gene.com/gmap/src/gmap-gsnap-$GMAP_VERSION.tar.gz" && \
+    wget $GMAP_URL && \
+    tar xvf gmap-gsnap-$GMAP_VERSION.tar.gz && \
+    cd gmap-$GMAP_VERSION && ./configure --prefix=`pwd` && make && make install
 
 
 ####
@@ -215,8 +221,7 @@ RUN wget https://github.com/broadinstitute/gatk/releases/download/${GATK_VERSION
 
 ENV GATK_HOME $SRC/gatk-${GATK_VERSION}
 
-ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get install -y tzdata
+
 
 
 ##########
@@ -224,14 +229,16 @@ RUN apt-get install -y tzdata
 
 WORKDIR $SRC
 
-ENV TRINITY_VERSION="2.8.6"
-ENV TRINITY_CO="51b032a9bee1ae9b4b5aab0c021d1360b8b35770"
+ENV TRINITY_VERSION="2.9.0"
+ENV TRINITY_CO="5f859f3fe9aff0153058cca106523413df69e1ed"
 
 WORKDIR $SRC
 
-RUN git clone https://github.com/trinityrnaseq/trinityrnaseq.git && \
+RUN git clone --recursive https://github.com/trinityrnaseq/trinityrnaseq.git && \
     cd trinityrnaseq && \
-    git checkout $TRINITY_CO && \
+    git checkout ${TRINITY_CO} && \
+    git submodule init && git submodule update && \
+    rm -rf ./trinity_ext_sample_data && \
     make && make plugins && \
     make install && \
     cd ../ && rm -r trinityrnaseq
@@ -240,7 +247,11 @@ ENV TRINITY_HOME /usr/local/bin/trinityrnaseq
 
 ENV PATH=${TRINITY_HOME}:${PATH}
 
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("tidyverse", dep = TRUE)'
+
+# patch for salmon
+WORKDIR $SRC
+RUN ln -sf /usr/local/src/salmon-latest_linux_x86_64/bin/salmon $BIN/.
+
 
 ################################################
 ## be sure this is last!

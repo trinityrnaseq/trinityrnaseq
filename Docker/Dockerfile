@@ -252,6 +252,10 @@ ENV PATH=${TRINITY_HOME}:${PATH}
 WORKDIR $SRC
 RUN ln -sf /usr/local/src/salmon-latest_linux_x86_64/bin/salmon $BIN/.
 
+# blat
+RUN wget http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/blat/blat -P $BIN && \
+    chmod a+x $BIN/blat
+
 
 ################################################
 ## be sure this is last!

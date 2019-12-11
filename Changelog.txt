@@ -1,3 +1,13 @@
+# Trinity-v2.9.0 Dec 11, 2019
+-multi-kmer super-reads used in Trinity phase-2
+-seqtk-trinity and normalization now compatible w/ more fastq formatting flavors
+-butterfly updates and bugfixes
+-Inchworm, Chrysalis, and Butterfly moved to separate github repos, pulled in as submodules
+-upgraded to salmon v1.0.0
+-seqtk-trinity now pulled in as a submodule
+-excludes duplicate sequences during polishing step
+
+
 
 # Trinity-v2.8.5, May 24, 2019
 - exn50 plots start at 30%

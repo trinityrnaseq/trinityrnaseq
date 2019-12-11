@@ -17,3 +17,5 @@ Checks before release:
 -docker: run_test_docker.sh
 -singularity: run_ext_test_singularity.sh
 
+-update version string in Trinity
+-update Changelog.txt for new version release notes.

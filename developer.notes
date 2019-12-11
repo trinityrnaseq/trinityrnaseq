@@ -1,0 +1,9 @@
+
+git clone --recursive https://github.com/trinityrnaseq/trinityrnaseq.git
+
+#############################
+
+Release info:
+
+curl https://api.github.com/repos/trinityrnaseq/trinityrnaseq/releases
+

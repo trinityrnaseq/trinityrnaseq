@@ -7,3 +7,13 @@ Release info:
 
 curl https://api.github.com/repos/trinityrnaseq/trinityrnaseq/releases
 
+
+#####
+
+Checks before release:
+
+-pombe, mouse, drosoph, k562
+-make test_all
+-docker: run_test_docker.sh
+-singularity: run_ext_test_singularity.sh
+

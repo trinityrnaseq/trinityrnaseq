@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Trinity-v2.9.0 Dec 11, 2019
 -multi-kmer super-reads used in Trinity phase-2
 -seqtk-trinity and normalization now compatible w/ more fastq formatting flavors
@@ -6,6 +7,13 @@
 -upgraded to salmon v1.0.0
 -seqtk-trinity now pulled in as a submodule
 -excludes duplicate sequences during polishing step
+=======
+# Trinity release v2.8.6
+-docker fortified to support extended downstream analyses (including STAR, GATK, and others)
+-don't absolutely require replicates for analyze_diff_expr.pl
+-improved support for Singularity
+-prettier ExN50 plots and multiple sample support
+>>>>>>> 95f2d56b91b2e0e8a78723669f0b8542b1ba57dc
 
 
 

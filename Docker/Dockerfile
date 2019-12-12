@@ -257,6 +257,13 @@ RUN wget http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/blat/blat -P $BIN
     chmod a+x $BIN/blat
 
 
+
+# some cleanup
+WORKDIR $SRC
+RUN rm -r R-3.5.2/ *.tar.gz *.zip *.bz2
+
+RUN apt-get clean
+
 ################################################
 ## be sure this is last!
 COPY Dockerfile $SRC/Dockerfile.$TRINITY_VERSION  

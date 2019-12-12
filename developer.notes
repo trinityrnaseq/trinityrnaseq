@@ -19,3 +19,14 @@ Checks before release:
 
 -update version string in Trinity
 -update Changelog.txt for new version release notes.
+
+-release naming convention:
+   release version tag on github: v2.8.6
+   -standard release (extended test data removed)
+	  basedir: trinityrnaseq-v2.8.6
+	  filename: trinityrnaseq-v2.8.6.FULL.tar.gz
+      
+
+   -including extended test data
+      same basedir as above
+	  filename: trinityrnaseq-v2.8.6.FULL_with_extendedTestData.tar.gz

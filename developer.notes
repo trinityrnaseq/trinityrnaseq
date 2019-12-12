@@ -20,8 +20,14 @@ Checks before release:
 -update version string in Trinity
 -update Changelog.txt for new version release notes.
 
+
+git clone --recursive https://github.com/trinityrnaseq/trinityrnaseq.git
+
+Make 2 release tarballs, identical except the latter includes the extended test data.
+
 -release naming convention:
    release version tag on github: v2.8.6
+   
    -standard release (extended test data removed)
 	  basedir: trinityrnaseq-v2.8.6
 	  filename: trinityrnaseq-v2.8.6.FULL.tar.gz

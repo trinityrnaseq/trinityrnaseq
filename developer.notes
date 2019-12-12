@@ -25,6 +25,8 @@ git clone --recursive https://github.com/trinityrnaseq/trinityrnaseq.git
 
 Make 2 release tarballs, identical except the latter includes the extended test data.
 
+make clean -i
+
 -release naming convention:
    release version tag on github: v2.8.6
    

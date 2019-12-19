@@ -19,10 +19,11 @@ my $usage = <<__EOUSAGE__;
 #
 #  Required:
 #  --genome <string>           target genome to align to
+#     --gtf|G <string>                 GTF file for incorporating reference splice site info. (recommended)
+#
 #  --reads  <string>           fastq files. If pairs, indicate both in quotes, ie. "left.fq right.fq"
 #
 #  Optional:
-#  -G <string>                 GTF file for incorporating reference splice site info.
 #  --CPU <int>                 number of threads (default: 2)
 #  --out_prefix <string>       output prefix (default: star)
 #  --out_dir <string>          output directory (default: current working directory)
@@ -58,7 +59,7 @@ my $chim_search;
              'reads=s' => \$reads,
              'CPU=i' => \$CPU,
              'out_prefix=s' => \$out_prefix,
-             'G=s' => \$gtf_file,
+             'gtf|G=s' => \$gtf_file,
              'out_dir=s' => \$out_dir,
              'ADV' => \$ADV,
              'star_path=s' => \$star_path,

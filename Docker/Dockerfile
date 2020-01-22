@@ -224,13 +224,23 @@ ENV GATK_HOME $SRC/gatk-${GATK_VERSION}
 
 
 
+
+# patch for salmon
+WORKDIR $SRC
+RUN ln -sf /usr/local/src/salmon-latest_linux_x86_64/bin/salmon $BIN/.
+
+# blat
+RUN wget http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/blat/blat -P $BIN && \
+    chmod a+x $BIN/blat
+
+
 ##########
 ## Trinity
 
 WORKDIR $SRC
 
-ENV TRINITY_VERSION="2.9.0"
-ENV TRINITY_CO="5f859f3fe9aff0153058cca106523413df69e1ed"
+ENV TRINITY_VERSION="2.9.1"
+ENV TRINITY_CO="e806a0f341e4d3917c2b181c4ecd4a4c3f4367fc"
 
 WORKDIR $SRC
 
@@ -248,13 +258,6 @@ ENV TRINITY_HOME /usr/local/bin/trinityrnaseq
 ENV PATH=${TRINITY_HOME}:${PATH}
 
 
-# patch for salmon
-WORKDIR $SRC
-RUN ln -sf /usr/local/src/salmon-latest_linux_x86_64/bin/salmon $BIN/.
-
-# blat
-RUN wget http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/blat/blat -P $BIN && \
-    chmod a+x $BIN/blat
 
 
 

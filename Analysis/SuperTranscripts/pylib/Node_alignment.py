@@ -468,7 +468,7 @@ class Node_alignment:
 
 
     def remove_redundant_sequences(self):
-        
+
         transcripts_remove = set()
         
         transcript_seqs = self.get_transcript_seqs();
@@ -494,8 +494,31 @@ class Node_alignment:
             self.transcript_names = revised_transcript_names
             self.aligned_nodes = revised_aligned_nodes
 
+            self.remove_empty_aligned_node_columns()
+            
             return True
                     
         else:
             return False
+    
+
+
+    def remove_empty_aligned_node_columns(self):
+
+        column_indices_to_remove = list()
+
+        for col_pos in range(0, len(self)):
+            node_list = list(self.get_node_set_at_column_pos(col_pos))
+            if len(node_list) == 0:
+                column_indices_to_remove.append(col_pos)
+
+
+        if len(column_indices_to_remove) > 0:
+            column_indices_to_remove.reverse()
+            for idx in column_indices_to_remove:
+                for node_row in self.aligned_nodes:
+                    del(node_row[idx])
+
+        return
+
     

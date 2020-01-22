@@ -40,7 +40,7 @@ collectl_target:
 	cd COLLECTL && tar xvf ${COLLECTL_CODE}.src.tar.gz && ln -sf ${COLLECTL_CODE} collectl
 
 clean:
-	cd seqtk-trinity-0.0.2 && $(MAKE) clean
+	cd seqtk-trinity && $(MAKE) clean
 	cd scaffold_iworm_contigs && $(MAKE) clean
 	rm -rf ${PARAFLY_CODE}
 	rm -f ./Trimmomatic # rm symlink

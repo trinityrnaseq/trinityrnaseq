@@ -19,12 +19,30 @@ my $reads_fa = $ARGV[1] or die $usage;
 main: {
 
     my $salmon_index = "$trin_fa.salmon.idx";
-    my $cmd = "salmon --no-version-check index -t $trin_fa -i $salmon_index -k 25 -p 1  >/dev/null 2>&1";
-    &process_cmd($cmd);
+    my $salmon_stderr = "_salmon.$$.stderr";
+    my $cmd = "salmon --no-version-check index -t $trin_fa -i $salmon_index -k 25 -p 1  > $salmon_stderr 2>&1";
+    &run_cmd_capture_stderr($cmd, $salmon_stderr);
+
     
-    $cmd = "salmon --no-version-check quant -i $salmon_index -l U -r $reads_fa -o salmon_outdir -p 1 --minAssignedFrags 1 --validateMappings >/dev/null 2>&1";
-    &process_cmd($cmd);
+    $cmd = "salmon --no-version-check quant -i $salmon_index -l U -r $reads_fa -o salmon_outdir -p 1 --minAssignedFrags 1 --validateMappings > $salmon_stderr 2>&1";
+    &run_cmd_capture_stderr($cmd, $salmon_stderr);
+
+    unlink($salmon_stderr);
     
     exit(0);
 
+}
+
+
+####
+sub run_cmd_capture_stderr {
+    my ($cmd, $stderr_file) = @_; 
+    eval {
+        &process_cmd($cmd);
+    };
+    if ($@) {
+        my $errmsg = `cat $stderr_file`;
+        die "Error, cmd: $cmd failed with msg: $errmsg $@";
+    }
+    return;
 }

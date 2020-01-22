@@ -19,8 +19,8 @@ use List::Util qw(min max);
 use Data::Dumper;
 
 
-my $VERSION = "Trinity-v2.9.0";
-#my $VERSION = "__BLEEDING_EDGE__"; 
+#my $VERSION = "Trinity-v2.9.0";
+my $VERSION = "__BLEEDING_EDGE__"; 
 
 
 BEGIN {
@@ -59,7 +59,6 @@ my $USE_PERL_SCAFFOLDER = 1;  # for testing purposes in chrysalis stage
 
 
 my $KMER_SIZE = 25;
-my $MAX_KMER_SIZE = 32;
 
 my $INCHWORM_CUSTOM_PARAMS;
 
@@ -316,8 +315,6 @@ $trinity_banner
 ^;
 
 my $full_usage = qq^
-#
-#  --KMER_SIZE <int>               :kmer length to use (default: 25)  max=32
 #
 #  --no_super_reads                :turn off super-reads mode
 #
@@ -663,9 +660,6 @@ my $STOMP_SNPS = 0;
     'mpiexec=s' => \$mpiexec,
     'prep' => \$prep_only,    
 
-    'KMER_SIZE=i' => \$KMER_SIZE,
-    
-
     # Quality trimming:
              'trimmomatic' => \$RUN_TRIMMOMATIC_FLAG,
              'quality_trimming_params=s' => \$trimmomatic_quality_trim_params,
@@ -747,7 +741,6 @@ my $STOMP_SNPS = 0;
     'include_supertranscripts' => \$INCLUDE_SUPERTRANSCRIPTS_FLAG,
     
     # hidden (don't look here! ;) 
-    'KMER_SIZE=i' => \$KMER_SIZE,
     'jelly_s=i' => \$JELLY_S,
     
     'NO_PARALLEL_IWORM' => \$NO_PARALLEL_IWORM,
@@ -807,7 +800,6 @@ CPU
 np
 mpiexec
 prep
-KMER_SIZE
 trimmomatic
 quality_trimming_params
 normalize_reads
@@ -981,11 +973,6 @@ if ($TRINITY_COMPLETE_FLAG) {
 
 if ($NO_CLEANUP && $FULL_CLEANUP) {
     die "cannot set --no_cleanup and --full_cleanup as they contradict";
-}
-
-
-if ($KMER_SIZE > $MAX_KMER_SIZE) {
-    die "Error, kmer size can be at most $MAX_KMER_SIZE ";
 }
 
 if ($NO_PARALLEL_IWORM) {
@@ -2676,13 +2663,13 @@ sub prep_seqs {
                     my $cmd = "cat $f | seqtk-trinity seq -A -R $read_type -";
                     my $linecount_cmd = "cat $f | wc -l";
                     if ($f=~/\.gz$/){
-                        $cmd = "gunzip -c $f | seqtk-trinity seq -A $read_type -";
+                        $cmd = "gunzip -c $f | seqtk-trinity seq -A -R $read_type -";
                         $linecount_cmd = "gunzip -c $f | wc -l";
                     } elsif ($f=~/\.bz2$/){
-                        $cmd = "bunzip2 -dkc $f | seqtk-trinity seq -A $read_type -";
+                        $cmd = "bunzip2 -dkc $f | seqtk-trinity seq -A -R $read_type -";
                         $linecount_cmd = "bunzip2 -dkc $f | wc -l";
                     } elsif ($f =~ /\.xz/) {
-                        $cmd = "xz -dc ${f} | seqtk-trinity seq -A $read_type -";
+                        $cmd = "xz -dc ${f} | seqtk-trinity seq -A -R $read_type -";
                         $linecount_cmd = "xz -dc ${f} | wc -l";
                         ## I would like to suggest that these if statements are not necessary if one just does
                         ## qx"less ${f} |" because less has smart input filters in place and will automagically

@@ -1,3 +1,10 @@
+# Trinity-v2.9.1 Jan 22, 2020
+-bugfix w/ supertranscripts module to handle rare error w/ duplicate sequences being generated as part of polishing step and generating empty node alignment columns after removal.
+-removed the --KMER_SIZE parameter, as chyrsalis runtime issues were being encountered with large data sets and K32. Chrysalis needs upgrades to better handle the larger kmer size. Other improvements from Trinity-v1 into Trinity-v2 should compensate for the restricted chrysalis-friendly kmer size, so chrysalis adjustments are not a major priority at the moment.
+-seqtk-trinity usage updated for using gzipped fastqs w/o normalization.
+
+
+
 # Trinity-v2.9.0 Dec 11, 2019
 -multi-kmer super-reads used in Trinity phase-2
 -seqtk-trinity and normalization now compatible w/ more fastq formatting flavors

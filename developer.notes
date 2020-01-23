@@ -39,3 +39,11 @@ find . -regex ".*git" -exec rm -rf {} \;
    -including extended test data
       same basedir as above
 	  filename: trinityrnaseq-v2.8.6.FULL_with_extendedTestData.tar.gz
+
+
+
+singularity:
+  copy the simg to gs://trinityrnaseq/Singularity/
+  add to https://data.broadinstitute.org/Trinity/TRINITY_SINGULARITY/
+
+

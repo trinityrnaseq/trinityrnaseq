@@ -15,3 +15,6 @@
 [submodule "trinity-plugins/seqtk-trinity"]
 	path = trinity-plugins/seqtk-trinity
 	url = https://github.com/trinityrnaseq/seqtk-trinity.git
+[submodule "trinity-plugins/bamsifter"]
+	path = trinity-plugins/bamsifter
+	url = https://github.com/trinityrnaseq/bamsifter.git

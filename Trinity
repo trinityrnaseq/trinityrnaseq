@@ -40,9 +40,9 @@ my $INCHWORM_DIR = "$ROOTDIR/Inchworm/bin/";
 my $CHRYSALIS_DIR = "$ROOTDIR/Chrysalis";
 my $BUTTERFLY_DIR = "$ROOTDIR/Butterfly";
 my $COLLECTL_DIR = "$ROOTDIR/trinity-plugins/COLLECTL/collectl";
-my $PARAFLY = "$ROOTDIR/trinity-plugins/BIN/ParaFly";
-my $HTSLIB_DIR = "$ROOTDIR/htslib";
-
+my $TRINITY_BIN_DIR = "$ROOTDIR/trinity-plugins/BIN";
+my $PARAFLY = "$TRINITY_BIN_DIR/ParaFly";
+my $HTSLIB_DIR = "$ROOTDIR/trinity-plugins/htslib";
 
 $ENV{LD_LIBRARY_PATH} .= ":${HTSLIB_DIR}";
 
@@ -3378,15 +3378,19 @@ sub run_genome_guided_Trinity {
 
 
     ## run bam sifter to normalize for coverage:
+    my $normalized_cov_bam = "$genome_guided_bam.norm_${normalize_max_read_cov}.bam";
+    my $cmd = "$TRINITY_BIN_DIR/sift_bam_max_cov -c $normalize_max_read_cov -o $normalized_cov_bam $genome_guided_bam"; 
+    &process_cmd($cmd) if ! -e "$normalized_cov_bam.ok";
+    &process_cmd("touch $normalized_cov_bam.ok") if ! -e "$normalized_cov_bam.ok";
     
-    
-    
+    $genome_guided_bam = $normalized_cov_bam;
+
     ## partition the reads according to coverage piles:
     
     ## Be sure that the bam file is coordinate sorted.
     ## Simply index it using samtools.  If it's not coord sorted, samtools will error
     
-    my $cmd = "samtools index $genome_guided_bam";
+    $cmd = "samtools index $genome_guided_bam";
     unless ("-s $genome_guided_bam.bai") {
         eval {
             &process_cmd($cmd);

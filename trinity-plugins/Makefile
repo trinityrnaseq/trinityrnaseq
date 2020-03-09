@@ -9,7 +9,7 @@ TRIMMOMATIC_CODE=Trimmomatic-0.36
 
 
 
-trinity_essentials: seqtk_target parafly_target trimmomatic_target
+trinity_essentials: seqtk_target parafly_target trimmomatic_target bamsifter_target
 
 trimmomatic_target:
 	ln -sf ${TRIMMOMATIC_CODE} Trimmomatic
@@ -24,6 +24,13 @@ parafly_target:
 	cd ${PARAFLY_CODE} && sh ./configure --prefix=`pwd` CXX=$(CXX) CC=$(CC) CFLAGS="-fopenmp" CXXFLAGS="-fopenmp" && $(MAKE) install && \
 	cp bin/ParaFly ../BIN/
 
+
+htslib.ok:
+	cd htslib && autoreconf && ./configure --prefix=`pwd` && make && make install
+	@touch htslib.ok
+
+bamsifter_target: htslib.ok
+	cd bamsifter && make && cp sift_bam_max_cov ../BIN/
 
 ##################################
 ### Needed for downstream analyses
@@ -46,6 +53,9 @@ clean:
 	rm -f ./Trimmomatic # rm symlink
 	cd slclust && $(MAKE) clean
 	cd COLLECTL && rm -rf ${COLLECTL_CODE} && rm -f collectl
+	cd htslib && make clean
+	cd bamsifter && make clean
+	rm -f ./htslib.ok
 	@echo "\n\n** Done cleaning plugins area **"
 
 

@@ -41,6 +41,10 @@ my $CHRYSALIS_DIR = "$ROOTDIR/Chrysalis";
 my $BUTTERFLY_DIR = "$ROOTDIR/Butterfly";
 my $COLLECTL_DIR = "$ROOTDIR/trinity-plugins/COLLECTL/collectl";
 my $PARAFLY = "$ROOTDIR/trinity-plugins/BIN/ParaFly";
+my $HTSLIB_DIR = "$ROOTDIR/htslib";
+
+
+$ENV{LD_LIBRARY_PATH} .= ":${HTSLIB_DIR}";
 
 if ($ENV{TRINITY_NO_RETRIES}) {
     $PARAFLY .= " -max_retry 1 ";
@@ -1365,7 +1369,7 @@ main: {
        
     if ($genome_guided_bam) {
                 
-        my $trinity_GG_fasta_file = &run_genome_guided_Trinity();
+        my $trinity_GG_fasta_file = &run_genome_guided_Trinity($genome_guided_bam);
         
         &process_cmd("$UTILDIR/support_scripts/get_Trinity_gene_to_trans_map.pl $trinity_GG_fasta_file > $trinity_GG_fasta_file.gene_trans_map");
         
@@ -1987,9 +1991,7 @@ sub run_chrysalis {
             $pipeliner->add_commands( new Command($cmd, "$bowtie_sam_file.ok"));
             
             ## generate the scaffold info
-            #$ENV{'LD_LIBRARY_PATH'} .= ":$ROOTDIR/trinity-plugins/htslib";
-            
-            
+                        
             if ($USE_PERL_SCAFFOLDER) {
                 $cmd = "$ROOTDIR/util/support_scripts/scaffold_iworm_contigs.pl $bowtie_sam_file $inchworm_file > $iworm_scaffolds_file";
             }
@@ -3372,6 +3374,13 @@ sub files_exist {
 
 ####
 sub run_genome_guided_Trinity {
+    my ($genome_guided_bam) = @_;
+
+
+    ## run bam sifter to normalize for coverage:
+    
+    
+    
     ## partition the reads according to coverage piles:
     
     ## Be sure that the bam file is coordinate sorted.

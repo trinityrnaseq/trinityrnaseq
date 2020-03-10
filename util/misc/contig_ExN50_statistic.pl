@@ -43,6 +43,8 @@ my %gene_to_trans;
 
 my $sum_expr = 0;
 
+my $feature_type = "transcript";
+
 while (<$fh>) {
     chomp;
     my @x = split(/\t/);
@@ -65,12 +67,13 @@ while (<$fh>) {
     my $gene_id = $acc;
     if ($acc =~ /^(\S+)_i\d+/) {
         $gene_id = $1;
+        $feature_type = "gene";
     }
     
     push (@{$gene_to_trans{$gene_id}}, { acc => $acc,
-                                      len => $seq_len,
-                                      sum_expr => $trans_sum_expr,
-                                      max_expr => $max_expr,
+                                         len => $seq_len,
+                                         sum_expr => $trans_sum_expr,
+                                         max_expr => $max_expr,
           });
     
 }
@@ -112,10 +115,6 @@ foreach my $gene (keys %gene_to_trans) {
 
 
 
-
-
-
-
 ## write output table
 
 
@@ -123,7 +122,7 @@ my $E_file = basename($matrix_file) . ".E-inputs";
 open (my $ofh, ">$E_file") or die $!;
 print $ofh join("\t", "#Ex", "acc", "length", "max_expr_over_samples", "sum_expr_over_samples") . "\n";
 
-print "Ex\tExN50\tnum_transcripts\n";
+print "Ex\tExN50\tnum_${feature_type}s\n";
 
 my $prev_pct = 0;
 my $sum = 0;

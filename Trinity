@@ -15,6 +15,8 @@ use COMMON;
 use Getopt::Long qw(:config posix_default no_ignore_case pass_through gnu_compat no_auto_abbrev); 
 use Pipeliner;
 use Fasta_reader;
+use SAM_reader;
+use SAM_entry;
 use List::Util qw(min max);
 use Data::Dumper;
 
@@ -3376,7 +3378,12 @@ sub files_exist {
 sub run_genome_guided_Trinity {
     my ($genome_guided_bam) = @_;
 
-
+    unless ($PAIRED_MODE) {
+        # if user didn't indicate --run_as_paired, then
+        # check the bam 
+        $PAIRED_MODE = &evaluate_paired_end_bam($genome_guided_bam);
+    }
+    
     unless ($NO_NORMALIZE_READS_FLAG) {
     
         ## run bam sifter to normalize for coverage:
@@ -3991,3 +3998,28 @@ sub run_cdhit {
 
 }
 
+
+####
+sub evaluate_paired_end_bam {
+    my ($genome_guided_bam) = @_;
+
+    my $sam_reader = new SAM_reader($genome_guided_bam);
+    
+    my $counter = 0;
+    while ($sam_reader->has_next()) {
+        my $sam_entry = $sam_reader->get_next();
+
+        if ($sam_entry->is_paired()) {
+            print STDERR "-found paired-end aligned read. Running in paired-end mode.\n";
+            return(1);
+        }
+
+        if ($counter >= 1000) {
+            last;
+        }
+    }
+
+    print STDERR "-not finding a paired-end read in aligned bam file among first 1k reads, assuming single-end\n"; 
+    
+    return(0); # not finding a paired-end read within the first 1k reads, just assume single end mode.
+}

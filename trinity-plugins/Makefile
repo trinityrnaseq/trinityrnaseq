@@ -30,7 +30,7 @@ htslib.ok:
 	@touch htslib.ok
 
 bamsifter_target: htslib.ok
-	cd bamsifter && make && cp sift_bam_max_cov ../BIN/
+	cd bamsifter && make && cp bamsifter ../BIN/
 
 ##################################
 ### Needed for downstream analyses

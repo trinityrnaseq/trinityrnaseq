@@ -3388,7 +3388,7 @@ sub run_genome_guided_Trinity {
     
         ## run bam sifter to normalize for coverage:
         my $normalized_cov_bam = "$genome_guided_bam.norm_${normalize_max_read_cov}.bam";
-        my $cmd = "$TRINITY_BIN_DIR/sift_bam_max_cov -c $normalize_max_read_cov -o $normalized_cov_bam $genome_guided_bam"; 
+        my $cmd = "$TRINITY_BIN_DIR/bamsifter -c $normalize_max_read_cov -o $normalized_cov_bam $genome_guided_bam"; 
         &process_cmd($cmd) if ! -e "$normalized_cov_bam.ok";
         &process_cmd("touch $normalized_cov_bam.ok") if ! -e "$normalized_cov_bam.ok";
         
@@ -4013,7 +4013,9 @@ sub evaluate_paired_end_bam {
             print STDERR "-found paired-end aligned read. Running in paired-end mode.\n";
             return(1);
         }
-
+        
+        $counter += 1;
+        
         if ($counter >= 1000) {
             last;
         }

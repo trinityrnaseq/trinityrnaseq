@@ -157,8 +157,8 @@ main: {
             # unstranded by default
         }
         
-        $cmd .= " -O --fraction -M -t exonic_part -g exonic_gene_part_number -a $genes_gtf_file.dexseq.gff -f -o $bam_file.fc  $bam_file";
-
+        $cmd .= " -O --fraction -M -t exonic_part -g exonic_part_number -a $genes_gtf_file.dexseq.gff -f -o $bam_file.fc  $bam_file";
+        
         $pipeliner->add_commands(new Command($cmd, "$analysis_token.$bam_file.fc.ok"));
 
         

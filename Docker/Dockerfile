@@ -37,35 +37,37 @@ ENV BIN /usr/local/bin
 
 WORKDIR $SRC
 
-ENV R_VERSION=R-3.5.2
+ENV R_VERSION=R-3.6.3
 
 RUN curl https://cran.r-project.org/src/base/R-3/$R_VERSION.tar.gz -o $R_VERSION.tar.gz && \
         tar xvf $R_VERSION.tar.gz && \
         cd $R_VERSION && \
 	./configure && make && make install
-	    
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("tidyverse", dep = TRUE)'
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("edgeR", dep = TRUE)'
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("DESeq2", dep = TRUE)'
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("ape", dep = TRUE)'
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("ctc", dep = TRUE)'
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("gplots", dep = TRUE)'
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("Biobase", dep = TRUE)'
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("qvalue", dep = TRUE)'
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("goseq", dep = TRUE)'
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("Glimma", dep = TRUE)'
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("ROTS", dep = TRUE)'
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("GOplot", dep = TRUE)'
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("argparse", dep = TRUE)'
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("sm", dep = TRUE)'
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("fastcluster", dep = TRUE)'
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("vioplot", dep = TRUE)'
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("DEXSeq", dep = TRUE)'
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("tximport", dep = TRUE)'
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("tximportData", dep = TRUE)'
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("tidyverse", dep = TRUE)'
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller); biocLite("fastcluster", dep = TRUE)'
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller);  biocLite("goseq", dep = TRUE)'
+
+
+RUN R -e 'install.packages("BiocManager", repos="http://cran.us.r-project.org")'
+RUN R -e 'BiocManager::install("tidyverse")'
+RUN R -e 'BiocManager::install("edgeR")'
+RUN R -e 'BiocManager::install("DESeq2")'
+RUN R -e 'BiocManager::install("ape")'
+RUN R -e 'BiocManager::install("ctc")'
+RUN R -e 'BiocManager::install("gplots")'
+RUN R -e 'BiocManager::install("Biobase")'
+RUN R -e 'BiocManager::install("qvalue")'
+RUN R -e 'BiocManager::install("goseq")'
+RUN R -e 'BiocManager::install("Glimma")'
+RUN R -e 'BiocManager::install("ROTS")'
+RUN R -e 'BiocManager::install("GOplot")'
+RUN R -e 'BiocManager::install("argparse")'
+RUN R -e 'BiocManager::install("fastcluster")'
+RUN R -e 'BiocManager::install("DEXSeq")'
+RUN R -e 'BiocManager::install("tximport")'
+RUN R -e 'BiocManager::install("tximportData")'
+
+
+
+##RUN R -e 'BiocManager::install("sm")' 
+##RUN R -e 'BiocManager::install("vioplot")'
 
 
 
@@ -131,11 +133,11 @@ RUN wget https://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.3.4.1/bowti
 
 
 ## Samtools
-RUN wget https://github.com/samtools/samtools/releases/download/1.7/samtools-1.7.tar.bz2 && \
-    tar xvf samtools-1.7.tar.bz2 && \
-    cd samtools-1.7/ && \
+RUN wget https://github.com/samtools/samtools/releases/download/1.10/samtools-1.10.tar.bz2 && \
+    tar xvf samtools-1.10.tar.bz2 && \
+    cd samtools-1.10 && \
     ./configure && make && make install
-    
+
 
 ## Jellyfish
 RUN wget https://github.com/gmarcais/Jellyfish/releases/download/v2.2.7/jellyfish-2.2.7.tar.gz && \
@@ -239,8 +241,8 @@ RUN wget http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/blat/blat -P $BIN
 
 WORKDIR $SRC
 
-ENV TRINITY_VERSION="2.9.1"
-ENV TRINITY_CO="e806a0f341e4d3917c2b181c4ecd4a4c3f4367fc"
+ENV TRINITY_VERSION="2.10.0"
+ENV TRINITY_CO="5284158533ee421e74a7114786a1a8bd9e3ca638""
 
 WORKDIR $SRC
 
@@ -263,7 +265,7 @@ ENV PATH=${TRINITY_HOME}:${PATH}
 
 # some cleanup
 WORKDIR $SRC
-RUN rm -r R-3.5.2/ *.tar.gz *.zip *.bz2
+RUN rm -r ${R_VERSION} *.tar.gz *.zip *.bz2
 
 RUN apt-get clean
 

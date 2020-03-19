@@ -159,7 +159,8 @@ sub run {
             print STDERR "-- Skipping CMD: $cmdstr, checkpoint [$checkpoint_file] exists.\n" if $VERBOSE;
         }
         else {
-            print STDERR "* Running CMD: $cmdstr\n" if $VERBOSE;
+            my $datestamp = localtime();
+            print STDERR "* [$datestamp] Running CMD: $cmdstr\n" if $VERBOSE;
             
             my $tmp_stderr = "tmp.$$." . time() . ".stderr";
             if (-e $tmp_stderr) {

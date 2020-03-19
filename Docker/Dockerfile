@@ -246,7 +246,7 @@ RUN wget http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/blat/blat -P $BIN
 WORKDIR $SRC
 
 ENV TRINITY_VERSION="2.10.0"
-ENV TRINITY_CO="403fb90df2807f5c01a33c237e6cc3aee5db0777"
+ENV TRINITY_CO="70a98b10010d4a052edb11aeabcd3279253d8f50"
 
 WORKDIR $SRC
 

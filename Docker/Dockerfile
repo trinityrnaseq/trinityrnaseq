@@ -3,12 +3,12 @@ MAINTAINER bhaas@broadinstitute.org
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y gcc g++ perl python automake make \
+RUN apt-get update && apt-get install -y gcc g++ perl python3 automake make \
                                        wget git curl libdb-dev \
                                        zlib1g-dev bzip2 libncurses5-dev \
 				       texlive-latex-base \
                                        default-jre \
-				       python-pip python-dev \
+				       python3-pip python3-dev python3-setuptools python3-distutils \
 				       gfortran \
 				       build-essential libghc-zlib-dev libncurses-dev libbz2-dev liblzma-dev libpcre3-dev libxml2-dev \
 				       libblas-dev gfortran git unzip ftp libzmq3-dev nano ftp fort77 libreadline-dev \
@@ -73,11 +73,15 @@ RUN R -e 'BiocManager::install("tximportData")'
 
 ENV LD_LIBRARY_PATH=/usr/local/lib
 
+RUN apt-get install -y cython3
+
+## Python 3 stuff
+RUN ln -sf /usr/bin/python3 /usr/bin/python
 
 ## some python modules
-RUN pip install numpy
-RUN pip install git+https://github.com/ewels/MultiQC.git
-RUN pip install HTSeq
+RUN pip3 install numpy
+RUN pip3 install git+https://github.com/ewels/MultiQC.git
+RUN pip3 install HTSeq
 
 
 ## bowtie
@@ -183,7 +187,7 @@ RUN STAR_URL="https://github.com/alexdobin/STAR/archive/${STAR_VERSION}.tar.gz" 
 RUN wget https://sourceforge.net/projects/subread/files/subread-2.0.0/subread-2.0.0-Linux-x86_64.tar.gz/download -O subread-2.0.0-Linux-x86_64.tar.gz && \
     tar xvf subread-2.0.0-Linux-x86_64.tar.gz && \
     cp -r subread-2.0.0-Linux-x86_64/bin/* $BIN/
-RUN Rscript -e 'source("http://bioconductor.org/biocLite.R");library(BiocInstaller);  biocLite("DEXSeq", dep = TRUE)'
+
 
 
 #####
@@ -242,7 +246,7 @@ RUN wget http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/blat/blat -P $BIN
 WORKDIR $SRC
 
 ENV TRINITY_VERSION="2.10.0"
-ENV TRINITY_CO="5284158533ee421e74a7114786a1a8bd9e3ca638""
+ENV TRINITY_CO="403fb90df2807f5c01a33c237e6cc3aee5db0777"
 
 WORKDIR $SRC
 

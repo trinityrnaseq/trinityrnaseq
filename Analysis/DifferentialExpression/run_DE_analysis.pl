@@ -451,9 +451,9 @@ sub run_edgeR_sample_pair {
     close $ofh;
 
     ## Run R-script
-    my $cmd = "R --no-save --no-restore --no-site-file --no-init-file -q < $Rscript_name";
-
-
+    #my $cmd = "R --no-save --no-restore --no-site-file --no-init-file -q < $Rscript_name";
+    my $cmd = "Rscript $Rscript_name";
+    
     eval {
         &process_cmd($cmd);
     };
@@ -551,7 +551,9 @@ sub run_DESeq2_sample_pair {
     close $ofh;
     
     ## Run R-script
-    my $cmd = "R --no-save --no-restore --no-site-file --no-init-file -q < $Rscript_name";
+    #my $cmd = "R --no-save --no-restore --no-site-file --no-init-file -q < $Rscript_name";
+    my $cmd = "Rscript $Rscript_name";
+    
     &process_cmd($cmd);
     
     return;
@@ -627,9 +629,9 @@ sub run_limma_voom_sample_pair {
     close $ofh;
 
     ## Run R-script
-    my $cmd = "R --no-save --no-restore --no-site-file --no-init-file -q < $Rscript_name";
-
-
+    #my $cmd = "R --no-save --no-restore --no-site-file --no-init-file -q < $Rscript_name";
+    my $cmd = "Rscript $Rscript_name";
+    
     eval {
         &process_cmd($cmd);
     };
@@ -726,9 +728,9 @@ sub run_ROTS_sample_pair {
     close $ofh;
 
     ## Run R-script
-    my $cmd = "R --no-save --no-restore --no-site-file --no-init-file -q < $Rscript_name";
-
-
+    #my $cmd = "R --no-save --no-restore --no-site-file --no-init-file -q < $Rscript_name";
+    my $cmd = "Rscript $Rscript_name";
+    
     eval {
         &process_cmd($cmd);
     };

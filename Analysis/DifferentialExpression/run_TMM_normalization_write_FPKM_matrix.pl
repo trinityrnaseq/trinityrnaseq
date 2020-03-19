@@ -118,7 +118,8 @@ sub run_TMM {
     
     close $ofh;
 
-    &process_cmd("R --no-save --no-restore --no-site-file --no-init-file -q < $tmm_norm_script");
+    #&process_cmd("R --no-save --no-restore --no-site-file --no-init-file -q < $tmm_norm_script");
+    &process_cmd("Rscript $tmm_norm_script");
     
     return("$counts_matrix_file.TMM_info.txt");
 

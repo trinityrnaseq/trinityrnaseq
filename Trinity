@@ -522,6 +522,7 @@ my $advanced_usage =  <<_ADVANCEDUSAGE_;
 #  --iworm_opts <string>              : options for inchworm
 #
 #  --iworm_cdhit                      : perform iworm contig database reduction using cdhit
+#  --__KMER_SIZE <int>                : default $KMER_SIZE  (do not change unless for experimental usage)
 #
 #
 #  Chyrsalis-related options:
@@ -779,6 +780,8 @@ my $STOMP_SNPS = 0;
 
     "no_super_reads" => \$NO_SUPER_READS_FLAG,
     
+    "__KMER_SIZE=i" => \$KMER_SIZE,
+    
     
     );
 
@@ -873,6 +876,7 @@ NO_SUPERTRANS
 max_chrysalis_cluster_size
 iworm_cdhit
 bfly_algorithm
+__KMER_SIZE
 );   
 
 my %ACCEPTABLE_OPTS = map { + $_ => 1} @__ALL_TRINITY_PARAMS;
@@ -2597,9 +2601,8 @@ sub run_inchworm {
                . "-- (Linear contig construction from k-mers) --\n"
                . "----------------------------------------------\n\n" if (! $TRINITY_COMPLETE_FLAG);
 
-    
+
     eval {
-        
         my $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(2, $VERBOSE));
         $pipeliner->add_commands( new Command($inchworm_cmd, ".iworm.$kmer_size.$SR_flag.ok") );
         if ($super_read_mode) {
@@ -2612,7 +2615,7 @@ sub run_inchworm {
         $pipeliner->run();
         
     };
-    
+   
     if ($@) {
         
         print STDERR "$@\n";

@@ -166,7 +166,7 @@ sub run {
                 unlink($tmp_stderr);
             }
 
-            if ($VERBOSE < 2 && $cmdstr !~ /2\s*>/ ) {
+            if ($VERBOSE < 2 && $cmdstr !~ / 2>/ ) {
                 $cmdstr .= " 2>$tmp_stderr";
             }
             

@@ -2,7 +2,11 @@
 -added bamsifter for genome-guided Trinity-based aligned read normalization pre-assembly
 -DTU updates for py3
 -docker/singularity updates: now uses R-3.6.3 and py3
--minor bugfixes and improved error handling in trinity-seqtk
+-improved error handling and test coverage in trinity-seqtk
+-can specify read groups in variant detection pipeline runner
+-kmer size can be adjusted again for experimental purposes only
+-R less verbose on exec
+-minor bugfixes
 
 
 # Trinity-v2.9.1 Jan 22, 2020

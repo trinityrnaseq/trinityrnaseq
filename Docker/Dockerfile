@@ -206,7 +206,8 @@ WORKDIR $SRC
 RUN GMAP_URL="http://research-pub.gene.com/gmap/src/gmap-gsnap-$GMAP_VERSION.tar.gz" && \
     wget $GMAP_URL && \
     tar xvf gmap-gsnap-$GMAP_VERSION.tar.gz && \
-    cd gmap-$GMAP_VERSION && ./configure --prefix=`pwd` && make && make install
+    cd gmap-$GMAP_VERSION && ./configure --prefix=`pwd` && make && make install && \
+    cp bin/* $BIN/
 
 
 ####

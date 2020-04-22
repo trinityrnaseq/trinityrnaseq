@@ -2503,9 +2503,8 @@ sub run_inchworm {
         
         $cmd .= " $reads";
         
-        $pipeliner->add_commands(new Command($cmd, ".jellyfish_count.$kmer_size.$SR_flag.ok") );
+        $pipeliner->add_commands(new Command($cmd, ".jellyfish_count.$kmer_size.mincov$min_kmer_cov.$SR_flag.ok") );
                 
-        
 
         
         $cmd = "jellyfish dump -L $min_kmer_cov $jelly_db > $jelly_kmer_fa_file";

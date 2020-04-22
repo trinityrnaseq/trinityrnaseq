@@ -2510,20 +2510,20 @@ sub run_inchworm {
         
         $cmd = "jellyfish dump -L $min_kmer_cov $jelly_db > $jelly_kmer_fa_file";
         
-        $pipeliner->add_commands(new Command($cmd, ".jellyfish_dump.$kmer_size.$SR_flag.ok") );        
+        $pipeliner->add_commands(new Command($cmd, ".jellyfish_dump.$kmer_size.mincov$min_kmer_cov.$SR_flag.ok") );        
         
         ## write a histogram of the kmer counts.
         $cmd = "jellyfish histo -t $CPU -o $jelly_kmer_fa_file.histo $jelly_db";
         
-        $pipeliner->add_commands( new Command($cmd, ".jellyfish_histo.$kmer_size.$SR_flag.ok") );
-                        
+        $pipeliner->add_commands( new Command($cmd, ".jellyfish_histo.$kmer_size.mincov$min_kmer_cov.$SR_flag.ok") );
+        
         $pipeliner->run();
-
+        
         if (-s $jelly_db) {
             unlink($jelly_db);
         }
 
-
+        
         #if ($STOMP_SNPS) {
         #    print STDERR "-stomping snps out of kmers before inchworm assembly\n";
          #   my $cmd = "$INCHWORM_DIR/SNP_stomper --reads $jelly_kmer_fa_file --kmers $jelly_kmer_fa_file -0kmer_size $KMER_SIZE"; 

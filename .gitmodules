@@ -21,3 +21,6 @@
 [submodule "trinity-plugins/htslib"]
 	path = trinity-plugins/htslib
 	url = https://github.com/samtools/htslib.git
+[submodule "Butterfly/Butterfly"]
+	path = Butterfly/Butterfly
+	url = https://github.com/trinityrnaseq/Butterfly.git

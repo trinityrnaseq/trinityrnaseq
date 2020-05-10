@@ -112,6 +112,10 @@ main: {
         }
     }
     close $fh;
+
+    unless ($count_total) {
+        die "Error, no reads made it to the normalization process...  ";
+    }
     
     print STDERR "$count_selected / $count_total = " . sprintf("%.2f", $count_selected/$count_total*100) . "% reads selected during normalization.\n";
     print STDERR "$count_aberrant_and_discarded / $count_total = " . sprintf("%.2f", $count_aberrant_and_discarded/$count_total*100) . "% reads discarded as likely aberrant based on coverage profiles.\n";

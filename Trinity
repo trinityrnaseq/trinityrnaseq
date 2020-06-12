@@ -978,6 +978,8 @@ if ($TRINITY_COMPLETE_FLAG) {
         $NO_NORMALIZE_READS_FLAG = 1;
     }
 
+    $min_pct_read_mapping = 50; # for chrysalis
+
 }
 
 
@@ -2132,7 +2134,7 @@ sub run_chrysalis {
             $cmd .= " -strand ";
         }
         if ($min_pct_read_mapping) {
-            $cmd .= " -min_pct_read_mapping $min_pct_read_mapping ";
+            $cmd .= " -p $min_pct_read_mapping ";
         }
         
         

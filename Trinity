@@ -1971,7 +1971,25 @@ sub run_chrysalis {
             }
         }
     }
-    
+
+
+    my $iworm_min100_fa_file = "$chrysalis_output_dir/" . basename("$inchworm_file.min100");
+    {
+        my $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
+        
+        my $cmd = "$UTILDIR/support_scripts/filter_iworm_by_min_length_or_cov.pl $inchworm_file 100 10 > $iworm_min100_fa_file";
+        $pipeliner->add_commands( new Command($cmd, "$iworm_min100_fa_file.ok"));
+        $pipeliner->run();
+
+        if (! $TRINITY_COMPLETE_FLAG) {
+            # phase 1
+            # use the min100 fa for chrysalis clustering.
+
+            $inchworm_file = $iworm_min100_fa_file;
+            
+        }
+        
+    }
     
     my $iworm_scaffolds_file = "$chrysalis_output_dir/iworm_scaffolds.txt";
     if ( $PAIRED_MODE && -s $bowtie_reads_fa && ! $NO_BOWTIE) {
@@ -1982,11 +2000,7 @@ sub run_chrysalis {
         my $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
         
         # generate the pair links.
-        my $iworm_min100_fa_file = "$chrysalis_output_dir/" . basename("$inchworm_file.min100");
-        my $cmd = "$UTILDIR/support_scripts/filter_iworm_by_min_length_or_cov.pl $inchworm_file 100 10 > $iworm_min100_fa_file";
-        $pipeliner->add_commands( new Command($cmd, "$iworm_min100_fa_file.ok"));
-        $pipeliner->run();
-        
+                
         $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
         $cmd = "$bowtie2_build_path --threads $CPU -o 3 $iworm_min100_fa_file $iworm_min100_fa_file 1>/dev/null"; #-o 3 / defaut is 5, less use more ram but is faster when mapping the reads
         
@@ -1997,8 +2011,7 @@ sub run_chrysalis {
             my $samtools_max_memory = int($jellyfish_ram/($CPU*2));
 
             my $bowtie2_scoring = "G,20,8"; # default bowtie2 params for local alignment
-            
-            
+                        
             $cmd = "bash -c \" set -o pipefail;$bowtie2_path --local -k 2 --no-unal --threads $CPU -f --score-min $bowtie2_scoring -x $iworm_min100_fa_file $bowtie_reads_fa  | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort -m $samtools_max_memory $PARALLEL_SAMTOOLS_SORT_TOKEN -no - - > $bowtie_sam_file\" ";  
                         
             $pipeliner->add_commands( new Command($cmd, "$bowtie_sam_file.ok"));
@@ -2014,9 +2027,7 @@ sub run_chrysalis {
             }
             
             $pipeliner->add_commands( new Command($cmd, "$iworm_scaffolds_file.ok"));
-            
-            
-            
+                        
             $pipeliner->run();
             
         }

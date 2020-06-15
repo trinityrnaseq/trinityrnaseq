@@ -66,7 +66,7 @@ my $USE_PERL_SCAFFOLDER = 1;  # for testing purposes in chrysalis stage
 
 my $KMER_SIZE = 25;
 
-my $INCHWORM_CUSTOM_PARAMS;
+my $INCHWORM_CUSTOM_PARAMS = "";
 
 # option list:
 my ($seqType, @left_files, @right_files, @single_files, $SS_lib_type, $min_contig_length,
@@ -981,6 +981,11 @@ if ($TRINITY_COMPLETE_FLAG) {
     $min_pct_read_mapping = 50; # for chrysalis
 
 }
+else {
+    # Trinithy phase 1 (read clustering)
+    $INCHWORM_CUSTOM_PARAMS .= " --min_any_entropy 1.0 ";
+}
+
 
 
 if ($NO_CLEANUP && $FULL_CLEANUP) {

@@ -135,7 +135,7 @@ my $min_iso_ratio = 0.05;
 my $glue_factor = 0.05;
 my $max_reads_per_graph = 200000;
 my $max_reads_per_loop = 50000000; #MW: Set default to 50M, still fits into main memory
-my $min_pct_read_mapping = 0;
+my $min_pct_read_mapping = 20;
 my $chrysalis_output_dir = "chrysalis";
 my $NO_RUN_CHRYSALIS_FLAG = 0;
 
@@ -537,7 +537,7 @@ my $advanced_usage =  <<_ADVANCEDUSAGE_;
 #  --max_reads_per_loop <int>     :maximum number of reads to read into
 #                                  memory at once (default: $max_reads_per_loop)
 #  --min_pct_read_mapping <int>   :minimum percent of a reads kmers that must map to an
-#                                  inchworm bundle (aka. component)  default: 0
+#                                  inchworm bundle (aka. component)  default: $min_pct_read_mapping
 #
 #  --bowtie_components            :use bowtie2 to generate readsToTranscripts mappings
 #
@@ -978,8 +978,8 @@ if ($TRINITY_COMPLETE_FLAG) {
         $NO_NORMALIZE_READS_FLAG = 1;
     }
 
-    $min_pct_read_mapping = 50; # for chrysalis
-
+    $min_pct_read_mapping = 50; # more stringent for phase2 chrysalis
+    
 }
 else {
     # Trinithy phase 1 (read clustering)
@@ -2002,7 +2002,7 @@ sub run_chrysalis {
         # generate the pair links.
                 
         $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
-        $cmd = "$bowtie2_build_path --threads $CPU -o 3 $iworm_min100_fa_file $iworm_min100_fa_file 1>/dev/null"; #-o 3 / defaut is 5, less use more ram but is faster when mapping the reads
+        my $cmd = "$bowtie2_build_path --threads $CPU -o 3 $iworm_min100_fa_file $iworm_min100_fa_file 1>/dev/null"; #-o 3 / defaut is 5, less use more ram but is faster when mapping the reads
         
         if (-s "$iworm_min100_fa_file") {
             $pipeliner->add_commands( new Command($cmd, "$iworm_min100_fa_file.bowtie2-build.ok"));

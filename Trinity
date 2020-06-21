@@ -21,8 +21,8 @@ use List::Util qw(min max);
 use Data::Dumper;
 
 
-my $VERSION = "Trinity-v2.10.0";
-#my $VERSION = "__BLEEDING_EDGE__"; 
+#my $VERSION = "Trinity-v2.10.0";
+my $VERSION = "__BLEEDING_EDGE__"; 
 
 
 BEGIN {
@@ -135,7 +135,7 @@ my $min_iso_ratio = 0.05;
 my $glue_factor = 0.05;
 my $max_reads_per_graph = 200000;
 my $max_reads_per_loop = 50000000; #MW: Set default to 50M, still fits into main memory
-my $min_pct_read_mapping = 20;
+my $min_pct_read_mapping = 10; # set to 50 for phase 2
 my $chrysalis_output_dir = "chrysalis";
 my $NO_RUN_CHRYSALIS_FLAG = 0;
 

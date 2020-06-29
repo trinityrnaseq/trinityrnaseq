@@ -21,6 +21,9 @@ all: inchworm_target chrysalis_target trinity_essentials
 	sh ./util/support_scripts/trinity_install_tests.sh
 
 
+no_bamsifter: inchworm_target chrysalis_target
+	cd trinity-plugins && $(MAKE) no_bamsifter
+
 install:
 	util/support_scripts/trinity_installer.py
 

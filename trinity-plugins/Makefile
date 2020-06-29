@@ -11,6 +11,9 @@ TRIMMOMATIC_CODE=Trimmomatic-0.36
 
 trinity_essentials: seqtk_target parafly_target trimmomatic_target bamsifter_target
 
+no_bamsifter: seqtk_target parafly_target trimmomatic_target
+
+
 trimmomatic_target:
 	ln -sf ${TRIMMOMATIC_CODE} Trimmomatic
 

@@ -207,6 +207,7 @@ my $NO_NORMALIZE_READS_FLAG = 0; ## set to turn off normalization (will be turne
 my $normalize_max_read_cov = 200; # better for polymorphic transcriptomes
 my $normalize_max_CV = 10000; # effectively turn it off for this application.
 my $NORMALIZE_BY_READ_SET = 0; 
+my $NO_PARALLEL_NORM_STATS = 0;
 
 my $grid_node_CPU = 1;
 my $grid_node_max_memory = "1G";
@@ -444,6 +445,7 @@ my $full_usage = qq^
 #                                       (Note, as of Sept 21, 2016, normalization is on by default)
 #                                       (*Turning off normalization is not recommended for most applications)
 #     
+#  --no_parallel_norm_stats            :Do not try to run the high-mem normalization stats generator in parallel for paired-end fastqs.
 #
 ###############################################################################
 #### Genome-guided de novo assembly
@@ -677,7 +679,8 @@ my $STOMP_SNPS = 0;
              'no_normalize_reads' => \$NO_NORMALIZE_READS_FLAG,  ## new setting to turn it off.
              'normalize_max_read_cov=i' => \$normalize_max_read_cov,
              'normalize_by_read_set' =>  \$NORMALIZE_BY_READ_SET,
-    'just_normalize_reads' => \$JUST_NORMALIZE_READS_FLAG,
+             'just_normalize_reads' => \$JUST_NORMALIZE_READS_FLAG,
+             'no_parallel_norm_stats' => \$NO_PARALLEL_NORM_STATS,
     
     # Butterfly opts
     "bfly_algorithm=s" => \$BFLY_ALGORITHM,
@@ -3347,7 +3350,10 @@ sub normalize {
     my @ret_files;    
     if (scalar @read_files == 2) {
         $cmd .= " --left " . join(",", @{$read_files[0]}) . " --right " . join(",", @{$read_files[1]})
-            .  " --pairs_together --PARALLEL_STATS  ";
+            .  " --pairs_together ";
+        unless ($NO_PARALLEL_NORM_STATS) {
+            $cmd .= " --PARALLEL_STATS  ";
+        }
         @ret_files = ("$normalize_outdir/left.norm.$seqType", "$normalize_outdir/right.norm.$seqType");
         
     }

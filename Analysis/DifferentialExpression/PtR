@@ -1033,7 +1033,10 @@ main: {
             $Rscript .= "sample_dist = dist(t(data), method=\'$sample_dist\')\n";
         }
         
-        if ($sample_clust ne 'none') {
+        if ($sample_clust eq 'none') {
+            $Rscript .= "hc_samples = NULL\n";
+        }
+        else {
             $Rscript .= "hc_samples = hclust(sample_dist, method=\'$sample_clust\')\n";
         }
         
@@ -1072,7 +1075,9 @@ main: {
         $Rscript .= "sample_cor_for_plot = sample_cor\n";
         #$Rscript .= "if (nrow(sample_cor_for_plot) > 2) diag(sample_cor_for_plot) = NA\n";  # changed my mind.
 
-        $Rscript .= "heatmap.3(sample_cor_for_plot, dendrogram='both', Rowv=as.dendrogram(hc_samples), Colv=as.dendrogram(hc_samples), col = myheatcol, scale='none', symm=TRUE, key=TRUE,density.info='none', trace='none', symkey=FALSE, symbreaks=F, margins=c(10,10), cexCol=1, cexRow=1, cex.main=0.75, main=paste(\"sample correlation matrix\n\", \"$output_prefix\") ";
+        $Rscript .= "if (is.null(hc_samples)) { RowV=NULL; ColV=NULL} else { RowV=as.dendrogram(hc_samples); ColV=RowV }\n";
+        
+        $Rscript .= "heatmap.3(sample_cor_for_plot, dendrogram='both', Rowv=RowV, Colv=ColV, col = myheatcol, scale='none', symm=TRUE, key=TRUE,density.info='none', trace='none', symkey=FALSE, symbreaks=F, margins=c(10,10), cexCol=1, cexRow=1, cex.main=0.75, main=paste(\"sample correlation matrix\n\", \"$output_prefix\") ";
         
         if ($samples_file || $use_columns_as_samples || $sample_cor_sum_gene_factor_expr) {
             

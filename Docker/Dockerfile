@@ -277,3 +277,6 @@ RUN apt-get clean
 ################################################
 ## be sure this is last!
 COPY Dockerfile $SRC/Dockerfile.$TRINITY_VERSION  
+
+
+ENTRYPOINT ${TRINITY_HOME}/Trinity

@@ -1,3 +1,17 @@
+# Trinity-v2.11.0 Jun 29, 2020
+-major:
+	-bamsfiter upgrade & bugfix for genome-guided assembly
+    -improved performance on complex data sets:
+    	-chrysalis pct kmers read to cluster assignment in phase 1 to 10% and phase 2 to 50%
+    	-inchworm set to use min kmer entropy 1.0 during phase 1
+    	-iworm contig clustering set to min len 100 during phase 1
+-minor:
+	-Trinity added as entrypoint to docker
+    -added option --no_parallel_norm_stats to reduce ram requirements for normalization
+	-ptr update, hc_samples and order by sample compatibility update
+
+
+
 # Trinity-v2.10.0 Mar 18, 2020
 -added bamsifter for genome-guided Trinity-based aligned read normalization pre-assembly
 -DTU updates for py3

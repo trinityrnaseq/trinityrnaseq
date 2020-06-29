@@ -42,7 +42,8 @@ my $INCHWORM_DIR = "$ROOTDIR/Inchworm/bin/";
 my $CHRYSALIS_DIR = "$ROOTDIR/Chrysalis";
 my $BUTTERFLY_DIR = "$ROOTDIR/Butterfly";
 my $COLLECTL_DIR = "$ROOTDIR/trinity-plugins/COLLECTL/collectl";
-my $TRINITY_BIN_DIR = "$ROOTDIR/trinity-plugins/BIN";
+my $TRINITY_PLUGINS_DIR = "$ROOTDIR/trinity-plugins";
+my $TRINITY_BIN_DIR = "$TRINITY_PLUGINS_DIR/BIN";
 my $PARAFLY = "$TRINITY_BIN_DIR/ParaFly";
 my $HTSLIB_DIR = "$ROOTDIR/trinity-plugins/htslib";
 
@@ -3408,7 +3409,7 @@ sub run_genome_guided_Trinity {
     
         ## run bam sifter to normalize for coverage:
         my $normalized_cov_bam = "$genome_guided_bam.norm_${normalize_max_read_cov}.bam";
-        my $cmd = "$TRINITY_BIN_DIR/bamsifter -c $normalize_max_read_cov -o $normalized_cov_bam $genome_guided_bam"; 
+        my $cmd = "$TRINITY_PLUGINS_DIR/bamsifter/bamsifter -c $normalize_max_read_cov -o $normalized_cov_bam --keep_secondary $genome_guided_bam"; 
         &process_cmd($cmd) if ! -e "$normalized_cov_bam.ok";
         &process_cmd("touch $normalized_cov_bam.ok") if ! -e "$normalized_cov_bam.ok";
         

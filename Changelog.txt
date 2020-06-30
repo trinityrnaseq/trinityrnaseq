@@ -6,7 +6,6 @@
     	-inchworm set to use min kmer entropy 1.0 during phase 1
     	-iworm contig clustering set to min len 100 during phase 1
 -minor:
-	-Trinity added as entrypoint to docker
     -added option --no_parallel_norm_stats to reduce ram requirements for normalization
 	-ptr update, hc_samples and order by sample compatibility update
 

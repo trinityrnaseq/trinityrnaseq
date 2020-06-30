@@ -28,10 +28,6 @@ parafly_target:
 	cp bin/ParaFly ../BIN/
 
 
-htslib.ok:
-	cd htslib && autoreconf && ./configure --prefix=`pwd` && make && make install
-	@touch htslib.ok
-
 bamsifter_target: htslib.ok
 	cd bamsifter && make
 

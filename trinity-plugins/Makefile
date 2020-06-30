@@ -28,7 +28,7 @@ parafly_target:
 	cp bin/ParaFly ../BIN/
 
 
-bamsifter_target: htslib.ok
+bamsifter_target:
 	cd bamsifter && make
 
 ##################################

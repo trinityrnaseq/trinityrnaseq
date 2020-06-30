@@ -247,7 +247,7 @@ RUN wget http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/blat/blat -P $BIN
 WORKDIR $SRC
 
 ENV TRINITY_VERSION="2.11.0"
-ENV TRINITY_CO="cdb668dcda323b164b3c434a3d5c220a3c90d0c9"
+ENV TRINITY_CO="10edfc04529bd3e385d670aea3869cdc407799e2"
 
 WORKDIR $SRC
 
@@ -255,6 +255,8 @@ RUN git clone --recursive https://github.com/trinityrnaseq/trinityrnaseq.git && 
     cd trinityrnaseq && \
     git checkout ${TRINITY_CO} && \
     git submodule init && git submodule update && \
+    git submodule foreach --recursive git submodule init && \
+    git submodule foreach --recursive git submodule update && \
     rm -rf ./trinity_ext_sample_data && \
     make && make plugins && \
     make install && \
@@ -278,5 +280,3 @@ RUN apt-get clean
 ## be sure this is last!
 COPY Dockerfile $SRC/Dockerfile.$TRINITY_VERSION  
 
-
-ENTRYPOINT ${TRINITY_HOME}/Trinity

@@ -1638,8 +1638,10 @@ sub run_Trinity {
         
     }
          
-     
+
+    my $num_long_reads = 0;
     if ($long_reads) {
+        ## means the long reads are added as a separate file
         
         my $trinity_target_fa_wLR = "$trinity_target_fa.wLR";
         my $trinity_target_fa_wLR_checkpoint = "$trinity_target_fa_wLR.ok";
@@ -1652,7 +1654,7 @@ sub run_Trinity {
             } 
             close (LONG_READS);
             
-                        
+            
             &process_cmd("cp $trinity_target_fa $trinity_target_fa_wLR");
             &process_cmd("cat $long_reads | sed 's/>/>LR\\\$\\\|/' >> $trinity_target_fa_wLR"); #  
             
@@ -1661,12 +1663,13 @@ sub run_Trinity {
         }
         
         # The chrysalis read-to-graph mappings should include long reads.
+     
         $chrysalis_reads_fa = $trinity_target_fa_wLR;
-        
+
     }
     elsif ($LONG_READS_MODE) {
         # create an inchworm target that lacks the LRs
-        my $num_long_reads =  `grep -c '^\>LR\\\$' $trinity_target_fa`;
+        $num_long_reads =  `grep -c '^\>LR\\\$' $trinity_target_fa`;
         #print STDERR "num long reads: $num_long_reads  :: $trinity_target_fa\n";
         if ($num_long_reads > 0) {
             my $inchworm_target_minus_LR = "$trinity_target_fa.minusLR.fa";
@@ -1699,6 +1702,8 @@ sub run_Trinity {
         my $super_reads_supp_fasta = "$inchworm_target_fa.SR_supp.fa";
         my $super_reads_checkpoint = "SR_supp.checkpoint.ok";    
         
+        my $new_chrysalis_reads_fa = $super_reads_supp_fasta;
+        
         if ( ! (-s $super_reads_supp_fasta && -e $super_reads_checkpoint) ) {
             my @super_read_files;
             for (my $SR_kmer_size=18; $SR_kmer_size < $KMER_SIZE; $SR_kmer_size += 2) {
@@ -1710,17 +1715,43 @@ sub run_Trinity {
 
             }
             &process_cmd("cat @super_read_files $inchworm_target_fa > $super_reads_supp_fasta");
-            &process_cmd("touch $super_reads_checkpoint");
+            
+            if ($LONG_READS_MODE && $num_long_reads > 0) {
+                ## need to include SR reads in with the reads targeted by chrysalis
+                ## and in the case of long reads, the current chrysalis_reads_fa file contains them!
+                $new_chrysalis_reads_fa = "$chrysalis_reads_fa.SR_supp.fa";
+                if ($new_chrysalis_reads_fa ne  $super_reads_supp_fasta) {
+                    &process_cmd("cat @super_read_files $chrysalis_reads_fa > $new_chrysalis_reads_fa");
+                }
+            }
+            
             unless ($NO_CLEANUP) {
                 &process_cmd("rm -f @super_read_files");
             }
+            &process_cmd("touch $super_reads_checkpoint");
         }
+
+        #print "Chrys reads before: $chrysalis_reads_fa\n";
+
+        ################
+        ###  Begin rant:
+        ##  This entire section needs re-writing to leverage Pipeliner!
+        ## 
+        
+        # in case we bypassed the above due to checkpointing.
+        if ($LONG_READS_MODE && $num_long_reads > 0) {
+            $new_chrysalis_reads_fa = "$chrysalis_reads_fa.SR_supp.fa"; 
+        }
+        ## End rant
+        ############
         
         $inchworm_target_fa = $super_reads_supp_fasta;
-        $chrysalis_reads_fa = $super_reads_supp_fasta; ## important!
+        $chrysalis_reads_fa =  $new_chrysalis_reads_fa; ## important!
+
+        #print "Chrys reads after: $chrysalis_reads_fa\n";
+        
     }
-    
-    
+
     if ($prep_only){
         print "Data has been prepared. Exiting now as per user request\n";
         exit();

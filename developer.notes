@@ -8,6 +8,15 @@ Release info:
 curl https://api.github.com/repos/trinityrnaseq/trinityrnaseq/releases
 
 
+## master upgrade to latest devel:
+
+git pull origin devel
+git submodule foreach --recursive git checkout master
+git submodule foreach --recursive git pull
+git submodule foreach --recursive git submodule init 
+git submodule foreach --recursive git submodule update 
+
+
 #####
 
 Checks before release:

@@ -16,4 +16,7 @@ ${TRINITY_HOME}/Trinity --seqType fq \
               --output test_trinity_long_reads
 
 
+find test_trinity_long_reads/ -regex ".*allProbPaths.fasta"  -exec cat {} \; | grep LR
+
+
 exit 0

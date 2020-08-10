@@ -91,9 +91,12 @@ main: {
         
 		my $acc = $sam_entry->reconstruct_full_read_name();
 		my $scaff = $sam_entry->get_scaffold_name();
-                next if $scaff eq '*';
-		my $seq = $sam_entry->get_sequence();
-		my $start = $sam_entry->get_aligned_position();
+        next if $scaff eq '*';
+		
+        my $seq = $sam_entry->get_sequence();
+        next if $seq eq "*";
+        
+        my $start = $sam_entry->get_aligned_position();
         
         my $read_name = $sam_entry->get_read_name(); # raw from sam file
         if ($acc !~ /\/[12]$/ && $read_name =~ /\/[12]$/) {
@@ -116,19 +119,28 @@ main: {
 			$seq = &reverse_complement($seq);
 		}
 		
+ 
+        my $long_read_status = &get_long_read_status($sam_entry);
+        
+        
 		if ($SS_lib_type) {
 			## got SS data
 			
 			my $transcribed_orient;
 
             if (! $sam_entry->is_paired()) {
-				if ($SS_lib_type !~ /^(F|R)$/) {
-					confess "Error, read is not paired but SS_lib_type set to paired: $SS_lib_type\nread:\n$_";
-				}
 				
-				if ($SS_lib_type eq "R") {
-					$seq = &reverse_complement($seq);
-				}
+                # if long read, already put in the proper orientation.
+
+                if (! $long_read_status) {
+                    if ($SS_lib_type !~ /^(F|R)$/) {
+                        confess "Error, read is not paired but SS_lib_type set to paired: $SS_lib_type\nread:\n$_";
+                    }
+                    
+                    if ($SS_lib_type eq "R") {
+                        $seq = &reverse_complement($seq);
+                    }
+                }
 			}
 			
 			else {
@@ -216,7 +228,10 @@ main: {
 
 			}
 			# write to partition
-			print $ofh ">$acc\n$seq\n";
+			if ($long_read_status) {
+                $acc = "LR\$|$acc";
+            }
+            print $ofh ">$acc\n$seq\n";
 			print $sam_ofh join("\t", $sam_entry->get_fields()) . "\n";;
             $read_counter++;
 
@@ -276,3 +291,18 @@ sub parse_partitions {
 }
 			
 	
+
+sub get_long_read_status {
+    my ($sam_entry) = @_;
+    
+
+    my @fields = $sam_entry->get_fields();
+    @fields = @fields[11..$#fields];
+    
+    if (grep { /^RG:Z:PBLR$/ } @fields) {
+        return(1); 
+    }
+    else {
+        return(0);
+    }
+}

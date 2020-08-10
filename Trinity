@@ -294,6 +294,9 @@ $trinity_banner
 #  --genome_guided_bam <string>    :genome guided mode, provide path to coordinate-sorted bam file.
 #                                   (see genome-guided param section under --show_full_usage_info)
 #
+#  --long_reads_bam <string>       :long reads to include for genome-guided Trinity
+#                                  (bam file consists of error-corrected or circular consensus (CCS) pac bio read aligned to the genome)
+#
 #  --jaccard_clip                  :option, set if you have paired reads and
 #                                   you expect high gene density with UTR
 #                                   overlap (use FASTQ input file format
@@ -606,6 +609,8 @@ my $genome_guided_min_coverage = 1;
 my $genome_guided_min_reads_per_partition = 10;
 my $genome_guided_just_prep_flag = 0;
 
+my $long_reads_bam;
+
 ## trinity complete flag
 my $TRINITY_COMPLETE_FLAG = 0;
 
@@ -761,6 +766,8 @@ my $STOMP_SNPS = 0;
     # genome guided
     "genome_guided_bam=s" => \$genome_guided_bam,
     "genome_guided_max_intron=i" => \$genome_guided_max_intron,
+    "long_reads_bam=s" => \$long_reads_bam,
+
 
     "genome_guided_min_coverage=i" => \$genome_guided_min_coverage,
     "genome_guided_min_reads_per_partition=i" => \$genome_guided_min_reads_per_partition,
@@ -1293,6 +1300,10 @@ main: {
     }
     
     $genome_guided_bam = &create_full_path($genome_guided_bam, 1) if $genome_guided_bam;
+    if ($long_reads_bam) {
+        $long_reads_bam = &create_full_path($long_reads_bam, 1);
+        $LONG_READS_MODE = 1;
+    }
     
     if ( (! $TRINITY_COMPLETE_FLAG) && (! -d $output_directory)) {
         # phase - 1 mode.
@@ -1386,7 +1397,7 @@ main: {
        
     if ($genome_guided_bam) {
                 
-        my $trinity_GG_fasta_file = &run_genome_guided_Trinity($genome_guided_bam);
+        my $trinity_GG_fasta_file = &run_genome_guided_Trinity($genome_guided_bam, $long_reads_bam);
         
         &process_cmd("$UTILDIR/support_scripts/get_Trinity_gene_to_trans_map.pl $trinity_GG_fasta_file > $trinity_GG_fasta_file.gene_trans_map");
         
@@ -3434,8 +3445,8 @@ sub files_exist {
 
 ####
 sub run_genome_guided_Trinity {
-    my ($genome_guided_bam) = @_;
-
+    my ($genome_guided_bam, $long_reads_bam) = @_;
+    
     unless ($PAIRED_MODE) {
         # if user didn't indicate --run_as_paired, then
         # check the bam 
@@ -3445,13 +3456,52 @@ sub run_genome_guided_Trinity {
     unless ($NO_NORMALIZE_READS_FLAG) {
     
         ## run bam sifter to normalize for coverage:
-        my $normalized_cov_bam = "$genome_guided_bam.norm_${normalize_max_read_cov}.bam";
+        my $normalized_cov_bam = "$output_directory/" . basename($genome_guided_bam) . ".norm_${normalize_max_read_cov}.bam";
         my $cmd = "$TRINITY_PLUGINS_DIR/bamsifter/bamsifter -c $normalize_max_read_cov -o $normalized_cov_bam --keep_secondary $genome_guided_bam"; 
         &process_cmd($cmd) if ! -e "$normalized_cov_bam.ok";
         &process_cmd("touch $normalized_cov_bam.ok") if ! -e "$normalized_cov_bam.ok";
         
         $genome_guided_bam = $normalized_cov_bam;
     }
+
+    if ($long_reads_bam) {
+        ## add LongReads read group
+        
+        unless ($ENV{PICARD_HOME}) {
+            die "Error, for genome-guided long reads pipeline, need env var PICARD_HOME set to the directory where picard.jar is installed";
+        }
+        
+        my $PICARD_HOME = $ENV{PICARD_HOME};
+        
+        my $pipeliner = new Pipeliner(-verbose => 2);
+        
+        my $RGLR_bam = $output_directory . "/" . basename($long_reads_bam) . ".RGLR.bam";
+        
+        my $cmd = "java -jar ${PICARD_HOME}/picard.jar AddOrReplaceReadGroups I=$long_reads_bam "
+            . " O=$RGLR_bam "
+            . " RGID=PBLR "
+            . " RGLB=lib2 "
+            . " RGPL=pacbio "
+            . " RGPU=unit2 "
+            . " RGSM=pacbio";
+        
+        $pipeliner->add_commands( new Command($cmd, "$RGLR_bam.ok"));
+        
+        
+        my $merged_long_reads_bam = "$output_directory/merged_wRGLR.bam";
+
+        $cmd = "java -jar ${PICARD_HOME}/picard.jar MergeSamFiles "
+              . " I=$genome_guided_bam "
+              . " I=$RGLR_bam "
+              . " O=$merged_long_reads_bam ";
+        
+        $pipeliner->add_commands(new Command($cmd, "$merged_long_reads_bam.ok"));
+        
+        $pipeliner->run();
+
+        $genome_guided_bam = $merged_long_reads_bam;
+    }
+    
     
     ## partition the reads according to coverage piles:
     

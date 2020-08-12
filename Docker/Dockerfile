@@ -210,28 +210,6 @@ RUN GMAP_URL="http://research-pub.gene.com/gmap/src/gmap-gsnap-$GMAP_VERSION.tar
     cp bin/* $BIN/
 
 
-####
-## Picard tools
-
-WORKDIR $SRC
-RUN wget https://github.com/broadinstitute/picard/releases/download/2.20.3/picard.jar
-ENV PICARD_HOME $SRC
-
-####
-## GATK4 installation
-
-WORKDIR $SRC
-
-ENV GATK_VERSION=4.1.4.0
-RUN wget https://github.com/broadinstitute/gatk/releases/download/${GATK_VERSION}/gatk-${GATK_VERSION}.zip && \
-    unzip gatk-${GATK_VERSION}.zip
-
-ENV GATK_HOME $SRC/gatk-${GATK_VERSION}
-
-
-
-
-
 # patch for salmon
 WORKDIR $SRC
 RUN ln -sf /usr/local/src/salmon-latest_linux_x86_64/bin/salmon $BIN/.
@@ -241,13 +219,33 @@ RUN wget http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/blat/blat -P $BIN
     chmod a+x $BIN/blat
 
 
+####
+## Picard tools
+
+WORKDIR $SRC
+RUN wget https://github.com/broadinstitute/picard/releases/download/2.23.3/picard.jar
+ENV PICARD_HOME $SRC
+
+####
+## GATK4 installation
+
+WORKDIR $SRC
+
+ENV GATK_VERSION=4.1.8.0
+RUN wget https://github.com/broadinstitute/gatk/releases/download/${GATK_VERSION}/gatk-${GATK_VERSION}.zip && \
+    unzip gatk-${GATK_VERSION}.zip
+
+ENV GATK_HOME $SRC/gatk-${GATK_VERSION}
+
+
+
 ##########
 ## Trinity
 
 WORKDIR $SRC
 
-ENV TRINITY_VERSION="2.12.0-predev"
-ENV TRINITY_CO="c9dc345b7af34b38c25f635a1d13009b729474cc"
+ENV TRINITY_VERSION="2.12.0-predevB"
+ENV TRINITY_CO="c532bbfa03af7aa08bd091108ea3862fe61e4c34"
 
 WORKDIR $SRC
 

@@ -7,6 +7,7 @@ use Carp;
 use threads;
 
 use File::Basename;
+use File::Spec;
 use FindBin;
 use Getopt::Long qw(:config no_ignore_case bundling);
 use lib("$FindBin::Bin/../../PerlLib");
@@ -117,7 +118,7 @@ main: {
 		push (@sam_info, [$plus_strand_sam, '+'], [$minus_strand_sam, '-']);
 	}
 	else {
-        if (cwd() ne dirname($SAM_file)) {
+        if (cwd() ne dirname(File::Spec->rel2abs($SAM_file))) {
             &process_cmd("ln -sf $SAM_file");
             $SAM_file = basename($SAM_file);
         }

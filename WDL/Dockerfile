@@ -1,4 +1,4 @@
-FROM trinityrnaseq/trinityrnaseq:latest
+FROM trinityrnaseq/trinityrnaseq:2.11.0
 SHELL ["/bin/bash", "-c"]
 
 ADD ./parse_commands.py /software/

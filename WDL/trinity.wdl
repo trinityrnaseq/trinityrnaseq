@@ -10,18 +10,19 @@ workflow trinity {
         Int extra_disk_space_read_clustering_phase = 90
         Float disk_space_multiplier_read_clustering_phase = 6
         Int preemptible_read_clustering_phase = 2
-        String extra_args = "--seqType fq --no_distributed_trinity_exec"
+        String extra_args = "--seqType fq --no_distributed_trinity_exec --SS_lib_type RF"
 
         Int jobs_per_node_assembly_phase = 40
         Int preemptible_assembly_phase = 2
         Int cpu_assembly_phase = 2
+        Float disk_space_multiplier_assembly_phase = 3
         String memory_assembly_phase = "5G"
 
         String memory_gather_fasta_phase = "1G"
         Int preemptible_gather_fasta_phase = 2
 
         Int preemptible = 2
-        String docker = "trinityrnaseq/trinityrnaseq-wdl:1.0.0"
+        String docker = "trinityrnaseq/trinityrnaseq-wdl:2.11.0"
     }
 
     String run_id = "trinity_out_dir"
@@ -55,6 +56,7 @@ workflow trinity {
                 preemptible = preemptible_assembly_phase,
                 docker = docker,
                 cpu = cpu_assembly_phase,
+                disk_space_multiplier=disk_space_multiplier_assembly_phase,
                 memory = memory_assembly_phase,
                 input_files = read_lines(fasta_shard),
                 command_template = parse_read_clustering_commands.command_template
@@ -89,8 +91,6 @@ task gather_fastas {
 
     command <<<
         set -e
-
-#        /software/monitor_script.sh &
 
         output_name="Trinity.fasta"
         input_files="~{sep="," fastas}"
@@ -127,13 +127,12 @@ task trinity_assemble {
         Int preemptible
         File command_template
         Array[File] input_files
+        Float disk_space_multiplier
     }
-    Int disk_space = ceil(size(input_files, "GB")*3)
+    Int disk_space = ceil(size(input_files, "GB")*disk_space_multiplier)
 
     command <<<
         set -e
-
-#        /software/monitor_script.sh &
 
         python <<CODE
 
@@ -157,7 +156,6 @@ task trinity_assemble {
         parallel --will-cite -a commands.txt --jobs $(nproc)
 
         find . -name "*out.Trinity.fasta" | /usr/local/bin/trinityrnaseq/util/support_scripts/partitioned_trinity_aggregator.pl --token_prefix TRINITY_DN --output_prefix Trinity
-
     >>>
 
     output {
@@ -220,8 +218,6 @@ task trinity_read_clustering {
     Int disk_space = ceil((size(left, "GB")+size(right, "GB"))*disk_space_multiplier + extra_disk_space)
     command <<<
         set -e
-
-#        /software/monitor_script.sh &
 
         mkdir ~{run_id}
 

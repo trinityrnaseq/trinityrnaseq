@@ -21,7 +21,7 @@ workflow trinity {
         Int preemptible_gather_fasta_phase = 2
 
         Int preemptible = 2
-        String docker = "trinityrnaseq/trinityrnaseq-wdl:1.0.0"
+        String docker = "trinityrnaseq/trinityrnaseq-wdl:2.11.0"
     }
 
     String run_id = "trinity_out_dir"
@@ -90,7 +90,7 @@ task gather_fastas {
     command <<<
         set -e
 
-#        /software/monitor_script.sh &
+        #        /software/monitor_script.sh &
 
         output_name="Trinity.fasta"
         input_files="~{sep="," fastas}"
@@ -98,7 +98,7 @@ task gather_fastas {
         read -ra files <<< "$input_files"
         nfiles=${#files[@]}
         for (( i=0; i<${nfiles}; i++ )); do
-            cat ${files[$i]} >> $output_name
+        cat ${files[$i]} >> $output_name
         done
 
         /usr/local/bin/trinityrnaseq/util/support_scripts/get_Trinity_gene_to_trans_map.pl Trinity.fasta > Trinity.fasta.gene_trans_map
@@ -133,8 +133,6 @@ task trinity_assemble {
     command <<<
         set -e
 
-#        /software/monitor_script.sh &
-
         python <<CODE
 
         import os
@@ -142,22 +140,21 @@ task trinity_assemble {
         input_files = "~{sep=',' input_files}".split(',')
 
         with open("~{command_template}", "rt") as f:
-            command_template = f.readline().strip().split(' ')
+        command_template = f.readline().strip().split(' ')
 
         single_index = command_template.index('--single')
         output_index = command_template.index('--output')
 
         with open("commands.txt", "wt") as out:
-            for i in range(len(input_files)):
-                command_template[single_index + 1] = input_files[i]
-                command_template[output_index + 1] = os.path.basename(input_files[i]) + ".out"
-                out.write(" ".join(command_template) + "\n")
+        for i in range(len(input_files)):
+        command_template[single_index + 1] = input_files[i]
+        command_template[output_index + 1] = os.path.basename(input_files[i]) + ".out"
+        out.write(" ".join(command_template) + "\n")
         CODE
 
         parallel --will-cite -a commands.txt --jobs $(nproc)
 
         find . -name "*out.Trinity.fasta" | /usr/local/bin/trinityrnaseq/util/support_scripts/partitioned_trinity_aggregator.pl --token_prefix TRINITY_DN --output_prefix Trinity
-
     >>>
 
     output {
@@ -220,8 +217,6 @@ task trinity_read_clustering {
     Int disk_space = ceil((size(left, "GB")+size(right, "GB"))*disk_space_multiplier + extra_disk_space)
     command <<<
         set -e
-
-#        /software/monitor_script.sh &
 
         mkdir ~{run_id}
 

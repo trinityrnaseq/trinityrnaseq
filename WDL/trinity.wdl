@@ -90,15 +90,13 @@ task gather_fastas {
     command <<<
         set -e
 
-        #        /software/monitor_script.sh &
-
         output_name="Trinity.fasta"
         input_files="~{sep="," fastas}"
         IFS=','
         read -ra files <<< "$input_files"
         nfiles=${#files[@]}
         for (( i=0; i<${nfiles}; i++ )); do
-        cat ${files[$i]} >> $output_name
+            cat ${files[$i]} >> $output_name
         done
 
         /usr/local/bin/trinityrnaseq/util/support_scripts/get_Trinity_gene_to_trans_map.pl Trinity.fasta > Trinity.fasta.gene_trans_map
@@ -146,10 +144,10 @@ task trinity_assemble {
         output_index = command_template.index('--output')
 
         with open("commands.txt", "wt") as out:
-        for i in range(len(input_files)):
-        command_template[single_index + 1] = input_files[i]
-        command_template[output_index + 1] = os.path.basename(input_files[i]) + ".out"
-        out.write(" ".join(command_template) + "\n")
+            for i in range(len(input_files)):
+                command_template[single_index + 1] = input_files[i]
+                command_template[output_index + 1] = os.path.basename(input_files[i]) + ".out"
+                out.write(" ".join(command_template) + "\n")
         CODE
 
         parallel --will-cite -a commands.txt --jobs $(nproc)

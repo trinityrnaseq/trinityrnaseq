@@ -1,6 +1,6 @@
 version development
 
-workflow trinity {
+workflow trinity_rna_seq {
     input {
         Array[File] left
         Array[File] right

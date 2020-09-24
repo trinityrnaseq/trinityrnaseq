@@ -10,7 +10,7 @@ workflow trinity {
         Int extra_disk_space_read_clustering_phase = 90
         Float disk_space_multiplier_read_clustering_phase = 6
         Int preemptible_read_clustering_phase = 2
-        String extra_args = "--seqType fq --no_distributed_trinity_exec --SS_lib_type RF"
+        String extra_args = "--seqType fq"
 
         Int jobs_per_node_assembly_phase = 40
         Int preemptible_assembly_phase = 2
@@ -225,7 +225,7 @@ task trinity_read_clustering {
         command_mem=$(($command_mem/1000000))
         command_mem=$command_mem"G"
 
-        Trinity --left ~{sep=',' left} --right ~{sep=',' right} --max_memory ${command_mem} --CPU $(nproc) --output `pwd`/~{run_id} ~{extra_args}
+        Trinity --left ~{sep=',' left} --right ~{sep=',' right} --max_memory ${command_mem} --CPU $(nproc) --output `pwd`/~{run_id} --no_distributed_trinity_exec ~{extra_args}
 
     >>>
 

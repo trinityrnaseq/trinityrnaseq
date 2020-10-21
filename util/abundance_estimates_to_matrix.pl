@@ -18,7 +18,7 @@ my $usage = <<__EOUSAGE__;
 #      Note, if only a single input file is given, it's expected to contain the paths to all the target abundance estimation files.
 #
 # Required:
-#            
+#
 #  --est_method <string>           RSEM|eXpress|kallisto|salmon  (needs to know what format to expect)
 #
 #  --gene_trans_map <string>           the gene-to-transcript mapping file. (if you don't want gene estimates, indicate 'none'.
@@ -55,12 +55,12 @@ my $gene_trans_map_file;
 
 &GetOptions('help|h' => \$help_flag,
             'est_method=s' => \$est_method,
-            
+
             'cross_sample_norm=s' => \$cross_sample_norm,
             'name_sample_by_basedir' => \$name_sample_by_basedir,
             'out_prefix=s' => \$out_prefix,
             'basedir_index=i' => \$basedir_index,
-            
+
             'quant_files=s' => \$quant_files,
             'gene_trans_map=s' => \$gene_trans_map_file,
     );
@@ -152,7 +152,7 @@ else {
 4       NumReads
 
 =cut
-    
+
     ;
 
 my ($acc_field, $counts_field, $fpkm_field, $tpm_field);
@@ -186,21 +186,21 @@ else {
 }
 
 main: {
-    
+
     my %data;
 
     my %sum_sample_counts;
-    
+
     foreach my $file (@files) {
         print STDERR "-reading file: $file\n";
         open (my $fh, $file) or die "Error, cannot open file $file";
-        my $header = <$fh>; 
+        my $header = <$fh>;
         chomp $header;
         my %fields = &parse_field_positions($header);
         #use Data::Dumper; print STDERR Dumper(\%fields);
         while (<$fh>) {
             chomp;
-            
+
             my @x = split(/\t/);
             my $acc = $x[ $fields{$acc_field} ];
             my $count = $x[ $fields{$counts_field} ];
@@ -210,7 +210,7 @@ main: {
             $data{$acc}->{$file}->{count} = $count;
             $data{$acc}->{$file}->{FPKM} = $fpkm;
             $data{$acc}->{$file}->{TPM} = $tpm;
-            
+
             # capture sample total counts
             $sum_sample_counts{$file} += $count;
         }
@@ -228,42 +228,42 @@ main: {
         else {
             $column_header = basename($file);
         }
-        
+
         $column_header =~ s/\.(genes|isoforms)\.results$//; # in case of rsem
-        
+
         $column_header_to_filename{$column_header} = $file;
         $file = $column_header; # update the @filenames
     }
     print STDERR "\n\n* Outputting combined matrix.\n\n";
-    
-    my $counts_matrix_file = "$out_prefix.isoform.counts.matrix";
-    my $TPM_matrix_file = "$out_prefix.isoform.TPM.not_cross_norm";
+
+    my $counts_matrix_file = "$out_prefix.counts.matrix";
+    my $TPM_matrix_file = "$out_prefix.TPM.not_cross_norm";
     open (my $ofh_counts, ">$counts_matrix_file") or die "Error, cannot write file $counts_matrix_file";
     open (my $ofh_TPM, ">$TPM_matrix_file") or die "Error, cannot write file $TPM_matrix_file";
-    
+
     { # check to see if they're unique
         my %filename_map = map { + $_ => 1 } @filenames;
         if (scalar keys %filename_map != scalar @filenames) {
             die "Error, the column headings: @filenames are not unique.  Should you consider using the --name_sample_by_basedir parameter?";
         }
     }
-    
+
 
     # clean up matrix headers
     #foreach my $file (@filenames) {
         # also, get rid of the part of the filename that RSEM adds
     #    $file =~ s/\.(genes|isoforms)\.results$//;
     #}
-    
+
 
     print $ofh_counts join("\t", "", @filenames) . "\n";
     print $ofh_TPM join("\t", "", @filenames) . "\n";
 
     foreach my $acc (keys %data) {
-        
+
         print $ofh_counts "$acc";
         print $ofh_TPM "$acc";
-        
+
         foreach my $file (@files) {
 
             my $count = $data{$acc}->{$file}->{count};
@@ -281,7 +281,7 @@ main: {
             print $ofh_counts "\t$count";
             print $ofh_TPM "\t$tpm";
         }
-        
+
         print $ofh_counts "\n";
         print $ofh_TPM "\n";
 
@@ -292,7 +292,7 @@ main: {
     ## process gene counts as per txImport-style (Soneson et al. F1000, 2016)
     my $gene_counts_file = "$out_prefix.gene.counts.matrix";
     my $gene_tpm_file = "$out_prefix.gene.TPM.not_cross_norm";
-    
+
     if ($gene_trans_map_file ne 'none') {
         my %gene_to_trans;
         {
@@ -307,10 +307,10 @@ main: {
 
         open(my $ofh_genecounts, ">$gene_counts_file") or die "Error, cannot write to $gene_counts_file";
         print $ofh_genecounts "\t" . join("\t", @filenames) . "\n";
-        
+
         open(my $ofh_genetpm, ">$gene_tpm_file") or die "Error, cannot write to $gene_tpm_file";
         print $ofh_genetpm "\t" . join("\t", @filenames) . "\n";
-        
+
         foreach my $gene (sort keys %gene_to_trans) {
             my @tpm_vals = ($gene);
             my @count_vals = ($gene);
@@ -329,7 +329,7 @@ main: {
                 $gene_count = sprintf("%.2f", $gene_count);
                 push (@count_vals, $gene_count);
             }
-            
+
             print $ofh_genetpm join("\t", @tpm_vals) . "\n";
             print $ofh_genecounts join("\t", @count_vals) . "\n";
         }
@@ -337,22 +337,22 @@ main: {
         close $ofh_genecounts;
     }
     if (scalar @files > 1) {
-        ## more than one sample 
-        
-        &perform_cross_sample_norm($TPM_matrix_file, "$out_prefix.isoform");
+        ## more than one sample
+
+        &perform_cross_sample_norm($TPM_matrix_file, "$out_prefix");
         if ($gene_trans_map_file ne 'none') {
-            &perform_cross_sample_norm($gene_tpm_file, "$out_prefix.gene");
+            &perform_cross_sample_norm($gene_tpm_file, "$out_prefix");
         }
-        
+
     }
     else {
-        unless (scalar @files == 1) { 
+        unless (scalar @files == 1) {
             die "Error, no target samples. Shouldn't get here.";
         }
         print STDERR "Warning, only one sample, so not performing cross-sample normalization\n";
         print STDERR "Done.\n\n";
     }
-    
+
     exit(0);
 }
 
@@ -360,7 +360,7 @@ main: {
 ####
 sub perform_cross_sample_norm {
     my ($tpm_matrix_file, $out_prefix_name) = @_;
-    
+
     if ($cross_sample_norm =~ /^TMM$/i) {
         my $cmd = "$FindBin::RealBin/support_scripts/run_TMM_scale_matrix.pl --matrix $tpm_matrix_file > $out_prefix_name.$cross_sample_norm.EXPR.matrix";
         &process_cmd($cmd);
@@ -387,7 +387,7 @@ sub process_cmd {
 
     return;
 }
-        
+
 
 ####
 sub parse_field_positions {

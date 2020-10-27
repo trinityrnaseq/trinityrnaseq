@@ -37,7 +37,7 @@ class Compact_graph_whole:
                 continue
 
             logger.debug("compact_unbranched( {} )".format(node.toString()))
-            prev_nodes = list(node.get_prev_nodes())
+            prev_nodes = sorted(node.get_prev_nodes())
             if len(prev_nodes) == 1:
                 # merge them
                 prev_node = prev_nodes[0]
@@ -135,9 +135,9 @@ class Compact_graph_whole:
     
     def compact_upward(self, prev_nodes, num_allowed_variants):
 
-        logger.debug("compact_upward: {} max_allowed_variants: {}".format(prev_nodes, num_allowed_variants))
+        prev_nodes = sorted(prev_nodes)
 
-        prev_nodes = list(prev_nodes)
+        logger.debug("compact_upward: {} max_allowed_variants: {}".format(prev_nodes, num_allowed_variants))
 
         for i in range(0, len(prev_nodes)-1):
             for j in range(i+1, len(prev_nodes)):
@@ -235,9 +235,9 @@ class Compact_graph_whole:
 
     def compact_downward(self, next_nodes, num_allowed_variants):
 
+        next_nodes = sorted(next_nodes)
         logger.debug("compact_downward: {} max_allowed_variants: {}".format(next_nodes, num_allowed_variants))
 
-        next_nodes = list(next_nodes)
         for i in range(0, len(next_nodes)-1):
             for j in range(i+1, len(next_nodes)):
                 if self.compact_downward_node_pair(next_nodes[i], next_nodes[j], num_allowed_variants):

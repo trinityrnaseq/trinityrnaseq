@@ -77,9 +77,9 @@ class Compact_graph_partial(Compact_graph_whole.Compact_graph_whole):
     
     def compact_upward(self, prev_nodes):
 
-        logger.debug("compact_upward: Partial {}".format(prev_nodes))
+        prev_nodes = sorted(prev_nodes)
 
-        prev_nodes = list(prev_nodes)
+        logger.debug("compact_upward: Partial {}".format(prev_nodes))
 
         for i in range(0, len(prev_nodes)-1):
             for j in range(i+1, len(prev_nodes)):
@@ -196,9 +196,9 @@ class Compact_graph_partial(Compact_graph_whole.Compact_graph_whole):
 
     def compact_downward(self, next_nodes):
 
+        next_nodes = sorted(next_nodes)
         logger.debug("compact_downward: Partial {}".format(next_nodes))
 
-        next_nodes = list(next_nodes)
         for i in range(0, len(next_nodes)-1):
             for j in range(i+1, len(next_nodes)):
                 if self.compact_downward_node_pair(next_nodes[i], next_nodes[j]):

@@ -84,6 +84,8 @@ class TNode:
     ## various Node ID values
     #########################
 
+    def __lt__(self, other):
+        return (self.loc_node_id < other.loc_node_id)
 
     def get_id(self):
         # a private unique identifier for all nodes
@@ -229,13 +231,13 @@ class TNode:
 
     def get_prev_node_loc_ids(self):
         loc_ids = list()
-        for node in self.get_prev_nodes():
+        for node in sorted(self.get_prev_nodes()):
             loc_ids.append(node.get_loc_id())
         return loc_ids
 
     def get_next_node_loc_ids(self):
         loc_ids = list()
-        for node in self.get_next_nodes():
+        for node in sorted(self.get_next_nodes()):
             loc_ids.append(node.get_loc_id())
         return loc_ids
     
@@ -258,7 +260,7 @@ class TNode:
         txt = str("prev: " + str(self.get_prev_node_loc_ids()) +
                   ", me: " + str(self.get_loc_id()) +
                   ", next: " + str(self.get_next_node_loc_ids()) +
-                  ", transcripts: " + str(self.transcripts) +
+                  ", transcripts: " + str(sorted(self.transcripts)) +
                   ", " + self.get_seq())
 
         if self.topological_order >= 0:

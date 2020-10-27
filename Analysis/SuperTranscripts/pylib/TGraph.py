@@ -63,7 +63,7 @@ class TGraph:
 
 
     def get_all_nodes(self):
-        return list(self.node_cache.values())
+        return sorted(self.node_cache.values())
     
     def clear_node_cache(self):
         """
@@ -127,7 +127,7 @@ class TGraph:
 
         ofh.write("digraph G {\n")
 
-        for node_id in self.node_cache:
+        for node_id in sorted(self.node_cache):
             node = self.node_cache[node_id]
             node_seq = node.get_seq()
             gene_node_id = node.get_gene_node_id()

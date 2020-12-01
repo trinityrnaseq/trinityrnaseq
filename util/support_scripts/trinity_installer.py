@@ -10,7 +10,7 @@ print("Trinity package name: {}".format(trinity_package_name))
 
 destination_package_dir = "/usr/local/bin"
 
-subprocess.check_call("rsync -av --exclude='.*' {} {}".format(trinity_package_dir, destination_package_dir), shell=True)
+subprocess.check_call("rsync -av --exclude='.*' {}/ {}".format(trinity_package_dir, destination_package_dir), shell=True)
 
 print("Trinity package installed at: {}".format(destination_package_dir))
 print("\n\n\tFor convenience, set env var TRINITY_HOME={}".format(destination_package_dir))

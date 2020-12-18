@@ -91,18 +91,6 @@ RUN wget https://sourceforge.net/projects/bowtie-bio/files/bowtie/1.2.1.1/bowtie
 	mv bowtie-1.2.1.1/bowtie* $BIN
 
 
-## RSEM
-RUN mkdir /usr/local/lib/site_perl
-WORKDIR $SRC
-RUN wget https://github.com/deweylab/RSEM/archive/v1.3.0.tar.gz && \
-    tar xvf v1.3.0.tar.gz && \
-    cd RSEM-1.3.0 && \
-    make && \
-    cp rsem-* $BIN && \
-    cp rsem_perl_utils.pm /usr/local/lib/site_perl/ && \
-    cd ../ && rm -r RSEM-1.3.0
-
-
 ## Kallisto
 WORKDIR $SRC
 RUN wget https://github.com/pachterlab/kallisto/releases/download/v0.43.1/kallisto_linux-v0.43.1.tar.gz && \

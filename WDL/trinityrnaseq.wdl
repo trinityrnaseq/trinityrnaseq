@@ -1,6 +1,6 @@
 version 1.0
 
-workflow trinity_assembly {
+workflow trinityrnaseq {
     input {
         Array[File]? left
         Array[File]? right

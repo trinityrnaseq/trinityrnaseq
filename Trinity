@@ -989,8 +989,8 @@ if ($TRINITY_COMPLETE_FLAG) {
         $NO_NORMALIZE_READS_FLAG = 1;
     }
 
-    if ($min_pct_read_mapping < 50) {
-        $min_pct_read_mapping = 50; # more stringent for phase2 chrysalis
+    if ($min_pct_read_mapping < 90) {
+        $min_pct_read_mapping = 90; # more stringent for phase2 chrysalis
     }
 }
 else {

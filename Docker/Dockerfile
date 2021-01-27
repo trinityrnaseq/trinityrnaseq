@@ -140,6 +140,7 @@ RUN wget https://github.com/gmarcais/Jellyfish/releases/download/v2.2.7/jellyfis
 
 ## RSEM
 WORKDIR $SRC
+RUN mkdir /usr/local/lib/site_perl ||:
 RUN wget https://github.com/deweylab/RSEM/archive/v1.3.0.tar.gz && \
 	 tar xvf v1.3.0.tar.gz && \
      cd RSEM-1.3.0 && \
@@ -232,8 +233,8 @@ ENV GATK_HOME $SRC/gatk-${GATK_VERSION}
 
 WORKDIR $SRC
 
-ENV TRINITY_VERSION="2.12.0-predevC"
-ENV TRINITY_CO="d47476d83cffa419af2abc9bcaaedf411e8c83f6"
+ENV TRINITY_VERSION="2.12.0-devmau"
+ENV TRINITY_CO="b301cf1ea3059ac46a110de88ebd942c7603eaba"
 
 WORKDIR $SRC
 
@@ -244,9 +245,7 @@ RUN git clone --recursive https://github.com/trinityrnaseq/trinityrnaseq.git && 
     git submodule foreach --recursive git submodule init && \
     git submodule foreach --recursive git submodule update && \
     rm -rf ./trinity_ext_sample_data && \
-    make && make plugins && \
-    make install && \
-    cd ../ && rm -r trinityrnaseq
+    make && make plugins 
 
 ENV TRINITY_HOME /usr/local/bin/trinityrnaseq
 

@@ -245,7 +245,9 @@ RUN git clone --recursive https://github.com/trinityrnaseq/trinityrnaseq.git && 
     git submodule foreach --recursive git submodule init && \
     git submodule foreach --recursive git submodule update && \
     rm -rf ./trinity_ext_sample_data && \
-    make && make plugins 
+    make && make plugins &&\
+    make install && \
+    cd ../ && rm -r trinityrnaseq
 
 ENV TRINITY_HOME /usr/local/bin/trinityrnaseq
 

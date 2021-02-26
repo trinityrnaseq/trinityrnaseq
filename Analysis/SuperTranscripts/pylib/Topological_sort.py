@@ -55,7 +55,7 @@ class Topological_sort:
         while len(S) > 0:
             node_n = S.pop(0)
             L.append(node_n)
-            n_children = list(node_n.get_next_nodes()) # make a copy instead of using the reference directly.
+            n_children = sorted(node_n.get_next_nodes()) # make a copy instead of using the reference directly.
             for n_child in n_children:
                 n_child.stash_prev_node(node_n)
                 node_n.stash_next_node(n_child)

@@ -121,7 +121,6 @@ RUN wget https://sourceforge.net/projects/bowtie-bio/files/bowtie/1.2.1.1/bowtie
     unzip bowtie-1.2.1.1-linux-x86_64.zip && \
 	mv bowtie-1.2.1.1/bowtie* $BIN
 
-
 ## RSEM
 RUN mkdir /usr/local/lib/site_perl
 WORKDIR $SRC
@@ -132,6 +131,7 @@ RUN wget https://github.com/deweylab/RSEM/archive/v1.3.3.tar.gz && \
     cp rsem-* convert-sam-for-rsem $BIN && \
     cp rsem_perl_utils.pm /usr/local/lib/site_perl/ && \
     cd ../ && rm -r RSEM-1.3.3
+
 
 
 ## Kallisto

@@ -116,7 +116,7 @@ def splice_graph_to_node_alignment(tgraph):
     for node in topologically_sorted_nodes:
         transcript_ids = transcript_ids.union(node.get_transcripts())
 
-    transcript_ids = list(transcript_ids)
+    transcript_ids = sorted(transcript_ids)
     
     for transcript_id in transcript_ids:
         new_alignment = [None for i in topologically_sorted_nodes]

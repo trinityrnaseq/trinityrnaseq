@@ -236,8 +236,8 @@ main: {
     }
     print STDERR "\n\n* Outputting combined matrix.\n\n";
 
-    my $counts_matrix_file = "$out_prefix.counts.matrix";
-    my $TPM_matrix_file = "$out_prefix.TPM.not_cross_norm";
+    my $counts_matrix_file = "$out_prefix.isoform.counts.matrix";
+    my $TPM_matrix_file = "$out_prefix.isoform.TPM.not_cross_norm";
     open (my $ofh_counts, ">$counts_matrix_file") or die "Error, cannot write file $counts_matrix_file";
     open (my $ofh_TPM, ">$TPM_matrix_file") or die "Error, cannot write file $TPM_matrix_file";
 
@@ -339,11 +339,11 @@ main: {
     if (scalar @files > 1) {
         ## more than one sample
 
-        &perform_cross_sample_norm($TPM_matrix_file, "$out_prefix");
+        &perform_cross_sample_norm($TPM_matrix_file, "$out_prefix.isoform");
         if ($gene_trans_map_file ne 'none') {
-            &perform_cross_sample_norm($gene_tpm_file, "$out_prefix");
+            &perform_cross_sample_norm($gene_tpm_file, "$out_prefix.gene");
         }
-
+        
     }
     else {
         unless (scalar @files == 1) {

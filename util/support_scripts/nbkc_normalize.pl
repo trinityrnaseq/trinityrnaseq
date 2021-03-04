@@ -66,6 +66,8 @@ unless ($pair_stats_file &&
 
 main: {
 
+    srand(12345);
+    
     my $count_aberrant_and_discarded = 0;
     my $count_selected = 0;
     my $count_total = 0;

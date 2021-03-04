@@ -37,6 +37,11 @@ my $usage = <<__EOUSAGE__;
 #
 #  --top_genes_plot <int>            default: $top_genes_plot
 # 
+# ## STAR-specific
+#
+#  --genomeSAindexNbases <int>   param for STAR, default computed as: min(18, int(log((-s \$genome) / \$num_contigs) / log(2) + 0.5) )                           # 
+#
+#
 ################################################################
 
 
@@ -54,6 +59,7 @@ my $samples_file;
 my $out_prefix = "dexseq";
 my $aligner;
 my $SS_lib_type = "";
+my $genomeSAindexNbases;
 
 &GetOptions ( 'h' => \$help_flag,
               'genes_fasta=s' => \$genes_fasta_file,
@@ -64,7 +70,7 @@ my $SS_lib_type = "";
               'aligner=s' => \$aligner,
               'SS_lib_type=s' => \$SS_lib_type,
               'top_genes_plot=i' => \$top_genes_plot,
-              
+              'genomeSAindexNbases=i' => \$genomeSAindexNbases,
     );
 
 
@@ -109,6 +115,11 @@ main: {
     }
     elsif ($aligner =~ /STAR/i) {
         $cmd = "$TRINITY_HOME/util/misc/run_STAR_via_samples_file.pl --genome $genes_fasta_file --gtf $genes_gtf_file --samples_file $samples_file --CPU $CPU --nameSorted ";
+        if ($genomeSAindexNbases) {
+
+            $cmd .= " --genomeSAindexNbases $genomeSAindexNbases ";
+        }
+                    
         $pipeliner->add_commands(new Command($cmd, "$analysis_token.align.ok"));
         $pipeliner->run();
     }

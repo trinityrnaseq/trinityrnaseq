@@ -88,6 +88,8 @@ main: {
     }
 
     my $genomeChrBinNbits = min(18, int(log((-s $genome) / $num_contigs) / log(2) + 0.5) );
+    my $genomeSAindexNbases = min(14, int(log(-s $genome)/log(2)/2 - 1 + 0.5));
+    
     
     my @read_sets = &parse_samples_file($samples_file);    
 
@@ -102,8 +104,9 @@ main: {
     my $cmd = "$star_prog --runThreadN $CPU --runMode genomeGenerate --genomeDir $star_index "
         . " --genomeFastaFiles $genome "
         . " --genomeChrBinNbits $genomeChrBinNbits "
+        . " --genomeSAindexNbases $genomeSAindexNbases "
         . " --limitGenomeGenerateRAM 40419136213 ";
-        
+    
     if ($gtf_file) {
 
         $cmd .= " --sjdbGTFfile $gtf_file "

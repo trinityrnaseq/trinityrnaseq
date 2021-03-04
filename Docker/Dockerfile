@@ -252,7 +252,7 @@ RUN git clone --recursive https://github.com/trinityrnaseq/trinityrnaseq.git && 
     make install && \
     cd ../ && rm -r trinityrnaseq
 
-ENV TRINITY_HOME /usr/local/bin/trinityrnaseq
+ENV TRINITY_HOME /usr/local/bin
 
 ENV PATH=${TRINITY_HOME}:${PATH}
 

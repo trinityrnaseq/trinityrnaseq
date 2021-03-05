@@ -183,13 +183,6 @@ RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v${SALMON_VERSI
     tar xvf Salmon-${SALMON_VERSION}_linux_x86_64.tar.gz && \
     ln -s $SRC/Salmon-latest_linux_x86_64/bin/salmon $BIN/.
 
-## STAR
-ENV STAR_VERSION=2.7.2b
-RUN STAR_URL="https://github.com/alexdobin/STAR/archive/${STAR_VERSION}.tar.gz" &&\
-    wget -P $SRC $STAR_URL &&\
-        tar -xvf $SRC/${STAR_VERSION}.tar.gz -C $SRC && \
-            mv $SRC/STAR-${STAR_VERSION}/bin/Linux_x86_64_static/STAR /usr/local/bin
-
 
 ## FeatureCounts
 RUN wget https://sourceforge.net/projects/subread/files/subread-2.0.0/subread-2.0.0-Linux-x86_64.tar.gz/download -O subread-2.0.0-Linux-x86_64.tar.gz && \
@@ -232,6 +225,15 @@ RUN wget https://github.com/broadinstitute/gatk/releases/download/${GATK_VERSION
     unzip gatk-${GATK_VERSION}.zip
 
 ENV GATK_HOME $SRC/gatk-${GATK_VERSION}
+
+
+## STAR
+ENV STAR_VERSION=2.7.8a
+RUN STAR_URL="https://github.com/alexdobin/STAR/archive/${STAR_VERSION}.tar.gz" &&\
+    wget -P $SRC $STAR_URL &&\
+        tar -xvf $SRC/${STAR_VERSION}.tar.gz -C $SRC && \
+            mv $SRC/STAR-${STAR_VERSION}/bin/Linux_x86_64_static/STAR /usr/local/bin
+
 
 
 ## Trinity

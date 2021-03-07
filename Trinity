@@ -1654,6 +1654,8 @@ sub run_Trinity {
     my $num_long_reads = 0;
     if ($long_reads) {
         ## means the long reads are added as a separate file
+
+        $num_long_reads =  `grep -c '^\>' $long_reads`; 
         
         my $trinity_target_fa_wLR = "$trinity_target_fa.wLR";
         my $trinity_target_fa_wLR_checkpoint = "$trinity_target_fa_wLR.ok";
@@ -1671,13 +1673,15 @@ sub run_Trinity {
             &process_cmd("cat $long_reads | sed 's/>/>LR\\\$\\\|/' >> $trinity_target_fa_wLR"); #  
             
             &process_cmd("touch $trinity_target_fa_wLR.ok");
-                        
+        
+
         }
         
         # The chrysalis read-to-graph mappings should include long reads.
      
         $chrysalis_reads_fa = $trinity_target_fa_wLR;
-
+        
+        
     }
     elsif ($LONG_READS_MODE) {
         # create an inchworm target that lacks the LRs

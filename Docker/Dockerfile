@@ -183,13 +183,6 @@ RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v${SALMON_VERSI
     tar xvf Salmon-${SALMON_VERSION}_linux_x86_64.tar.gz && \
     ln -s $SRC/Salmon-latest_linux_x86_64/bin/salmon $BIN/.
 
-## STAR
-ENV STAR_VERSION=2.7.2b
-RUN STAR_URL="https://github.com/alexdobin/STAR/archive/${STAR_VERSION}.tar.gz" &&\
-    wget -P $SRC $STAR_URL &&\
-        tar -xvf $SRC/${STAR_VERSION}.tar.gz -C $SRC && \
-            mv $SRC/STAR-${STAR_VERSION}/bin/Linux_x86_64_static/STAR /usr/local/bin
-
 
 ## FeatureCounts
 RUN wget https://sourceforge.net/projects/subread/files/subread-2.0.0/subread-2.0.0-Linux-x86_64.tar.gz/download -O subread-2.0.0-Linux-x86_64.tar.gz && \
@@ -234,10 +227,19 @@ RUN wget https://github.com/broadinstitute/gatk/releases/download/${GATK_VERSION
 ENV GATK_HOME $SRC/gatk-${GATK_VERSION}
 
 
+## STAR
+ENV STAR_VERSION=2.7.8a
+RUN STAR_URL="https://github.com/alexdobin/STAR/archive/${STAR_VERSION}.tar.gz" &&\
+    wget -P $SRC $STAR_URL &&\
+        tar -xvf $SRC/${STAR_VERSION}.tar.gz -C $SRC && \
+            mv $SRC/STAR-${STAR_VERSION}/bin/Linux_x86_64_static/STAR /usr/local/bin
+
+
+
 ## Trinity
 WORKDIR $SRC
-ENV TRINITY_VERSION="2.12.0-predevC"
-ENV TRINITY_CO="d47476d83cffa419af2abc9bcaaedf411e8c83f6"
+ENV TRINITY_VERSION="2.12.0"
+ENV TRINITY_CO="a1431ffa1d87236dba814ddf0bb2e5c1f45c43d2"
 
 WORKDIR $SRC
 
@@ -252,7 +254,7 @@ RUN git clone --recursive https://github.com/trinityrnaseq/trinityrnaseq.git && 
     make install && \
     cd ../ && rm -r trinityrnaseq
 
-ENV TRINITY_HOME /usr/local/bin/trinityrnaseq
+ENV TRINITY_HOME /usr/local/bin
 
 ENV PATH=${TRINITY_HOME}:${PATH}
 

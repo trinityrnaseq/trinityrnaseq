@@ -67,10 +67,12 @@ sub report_coverage {
         
 		print "variableStep chrom=$scaffold\n";
 		
-		my @coverage = @{$scaffold_to_coverage_href->{$scaffold}};
+		my $coverage_aref = $scaffold_to_coverage_href->{$scaffold};
+
+        my $first_cov_pos = &find_first_cov_pos($coverage_aref);
 		
-		for (my $i = 1; $i <= $#coverage; $i++) {
-			my $cov = $coverage[$i] || 0;
+		for (my $i = $first_cov_pos; $i <= $#$coverage_aref; $i++) {
+			my $cov = $coverage_aref->[$i] || 0;
 			
 			print "$i\t$cov\n";
 		}
@@ -96,3 +98,17 @@ sub add_coverage {
 	return;
 }
 	
+####
+sub find_first_cov_pos {
+    my ($coverage_aref) = @_;
+
+    for (my $i = 0; $i <= $#$coverage_aref; $i++) {
+        if ($coverage_aref->[$i]) {
+            return($i);
+        }
+    }
+    
+    return($#$coverage_aref);
+}
+
+

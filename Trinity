@@ -3495,10 +3495,13 @@ sub run_genome_guided_Trinity {
         
         my $merged_long_reads_bam = "$output_directory/merged_wRGLR.bam";
 
-        $cmd = "java -jar ${PICARD_HOME}/picard.jar MergeSamFiles "
-              . " I=$genome_guided_bam "
-              . " I=$RGLR_bam "
-              . " O=$merged_long_reads_bam ";
+        #$cmd = "java -jar ${PICARD_HOME}/picard.jar MergeSamFiles "
+        #      . " I=$genome_guided_bam "
+        #      . " I=$RGLR_bam "
+        #      . " O=$merged_long_reads_bam ";
+        
+        # using samtools merge now instead, as more reliable here.
+        $cmd = "samtools merge $merged_long_reads_bam $genome_guided_bam $RGLR_bam && samtools index $merged_long_reads_bam";
         
         $pipeliner->add_commands(new Command($cmd, "$merged_long_reads_bam.ok"));
         

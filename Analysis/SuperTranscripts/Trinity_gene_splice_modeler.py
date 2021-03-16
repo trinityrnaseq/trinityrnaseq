@@ -107,12 +107,19 @@ def main():
 
         tgraph = TGraph.TGraph(gene_name)
 
+
+        long_read_mappings = dict()
+
         # convert to Node_path objects
         node_path_obj_list = list()
         for iso_struct in iso_struct_list:
             n_path = Node_path.Node_path(tgraph, iso_struct['transcript_name'], iso_struct['path'], iso_struct['seq'])
             node_path_obj_list.append(n_path)
             #print(str(n_path))
+            if iso_struct['long_read_mappings'] is not None:
+                long_read_mappings[ iso_struct['transcript_name'] ] = iso_struct['long_read_mappings']
+
+            
 
         # adjust for unique prefix yet shared suffix of FST nodes
         node_path_obj_list = Node_path.Node_path.adjust_for_fst_nodes(tgraph, node_path_obj_list)
@@ -176,7 +183,7 @@ def main():
         squeezed_splice_model.reassign_node_loc_ids_by_align_order()
         
         
-        (gene_seq, gtf_txt, trinity_fa_text, malign_dict) = squeezed_splice_model.to_gene_fasta_and_gtf(gene_name)
+        (gene_seq, gtf_txt, trinity_fa_text, malign_dict) = squeezed_splice_model.to_gene_fasta_and_gtf(gene_name, long_read_mappings)
 
         if args.incl_dot:
             squeezed_splice_model.to_splice_graph(gene_name).draw_graph("{}.dot".format(gene_name))

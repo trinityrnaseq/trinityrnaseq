@@ -305,7 +305,7 @@ class Node_alignment:
         return squeezed_alignment
 
 
-    def to_gene_fasta_and_gtf(self, gene_name):
+    def to_gene_fasta_and_gtf(self, gene_name, long_read_mappings = None):
 
         transcript_names = self.get_transcript_names()
         
@@ -375,8 +375,14 @@ class Node_alignment:
             path_list = transcript_to_Trinity_fa_path[transcript_name]
             #logger.debug("path list: " + str(path_list))
             path_list_text = " ".join(path_list)
-            trinity_fasta_text += ">{} len={} path=[{}]\n{}\n".format(transcript_name, len(transcript_seq),
-                                                                      path_list_text, transcript_seq)
+            long_read_mappings_txt = ""
+            if long_read_mappings is not None and transcript_name in long_read_mappings:
+                long_read_mappings_txt = " " + long_read_mappings[transcript_name]
+
+            
+            trinity_fasta_text += ">{} len={} path=[{}]{}\n{}\n".format(transcript_name, len(transcript_seq),
+                                                                        path_list_text, long_read_mappings_txt,
+                                                                        transcript_seq)
         
         return (gene_seq, gene_gtf, trinity_fasta_text, transcript_to_malign)
         

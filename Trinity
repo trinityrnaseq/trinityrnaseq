@@ -1400,6 +1400,25 @@ main: {
                 
         my $trinity_GG_fasta_file = &run_genome_guided_Trinity($genome_guided_bam, $long_reads_bam);
         
+        if ($FULL_CLEANUP) {
+            
+            $output_directory =~ s/\/+$//;
+            my $final_trinity_GG_fasta_file = $output_directory . ".Trinity-GG.fasta";
+            &process_cmd("mv $trinity_GG_fasta_file $final_trinity_GG_fasta_file");
+            
+            $trinity_GG_fasta_file = $final_trinity_GG_fasta_file;
+            
+            if ($MKDIR_OUTDIR_FLAG) {
+                chdir($start_dir) or die "Error, cannot cd to start dir";
+                if ($MKDIR_OUTDIR_FLAG && basename($output_directory) =~ /trinity/i) { # ensure outdirectory as trinity in the name, just to be sure we dont delete something non-trinity related!!!
+                    system("rm -rf $output_directory");
+                }
+                else {
+                    print STDERR "-cannot remove output directory: $output_directory, either not created in this execution (resume mode) or doesnt include trinity in the directory name";
+                }
+            }
+        }
+        
         &process_cmd("$UTILDIR/support_scripts/get_Trinity_gene_to_trans_map.pl $trinity_GG_fasta_file > $trinity_GG_fasta_file.gene_trans_map");
         
         print STDERR "\n\nFinished. See $trinity_GG_fasta_file for reconstructed transcripts\n\n";

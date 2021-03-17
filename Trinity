@@ -1403,18 +1403,18 @@ main: {
         if ($FULL_CLEANUP) {
             
             $output_directory =~ s/\/+$//;
-            my $final_trinity_GG_fasta_file = $output_directory . ".Trinity-GG.fasta";
+            my $final_trinity_GG_fasta_file = $TRINITY_PHASE1_OUTDIR . ".Trinity-GG.fasta";
             &process_cmd("mv $trinity_GG_fasta_file $final_trinity_GG_fasta_file");
             
             $trinity_GG_fasta_file = $final_trinity_GG_fasta_file;
             
-            if ($MKDIR_OUTDIR_FLAG) {
+            if ($MKDIR_PHASE1_OUTDIR_FLAG) {
                 chdir($start_dir) or die "Error, cannot cd to start dir";
-                if ($MKDIR_OUTDIR_FLAG && basename($output_directory) =~ /trinity/i) { # ensure outdirectory as trinity in the name, just to be sure we dont delete something non-trinity related!!!
-                    system("rm -rf $output_directory");
+                if ($MKDIR_PHASE1_OUTDIR_FLAG && basename($TRINITY_PHASE1_OUTDIR) =~ /trinity/i) { # ensure outdirectory as trinity in the name, just to be sure we dont delete something non-trinity related!!!
+                    system("rm -rf $TRINITY_PHASE1_OUTDIR");
                 }
                 else {
-                    print STDERR "-cannot remove output directory: $output_directory, either not created in this execution (resume mode) or doesnt include trinity in the directory name";
+                    print STDERR "-cannot remove output directory: $TRINITY_PHASE1_OUTDIR, either not created in this execution (resume mode) or doesnt include trinity in the directory name";
                 }
             }
         }

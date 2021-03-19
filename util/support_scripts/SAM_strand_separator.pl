@@ -71,7 +71,18 @@ sub get_transcribed_strand {
         my $is_long_read = &get_long_read_status($sam_entry);
         
         if ($is_long_read) {
-            return($aligned_strand); # should already be oriented in the forward orientation with respect to input sequence.
+            
+            my $ts = &get_long_read_transcribed_strand($sam_entry);
+            if (defined($ts)) {
+                if ($ts ne $aligned_strand) {
+                    print STDERR "-warning, long read " . $sam_entry->get_read_name() . " aligned as ($aligned_strand) but splicing indicates ($ts)\n";
+                }
+                return($ts);
+            }
+            else {
+                return($aligned_strand); # should already be oriented in the forward orientation with respect to input sequence.
+            }
+        
         }
         
         ## UNPAIRED or SINGLE READS
@@ -111,7 +122,6 @@ sub get_transcribed_strand {
 sub get_long_read_status {
     my ($sam_entry) = @_;
     
-
     my @fields = $sam_entry->get_fields();
     @fields = @fields[11..$#fields];
     
@@ -122,3 +132,20 @@ sub get_long_read_status {
         return(0);
     }
 }
+
+####
+sub get_long_read_transcribed_strand {
+    my ($sam_entry) = @_;
+
+    my @fields = $sam_entry->get_fields();
+    @fields = @fields[11..$#fields];
+    
+    if (my $TS_field = grep { /^ts:A:/ } @fields) {
+        my @pts = split(":", $TS_field);
+        return($pts[2]);
+    }
+    else {
+        return(undef);
+    }
+}
+

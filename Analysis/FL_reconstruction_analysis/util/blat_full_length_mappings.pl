@@ -36,6 +36,8 @@ my $usage = <<__EOUSAGE__;
 #
 #  --out_prefix <string>         output prefix
 #
+#  --debug|d   
+#
 #####################################################################################
 
 __EOUSAGE__
@@ -60,6 +62,8 @@ my $no_reuse_flag = 0;
 
 my $out_prefix = "";
 
+my $DEBUG = 0;
+
 &GetOptions ( 'h' => \$help_flag,
               'target=s' => \$target,
               'query=s' => \$query,
@@ -73,7 +77,9 @@ my $out_prefix = "";
               'no_reuse' => \$no_reuse_flag,
 
               'out_prefix=s' => \$out_prefix,
-
+              
+              'debug|d' => \$DEBUG,
+              
               );
 
 unless ($target && $query) {
@@ -321,12 +327,23 @@ sub examine_blat_mappings {
         my $orient = $row->{strand};
         
 		if ($forward_orient && $orient eq '-') { next; }
-		if ($per_id < $min_per_id) { next; }
+		if ($per_id < $min_per_id) { 
+            
+            if ($DEBUG) {
+                print STDERR "per_id filter: $per_id < $min_per_id   $line\n";
+            }
+            next; 
+        }
 
 		my $percent_gapped = $row->{per_gap};
         
 		if ($percent_gapped > $max_per_gap ) {
 			#print STDERR "\%gapped = $percent_gapped, so skipping.\n";
+            
+            if ($DEBUG) {
+                print STDERR "per_gap filter:  $percent_gapped > $max_per_gap   $line\n";
+            }
+            
             next;  # too gappy
 		}
 		
@@ -378,9 +395,19 @@ sub examine_blat_mappings {
                                          
                 };
 			}
+            elsif ($DEBUG) {
+                print STDERR "per_len filter: $pct_len < $min_per_length   $line\n";
+            }
 			            
 		}
 	}
+
+    if ($DEBUG) {
+        use Data::Dumper;
+        print STDERR Dumper(\%mappings);
+        
+        exit(1);
+    }
     
 	return(%mappings);
 }

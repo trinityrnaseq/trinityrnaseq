@@ -1400,6 +1400,25 @@ main: {
                 
         my $trinity_GG_fasta_file = &run_genome_guided_Trinity($genome_guided_bam, $long_reads_bam);
         
+        if ($FULL_CLEANUP) {
+            
+            $output_directory =~ s/\/+$//;
+            my $final_trinity_GG_fasta_file = $TRINITY_PHASE1_OUTDIR . ".Trinity-GG.fasta";
+            &process_cmd("mv $trinity_GG_fasta_file $final_trinity_GG_fasta_file");
+            
+            $trinity_GG_fasta_file = $final_trinity_GG_fasta_file;
+            
+            if ($MKDIR_PHASE1_OUTDIR_FLAG) {
+                chdir($start_dir) or die "Error, cannot cd to start dir";
+                if ($MKDIR_PHASE1_OUTDIR_FLAG && basename($TRINITY_PHASE1_OUTDIR) =~ /trinity/i) { # ensure outdirectory as trinity in the name, just to be sure we dont delete something non-trinity related!!!
+                    system("rm -rf $TRINITY_PHASE1_OUTDIR");
+                }
+                else {
+                    print STDERR "-cannot remove output directory: $TRINITY_PHASE1_OUTDIR, either not created in this execution (resume mode) or doesnt include trinity in the directory name";
+                }
+            }
+        }
+        
         &process_cmd("$UTILDIR/support_scripts/get_Trinity_gene_to_trans_map.pl $trinity_GG_fasta_file > $trinity_GG_fasta_file.gene_trans_map");
         
         print STDERR "\n\nFinished. See $trinity_GG_fasta_file for reconstructed transcripts\n\n";
@@ -1654,6 +1673,8 @@ sub run_Trinity {
     my $num_long_reads = 0;
     if ($long_reads) {
         ## means the long reads are added as a separate file
+
+        $num_long_reads =  `grep -c '^\>' $long_reads`; 
         
         my $trinity_target_fa_wLR = "$trinity_target_fa.wLR";
         my $trinity_target_fa_wLR_checkpoint = "$trinity_target_fa_wLR.ok";
@@ -1671,13 +1692,15 @@ sub run_Trinity {
             &process_cmd("cat $long_reads | sed 's/>/>LR\\\$\\\|/' >> $trinity_target_fa_wLR"); #  
             
             &process_cmd("touch $trinity_target_fa_wLR.ok");
-                        
+        
+
         }
         
         # The chrysalis read-to-graph mappings should include long reads.
      
         $chrysalis_reads_fa = $trinity_target_fa_wLR;
-
+        
+        
     }
     elsif ($LONG_READS_MODE) {
         # create an inchworm target that lacks the LRs
@@ -3491,10 +3514,13 @@ sub run_genome_guided_Trinity {
         
         my $merged_long_reads_bam = "$output_directory/merged_wRGLR.bam";
 
-        $cmd = "java -jar ${PICARD_HOME}/picard.jar MergeSamFiles "
-              . " I=$genome_guided_bam "
-              . " I=$RGLR_bam "
-              . " O=$merged_long_reads_bam ";
+        #$cmd = "java -jar ${PICARD_HOME}/picard.jar MergeSamFiles "
+        #      . " I=$genome_guided_bam "
+        #      . " I=$RGLR_bam "
+        #      . " O=$merged_long_reads_bam ";
+        
+        # using samtools merge now instead, as more reliable here.
+        $cmd = "samtools merge $merged_long_reads_bam $genome_guided_bam $RGLR_bam && samtools index $merged_long_reads_bam";
         
         $pipeliner->add_commands(new Command($cmd, "$merged_long_reads_bam.ok"));
         

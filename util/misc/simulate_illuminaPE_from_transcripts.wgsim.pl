@@ -122,7 +122,7 @@ main: {
 
     &process_cmd("$FindBin::Bin/../support_scripts/fastQ_to_fastA.pl -I $right_prefix.fq > $right_prefix.fa");
 
-    unlink("$left_prefix.fq", "$right_prefix.fq");
+    #unlink("$left_prefix.fq", "$right_prefix.fq");
 
     open(my $ofh, ">$out_prefix.$token.info") or die "Error, cannot write to file: $out_prefix.$token.info";
     print $ofh join("\t", $transcripts, "$left_prefix.fa", "$right_prefix.fa");

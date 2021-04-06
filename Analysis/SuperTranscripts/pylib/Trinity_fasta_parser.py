@@ -90,6 +90,12 @@ class Trinity_fasta_parser:
             raise RuntimeError("Error, cannot parse path info from header of line: {}".format(header))
         
         path_str = m.group(1)
+
+        long_read_mappings = None
+        if re.search("long_read_mappings:", header) is not None:
+            long_read_mappings = re.findall("\[(LR\$\|[^\]]+)\]", header)
+            long_read_mappings = ",".join(long_read_mappings)
+                
         
         # get gene ID
         gene_id = re.sub("_i\d+$", "", accession)
@@ -100,7 +106,8 @@ class Trinity_fasta_parser:
 
         iso_struct = { 'transcript_name' : accession,
                        'path' : path_str,
-                       'seq' : sequence }
+                       'seq' : sequence,
+                       'long_read_mappings' : long_read_mappings }
 
         isoform_list.append(iso_struct)
 

@@ -404,8 +404,12 @@ class Node_alignment:
 
             logger.debug("repr node: {}".format(repr_node.toString()))
         
-            transcripts = repr_node.get_transcripts()
-
+            occupancy_at_node_pos = self.get_node_occupancy_at_column_pos(i)
+            transcripts = set()
+            for j, transcript_name in enumerate(self.get_transcript_names()):
+                if occupancy_at_node_pos[j] is True:
+                    transcripts.add(transcript_name)
+            
             loc_id = repr_node.get_loc_id()
             if reset_node_ids:
                 loc_id = "loc_" + str(i)

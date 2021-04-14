@@ -124,6 +124,8 @@ my $bflyGCThreads = 2;
 
 my $long_reads = "";
 my $LONG_READS_MODE = 0;
+my $LONG_READS_SCAFFOLDING_FLAG = 0;
+
 
 my $NO_SUPER_READS_FLAG = 0;
 
@@ -1712,10 +1714,11 @@ sub run_Trinity {
             unless (-s $inchworm_target_minus_LR && -e $inchworm_target_minus_LR_checkpoint) {
                 open (my $ofh, ">$inchworm_target_minus_LR") or die "Error, cannot write to $inchworm_target_minus_LR";
                 my $fasta_reader = new Fasta_reader($trinity_target_fa);
+                #print STDERR "-parsing $trinity_target_fa, writing $inchworm_target_minus_LR\n";
                 while (my $seq_obj = $fasta_reader->next()) {
                     my $acc = $seq_obj->get_accession();
                     if ($acc !~ /^LR\$\|/) {
-                        my $fasta_entry = $seq_obj->get_FASTA_format();
+                        my $fasta_entry = ">$acc\n" . $seq_obj->get_sequence() . "\n";
                         print $ofh $fasta_entry;
                     }
                 }
@@ -2105,7 +2108,7 @@ sub run_chrysalis {
     
     ## back to long reads
 
-    if ($LONG_READS_MODE && -s $fa_file_only_LR) {
+    if ($LONG_READS_SCAFFOLDING_FLAG && $LONG_READS_MODE && -s $fa_file_only_LR) {
         
         ## map inchworm contigs to the long reads.
         my $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));

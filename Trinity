@@ -3510,7 +3510,8 @@ sub run_genome_guided_Trinity {
             . " RGLB=lib2 "
             . " RGPL=pacbio "
             . " RGPU=unit2 "
-            . " RGSM=pacbio";
+            . " RGSM=pacbio"
+            . " VALIDATION_STRINGENCY=LENIENT";
         
         $pipeliner->add_commands( new Command($cmd, "$RGLR_bam.ok"));
         

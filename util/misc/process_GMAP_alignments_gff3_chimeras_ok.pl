@@ -25,6 +25,9 @@ my $usage = <<__EOUSAGE__;
 #  --CPU <int>                 number of threads (default: 2)
 #  --no_chimera                do not report chimeric alignmetnts
 #  --SAM                       output in SAM format
+#  --gtf <string>              gene structure annotations in gtf format (for genome building)
+#  --splice_assist <string>    splice assist mode (introns or splicesites)
+#  
 #
 #######################################################################
 
@@ -42,6 +45,8 @@ my $help_flag;
 my $number_top_hits = 1;
 my $no_chimera_flag = 0;
 my $SAM_flag = 0;
+my $gtf_file = 0;
+my $splice_assist = "";
 
 &GetOptions( 'h' => \$help_flag,
              'genome=s' => \$genome,
@@ -51,7 +56,8 @@ my $SAM_flag = 0;
              'N=i' => \$number_top_hits,
              'no_chimera' => \$no_chimera_flag,
              'SAM' => \$SAM_flag,
-             
+             'gtf=s' => \$gtf_file,
+             'splice_assist=s' => \$splice_assist,
              );
 
 
@@ -62,6 +68,12 @@ if ($help_flag) {
 
 unless ($genome && $transcriptDB) {
     die $usage;
+}
+
+if ($splice_assist) {
+    unless ($splice_assist =~ /^(introns|splicesites)$/) {
+        die "Error, splice_assist $splice_assist not recognized as an option";
+    }
 }
 
 
@@ -77,8 +89,14 @@ main: {
 	unless (-d "$genomeBaseDir/$genomeDir") {
 		
         #my $cmd = "gmap_build -D $genomeBaseDir -d $genomeBaseDir/$genomeDir -k 13 $genome >&2";
-        my $cmd = "gmap_build -D $genomeBaseDir -T $genomeBaseDir -d $genomeDir -k 13 $genome >&2";
+        my $cmd = "gmap_build -D $genomeBaseDir -d $genomeDir -k 13 $genome >&2";
 		&process_cmd($cmd);
+        
+
+        if ($gtf_file) {
+            &build_intron_n_splice_info_files($genomeBaseDir, $genomeDir, $gtf_file);
+        }
+        
 	}
 
 	
@@ -95,6 +113,10 @@ main: {
 	if ($max_intron) {
 		$cmd .= " --intronlength=$max_intron ";
 	}
+
+    if ($splice_assist) {
+        $cmd .= " -m ref_${splice_assist}.iit";
+    }
 	
 	&process_cmd($cmd);
 
@@ -116,5 +138,30 @@ sub process_cmd {
 	return;
 }
 
+####
+sub build_intron_n_splice_info_files {
+    my ($genomeBaseDir, $genomeDir, $gtf_file) = @_;
 
+    my $genome_maps_dir = "$genomeBaseDir/$genomeDir/$genomeDir.maps";
+
+    my $introns_iit_file = "$genome_maps_dir/ref_introns.iit";
+
+    my $cmd = "gtf_introns < $gtf_file | iit_store -o $introns_iit_file";
+    &process_cmd($cmd);
+
+    if (! -e $introns_iit_file) {
+        die "Error, no introns $introns_iit_file";
+    }
+
+    my $splicesites_iit_file = "$genome_maps_dir/ref_splicesites.iit";
+
+    $cmd = "gtf_splicesites < $gtf_file | iit_store -o $splicesites_iit_file";
+    &process_cmd($cmd);
+
+    if (! -e $splicesites_iit_file) {
+        die "Error, no splicesites $splicesites_iit_file";
+    }
+
+    return;
+}
 

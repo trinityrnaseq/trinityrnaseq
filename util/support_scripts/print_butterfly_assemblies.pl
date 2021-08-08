@@ -16,6 +16,8 @@ main: {
 
     my $ret_val = 0;
 
+    my %seen;
+    
     open (my $fh, $comp_list_file) or die "Error, cannot open file $comp_list_file";
     while (<$fh>) {
         chomp;
@@ -26,7 +28,17 @@ main: {
 
             my $fasta_reader = new Fasta_reader($butterfly_fasta_file);
             while (my $seq_obj = $fasta_reader->next()) {
-                if (length($seq_obj->get_sequence()) >= $min_seq_length) {
+                my $sequence = $seq_obj->get_sequence();
+                if (length($sequence) >= $min_seq_length) {
+
+                    if ($seen{$sequence}) {
+                        print STDERR "-duplicate sequence detected, excluding it.\n";
+                        next;
+                    }
+                    else {
+                        $seen{$sequence} = 1;
+                    }
+                    
                     print $seq_obj->get_FASTA_format();
                 }
             }

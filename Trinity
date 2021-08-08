@@ -556,7 +556,7 @@ my $advanced_usage =  <<_ADVANCEDUSAGE_;
 #
 #  --java_opts <string>       : can include any additional custom options to the java command.
 #                                    ie.  -Djava.io.tmpdir=/path/to/my/custom/tmpdir
-#  --no_salmon                : remove salmon expression filtering
+#  --incl_salmon                : include salmon expression filtering
 #     --min_eff_read_cov <int>   : minimum effective read coverage for reconstructed transcript (default: $min_eff_read_cov)
 #
 #  --long_reads_mode               : run in long reads mode (requires --single and the long reads integrated with LR$| accession prefixes.
@@ -635,7 +635,7 @@ my $WORKDIR;
 
 my $NO_CHECK_COORDSORTED_BAM = 0;
 
-my $NO_SALMON = $ENV{TRINITY_NO_SALMON} || 0;
+my $INCL_SALMON = 0;
 
 my $STOMP_SNPS = 0;
 
@@ -708,7 +708,7 @@ my $STOMP_SNPS = 0;
     'max_diffs_same_path=i' => \$MAX_DIFFS_SAME_PATH,
     'max_internal_gap_same_path=i' => \$MAX_INTERNAL_GAP_SAME_PATH,
              
-    'no_salmon' => \$NO_SALMON,
+    'incl_salmon' => \$INCL_SALMON,
     'min_eff_read_cov=f' => \$min_eff_read_cov,
     
     #'PasaFly' => \$PASAFLY_MODE,
@@ -1906,7 +1906,7 @@ sub run_Trinity {
         # my $cmd = 'find ./chrysalis -name "*allProbPaths.fasta" -exec cat {} + > Trinity.fasta.tmp';
         # no longer scan the file system... we know which files should exist
         print STDERR "\n\n** Harvesting all assembled transcripts into a single multi-fasta file...\n" if ($VERBOSE);
-        $cmd = "$UTILDIR/support_scripts/print_butterfly_assemblies.pl $chrysalis_output_dir/component_base_listing.txt > $Trinity_fasta_file"; 
+        $cmd = "$UTILDIR/support_scripts/print_butterfly_assemblies.pl $chrysalis_output_dir/component_base_listing.txt $min_contig_length > $Trinity_fasta_file"; 
         &process_cmd($cmd);
         
     }
@@ -1917,7 +1917,7 @@ sub run_Trinity {
         mkdir($polish_checkpoints_dir) or confess "Error, cannot mkdir $polish_checkpoints_dir";
     }
     
-    if (-s "$Trinity_fasta_file" && ! $NO_SALMON) {
+    if (-s "$Trinity_fasta_file" && $INCL_SALMON) {
         
         ## assembly polishing
             
@@ -4064,7 +4064,7 @@ sub check_required_3rd_party_tool_installations {
     }
 
     # salmon
-    if (! $NO_SALMON) {
+    if ($INCL_SALMON) {
         my $salmon_path = `which salmon`;
         if ($salmon_path =~ /\w/) {
             print "Found salmon installed at $salmon_path\n" if $VERBOSE;

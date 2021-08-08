@@ -2,10 +2,14 @@
 
 use strict;
 use warnings;
+use FindBin;
+use lib ("$FindBin::Bin/../../PerlLib");
+use Fasta_reader;
 
-my $usage = "usage: $0 chrysalis_component_listing.txt\n\n";
+my $usage = "usage: $0 chrysalis_component_listing.txt min_seq_length\n\n";
 
 my $comp_list_file = $ARGV[0] or die $usage;
+my $min_seq_length = $ARGV[1] or die $usage;
 
 
 main: {
@@ -19,11 +23,13 @@ main: {
         my $butterfly_fasta_file = "$comp_base.graph.allProbPaths.fasta";
         
         if (-e $butterfly_fasta_file) {
-            open (my $bfly_fh, $butterfly_fasta_file) or die "Error, cannot open file $butterfly_fasta_file";
-            while (<$bfly_fh>) {
-                print $_;
+
+            my $fasta_reader = new Fasta_reader($butterfly_fasta_file);
+            while (my $seq_obj = $fasta_reader->next()) {
+                if (length($seq_obj->get_sequence()) >= $min_seq_length) {
+                    print $seq_obj->get_FASTA_format();
+                }
             }
-            close $bfly_fh;
         }
         else {
             print STDERR "Error, no fasta file reported as: $butterfly_fasta_file\n";

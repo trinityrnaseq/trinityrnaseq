@@ -178,7 +178,7 @@ RUN wget https://github.com/gmarcais/Jellyfish/releases/download/v2.2.7/jellyfis
 
 ## Salmon
 WORKDIR $SRC
-ENV SALMON_VERSION=1.4.0
+ENV SALMON_VERSION=1.5.2
 RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v${SALMON_VERSION}/Salmon-${SALMON_VERSION}_linux_x86_64.tar.gz && \
     tar xvf Salmon-${SALMON_VERSION}_linux_x86_64.tar.gz && \
     ln -s $SRC/Salmon-latest_linux_x86_64/bin/salmon $BIN/.
@@ -195,12 +195,12 @@ RUN wget ftp://ftp.ccb.jhu.edu/pub/infphilo/hisat2/downloads/hisat2-2.1.0-Linux_
     cp hisat2-2.1.0/hisat2* $BIN/
 
 ## GMAP
-ENV GMAP_VERSION=2017-11-15
+ENV GSNAP_VER 2021-07-23
 WORKDIR $SRC
-RUN GMAP_URL="http://research-pub.gene.com/gmap/src/gmap-gsnap-$GMAP_VERSION.tar.gz" && \
+RUN GMAP_URL="http://research-pub.gene.com/gmap/src/gmap-gsnap-$GSNAP_VER.tar.gz" && \
     wget $GMAP_URL && \
-    tar xvf gmap-gsnap-$GMAP_VERSION.tar.gz && \
-    cd gmap-$GMAP_VERSION && ./configure --prefix=`pwd` && make && make install && \
+    tar xvf gmap-gsnap-$GSNAP_VER.tar.gz && \
+    cd gmap-$GSNAP_VER && ./configure --prefix=`pwd` && make && make install && \
     cp bin/* $BIN/
 
 

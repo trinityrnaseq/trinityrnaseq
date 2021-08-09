@@ -27,7 +27,8 @@ main: {
         chomp;
 		if (/variableStep chrom=(\S+)/) {
 			if ($lend && $rend) {
-				print "$scaffold\tpartition\tregion\t$lend\t$rend\t.\t$strand\t.\t.\n";
+                my $len = $rend - $lend + 1;
+				print "$scaffold\tpartition\tregion\t$lend\t$rend\t.\t$strand\t.\t.\t$len\n";
 				$lend = undef;
 				$rend = undef;
 			}
@@ -67,7 +68,8 @@ main: {
 
 	# get last block
 	if ($lend && $rend) {
-		print "$scaffold\tpartition\tregion\t$lend\t$rend\t.\t$strand\t.\t.\n";
+        my $len = $rend - $lend + 1;
+		print "$scaffold\tpartition\tregion\t$lend\t$rend\t.\t$strand\t.\t.\t$len\n";
 	}
 	
 	exit(0);

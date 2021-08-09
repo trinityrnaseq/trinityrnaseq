@@ -21,8 +21,11 @@ ${TRINITY_HOME}/Trinity --seqType fq --max_memory 2G \
 if [ $* ]; then
     # check full-length reconstruction stats:
 
-    ${TRINITY_HOME}/util/misc/illustrate_ref_comparison.pl __indiv_ex_sample_derived/refSeqs.fa trinity_out_dir/Trinity.fasta 90
+    ${TRINITY_HOME}/util/misc/illustrate_ref_comparison.pl __indiv_ex_sample_derived/refSeqs.fa trinity_out_dir.Trinity.fasta 90
 
-    ./test_FL.sh --query trinity_out_dir/Trinity.fasta --target __indiv_ex_sample_derived/refSeqs.fa --no_reuse
+    ./test_FL.sh --query  trinity_out_dir.Trinity.fasta --target __indiv_ex_sample_derived/refSeqs.fa --no_reuse
+    ./test_FL.sh --query  trinity_out_dir.Trinity.HQ.fasta --target __indiv_ex_sample_derived/refSeqs.fa --no_reuse
+
+
 fi
 

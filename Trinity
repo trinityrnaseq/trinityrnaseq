@@ -221,10 +221,7 @@ my $FORCE_FLAG = 0;
 # Note: For the Trinity logo below the backslashes are quoted in order to keep
 #   them from quoting the character than follows them.  "\\" keeps "\ " from occuring.
 
-my $NO_SUPERTRANS_FLAG = 0; # for debugging
-
 my $MAX_CHRYSALIS_CLUSTER_SIZE = 25; # might need to set higher for highly polymorphic transcriptomes.
-
 
 my $JUST_NORMALIZE_READS_FLAG = 0;
 
@@ -564,8 +561,6 @@ my $advanced_usage =  <<_ADVANCEDUSAGE_;
 #
 #  --stomp_snps                    : stomp snps out of kmers before inchworm assembly
 #
-#  --NO_SUPERTRANS                 : disable supertranscripts
-#
 #  --NO_SEQTK                      :disable seqtk for fq->fa conversions, instead use slower perl code
 #
 
@@ -784,8 +779,6 @@ my $STOMP_SNPS = 0;
     "ananas_dir=s" => \$ANANAS_DIR,
 
     "FORCE" => \$FORCE_FLAG,
-
-    "NO_SUPERTRANS" => \$NO_SUPERTRANS_FLAG,
 
     "NO_SEQTK" => \$NO_SEQTK,
 
@@ -1428,11 +1421,10 @@ main: {
     
 
     my $Trinity_tmp_fasta_file;
-    my $Trinity_tmp_supertranscripts_fasta_file;
-    my $Trinity_tmp_supertranscripts_gtf_file;
+    my $inchworm_target_reads_fa;
     
     eval {
-        ($Trinity_tmp_fasta_file, $Trinity_tmp_supertranscripts_fasta_file, $Trinity_tmp_supertranscripts_gtf_file) = &run_Trinity();
+        ($Trinity_tmp_fasta_file, $inchworm_target_reads_fa) = &run_Trinity();
     };
     
     if ($@) {
@@ -1442,81 +1434,75 @@ main: {
         }
     }
 
-    #print STDERR "Files: " . join("\n", $Trinity_tmp_fasta_file, $Trinity_tmp_supertranscripts_fasta_file, $Trinity_tmp_supertranscripts_gtf_file) . "\n";
+
     
     my $final_Trinity_fasta_file;
+    my $final_Trinity_fasta_file_filtered;
+
+    if ($Trinity_tmp_fasta_file && -s $Trinity_tmp_fasta_file) {
+        
+        
+        $final_Trinity_fasta_file = "$TRINITY_PHASE1_OUTDIR.Trinity.fasta";
+        &process_cmd("mv $Trinity_tmp_fasta_file $final_Trinity_fasta_file");
+        
+        
+        # expression filtered.
+        if (! $NO_SALMON) {
+            
+            $final_Trinity_fasta_file_filtered = "$TRINITY_PHASE1_OUTDIR.Trinity.HQ.fasta";
+            &salmon_expr_filtering($final_Trinity_fasta_file, $inchworm_target_reads_fa, $final_Trinity_fasta_file_filtered);
+        }
+        
+        
+        if ($VERBOSE || ! $TRINITY_COMPLETE_FLAG) {
+            print "\n\n"
+                . "#############################################################################\n"
+                . "Finished.  Final Trinity assemblies are written to $final_Trinity_fasta_file\n";
+            
+            if (! $NO_SALMON) {
+                print "       Find likely artifact filtered fasta as: $final_Trinity_fasta_file_filtered\n";
+                
+            }
+            
+            print "#############################################################################\n\n\n";
+        }
+        
+    }
+    else {
+        print "# No butterfly assemblies to report.\n" unless $TRINITY_COMPLETE_FLAG;
+    }
+    
+        
+
     if ($FULL_CLEANUP) {
         print "Fully cleaning up.\n" if $VERBOSE;
                         
-        if ($Trinity_tmp_fasta_file && -s $Trinity_tmp_fasta_file) {
-            $final_Trinity_fasta_file = "$TRINITY_PHASE1_OUTDIR.Trinity.fasta";
-            &process_cmd("mv $Trinity_tmp_fasta_file $final_Trinity_fasta_file");
-            
-            if ($VERBOSE || ! $TRINITY_COMPLETE_FLAG) {
-                print "\n\n"
-                    . "#############################################################################\n"
-                    . "Finished.  Final Trinity assemblies are written to $final_Trinity_fasta_file\n"
-                    . "#############################################################################\n\n\n";
-            }
-            
-        }
-        else {
-            print "# No butterfly assemblies to report.\n" unless $TRINITY_COMPLETE_FLAG;
-        }
-
         # before removing anything under cleanup, cd to a safe place.
         chdir($start_dir) or die "Error, cannot cd to start dir: $start_dir";
         
-        if ($TRINITY_COMPLETE_FLAG) {
+        if ($TRINITY_COMPLETE_FLAG && 
+            $MKDIR_OUTDIR_FLAG && 
+            basename($output_directory) =~ /trinity/i) { # ensure outdirectory as trinity in the name, just to be sure we dont delete something non-trinity related!!!) {
             # phase-2
             # outputdir might be workdir
-            if ($MKDIR_OUTDIR_FLAG && basename($output_directory) =~ /trinity/i) { # ensure outdirectory as trinity in the name, just to be sure we dont delete something non-trinity related!!!
-                system("rm -rf $output_directory");
-            }
+            
+            system("rm -rf $output_directory");
+            
         }
         
         if ($MKDIR_PHASE1_OUTDIR_FLAG && basename($TRINITY_PHASE1_OUTDIR =~ /trinity/i) && -d $TRINITY_PHASE1_OUTDIR) {
             system("rm -rf $TRINITY_PHASE1_OUTDIR");
         }
     }
-    else {
 
-        # not fully cleaning up.
-        # leave directories intact.
-        
-        if ($Trinity_tmp_fasta_file && -s $Trinity_tmp_fasta_file) {
-            print STDERR "-relocating $Trinity_tmp_fasta_file to $butterfly_output_filename\n" if ($VERBOSE || ! $TRINITY_COMPLETE_FLAG);
-            &process_cmd("mv $Trinity_tmp_fasta_file $butterfly_output_filename");
-            $final_Trinity_fasta_file = $butterfly_output_filename;
-
-            if ($Trinity_tmp_supertranscripts_fasta_file && -s $Trinity_tmp_supertranscripts_fasta_file) {
-                &process_cmd("mv $Trinity_tmp_supertranscripts_fasta_file Trinity.SuperTrans.fasta");
-                &process_cmd("mv $Trinity_tmp_supertranscripts_gtf_file Trinity.SuperTrans.gtf");
-            }
-            
-        }
-        
-        if (-s $butterfly_output_filename) {
-
-            if ($VERBOSE || ! $TRINITY_COMPLETE_FLAG) {
-            
-            print "\n\n"
-                . "###################################################################\n"
-                . "Trinity assemblies are written to $butterfly_output_filename\n"
-                . "###################################################################\n\n\n";
-            }
-        }
-        else {
-            
-            die "ERROR, no butterfly assemblies reported. Perhaps there were too few reads to assemble anything? " unless $TRINITY_COMPLETE_FLAG;
-        }
-        
-    }
-    
     if ($final_Trinity_fasta_file && ! $TRINITY_COMPLETE_FLAG) {
         &process_cmd("$UTILDIR/support_scripts/get_Trinity_gene_to_trans_map.pl $final_Trinity_fasta_file > $final_Trinity_fasta_file.gene_trans_map");
+        
+        if (-s $final_Trinity_fasta_file_filtered) {
+            &process_cmd("$UTILDIR/support_scripts/get_Trinity_gene_to_trans_map.pl $final_Trinity_fasta_file_filtered > $final_Trinity_fasta_file_filtered.gene_trans_map");
+        }
+
     }
-    
     
     &perfmon_end() unless ($TRINITY_COMPLETE_FLAG || $FULL_CLEANUP);
 
@@ -1862,7 +1848,7 @@ sub run_Trinity {
         
         # Phase-1 complete
         
-        return("Trinity.tmp.fasta", "Trinity.tmp.SuperTrans.fasta", "Trinity.tmp.SuperTrans.gtf"); # end of run_Trinity()
+        return("Trinity.tmp.fasta", $inchworm_target_fa); # end of run_Trinity()
     }
     
     #############################################
@@ -1903,26 +1889,13 @@ sub run_Trinity {
     }
 
 
-    my $polish_checkpoints_dir = "__polish.chkpts";
-    if (! -d $polish_checkpoints_dir) {
-        mkdir($polish_checkpoints_dir) or confess "Error, cannot mkdir $polish_checkpoints_dir";
-    }
     
     if (-s "$Trinity_fasta_file" && ! $NO_SALMON) {
-        
+                
         ## assembly polishing
-            
-        my $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
-        my $cmd = "$UTILDIR/support_scripts/salmon_runner.pl $Trinity_fasta_file $inchworm_target_fa";
-        $pipeliner->add_commands( new Command($cmd, "$polish_checkpoints_dir/salmon.ok") );
-
-        my $salmon_quant_file = "salmon_outdir/quant.sf";
-        $cmd = "$UTILDIR/support_scripts/filter_transcripts_require_min_cov.pl $Trinity_fasta_file $inchworm_target_fa $salmon_quant_file $min_eff_read_cov > $Trinity_fasta_file.filt";
-        $pipeliner->add_commands( new Command($cmd, "$polish_checkpoints_dir/salmon.filt.ok"));
-
         eval {
-            $pipeliner->run();
             
+            &salmon_expr_filtering($Trinity_fasta_file, $inchworm_target_fa, "$Trinity_fasta_file.filt");
             
         };
 
@@ -1944,9 +1917,13 @@ sub run_Trinity {
         }
     }
     
-    if (-s $Trinity_fasta_file && ! $NO_SUPERTRANS_FLAG) {
+    if (-s $Trinity_fasta_file) {
 
         # further simplification
+        my $polish_checkpoints_dir = "__ST_polish.chkpts";
+        if (! -d $polish_checkpoints_dir) {
+            mkdir($polish_checkpoints_dir) or confess "Error, cannot mkdir $polish_checkpoints_dir";
+        }
         
         my $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
                 
@@ -1957,18 +1934,13 @@ sub run_Trinity {
 
         my $new_Trinity_fasta_file = "$Trinity_fasta_file.ST.transcripts.fa";
 
-        &check_for_duplicate_seqs($new_Trinity_fasta_file);
+        #&check_for_duplicate_seqs($new_Trinity_fasta_file);
         
-        my $Trinity_tmp_supertranscripts_fasta_file = "$Trinity_fasta_file.ST.fasta";
-        my $Trinity_tmp_supertranscripts_gtf_file = "$Trinity_fasta_file.ST.gtf";
-
-
-        
-        return($new_Trinity_fasta_file, $Trinity_tmp_supertranscripts_fasta_file, $Trinity_tmp_supertranscripts_gtf_file);
+        return($new_Trinity_fasta_file, $inchworm_target_fa);
         
     }
     else {
-        return($Trinity_fasta_file);
+        return($Trinity_fasta_file, $inchworm_target_fa);
     }
     
 } # end of run_Trinity()
@@ -4156,4 +4128,27 @@ sub evaluate_paired_end_bam {
     print STDERR "-not finding a paired-end read in aligned bam file among first 1k reads, assuming single-end\n"; 
     
     return(0); # not finding a paired-end read within the first 1k reads, just assume single end mode.
+}
+
+
+####
+sub salmon_expr_filtering {
+    my ($input_fasta, $reads_fasta, $output_fasta) = @_;
+    
+    my $polish_checkpoints_dir = "__salmon_filt.chkpts";
+    if (! -d $polish_checkpoints_dir) {
+        mkdir($polish_checkpoints_dir) or confess "Error, cannot mkdir $polish_checkpoints_dir";
+    }
+    my $salmon_quant_file = "salmon_outdir/quant.sf";
+
+    my $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
+    my $cmd = "$UTILDIR/support_scripts/salmon_runner.pl $input_fasta $reads_fasta $CPU";
+    $pipeliner->add_commands( new Command($cmd, "$polish_checkpoints_dir/salmon.ok") );
+    
+    $cmd = "$UTILDIR/support_scripts/filter_transcripts_require_min_cov.pl $input_fasta $reads_fasta $salmon_quant_file $min_eff_read_cov > $output_fasta";
+    $pipeliner->add_commands( new Command($cmd, "$polish_checkpoints_dir/salmon.filt.ok"));
+
+    $pipeliner->run();
+    
+    return;
 }

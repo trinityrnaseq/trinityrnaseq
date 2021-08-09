@@ -221,7 +221,6 @@ my $FORCE_FLAG = 0;
 # Note: For the Trinity logo below the backslashes are quoted in order to keep
 #   them from quoting the character than follows them.  "\\" keeps "\ " from occuring.
 
-my $INCLUDE_SUPERTRANSCRIPTS_FLAG = 0;
 my $NO_SUPERTRANS_FLAG = 0; # for debugging
 
 my $MAX_CHRYSALIS_CLUSTER_SIZE = 25; # might need to set higher for highly polymorphic transcriptomes.
@@ -556,7 +555,7 @@ my $advanced_usage =  <<_ADVANCEDUSAGE_;
 #
 #  --java_opts <string>       : can include any additional custom options to the java command.
 #                                    ie.  -Djava.io.tmpdir=/path/to/my/custom/tmpdir
-#  --incl_salmon                : include salmon expression filtering
+#  --no_salmon                : exclude salmon expression filtering
 #     --min_eff_read_cov <int>   : minimum effective read coverage for reconstructed transcript (default: $min_eff_read_cov)
 #
 #  --long_reads_mode               : run in long reads mode (requires --single and the long reads integrated with LR$| accession prefixes.
@@ -635,7 +634,7 @@ my $WORKDIR;
 
 my $NO_CHECK_COORDSORTED_BAM = 0;
 
-my $INCL_SALMON = 0;
+my $NO_SALMON = 0;
 
 my $STOMP_SNPS = 0;
 
@@ -708,7 +707,7 @@ my $STOMP_SNPS = 0;
     'max_diffs_same_path=i' => \$MAX_DIFFS_SAME_PATH,
     'max_internal_gap_same_path=i' => \$MAX_INTERNAL_GAP_SAME_PATH,
              
-    'incl_salmon' => \$INCL_SALMON,
+    'no_salmon' => \$NO_SALMON,
     'min_eff_read_cov=f' => \$min_eff_read_cov,
     
     #'PasaFly' => \$PASAFLY_MODE,
@@ -756,7 +755,6 @@ my $STOMP_SNPS = 0;
     'monitoring' => \$run_with_collectl,
     'monitor_sec=i' => \$COLLECTL_INTERVAL_SECONDS,
     'no_distributed_trinity_exec' => \$NO_DISTRIBUTED_TRINITY_EXEC,
-    'include_supertranscripts' => \$INCLUDE_SUPERTRANSCRIPTS_FLAG,
     
     # hidden (don't look here! ;) 
     'jelly_s=i' => \$JELLY_S,
@@ -1454,13 +1452,6 @@ main: {
             $final_Trinity_fasta_file = "$TRINITY_PHASE1_OUTDIR.Trinity.fasta";
             &process_cmd("mv $Trinity_tmp_fasta_file $final_Trinity_fasta_file");
             
-            if ($INCLUDE_SUPERTRANSCRIPTS_FLAG) {
-                if ($Trinity_tmp_supertranscripts_fasta_file && -s $Trinity_tmp_supertranscripts_fasta_file) {
-                    &process_cmd("mv $Trinity_tmp_supertranscripts_fasta_file $TRINITY_PHASE1_OUTDIR.Trinity.SuperTrans.fasta");
-                    &process_cmd("mv $Trinity_tmp_supertranscripts_gtf_file $TRINITY_PHASE1_OUTDIR.Trinity.SuperTrans.gtf");
-                }
-            }
-            
             if ($VERBOSE || ! $TRINITY_COMPLETE_FLAG) {
                 print "\n\n"
                     . "#############################################################################\n"
@@ -1917,7 +1908,7 @@ sub run_Trinity {
         mkdir($polish_checkpoints_dir) or confess "Error, cannot mkdir $polish_checkpoints_dir";
     }
     
-    if (-s "$Trinity_fasta_file" && $INCL_SALMON) {
+    if (-s "$Trinity_fasta_file" && ! $NO_SALMON) {
         
         ## assembly polishing
             
@@ -2483,7 +2474,7 @@ sub run_recursive_trinity {
     
         
     if (! -e "recursive_trinity.cmds.ok") {
-        &write_trinity_partitioned_cmds($read_filenames, "recursive_trinity.cmds");
+        &write_trinity_partitioned_cmds($read_filenames, "recursive_trinity.cmds", "GENOME-FREE_MODE");
         &process_cmd("touch recursive_trinity.cmds.ok");
         print STDERR "Done prepping partitioned cmds." if $VERBOSE;
     }
@@ -2508,9 +2499,7 @@ sub run_recursive_trinity {
     my $trinity_output_file = &create_full_path("Trinity.tmp", 0);
     
     my $cmd = "find " . &create_full_path("read_partitions/",0) . " -name '*inity.fasta'  | $UTILDIR/support_scripts/partitioned_trinity_aggregator.pl --token_prefix TRINITY_DN --output_prefix $trinity_output_file";
-    if ($INCLUDE_SUPERTRANSCRIPTS_FLAG) {
-        $cmd .= " --include_supertranscripts";
-    }
+
     &process_cmd($cmd);
     
     return;
@@ -3573,7 +3562,7 @@ sub run_genome_guided_Trinity {
 
 
     unless (-e "trinity_GG.cmds.ok") {
-        &write_trinity_partitioned_cmds("read_files.list", "trinity_GG.cmds");
+        &write_trinity_partitioned_cmds("read_files.list", "trinity_GG.cmds", "GENOME_GUIDED_MODE");
         &process_cmd("touch trinity_GG.cmds.ok");
     }
     
@@ -3635,7 +3624,7 @@ sub run_partitioned_cmds {
 
 ####
 sub write_trinity_partitioned_cmds {
-    my ($reads_list_file, $cmds_file) = @_;
+    my ($reads_list_file, $cmds_file, $trinity_mode) = @_;
     
     ##################################################
     ## write Trinity assembly commands for partitions:
@@ -3664,6 +3653,10 @@ sub write_trinity_partitioned_cmds {
         
     my @potential_args = @ORIG_ARGS;
 
+    if ($trinity_mode =~ /FREE/ && ! grep { /no_salmon/ } @potential_args) {
+        push (@potential_args, "--no_salmon"); # now saving salmon for a final post-process using aggregated transcripts in genome-free mode.
+    }
+    
     while (@potential_args) {
         my $arg = shift @potential_args;
         
@@ -4064,7 +4057,7 @@ sub check_required_3rd_party_tool_installations {
     }
 
     # salmon
-    if ($INCL_SALMON) {
+    if (! $NO_SALMON) {
         my $salmon_path = `which salmon`;
         if ($salmon_path =~ /\w/) {
             print "Found salmon installed at $salmon_path\n" if $VERBOSE;

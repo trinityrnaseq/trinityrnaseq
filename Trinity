@@ -334,7 +334,7 @@ my $full_usage = qq^
 #
 #  --no_version_check              :dont run a network check to determine if software updates are available.
 #
-#  --no_symlink                    :dont symlink, just copy files instead
+#  --no_symlink                    :dont symlink, just copy files instead (sets env var NO_SYMLINK=TRUE)
 #
 #  --monitoring                    :use collectl to monitor all steps of Trinity
 #     --monitor_sec <int>          : number of seconds for each interval of runtime monitoring (default: $COLLECTL_INTERVAL_SECONDS)
@@ -635,6 +635,8 @@ my $NO_CHECK_COORDSORTED_BAM = 0;
 my $NO_SALMON = 0;
 
 my $STOMP_SNPS = 0;
+
+my $NO_SYMLINK_FLAG = 0;  # uses symlinks by default where appropriate
 
 &GetOptions( 
     
@@ -961,9 +963,9 @@ unless ($max_memory &&
 }
 
 
-if ($NO_SYMLINK_FLAG) {
+if ($NO_SYMLINK_FLAG || $ENV{NO_SYMLINK}) {
     $SYMLINK = "cp";
-    $ENV{NO_SYMLINK} = "TRUE";
+    $ENV{NO_SYMLINK} = "TRUE"; #  propagates to all downstream execs
 }
 
 

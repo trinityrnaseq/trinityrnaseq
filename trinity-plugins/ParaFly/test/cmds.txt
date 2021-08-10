@@ -1,0 +1,10 @@
+./rand_exit.pl 1
+./rand_exit.pl 2
+./rand_exit.pl 3
+./rand_exit.pl 4
+./rand_exit.pl 5
+./rand_exit.pl 6
+./rand_exit.pl 7
+./rand_exit.pl 8
+./rand_exit.pl 9
+./rand_exit.pl 10

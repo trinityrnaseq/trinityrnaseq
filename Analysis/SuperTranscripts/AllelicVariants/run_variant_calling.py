@@ -138,9 +138,9 @@ def main():
         "--STAR_genomeGenerate_opts",
         type=str,
         default="",
-        help="options to pass through to STAR's genomeGenerate function",
+        help="options to pass through to STAR's genomeGenerate function. ie. might need:  --genomeChrBinNbits to log2[SequenceLength/NumberOfContigs]   ",
     )
-
+    
     args = parser.parse_args()
 
     PICARD_HOME = os.getenv("PICARD_HOME")
@@ -228,7 +228,7 @@ def main():
                     + st_fa_path
                     + " O="
                     + dict_file
-                    + " VALIDATION_STRINGENCY=LENIENT ",
+                    + " VALIDATION_STRINGENCY=LENIENT USE_JDK_DEFLATER=true USE_JDK_INFLATER=true ",
                     "picard_dict_st.ok",
                 )
             ]
@@ -242,6 +242,8 @@ def main():
     # scale down the --genomeSAindexNbases parameter as log2(GenomeLength)/2 - 1
 
     genomeSAindexNbases = int(math.log(os.path.getsize(st_fa_path)) / math.log(2) / 2)
+
+    ## might need to: --genomeChrBinNbits to log2[SequenceLength/NumberOfContigs] to STAR --runMode genomeGenerate
 
     star_genome_generate_cmd = str(
         "STAR --runThreadN "
@@ -302,7 +304,7 @@ def main():
                 + " AddOrReplaceReadGroups "
                 + "I=Aligned.sortedByCoord.out.bam "
                 + "O=rg_added_sorted.bam "
-                + " VALIDATION_STRINGENCY=SILENT "
+                + " VALIDATION_STRINGENCY=SILENT USE_JDK_DEFLATER=true USE_JDK_INFLATER=true "
                 + "SO=coordinate RGID={} RGLB=library RGPL=platform RGPU=machine RGSM={}".format(
                     args.rg_id, args.rg_sample
                 ),
@@ -314,7 +316,7 @@ def main():
                 + "/picard.jar "
                 + " MarkDuplicates "
                 + "I=rg_added_sorted.bam O=dedupped.bam "
-                + "CREATE_INDEX=true VALIDATION_STRINGENCY=SILENT M=output.metrics",
+                + "CREATE_INDEX=true VALIDATION_STRINGENCY=SILENT M=output.metrics USE_JDK_DEFLATER=true USE_JDK_INFLATER=true",
                 "mark_dups.ok",
             ),
             Pipeliner.Command(
@@ -325,6 +327,7 @@ def main():
                 + "IGNORE_WARNINGS=true "
                 + "MAX_OUTPUT=100000 "
                 + "IGNORE=MATE_NOT_FOUND "
+                + "VALIDATION_STRINGENCY=SILENT USE_JDK_DEFLATER=true USE_JDK_INFLATER=true " 
                 + "O=dedupped.bam.validation",
                 "bam_validate.ok",
                 ignore_error=True,

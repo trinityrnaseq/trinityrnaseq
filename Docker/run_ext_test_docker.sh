@@ -5,7 +5,9 @@ if [ ! -e trinity_ext_sample_data ]; then
 fi
 
 
+VERSION=`cat VERSION.txt`
+
 docker run --rm -v `pwd`/trinity_ext_sample_data:/trinity_ext_sample_data \
-       trinityrnaseq/trinityrnaseq \
+       trinityrnaseq/trinityrnaseq:$VERSION \
        bash -c 'cd /trinity_ext_sample_data && make'
 

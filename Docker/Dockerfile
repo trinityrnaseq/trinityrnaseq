@@ -152,7 +152,7 @@ RUN wget http://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v${FAST
 # blast
 WORKDIR $SRC
 ENV BLASTPLUS_VERSION 2.12.0
-RUN wget ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.5.0/ncbi-blast-${BLASTPLUS_VERSION}+-x64-linux.tar.gz && \
+RUN wget ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/${BLASTPLUS_VERSION}/ncbi-blast-${BLASTPLUS_VERSION}+-x64-linux.tar.gz && \
     tar xvf ncbi-blast-${BLASTPLUS_VERSION}+-x64-linux.tar.gz && \
     cp ncbi-blast-${BLASTPLUS_VERSION}+/bin/* $BIN && \
     rm -r ncbi-blast-${BLASTPLUS_VERSION}+
@@ -181,14 +181,6 @@ RUN wget https://github.com/gmarcais/Jellyfish/releases/download/v${JELLYFISH_VE
     cd jellyfish-${JELLYFISH_VERSION}/ && \
     ./configure && make && make install
 
-## Salmon
-WORKDIR $SRC
-ENV SALMON_VERSION=1.5.2
-RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v${SALMON_VERSION}/Salmon-${SALMON_VERSION}_linux_x86_64.tar.gz && \
-    tar xvf Salmon-${SALMON_VERSION}_linux_x86_64.tar.gz && \
-    ln -s $SRC/Salmon-latest_linux_x86_64/bin/salmon $BIN/.
-
-
 ## FeatureCounts
 ENV SUBREAD_VERSION 2.0.2
 RUN wget https://sourceforge.net/projects/subread/files/subread-${SUBREAD_VERSION}/subread-${SUBREAD_VERSION}-Linux-x86_64.tar.gz/download -O subread-${SUBREAD_VERSION}-Linux-x86_64.tar.gz && \
@@ -196,7 +188,7 @@ RUN wget https://sourceforge.net/projects/subread/files/subread-${SUBREAD_VERSIO
     cp -r subread-${SUBREAD_VERSION}-Linux-x86_64/bin/* $BIN/
 
 ## Hisat2
-RUN wget https://cloud.biohpc.swmed.edu/index.php/s/oTtGWbWjaxsQ2Ho/download && \
+RUN wget https://cloud.biohpc.swmed.edu/index.php/s/oTtGWbWjaxsQ2Ho/download -O hisat2-2.2.1-Linux_x86_64.zip  && \
     unzip hisat2-2.2.1-Linux_x86_64.zip && \
     cp hisat2-2.2.1/hisat2* $BIN/
 
@@ -238,10 +230,18 @@ RUN STAR_URL="https://github.com/alexdobin/STAR/archive/${STAR_VERSION}.tar.gz" 
 
 
 
+## Salmon
+WORKDIR $SRC
+ENV SALMON_VERSION=1.5.2
+RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v${SALMON_VERSION}/Salmon-${SALMON_VERSION}_linux_x86_64.tar.gz && \
+    tar xvf Salmon-${SALMON_VERSION}_linux_x86_64.tar.gz && \
+    ln -s $SRC/salmon-latest_linux_x86_64/bin/salmon $BIN/.
+
+
 ## Trinity
 WORKDIR $SRC
-ENV TRINITY_VERSION="2.12.0"
-ENV TRINITY_CO="a1431ffa1d87236dba814ddf0bb2e5c1f45c43d2"
+ENV TRINITY_VERSION="2.13.0"
+ENV TRINITY_CO="f382cdc20eac9977e0716ec774cae2fb5e972284"
 
 WORKDIR $SRC
 

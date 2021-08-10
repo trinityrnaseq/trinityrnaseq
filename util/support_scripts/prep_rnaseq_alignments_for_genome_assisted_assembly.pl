@@ -64,6 +64,7 @@ my $min_reads_per_partition = 10;
 my $parts_per_dir = 100;
 my $sort_buffer = '10G';
 
+my $SYMLINK = ($ENV{NO_SYMLINK}) ? "cp" : "ln -sf";
 
 &GetOptions ( 'h' => \$help_flag,
 
@@ -119,7 +120,7 @@ main: {
 	}
 	else {
         if (cwd() ne dirname(File::Spec->rel2abs($SAM_file))) {
-            &process_cmd("ln -sf $SAM_file");
+            &process_cmd("$SYMLINK $SAM_file");
             $SAM_file = basename($SAM_file);
         }
 		push (@sam_info, [$SAM_file, '+']);

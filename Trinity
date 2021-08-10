@@ -64,6 +64,7 @@ my $JAVA_VERSION_REQUIRED = 8;
 
 my $USE_PERL_SCAFFOLDER = 1;  # for testing purposes in chrysalis stage
 
+my $SYMLINK = "ln -sf";
 
 my $KMER_SIZE = 25;
 
@@ -332,6 +333,8 @@ my $full_usage = qq^
 #  --no_cleanup                    :retain all intermediate input files.
 #
 #  --no_version_check              :dont run a network check to determine if software updates are available.
+#
+#  --no_symlink                    :dont symlink, just copy files instead
 #
 #  --monitoring                    :use collectl to monitor all steps of Trinity
 #     --monitor_sec <int>          : number of seconds for each interval of runtime monitoring (default: $COLLECTL_INTERVAL_SECONDS)
@@ -783,6 +786,8 @@ my $STOMP_SNPS = 0;
     "NO_SEQTK" => \$NO_SEQTK,
 
     "no_super_reads" => \$NO_SUPER_READS_FLAG,
+
+    "no_symlink" => \$NO_SYMLINK_FLAG,
     
     "__KMER_SIZE=i" => \$KMER_SIZE,
     
@@ -881,6 +886,7 @@ max_chrysalis_cluster_size
 iworm_cdhit
 bfly_algorithm
 __KMER_SIZE
+no_symlink
 );   
 
 my %ACCEPTABLE_OPTS = map { + $_ => 1} @__ALL_TRINITY_PARAMS;
@@ -953,6 +959,13 @@ unless ($max_memory &&
         }
     }
 }
+
+
+if ($NO_SYMLINK_FLAG) {
+    $SYMLINK = "cp";
+    $ENV{NO_SYMLINK} = "TRUE";
+}
+
 
 $output_directory = &create_full_path($output_directory, 0);
 
@@ -2750,7 +2763,7 @@ sub prep_seqs {
             
             if (scalar(@initial_files) == 1 && (!$SS_lib_type || $SS_lib_type ne "R")) {
                 ## just symlink it here:
-                my $cmd = "ln -sf $initial_file_str $file_prefix.fa";
+                my $cmd = "$SYMLINK $initial_file_str $file_prefix.fa";
                 if ($initial_file_str=~/\.gz$/) {
                     $cmd = "gunzip -c $initial_file_str >$file_prefix.fa";
                 }

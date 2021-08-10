@@ -24,6 +24,8 @@ $ENV{PATH} = "$FindBin::Bin/../trinity-plugins/BIN:$ENV{PATH}";
 open (STDERR, ">&STDOUT");  ## capturing stderr and stdout in a single stdout stream
 
 
+my $SYMLINK = ($ENV{NO_SYMLINK}) ? "cp" : "ln -sf";
+
 ## Jellyfish
 my $max_memory;
 
@@ -439,12 +441,12 @@ main: {
         my $left_out = $outputs[0];
         my $right_out = $outputs[1];
         
-        &process_cmd("ln -sf $left_out left.norm.$seqType");
-        &process_cmd("ln -sf $right_out right.norm.$seqType");
+        &process_cmd("$SYMLINK $left_out left.norm.$seqType");
+        &process_cmd("$SYMLINK $right_out right.norm.$seqType");
     }
     else {
         my $single_out = $outputs[0];
-        &process_cmd("ln -sf $single_out single.norm.$seqType");
+        &process_cmd("$SYMLINK $single_out single.norm.$seqType");
     }
     
     unless ($NO_CLEANUP) {

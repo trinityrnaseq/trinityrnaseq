@@ -77,6 +77,8 @@ unless ($work_dir) {
 }
 
 
+my $SYMLINK = ($ENV{NO_SYMLINK}) ? "cp" : "ln -sf";
+
 main: {
 	
   my $curr_dir = cwd();
@@ -99,7 +101,7 @@ main: {
     
 
   my $target_iworm_fa = "$outdir/iworm.fa";
-  &process_cmd("ln -s $inchworm_contigs $target_iworm_fa") unless (-e $target_iworm_fa);
+  &process_cmd("$SYMLINK $inchworm_contigs $target_iworm_fa") unless (-e $target_iworm_fa);
   	
    
   ## run the bowtie alignment pipeline
@@ -130,7 +132,7 @@ main: {
   my $final_bam_file = ($SS_lib_type) ? "$bowtie_out/bowtie2.coordSorted.bam.+.bam" : "$bowtie_out/bowtie2.coordSorted.bam";
 	
   my $alignment_file = "bowtie_alignments.for_jaccard.bam";
-  &process_cmd("ln -sf $final_bam_file $alignment_file");
+  &process_cmd("$SYMLINK $final_bam_file $alignment_file");
   
   ## run Jaccard computation:
   my $jaccard_wig_file = "$alignment_file.J100.wig";

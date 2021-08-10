@@ -1451,35 +1451,24 @@ main: {
 
 
     
-    my $final_Trinity_fasta_file;
-    my $final_Trinity_fasta_file_filtered;
-
+    my $final_Trinity_fasta_file = "$TRINITY_PHASE1_OUTDIR.Trinity.fasta";
+    
     if ($Trinity_tmp_fasta_file && -s $Trinity_tmp_fasta_file) {
-        
-        
-        $final_Trinity_fasta_file = "$TRINITY_PHASE1_OUTDIR.Trinity.fasta";
-        &process_cmd("mv $Trinity_tmp_fasta_file $final_Trinity_fasta_file");
-        
         
         # expression filtered.
         if (! $NO_SALMON) {
             
-            $final_Trinity_fasta_file_filtered = "$TRINITY_PHASE1_OUTDIR.Trinity.HQ.fasta";
-            &salmon_expr_filtering($final_Trinity_fasta_file, $inchworm_target_reads_fa, $final_Trinity_fasta_file_filtered);
+            &salmon_expr_filtering($Trinity_tmp_fasta_file, $inchworm_target_reads_fa, $final_Trinity_fasta_file);
         }
-        
+        else {
+            &process_cmd("mv $Trinity_tmp_fasta_file $final_Trinity_fasta_file");        
+        }
         
         if ($VERBOSE || ! $TRINITY_COMPLETE_FLAG) {
             print "\n\n"
                 . "#############################################################################\n"
-                . "Finished.  Final Trinity assemblies are written to $final_Trinity_fasta_file\n";
-            
-            if (! $NO_SALMON) {
-                print "       Find likely artifact filtered fasta as: $final_Trinity_fasta_file_filtered\n";
-                
-            }
-            
-            print "#############################################################################\n\n\n";
+                . "Finished.  Final Trinity assemblies are written to $final_Trinity_fasta_file\n"
+                . "#############################################################################\n\n\n";
         }
         
     }
@@ -1512,11 +1501,6 @@ main: {
 
     if ($final_Trinity_fasta_file && ! $TRINITY_COMPLETE_FLAG) {
         &process_cmd("$UTILDIR/support_scripts/get_Trinity_gene_to_trans_map.pl $final_Trinity_fasta_file > $final_Trinity_fasta_file.gene_trans_map");
-        
-        if (-s $final_Trinity_fasta_file_filtered) {
-            &process_cmd("$UTILDIR/support_scripts/get_Trinity_gene_to_trans_map.pl $final_Trinity_fasta_file_filtered > $final_Trinity_fasta_file_filtered.gene_trans_map");
-        }
-
     }
     
     &perfmon_end() unless ($TRINITY_COMPLETE_FLAG || $FULL_CLEANUP);

@@ -615,7 +615,7 @@ sub run_alignment_do_quant {
     if ($est_method eq "RSEM") {
         
         # convert bam file for use with rsem:
-        &process_cmd("convert-sam-for-rsem $bam_file $bam_file.for_rsem");
+        &process_cmd("convert-sam-for-rsem -p $thread_count $bam_file $bam_file.for_rsem");
         
         &run_RSEM("$bam_file.for_rsem.bam", $rsem_prefix, $output_prefix);
     }

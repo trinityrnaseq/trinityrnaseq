@@ -192,6 +192,7 @@ main: {
     my %sum_sample_counts;
 
     foreach my $file (@files) {
+        unless ($file =~ /\w/) { next; } # empty line in quant files listing causes trouble
         print STDERR "-reading file: $file\n";
         open (my $fh, $file) or die "Error, cannot open file $file";
         my $header = <$fh>;

@@ -142,38 +142,43 @@ RUN wget https://github.com/pachterlab/kallisto/releases/download/v0.46.1/kallis
 
 
 ## FASTQC
+ENV FASTQC_VERSION 0.11.9
 WORKDIR $SRC
-RUN wget http://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.5.zip && \
-    unzip fastqc_v0.11.5.zip && \
+RUN wget http://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v${FASTQC_VERSION}.zip && \
+    unzip fastqc_v${FASTQC_VERSION}.zip && \
     chmod 755 /usr/local/src/FastQC/fastqc && \
     ln -s /usr/local/src/FastQC/fastqc $BIN/.
 
 # blast
 WORKDIR $SRC
-RUN wget ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.5.0/ncbi-blast-2.5.0+-x64-linux.tar.gz && \
-    tar xvf ncbi-blast-2.5.0+-x64-linux.tar.gz && \
-    cp ncbi-blast-2.5.0+/bin/* $BIN && \
-    rm -r ncbi-blast-2.5.0+
+ENV BLASTPLUS_VERSION 2.12.0
+RUN wget ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.5.0/ncbi-blast-${BLASTPLUS_VERSION}+-x64-linux.tar.gz && \
+    tar xvf ncbi-blast-${BLASTPLUS_VERSION}+-x64-linux.tar.gz && \
+    cp ncbi-blast-${BLASTPLUS_VERSION}+/bin/* $BIN && \
+    rm -r ncbi-blast-${BLASTPLUS_VERSION}+
 
 ## Bowtie2
 WORKDIR $SRC
-RUN wget https://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.3.4.1/bowtie2-2.3.4.1-linux-x86_64.zip/download -O bowtie2-2.3.4.1-linux-x86_64.zip && \
-    unzip bowtie2-2.3.4.1-linux-x86_64.zip && \
-    mv bowtie2-2.3.4.1-linux-x86_64/bowtie2* $BIN && \
+ENV BOWTIE2_VERSION 2.4.4
+RUN wget https://sourceforge.net/projects/bowtie-bio/files/bowtie2/${BOWTIE2_VERSION}/bowtie2-${BOWTIE2_VERSION}-linux-x86_64.zip/download -O bowtie2-${BOWTIE2_VERSION}-linux-x86_64.zip && \
+    unzip bowtie2-${BOWTIE2_VERSION}-linux-x86_64.zip && \
+    mv bowtie2-${BOWTIE2_VERSION}-linux-x86_64/bowtie2* $BIN && \
     rm *.zip && \
-    rm -r bowtie2-2.3.4.1-linux-x86_64
+    rm -r bowtie2-${BOWTIE2_VERSION}-linux-x86_64
 
 ## Samtools
-RUN wget https://github.com/samtools/samtools/releases/download/1.10/samtools-1.10.tar.bz2 && \
-    tar xvf samtools-1.10.tar.bz2 && \
-    cd samtools-1.10 && \
+ENV SAMTOOLS_VERSION 1.13
+RUN wget https://github.com/samtools/samtools/releases/download/${SAMTOOLS_VERSION}/samtools-${SAMTOOLS_VERSION}.tar.bz2 && \
+    tar xvf samtools-${SAMTOOLS_VERSION}.tar.bz2 && \
+    cd samtools-${SAMTOOLS_VERSION} && \
     ./configure && make && make install
 
 
 ## Jellyfish
-RUN wget https://github.com/gmarcais/Jellyfish/releases/download/v2.2.7/jellyfish-2.2.7.tar.gz && \
-    tar xvf jellyfish-2.2.7.tar.gz && \
-    cd jellyfish-2.2.7/ && \
+ENV JELLYFISH_VERSION 2.3.0
+RUN wget https://github.com/gmarcais/Jellyfish/releases/download/v${JELLYFISH_VERSION}/jellyfish-${JELLYFISH_VERSION}.tar.gz && \
+    tar xvf jellyfish-${JELLYFISH_VERSION}.tar.gz && \
+    cd jellyfish-${JELLYFISH_VERSION}/ && \
     ./configure && make && make install
 
 ## Salmon
@@ -185,14 +190,15 @@ RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v${SALMON_VERSI
 
 
 ## FeatureCounts
-RUN wget https://sourceforge.net/projects/subread/files/subread-2.0.0/subread-2.0.0-Linux-x86_64.tar.gz/download -O subread-2.0.0-Linux-x86_64.tar.gz && \
-    tar xvf subread-2.0.0-Linux-x86_64.tar.gz && \
-    cp -r subread-2.0.0-Linux-x86_64/bin/* $BIN/
+ENV SUBREAD_VERSION 2.0.2
+RUN wget https://sourceforge.net/projects/subread/files/subread-${SUBREAD_VERSION}/subread-${SUBREAD_VERSION}-Linux-x86_64.tar.gz/download -O subread-${SUBREAD_VERSION}-Linux-x86_64.tar.gz && \
+    tar xvf subread-${SUBREAD_VERSION}-Linux-x86_64.tar.gz && \
+    cp -r subread-${SUBREAD_VERSION}-Linux-x86_64/bin/* $BIN/
 
 ## Hisat2
-RUN wget ftp://ftp.ccb.jhu.edu/pub/infphilo/hisat2/downloads/hisat2-2.1.0-Linux_x86_64.zip && \
-    unzip hisat2-2.1.0-Linux_x86_64.zip && \
-    cp hisat2-2.1.0/hisat2* $BIN/
+RUN wget https://cloud.biohpc.swmed.edu/index.php/s/oTtGWbWjaxsQ2Ho/download && \
+    unzip hisat2-2.2.1-Linux_x86_64.zip && \
+    cp hisat2-2.2.1/hisat2* $BIN/
 
 ## GMAP
 ENV GSNAP_VER 2021-07-23
@@ -204,23 +210,19 @@ RUN GMAP_URL="http://research-pub.gene.com/gmap/src/gmap-gsnap-$GSNAP_VER.tar.gz
     cp bin/* $BIN/
 
 
-# patch for salmon
-WORKDIR $SRC
-RUN ln -sf /usr/local/src/salmon-latest_linux_x86_64/bin/salmon $BIN/.
-
 # blat
 RUN wget http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/blat/blat -P $BIN && \
     chmod a+x $BIN/blat
 
 ## Picard tools
 WORKDIR $SRC
-RUN wget https://github.com/broadinstitute/picard/releases/download/2.23.3/picard.jar
+RUN wget https://github.com/broadinstitute/picard/releases/download/2.25.7/picard.jar
 ENV PICARD_HOME $SRC
 
 ####
 ## GATK4 installation
 WORKDIR $SRC
-ENV GATK_VERSION=4.1.8.0
+ENV GATK_VERSION=4.2.1.0
 RUN wget https://github.com/broadinstitute/gatk/releases/download/${GATK_VERSION}/gatk-${GATK_VERSION}.zip && \
     unzip gatk-${GATK_VERSION}.zip
 

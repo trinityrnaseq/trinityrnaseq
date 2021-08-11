@@ -1,4 +1,4 @@
-# Trinity-v2.14.0 Aug 11, 2021
+# Trinity-v2.13.0 Aug 11, 2021
 -moved salmon filtering to the end of genome-free assembly, while retaining per-cluster execution with genome-guided.
 -parafly progress monitoring resumes instead of resets under retry mode.
 -added --no_symlinks option for those that can't use symlinks

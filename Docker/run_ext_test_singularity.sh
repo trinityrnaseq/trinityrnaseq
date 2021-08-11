@@ -12,7 +12,7 @@ fi
 version=`cat VERSION.txt`
 simg="trinityrnaseq.v${version}.simg"
 
-singularity exec -e -B `pwd`/${datadir}:/${datadir} \
+singularity exec -e -H /tmp -B `pwd`/${datadir}:/${datadir} \
        ${simg} \
        bash -c "cd /${datadir} && make"
 

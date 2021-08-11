@@ -235,13 +235,13 @@ WORKDIR $SRC
 ENV SALMON_VERSION=1.5.2
 RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v${SALMON_VERSION}/Salmon-${SALMON_VERSION}_linux_x86_64.tar.gz && \
     tar xvf Salmon-${SALMON_VERSION}_linux_x86_64.tar.gz && \
-    ln -s $SRC/salmon-latest_linux_x86_64/bin/salmon $BIN/.
+    ln -s $SRC/salmon-${SALMON_VERSION}_linux_x86_64/bin/salmon $BIN/.
 
 
 ## Trinity
 WORKDIR $SRC
 ENV TRINITY_VERSION="2.13.0"
-ENV TRINITY_CO="f382cdc20eac9977e0716ec774cae2fb5e972284"
+ENV TRINITY_CO=937092a2ee1c8b05f4e0b93b06fc5bdb829c62de
 
 WORKDIR $SRC
 

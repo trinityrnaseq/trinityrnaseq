@@ -4,7 +4,7 @@
 -added --no_symlinks option for those that can't use symlinks
 -min contig length better enforced
 -improved Butterfly stability
-
+-supertranscripts no longer generated as a default output - just run the supertranscripts process once you have the final Trinity.fasta file if they're of interest.
 
 
 # Trinity-v2.12.0 Mar 4, 2021

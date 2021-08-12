@@ -27,6 +27,8 @@ my $usage = <<__EOUSAGE__;
 #  --CPU <int>                 number of threads (default: 2)
 #  --nameSorted                sort bam by name instead of coordinate
 #
+#  --join_bio_reps             search all bio replicates together instead of separately
+#
 #######################################################################
 
 
@@ -44,12 +46,16 @@ my $help_flag;
 my $gtf_file;
 my $nameSorted;
 
+my $join_bio_reps_flag = 0;
+
 &GetOptions( 'h' => \$help_flag,
              'genome=s' => \$genome,
              'samples_file=s' => \$samples_file,
              'CPU=i' => \$CPU,
              'gtf=s' => \$gtf_file,
              'nameSorted' => \$nameSorted,
+             
+             'join_bio_reps' => \$join_bio_reps_flag,
     );
 
 
@@ -91,7 +97,7 @@ main: {
     my $genomeSAindexNbases = min(14, int(log(-s $genome)/log(2)/2 - 1 + 0.5));
     
     
-    my @read_sets = &parse_samples_file($samples_file);    
+    my %sample_read_sets = &parse_samples_file($samples_file);    
 
     my $pipeliner = new Pipeliner(-verbose => 1);
     my $star_index = "$genome.star.idx";
@@ -133,15 +139,19 @@ main: {
     }
     
     
-    foreach my $read_set_aref (@read_sets) {
-        my ($sample_id, $left_fq, $right_fq) = @$read_set_aref;
-            
+    foreach my $sample_read_set (keys %sample_read_sets) { 
+        
+        my $sample_id = $sample_read_set;
+        my $left_fqs = join(",", @{$sample_read_sets{$sample_id}->{left_fqs}});
+        my $right_fqs = join(",", @{$sample_read_sets{$sample_id}->{right_fqs}});
+        
+                    
         my $cmd = "$star_prog "
             . " --runThreadN $CPU "
             . " --genomeDir $star_index "
             . " --outSAMtype BAM $sort_opt "
             . " --runMode alignReads "
-            . " --readFilesIn $left_fq $right_fq "
+            . " --readFilesIn $left_fqs $right_fqs "
             . " --twopassMode Basic "
             . " --alignSJDBoverhangMin 10 "
             . " --outSAMstrandField intronMotif "
@@ -149,7 +159,7 @@ main: {
             . " --limitBAMsortRAM 20000000000";
         
             
-        if ($left_fq =~ /\.gz$/) {
+        if ($left_fqs =~ /\.gz$/) {
             $cmd .= " --readFilesCommand 'gunzip -c' ";
         }
         
@@ -191,7 +201,7 @@ sub process_cmd {
 sub parse_samples_file {
     my ($samples_file) = @_;
 
-    my @samples;
+    my %sample_to_fqs;
 
     open(my $fh, $samples_file) or die "Error, cannot open file $samples_file";
     while (<$fh>) {
@@ -211,11 +221,18 @@ sub parse_samples_file {
                 
         $fq_a = &Pipeliner::ensure_full_path($fq_a);
         $fq_b = &Pipeliner::ensure_full_path($fq_b) if $fq_b;
+
+     
+        if (! $join_bio_reps_flag) {
+            $cond = $rep;
+        }
         
-        push (@samples, [$rep, $fq_a, $fq_b]);
+        push (@{$sample_to_fqs{$cond}->{left_fqs}}, $fq_a);
+        push (@{$sample_to_fqs{$cond}->{right_fqs}}, $fq_b);
+        
     }
     close $fh;
 
-    return (@samples);
+    return (%sample_to_fqs);
 }
 

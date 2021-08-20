@@ -150,8 +150,10 @@ class Node_alignment:
 
         node_list = list(self.get_node_set_at_column_pos(col_pos))
 
-        return node_list[ 0 ]
-    
+        if node_list:
+            return node_list[ 0 ]
+        else:
+            return None
 
     def get_node_LIST_at_column_pos(self, col_pos):
 
@@ -269,15 +271,15 @@ class Node_alignment:
 
         # walk the node list and merge unbranched stretches into single nodes
         block_breakpoints = []
-        prev_col_node_set = self.get_node_occupancy_at_column_pos(0)
+        prev_col_node_occupancy = self.get_node_occupancy_at_column_pos(0)
         for i in range(1,width):
-            node_column_set = self.get_node_occupancy_at_column_pos(i)
+            node_column_occupancy = self.get_node_occupancy_at_column_pos(i)
 
             #print("Comparing {} to {} == {}".format(prev_col_node_set, node_column_set, prev_col_node_set == node_column_set))
 
-            if node_column_set != prev_col_node_set:
+            if node_column_occupancy != prev_col_node_occupancy:
                 block_breakpoints.append(i)
-            prev_col_node_set = node_column_set
+            prev_col_node_occupancy = node_column_occupancy
 
         block_breakpoints.append(width)
 
@@ -290,18 +292,23 @@ class Node_alignment:
                 node_to_add = None
                 if len(blocked_nodes) > 1:
                     node_to_add = TNode.TNode.merge_nodes(blocked_nodes)
-                else:
+                elif len(blocked_nodes) == 1:
                     node_to_add = blocked_nodes[ 0 ]
 
-                blocked_node_occupancy = self.get_node_occupancy_at_column_pos(i-1)
-                squeezed_alignment.append_node_according_to_occupancy_pattern(node_to_add, blocked_node_occupancy)
+                if node_to_add is not None:
+                    blocked_node_occupancy = self.get_node_occupancy_at_column_pos(i-1)
+                    squeezed_alignment.append_node_according_to_occupancy_pattern(node_to_add, blocked_node_occupancy)
 
                 blocked_nodes = list() # reinit
             
             # add to running block
             if i < width:
-                blocked_nodes.append(self.get_representative_column_node(i))
-        
+                representative_node = self.get_representative_column_node(i)
+                if representative_node is not None:
+                    blocked_nodes.append(representative_node)
+
+        #print("squeezed alignment: {}".format(squeezed_alignment))
+              
         return squeezed_alignment
 
 
@@ -504,6 +511,10 @@ class Node_alignment:
             self.transcript_names = revised_transcript_names
             self.aligned_nodes = revised_aligned_nodes
 
+            #print("-revised transcript names: {}".format(self.transcript_names))  ## DEBUGGING
+            #print("-revised aligned nodes: {}".format(self.aligned_nodes)) ## DEBUGGING
+
+            
             self.remove_empty_aligned_node_columns()
             
             return True

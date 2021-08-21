@@ -527,8 +527,8 @@ class Node_alignment:
     def remove_empty_aligned_node_columns(self):
 
         column_indices_to_remove = list()
-
-        for col_pos in range(0, len(self)):
+        
+        for col_pos in range(0, self.width()):
             node_list = list(self.get_node_set_at_column_pos(col_pos))
             if len(node_list) == 0:
                 column_indices_to_remove.append(col_pos)

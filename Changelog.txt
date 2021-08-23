@@ -1,3 +1,7 @@
+# Trinity-v2.13.1 Aug 23, 2021
+-bugfix in Trinity gene splice modeler causing rare crashes
+
+
 # Trinity-v2.13.0 Aug 11, 2021
 -moved salmon filtering to the end of genome-free assembly, while retaining per-cluster execution with genome-guided.
 -parafly progress monitoring resumes instead of resets under retry mode.

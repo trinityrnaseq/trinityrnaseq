@@ -156,7 +156,11 @@ main: {
             . " --alignSJDBoverhangMin 10 "
             . " --outSAMstrandField intronMotif "
             . " --outSAMunmapped Within "
-            . " --limitBAMsortRAM 20000000000";
+            . " --limitBAMsortRAM=20000000000"
+            . " --limitOutSJcollapsed=10000000"
+            . " --limitIObufferSize=300000000" 
+            . " --limitSjdbInsertNsj=10000000 "
+            ;
         
             
         if ($left_fqs =~ /\.gz$/) {

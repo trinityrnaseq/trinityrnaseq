@@ -38,7 +38,7 @@ make clean -i
 find . -regex ".*git" -exec rm -rf {} \;
 
 -release naming convention:
-   release version tag on github: v2.8.6
+   release version tag on github: Trinity-v2.8.6
    
    -standard release (extended test data removed)
 	  basedir: trinityrnaseq-v2.8.6

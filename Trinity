@@ -2197,7 +2197,7 @@ sub run_chrysalis {
     { 
         ## sort the read mappings:
         
-        my $cmd = "$sort_exec -T . -S $max_memory -k 1,1n $reads_to_components_output_file > $sorted_reads_to_components_file";
+        my $cmd = "$sort_exec -T . -S $max_memory -k 1,1n -k3,3nr -k2,2 $reads_to_components_output_file > $sorted_reads_to_components_file";
         
         
         $chrysalis_pipeliner->add_commands( new Command($cmd, "$sorted_reads_to_components_file.ok"));
@@ -2407,6 +2407,8 @@ sub run_recursive_trinity {
         open (my $ofh_read_filenames, ">$read_filenames") or die $!;
         
         my $currdir = cwd();
+
+        my $component_read_counter = 0;
         
         open (my $fh, $reads_sorted_by_component_file) or die $!;
         while (<$fh>) {
@@ -2427,8 +2429,12 @@ sub run_recursive_trinity {
                                 
                 open ($ofh, ">$readsfile") or die "Error, cannot write to file $readsfile";
                 print $ofh_read_filenames "$readsfile\n";
+                $component_read_counter = 0; # reinit
             }
-            print $ofh "$read_name\n$read_seq\n";
+            if ($component_read_counter < $max_reads_per_graph) {
+                print $ofh "$read_name\n$read_seq\n";
+            }
+            $component_read_counter += 1;
         
         }
         close $ofh if $ofh;

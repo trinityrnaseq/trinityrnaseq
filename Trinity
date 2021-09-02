@@ -638,6 +638,8 @@ my $STOMP_SNPS = 0;
 
 my $NO_SYMLINK_FLAG = 0;  # uses symlinks by default where appropriate
 
+my $ALREADY_SALMON_FILTERED = 0;
+
 &GetOptions( 
     
     'h|help' => \$help_flag,
@@ -1456,7 +1458,7 @@ main: {
     if ($Trinity_tmp_fasta_file && -s $Trinity_tmp_fasta_file) {
         
         # expression filtered.
-        if (! $NO_SALMON) {
+        if ( (! $NO_SALMON) && (! $ALREADY_SALMON_FILTERED)) { ## //FIXME - super hacky
             
             &salmon_expr_filtering($Trinity_tmp_fasta_file, $inchworm_target_reads_fa, $final_Trinity_fasta_file);
         }
@@ -4154,6 +4156,8 @@ sub salmon_expr_filtering {
     $pipeliner->add_commands( new Command($cmd, "$polish_checkpoints_dir/salmon.filt.ok"));
 
     $pipeliner->run();
+
+    $ALREADY_SALMON_FILTERED = 1;
     
     return;
 }

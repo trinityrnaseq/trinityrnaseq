@@ -1,3 +1,8 @@
+
+# Trinity-v2.13.2 Sep 4, 2021
+-bugfix - Trinity-GG final output files werent being written in v2.13, so restored here under v2.13.2, and integrated into the test regression suite to check in future releases.
+-max reads per graph setting utilized when writing partitioned fa files from phase1 into phase2, prioritizing highest pct read mapping to graph and read pairings - handles the problem of a small number of graphs becoming sinks for reads with minimal spectral kmer alignments
+
 # Trinity-v2.13.1 Aug 23, 2021
 -bugfix in Trinity gene splice modeler causing rare crashes
 

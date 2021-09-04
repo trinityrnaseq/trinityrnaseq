@@ -21,7 +21,7 @@ use List::Util qw(min max);
 use Data::Dumper;
 
 
-my $VERSION = "Trinity-v2.13.1";
+my $VERSION = "Trinity-v2.13.2";
 #my $VERSION = "__BLEEDING_EDGE__"; 
 
 

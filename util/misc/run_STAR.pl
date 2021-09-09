@@ -30,6 +30,7 @@ my $usage = <<__EOUSAGE__;
 #  --star_path <string>        full path to the STAR program to use.
 #  --patch <string>            genomic targets to patch the genome fasta with.
 #  --chim_search               include Chimeric.junction outputs
+#  --max_intron <int>          max intron length (and PE gap size)
 #
 #######################################################################
 
@@ -53,6 +54,7 @@ my $ADV = 0;
 my $star_path = "STAR";
 my $patch;
 my $chim_search;
+my $max_intron;
 
 &GetOptions( 'h' => \$help_flag,
              'genome=s' => \$genome,
@@ -65,6 +67,7 @@ my $chim_search;
              'star_path=s' => \$star_path,
              'patch=s' => \$patch,
              'chim_search' => \$chim_search,
+             "max_intron=i" => \$max_intron,
     );
 
 
@@ -150,21 +153,39 @@ main: {
         . " --alignSJDBoverhangMin 10 "
         . " --outSAMstrandField intronMotif "
         . " --outSAMunmapped Within "
+        . " --alignInsertionFlush Right "
+        . " --alignSplicedMateMapLminOverLmate 0 "
+        . " --alignSplicedMateMapLmin 30 "
+        . " --alignSJstitchMismatchNmax 5 -1 5 5 "  #which allows for up to 5 mismatches for non-canonical GC/AG, and AT/AC junctions, and any number of mismatches for canonical junctions (the default values 0 -1 0 0 replicate the old behavior (from AlexD)      
+        . " --peOverlapNbasesMin 12 "
+        . " --peOverlapMMp 0.1 "
         . " --limitBAMsortRAM 20000000000";
 
+
+    if ($max_intron) {
+    
+        $cmd .= " --alignMatesGapMax $max_intron "
+            . " --alignIntronMax $max_intron ";
+    }
+    
+    
     if ($chim_search) {
-        $cmd .= " --chimJunctionOverhangMin 12 "
+        $cmd .= " --chimJunctionOverhangMin 8 "
+             .  " --chimOutJunctionFormat 1 "
              .  " --chimSegmentMin 12 "
              .  " --chimSegmentReadGapMax parameter 3 "
+             .  " --chimMultimapNmax 20 "
+             .  " --chimOutType Junctions WithinBAM "
+             .  " --chimScoreJunctionNonGTAG -4 "
+             .  " --chimNonchimScoreDropMin 10 "
+             .  " --chimMultimapScoreRange 3 ";
     }
-        
+    
     if ($patch) {
         $cmd .= " --genomeFastaFiles $patch ";
     }
         
-    
-    $cmd .= " --alignSJstitchMismatchNmax 5 -1 5 5 ";  #which allows for up to 5 mismatches for non-canonical GC/AG, and AT/AC junctions, and any number of mismatches for canonical junctions (the default values 0 -1 0 0 replicate the old behavior (from AlexD)
-    
+        
     
     if ($reads =~ /\.gz$/) {
         $cmd .= " --readFilesCommand 'gunzip -c' ";

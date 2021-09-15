@@ -184,6 +184,13 @@ main: {
     
     print $ofh "    descr = unlist(lapply(result_table\$category, get_GO_term_descr))\n";
     print $ofh "    result_table\$go_term = descr;\n";
+   
+    print $ofh "    result_table\$gene_ids = do.call(rbind, lapply(result_table\$category, function(x) { \n" .
+               "            gene_list = GO_to_gene_list[[x]]\n" .
+               "            gene_list = gene_list[gene_list %in% gene_ids_in_feature_cat]\n" .
+               "            paste(gene_list, collapse=', ');\n" .
+               "     }) )\n";
+
     print $ofh "    write.table(result_table[order(result_table\$under_represented_pvalue),], file=go_depleted_filename, sep='\t', quote=F, row.names=F)\n";
     
             

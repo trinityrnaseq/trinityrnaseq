@@ -276,8 +276,6 @@ $trinity_banner
 ####################################
 ##  Misc:  #########################
 #
-#  --include_supertranscripts      :yield supertranscripts fasta and gtf files as outputs.
-#
 #  --SS_lib_type <string>          :Strand-specific RNA-Seq read orientation.
 #                                   if paired: RF or FR,
 #                                   if single: F or R.   (dUTP method = RF)

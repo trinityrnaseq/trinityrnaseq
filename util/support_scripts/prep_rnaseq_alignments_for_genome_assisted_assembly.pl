@@ -120,7 +120,7 @@ main: {
 	}
 	else {
         if (cwd() ne dirname(File::Spec->rel2abs($SAM_file))) {
-            &process_cmd("$SYMLINK $SAM_file");
+            &process_cmd("$SYMLINK $SAM_file " . basename($SAM_file));
             $SAM_file = basename($SAM_file);
         }
 		push (@sam_info, [$SAM_file, '+']);

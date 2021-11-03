@@ -153,6 +153,7 @@ main: {
         . " --alignSJDBoverhangMin 10 "
         . " --outSAMstrandField intronMotif "
         . " --outSAMunmapped Within "
+        . " --outReadsUnmapped Fastx "
         . " --alignInsertionFlush Right "
         . " --alignSplicedMateMapLminOverLmate 0 "
         . " --alignSplicedMateMapLmin 30 "
@@ -178,7 +179,7 @@ main: {
              .  " --chimOutType Junctions WithinBAM "
              .  " --chimScoreJunctionNonGTAG -4 "
              .  " --chimNonchimScoreDropMin 10 "
-             .  " --chimMultimapScoreRange 3 ";
+             .  " --chimMultimapScoreRange 10 ";
     }
     
     if ($patch) {

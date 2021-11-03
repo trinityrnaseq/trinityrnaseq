@@ -153,6 +153,7 @@ main: {
         . " --alignSJDBoverhangMin 10 "
         . " --outSAMstrandField intronMotif "
         . " --outSAMunmapped Within "
+        . " --outReadsUnmapped Fastx "
         . " --alignInsertionFlush Right "
         . " --alignSplicedMateMapLminOverLmate 0 "
         . " --alignSplicedMateMapLmin 30 "

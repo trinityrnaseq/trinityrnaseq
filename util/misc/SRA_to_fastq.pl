@@ -24,7 +24,7 @@ unless (@sra_files) {
     die $usage;
 }
 
-my $fastq_dump_path = `which fastq-dump`;
+my $fastq_dump_path = `sh -c "command -v fastq-dump"`;
 unless ($fastq_dump_path && $fastq_dump_path =~ /\w/) {
     die "Error, cannot find 'fastq-dump' utility in your PATH. Be sure you have SRA toolkit installed and fastq-dump in your PATH setting. ";
 }

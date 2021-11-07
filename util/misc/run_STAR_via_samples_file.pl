@@ -72,7 +72,7 @@ if (@ARGV) {
 }
 
 
-my $star_prog = `which STAR`;
+my $star_prog = `sh -c "command -v STAR"`;
 chomp $star_prog;
 unless ($star_prog =~ /\w/) {
     die "Error, cannot locate STAR program. Be sure it's in your PATH setting.  ";

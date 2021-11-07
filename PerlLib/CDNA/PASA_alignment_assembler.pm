@@ -60,7 +60,7 @@ sub _init {
     $self->{assemblies} = []; #contains list of all singletons and assemblies.
     $self->{fuzzlength} = $FUZZLENGTH;  #default setting.
     
-    my $pasa_bin = `which pasa`;
+    my $pasa_bin = `sh -c "command -v pasa"`;
     $pasa_bin =~ s/\s//g;
     
     unless (-x $pasa_bin) {

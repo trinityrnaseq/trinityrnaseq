@@ -955,7 +955,7 @@ unless ($max_memory &&
 ## make sure properly installed
 {
     foreach my $trinity_tool ("ParaFly", "seqtk-trinity") {
-        my $loc = `which $trinity_tool`;
+        my $loc = `sh -c "command -v $trinity_tool"`;
         unless ($loc =~ /\w/) {
             die "\n\n\tError, cannot locate Trinity-specific tool: $trinity_tool in the PATH setting: $ENV{PATH},  be sure to install Trinity by running 'make' in the base installation directory\n\n";
         }
@@ -2935,7 +2935,7 @@ sub test_java_failure_capture {
         print "Running Java Tests\n";
     }
     
-    my $java_prog = `which java`;
+    my $java_prog = `sh -c "command -v java"`;
     unless ($java_prog) {
         die "Error, cannot find 'java'.  Please be sure it is available within your \${PATH} setting and then try again.";
     }
@@ -3986,7 +3986,7 @@ sub check_required_3rd_party_tool_installations {
 
 
     # samtools
-    my $samtools_path = `which samtools`;
+    my $samtools_path = `sh -c "command -v samtools"`;
     if ($samtools_path =~ /\w/) {
         print "Found samtools at: $samtools_path\n" if $VERBOSE;
     
@@ -4003,7 +4003,7 @@ sub check_required_3rd_party_tool_installations {
     }
 
     # jellyfish
-    my $jellyfish_path = `which jellyfish`;
+    my $jellyfish_path = `sh -c "command -v jellyfish"`;
     if ($jellyfish_path =~ /\w/) {
         print "Found jellyfish at: $jellyfish_path\n" if $VERBOSE;
 
@@ -4021,8 +4021,8 @@ sub check_required_3rd_party_tool_installations {
     ## bowtie2
     if (!$NO_BOWTIE) {
         ## be sure we can find 'bowtie', since we use it as part of the iworm pair scaffolding step
-        $bowtie2_path = `which bowtie2`;
-        $bowtie2_build_path = `which bowtie2-build`;
+        $bowtie2_path = `sh -c "command -v bowtie2"`;
+        $bowtie2_build_path = `sh -c "command -v bowtie2-build"`;
         if ($bowtie2_path =~ /\w/ && $bowtie2_build_path =~ /\w/) {
             chomp $bowtie2_path;
             chomp $bowtie2_build_path;
@@ -4035,7 +4035,7 @@ sub check_required_3rd_party_tool_installations {
 
     # salmon
     if (! $NO_SALMON) {
-        my $salmon_path = `which salmon`;
+        my $salmon_path = `sh -c "command -v salmon"`;
         if ($salmon_path =~ /\w/) {
             print "Found salmon installed at $salmon_path\n" if $VERBOSE;
 

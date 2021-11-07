@@ -20,7 +20,7 @@ BEGIN {
         $HISAT_HOME = $ENV{HISAT_HOME};
     }
     else {
-        my $hisat_prog = `which hisat`;
+        my $hisat_prog = `sh -c "command -v hisat"`;
         if ($hisat_prog) {
             chomp $hisat_prog;
             $HISAT_HOME = dirname($hisat_prog);

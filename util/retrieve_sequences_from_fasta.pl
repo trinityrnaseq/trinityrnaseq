@@ -11,7 +11,7 @@ my $target_db = $ARGV[1] or die $usage;
 
 main: {
 
-    my $samtools = `which samtools`;
+    my $samtools = `sh -c "command -v samtools"`;
     unless ($samtools =~ /\w/) {
         die "Error, need samtools in your PATH setting.";
     }

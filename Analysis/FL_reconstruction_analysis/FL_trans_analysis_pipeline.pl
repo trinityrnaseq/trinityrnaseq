@@ -92,7 +92,7 @@ my $util_dir = "$FindBin::RealBin/util";
 my $found_all_tools = 1;
 my @required_tools = qw (blat slclust);
 foreach my $tool (@required_tools) {
-    my $path = `which $tool`;
+    my $path = `sh -c "command -v $tool"`;
     unless ($path =~ /\w/) {
         print STDERR "Error, cannot locate required tool: $tool\n";
         $found_all_tools = 0;

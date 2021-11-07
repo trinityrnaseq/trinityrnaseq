@@ -61,7 +61,7 @@ unless ($genome_fa && $reads_fa) {
 	my @required_progs = qw (blat psl2sam.pl);
 
 	foreach my $prog (@required_progs) {
-		my $path = `which $prog`;
+		my $path = `sh -c "command -v $prog"`;
 		unless ($path =~ /^\//) {
 			die "Error, cannot locate required program: $prog";
 		}

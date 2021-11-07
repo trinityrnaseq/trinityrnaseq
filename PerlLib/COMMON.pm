@@ -13,7 +13,7 @@ sub get_sort_exec {
     # check it like so:
     #  perl -MCOMMON -e 'print COMMON::get_sort_exec(4);'
 
-    my $sort_exec = `which sort`;
+    my $sort_exec = `sh -c "command -v sort"`;
     unless ($sort_exec =~ /\w/) {
         confess "Error, cannot find sort utility";
     }

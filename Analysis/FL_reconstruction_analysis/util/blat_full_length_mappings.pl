@@ -103,7 +103,7 @@ main: {
     
 	my $blat_output = "$out_prefix.pslx";
 	
-    my  $blat_prog = `which blat`;
+    my  $blat_prog = `sh -c "command -v blat"`;
     chomp $blat_prog;
     unless ($blat_prog) {
         die "Error, cannot find a blat program in your path.\n";

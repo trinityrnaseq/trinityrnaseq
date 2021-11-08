@@ -60,19 +60,19 @@ clean:
 
 
 test_trinity:
-	cd sample_data/test_Trinity_Assembly && make test
+	cd sample_data/test_Trinity_Assembly && $(MAKE) test
 
 
 # note 'test_all': ** this is for a more advanced installation including devel features **
 
 test_all:
-	cd sample_data/ && make test_all
+	cd sample_data/ && $(MAKE) test_all
 	./__pull_trinity_ext_sample_data.sh
-	cd trinity_ext_sample_data/ && make test
+	cd trinity_ext_sample_data/ && $(MAKE) test
 
 test_clean:
-	cd sample_data/ && make clean
-	cd trinity_ext_sample_data/ && make clean
+	cd sample_data/ && $(MAKE) clean
+	cd trinity_ext_sample_data/ && $(MAKE) clean
 
 ###################################################################
 

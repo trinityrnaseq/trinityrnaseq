@@ -3,7 +3,7 @@ DIRS = test_Trinity_Assembly
 test_all: test_trin_assembly
 
 test_trin_assembly:
-	cd test_Trinity_Assembly && make test_all
+	cd test_Trinity_Assembly && $(MAKE) test_all
 
 
 clean:

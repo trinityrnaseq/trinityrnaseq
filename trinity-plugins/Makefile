@@ -51,8 +51,8 @@ clean:
 	rm -f ./Trimmomatic # rm symlink
 	cd slclust && $(MAKE) clean
 	cd COLLECTL && rm -rf ${COLLECTL_CODE} && rm -f collectl
-	cd htslib && make clean
-	cd bamsifter && make clean
+	cd htslib && $(MAKE) clean
+	cd bamsifter && $(MAKE) clean
 	rm -f ./htslib.ok
 	@echo "\n\n** Done cleaning plugins area **"
 

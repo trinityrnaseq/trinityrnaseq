@@ -163,7 +163,7 @@ if ($SS_lib_type && $SS_lib_type !~ /^(F|R|FR|RF)$/) {
     my @required_progs = qw(samtools bowtie2-build bowtie2);
     
     foreach my $prog (@required_progs) {
-        my $path = `which $prog`;
+        my $path = `sh -c "command -v $prog"`;
         unless ($path =~ /^\//) {
             die "Error, path to required $prog cannot be found";
         }

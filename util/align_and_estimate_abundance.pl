@@ -401,7 +401,7 @@ if ( $thread_count !~ /^\d+$/ ) {
     
         
     foreach my $tool (@tools) {
-        my $p = `which $tool`;
+        my $p = `sh -c "command -v $tool"`;
         unless ($p =~ /\w/) {
             warn("ERROR, cannot find $tool in PATH setting: $ENV{PATH}\n\n");
             $missing = 1;

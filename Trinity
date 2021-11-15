@@ -936,7 +936,7 @@ if ($help_flag) {
 if ($show_version_flag) {
     &version_check();
     
-    exit(1);
+    exit(0);
 }
 
 ## basic options check:

@@ -1113,6 +1113,15 @@ if ($min_iso_ratio > 1) {
     die "Error, --min_iso_ratio should be <= 1 \n";
 }
 
+if ($max_memory =~ /^(\d+)G/) {
+    my $mem_val = $1;
+    if ($mem_val > 200) {
+        print STDERR "-shouldn't require more than 200G RAM, so resetting max memory suggestion value to 200G to avoid potential problems.\n";
+        $max_memory = "200G";
+    }
+}
+
+
 ## keep the original 'xG' format string for the --JM option, then calculate the numerical value for jellyfish_ram
 my $jellyfish_ram = $max_memory;    ## this one is used in the Chrysalis exec string
 if ($jellyfish_ram) {

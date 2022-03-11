@@ -21,8 +21,8 @@ use List::Util qw(min max);
 use Data::Dumper;
 
 
-my $VERSION = "Trinity-v2.14.0";
-#my $VERSION = "__BLEEDING_EDGE__"; 
+#my $VERSION = "Trinity-v2.14.0";
+my $VERSION = "__BLEEDING_EDGE__"; 
 
 
 my $ABSOLUTE_MIN_CONTIG_LENGTH = 100;  # going shorter might lead to making too many intermediate files during the run.

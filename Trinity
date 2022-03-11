@@ -21,8 +21,11 @@ use List::Util qw(min max);
 use Data::Dumper;
 
 
-my $VERSION = "Trinity-v2.13.2";
+my $VERSION = "Trinity-v2.14.0";
 #my $VERSION = "__BLEEDING_EDGE__"; 
+
+
+my $ABSOLUTE_MIN_CONTIG_LENGTH = 100;  # going shorter might lead to making too many intermediate files during the run.
 
 
 BEGIN {
@@ -276,8 +279,6 @@ $trinity_banner
 ####################################
 ##  Misc:  #########################
 #
-#  --include_supertranscripts      :yield supertranscripts fasta and gtf files as outputs.
-#
 #  --SS_lib_type <string>          :Strand-specific RNA-Seq read orientation.
 #                                   if paired: RF or FR,
 #                                   if single: F or R.   (dUTP method = RF)
@@ -285,7 +286,7 @@ $trinity_banner
 #
 #  --CPU <int>                     :number of CPUs to use, default: $CPU
 #  --min_contig_length <int>       :minimum assembled contig length to report
-#                                   (def=$min_contig_length)
+#                                   (def=$min_contig_length, must be >= $ABSOLUTE_MIN_CONTIG_LENGTH)
 #
 #  --long_reads <string>           :fasta file containing error-corrected or circular consensus (CCS) pac bio reads
 #                                   (** note: experimental parameter **, this functionality continues to be under development)
@@ -938,8 +939,14 @@ if ($help_flag) {
 if ($show_version_flag) {
     &version_check();
     
-    exit(1);
+    exit(0);
 }
+
+
+if ($min_contig_length < $ABSOLUTE_MIN_CONTIG_LENGTH) {
+    die "sorry, min contig length set at $min_contig_length is below our imposed threshold of $ABSOLUTE_MIN_CONTIG_LENGTH and might lead to undesirably long runtimes and numbers of transcript clusters to pursue (and number of intermediate files generated).";
+}
+
 
 ## basic options check:
 unless ($max_memory &&
@@ -1105,6 +1112,15 @@ if (@single_files) {
 if ($min_iso_ratio > 1) {
     die "Error, --min_iso_ratio should be <= 1 \n";
 }
+
+if ($max_memory =~ /^(\d+)G/) {
+    my $mem_val = $1;
+    if ($mem_val > 200) {
+        print STDERR "-shouldn't require more than 200G RAM, so resetting max memory suggestion value to 200G to avoid potential problems.\n";
+        $max_memory = "200G";
+    }
+}
+
 
 ## keep the original 'xG' format string for the --JM option, then calculate the numerical value for jellyfish_ram
 my $jellyfish_ram = $max_memory;    ## this one is used in the Chrysalis exec string
@@ -2049,8 +2065,8 @@ sub run_chrysalis {
 
             my $bowtie2_scoring = "G,20,8"; # default bowtie2 params for local alignment
                         
-            $cmd = "bash -c \" set -o pipefail;$bowtie2_path --local -k 2 --no-unal --threads $CPU -f --score-min $bowtie2_scoring -x $iworm_min100_fa_file $bowtie_reads_fa  | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort -m $samtools_max_memory $PARALLEL_SAMTOOLS_SORT_TOKEN -no - - > $bowtie_sam_file\" ";  
-                        
+            $cmd = "bash -c \" set -o pipefail;$bowtie2_path --local -k 2 --no-unal --threads $CPU -f --score-min $bowtie2_scoring -x $iworm_min100_fa_file $bowtie_reads_fa  | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort -m $samtools_max_memory $PARALLEL_SAMTOOLS_SORT_TOKEN -no $bowtie_sam_file\" ";  
+            
             $pipeliner->add_commands( new Command($cmd, "$bowtie_sam_file.ok"));
             
             ## generate the scaffold info

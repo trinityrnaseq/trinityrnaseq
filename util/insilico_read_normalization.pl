@@ -389,6 +389,7 @@ main: {
     my @outputs;
     @checkpoints = ();
     my @threads;
+    my $thread_counter = 0;
     foreach my $info_aref (@files_need_stats) {
         my ($orig_file, $converted_file, $stats_file, $selected_entries) = @$info_aref;
 
@@ -410,9 +411,11 @@ main: {
     
         ## run in parallel
         
+        $thread_counter += 1;
         my $checkpoint_file = "$outfile.ok";
         unless (-e $checkpoint_file) {
-            my $thread = threads->create('make_normalized_reads_file', $orig_file, $seqType, $selected_entries, $outfile);
+
+            my $thread = threads->create('make_normalized_reads_file', $orig_file, $seqType, $selected_entries, $outfile, $thread_counter);
             
             push (@threads, $thread);
             push (@checkpoints, [$outfile, $checkpoint_file]);
@@ -465,13 +468,13 @@ main: {
 
 ####
 sub build_selected_index {
-    my $file = shift;
+    my ($file, $thread_count) = @_;
     
     
 
     my %index = ();
     
-    my $tied_idx_filename = $file + ".idx";
+    my $tied_idx_filename = $file . ".thread-${thread_count}.idx";
     tie (%index, 'DB_File', $tied_idx_filename, O_CREAT|O_RDWR, 0666, $DB_BTREE);
     
 
@@ -496,14 +499,14 @@ sub build_selected_index {
 
 ####
 sub make_normalized_reads_file {
-    my ($source_files_aref, $seq_type, $selected_entries, $outfile) = @_;
+    my ($source_files_aref, $seq_type, $selected_entries, $outfile, $thread_count) = @_;
 
     print STDERR "-preparing to extract selected reads from: @$source_files_aref ...";
     open (my $ofh, ">$outfile") or die "Error, cannot write to $outfile";
 
     my @source_files = @$source_files_aref;
     
-    my %idx = &build_selected_index( $selected_entries );
+    my %idx = &build_selected_index( $selected_entries, $thread_count );
     print STDERR " done prepping, now search and capture.\n";
     
     #print STDERR Dumper(\%idx);

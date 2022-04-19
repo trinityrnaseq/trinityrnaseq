@@ -475,6 +475,10 @@ sub build_selected_index {
     my $index_href = {};
     
     my $tied_idx_filename = $file . ".thread-${thread_count}.idx";
+    if (-s $tied_idx_filename) {
+        unlink($tied_idx_filename);
+    }
+    
     tie (%{$index_href}, 'DB_File', $tied_idx_filename, O_CREAT|O_RDWR, 0666, $DB_BTREE);
     
 

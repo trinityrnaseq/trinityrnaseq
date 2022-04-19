@@ -16,7 +16,7 @@ use Fasta_reader;
 use threads;
 use Data::Dumper;
 use COMMON;
-
+use DB_File;
 
 $ENV{PATH} = "$FindBin::Bin/../trinity-plugins/BIN:$ENV{PATH}";
 
@@ -467,8 +467,14 @@ main: {
 sub build_selected_index {
     my $file = shift;
     
+    
+
     my %index = ();
     
+    my $tied_idx_filename = $file + ".idx";
+    tie (%index, 'DB_File', $tied_idx_filename, O_CREAT|O_RDWR, 0666, $DB_BTREE);
+    
+
     open(my $ifh, $file) || die "failed to read selected_entries file $file: $!";
     
     while (my $line = <$ifh> ) {

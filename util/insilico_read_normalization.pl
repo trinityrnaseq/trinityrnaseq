@@ -472,10 +472,10 @@ sub build_selected_index {
     
     
 
-    my %index = ();
+    my $index_href = {};
     
     my $tied_idx_filename = $file . ".thread-${thread_count}.idx";
-    tie (%index, 'DB_File', $tied_idx_filename, O_CREAT|O_RDWR, 0666, $DB_BTREE);
+    tie (%{$index_href}, 'DB_File', $tied_idx_filename, O_CREAT|O_RDWR, 0666, $DB_BTREE);
     
 
     open(my $ifh, $file) || die "failed to read selected_entries file $file: $!";
@@ -490,10 +490,10 @@ sub build_selected_index {
         #print STDERR "-want $line\n";
 
 
-        $index{$line} = 0;
+        $index_href->{$line} = 0;
     }
     
-    return (%index);
+    return ($index_href);
 }
 
 
@@ -506,7 +506,7 @@ sub make_normalized_reads_file {
 
     my @source_files = @$source_files_aref;
     
-    my %idx = &build_selected_index( $selected_entries, $thread_count );
+    my $idx_href = &build_selected_index( $selected_entries, $thread_count );
     print STDERR " done prepping, now search and capture.\n";
     
     #print STDERR Dumper(\%idx);
@@ -538,8 +538,8 @@ sub make_normalized_reads_file {
             
             #print STDERR "parsed acc: [$acc]\n";
             
-            if ( exists $idx{$acc} ) {
-                $idx{$acc}++;
+            if ( exists $idx_href->{$acc} ) {
+                $idx_href->{$acc}++;
                 my $record = '';
                 
                 if ($seqType eq 'fq') { 
@@ -556,11 +556,10 @@ sub make_normalized_reads_file {
     
     ## check and make sure they were all found
     my %missing;
-    for my $k ( keys %idx ) {
-        if ($idx{$k} == 0) {
-
+    for my $k ( keys %{$idx_href} ) {
+        if ($idx_href->{$k} == 0) {
         
-            $missing{$k} =1 ;
+            $missing{$k} = 1;
         }
         
     }

@@ -122,8 +122,8 @@ main: {
     &process_cmd($cmd);
 
     $cmd = "samtools index $output";
-    &process_cmd($cmd);
-    
+    #&process_cmd($cmd);
+    `$cmd`; # ignore error that occurs if file is too big.
 
     if ($incl_out_gff3) {
         $cmd = "$FindBin::Bin/SAM_to_gff3.minimap2_path1only.pl $output > $output.gff3";

@@ -126,7 +126,7 @@ main: {
     `$cmd`; # ignore error that occurs if file is too big.
 
     if ($incl_out_gff3) {
-        $cmd = "$FindBin::Bin/SAM_to_gff3.minimap2_path1only.pl $output > $output.gff3";
+        $cmd = "$FindBin::Bin/SAM_to_gff3.minimap2.pl $output > $output.gff3";
         &process_cmd($cmd);
     }
     

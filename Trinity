@@ -3708,7 +3708,7 @@ sub write_trinity_partitioned_cmds {
             next;
         }
         
-        if ($arg =~/bfly_opts|singularity_extra_params|grid_exec/) {
+        if ($arg =~/bfly_opts|singularity_extra_params/) {
             # wrap val in quotes
             my $val = shift @potential_args;
             $cmd .= "$arg \"$val\" ";
@@ -4227,7 +4227,27 @@ sub run_singularity_Trinity {
         }
     }
         
-    my $cmd = join(" ", "Trinity", @ORIG_ARGS);
+    
+
+    my @candidate_args = @ORIG_ARGS;
+    my @args_use;
+    while (@candidate_args) {
+        my $arg = shift @candidate_args;
+        if ($arg =~ /grid_exec/) {
+            shift @candidate_args;
+        }
+        elsif ($arg =~ /^\-/ && $arg =~ /left|right|output|img/) {
+            my $val = shift @candidate_args;
+            $val = &create_full_path($val, 0);
+            push (@args_use, $arg, $val);
+        }
+        else {
+            push (@args_use, $arg);
+        }
+    }
+
+
+    my $cmd = join(" ", "Trinity", @args_use);
     
     # run initial 
 

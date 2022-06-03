@@ -3647,11 +3647,7 @@ sub run_partitioned_cmds {
         &process_cmd($cmd);
     }
 
-    if ($singularity_img) {
-        # running piecemeal using singularity image
-        exit(0);
-    }
-    
+        
     return;
 }
 

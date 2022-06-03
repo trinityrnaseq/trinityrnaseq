@@ -17,6 +17,11 @@ my $usage = <<__EOUSAGE__;
 # --reads_list_file <string>      file containing list of filenames corresponding 
 #                                  to the reads.fasta
 #
+# Optional for singularity usage:
+#
+#   --singularity_img <string>     path to singularity image
+#
+#   --singularity_extra_params <string>  singularity extra parameters to include
 #
 #####################################################################################
 
@@ -28,14 +33,17 @@ __EOUSAGE__
 
 my $reads_file;
 my $help_flag;
-
+my $singularity_img;
+my $singularity_extra_params = "";
 
 
 &GetOptions (
-             'reads_list_file=s' => \$reads_file,
-             'h' => \$help_flag,
-            
-             );
+    'reads_list_file=s' => \$reads_file,
+    'h' => \$help_flag,
+    'singularity_img=s' => \$singularity_img,
+    'singularity_extra_params=s' => \$singularity_extra_params,    
+    );
+
 
 my @TRIN_ARGS = @ARGV;
 
@@ -75,8 +83,12 @@ while (<$fh>) {
     
     my $file = pop @x;
     
+
     my $cmd = "$FindBin::RealBin/../../Trinity --single \"$file\" --output \"$file.out\" $trin_args ";
-    
+
+    if ($singularity_img) {
+        $cmd = "singularity exec $singularity_extra_params $singularity_img $cmd";
+    }
     print "$cmd\n";
 }
 

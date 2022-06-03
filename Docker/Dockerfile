@@ -241,7 +241,7 @@ RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v${SALMON_VERSI
 ## Trinity
 WORKDIR $SRC
 ENV TRINITY_VERSION="2.15.0-predev"
-ENV TRINITY_CO=397bb32aa8bded7c56976fddc128258a0700180b
+ENV TRINITY_CO=a9bd44712364b9cdff842a2d9479d83fad8429fe
 
 WORKDIR $SRC
 

@@ -3659,7 +3659,7 @@ sub write_trinity_partitioned_cmds {
     ##################################################
     ## write Trinity assembly commands for partitions:
     ##################################################
-
+    
     my $cmd = "$UTILDIR/support_scripts/write_partitioned_trinity_cmds.pl --reads_list_file $reads_list_file --CPU $grid_node_CPU --max_memory $grid_node_max_memory ";
     if ($PAIRED_MODE) {
         $cmd .= " --run_as_paired ";
@@ -3708,7 +3708,7 @@ sub write_trinity_partitioned_cmds {
             next;
         }
         
-        if ($arg eq "--bfly_opts" || $arg eq "--singularity_extra_params") {
+        if ($arg =~/bfly_opts|singularity_extra_params|grid_exec/) {
             # wrap val in quotes
             my $val = shift @potential_args;
             $cmd .= "$arg \"$val\" ";

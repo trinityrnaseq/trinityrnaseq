@@ -1011,10 +1011,9 @@ else {
 
 
 if ($singularity_img && ! $in_simg_mode) {
-    unless (-s $singularity_img) {
-        die "Error, cannot locate singularity image at: $singularity_img";
-    }
 
+    $singularity_img = &create_full_path($singularity_img, 1);
+    
     &run_singularity_Trinity();
     
     exit(0);
@@ -3713,7 +3712,7 @@ sub write_trinity_partitioned_cmds {
             next;
         }
         
-        if ($arg eq "--bfly_opts") {
+        if ($arg eq "--bfly_opts" || $arg eq "--singularity_extra_params") {
             # wrap val in quotes
             my $val = shift @potential_args;
             $cmd .= "$arg \"$val\" ";

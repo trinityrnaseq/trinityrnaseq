@@ -1143,6 +1143,11 @@ if (@single_files) {
 }
 
 
+if ($genome_guided_bam && (@left_files || @single_files)) {
+    die "Error - must specify either genome guided bam or fastq files, but not both. Use bam for genome-guided and fastq for genome-free de novo assembly.";
+}
+
+
 if ($min_iso_ratio > 1) {
     die "Error, --min_iso_ratio should be <= 1 \n";
 }

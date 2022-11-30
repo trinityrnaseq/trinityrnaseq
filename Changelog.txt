@@ -1,5 +1,6 @@
 # Trinity-v2.15.0 Nov 30, 2022
-
+- use DB_File for storing read names wanted during normalization step eliminating excessive RAM usage.
+- support for hpc_gridrunner/singularity
 
 
 # Trinity-v2.14.0 Mar 11, 2022

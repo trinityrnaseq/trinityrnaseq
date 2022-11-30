@@ -27,6 +27,7 @@ my $usage = <<__EOUSAGE__;
 #  --CPU <int>                 number of threads (default: 2)
 #  --nameSorted                sort bam by name instead of coordinate
 #
+#  --max_intron <int>          maximum intron length
 #  --join_bio_reps             search all bio replicates together instead of separately
 #
 #######################################################################
@@ -48,12 +49,17 @@ my $nameSorted;
 
 my $join_bio_reps_flag = 0;
 
+my $max_intron_length;
+
+
 &GetOptions( 'h' => \$help_flag,
              'genome=s' => \$genome,
              'samples_file=s' => \$samples_file,
              'CPU=i' => \$CPU,
              'gtf=s' => \$gtf_file,
              'nameSorted' => \$nameSorted,
+
+             'max_intron=i' => \$max_intron_length,
              
              'join_bio_reps' => \$join_bio_reps_flag,
     );
@@ -161,6 +167,11 @@ main: {
             . " --limitIObufferSize=300000000" 
             . " --limitSjdbInsertNsj=10000000 "
             ;
+
+        if (defined($max_intron_length)) {
+            $cmd .= " --alignMatesGapMax $max_intron_length "
+                . " --alignIntronMax $max_intron_length ";
+        }
         
             
         if ($left_fqs =~ /\.gz$/) {

@@ -22,7 +22,7 @@ def main():
                         help="transcript length file, format: trans_id(tab)length")
 
     parser.add_argument("--TPM_matrix", dest="TPM_matrix_file", type=str, default="",
-                        required=True, help="TPM expression matrix")
+                        required=True, help="isoform TPM expression matrix")
 
     parser.add_argument("--debug", required=False, action="store_true", default=False, help="debug mode")
 

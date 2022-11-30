@@ -111,6 +111,20 @@ sub get_scaffold_start_position {
 
 
 ####
+sub get_read_group {
+    my $self = shift;
+    my $line = $self->get_original_line();
+
+    if ($line =~ /RG:Z:(\S+)/) {
+        return($1);
+    }
+    else {
+        return undef;
+    }
+}
+            
+
+####
 sub get_cigar_alignment {
 	my $self = shift;
 	return($self->{_fields}->[5]);
@@ -134,11 +148,10 @@ sub get_genome_span {
     return($min_coord, $max_coord);
 }
 
-
 ####
 sub get_read_span {
     my $self = shift;
-    
+
     my ($genome_aref, $read_aref) = $self->get_alignment_coords();
 
     my @coords;
@@ -154,8 +167,6 @@ sub get_read_span {
     return($min_coord, $max_coord);
 
 }
-
-
 
 ####
 sub get_alignment_length {
@@ -189,6 +200,8 @@ sub get_alignment_coords {
 	my @genome_coords;
 	my @query_coords;
 
+
+    my $sum_hardmasked_query = 0;
 
 	$genome_lend--; # move pointer just before first position.
 	
@@ -225,7 +238,10 @@ sub get_alignment_coords {
                $code eq 'S' || $code eq 'H')  # masked region of query
         { 
             $query_lend += $len;
-
+            
+            if ($code eq "H") {
+                $sum_hardmasked_query += $len;
+            }
 		}
 	}
 
@@ -237,7 +253,8 @@ sub get_alignment_coords {
         unless ($read_len) {
             confess "Error, no read length obtained from entry: " . $self->get_original_line();
         }
-
+        $read_len += $sum_hardmasked_query;
+        
         my @revcomp_coords;
         foreach my $coordset (@query_coords) {
             my ($lend, $rend) = @$coordset;
@@ -441,6 +458,19 @@ sub set_mate_unmapped {
 	
 	return($self->_set_bit_val(0x0008, $bit_val));
 }
+
+sub is_duplicate {
+    my ($self) = shift;
+    
+    return($self->_get_bit_val(0x0400));
+}
+sub set_duplicate {
+    my $self = shift;
+    my $bit_val = shift;
+
+    return($self->_set_bit_val(0x0400, $bit_val));
+}
+
 
 ####
 sub get_query_strand {

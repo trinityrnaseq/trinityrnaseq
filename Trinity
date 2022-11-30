@@ -21,6 +21,7 @@ use List::Util qw(min max);
 use Data::Dumper;
 
 
+
 my $VERSION = "Trinity-v2.15.0";
 #my $VERSION = "__BLEEDING_EDGE__"; 
 
@@ -230,6 +231,12 @@ my $MAX_CHRYSALIS_CLUSTER_SIZE = 25; # might need to set higher for highly polym
 my $JUST_NORMALIZE_READS_FLAG = 0;
 
 my $NO_SEQTK = 0;
+
+
+my $singularity_img = "";
+my $singularity_extra_params = "";
+my $in_simg_mode = 0; # bit flag, indicate whether we're executing from within a singularity image.
+
 
 my $trinity_banner = qq^
      ______  ____   ____  ____   ____  ______  __ __
@@ -487,6 +494,15 @@ my $full_usage = qq^
 #                                          (Note, this should only be used after you've
 #                                           already dealt with these failed commands directly as needed)
 #
+########################################################################
+# Singularity-related options
+#
+# --singularity_img <string>         :path to a Trinity singularity image to use
+#
+# --singularity_extra_params <string>   :additional parameters to include for the singularity command execution
+#
+#
+
     ^;
 
 my $usage_synopsis = qq^#
@@ -795,7 +811,11 @@ my $ALREADY_SALMON_FILTERED = 0;
     "no_symlink" => \$NO_SYMLINK_FLAG,
     
     "__KMER_SIZE=i" => \$KMER_SIZE,
-    
+
+    # singularity options:
+    "singularity_img=s" => \$singularity_img,
+    "singularity_extra_params=s" => \$singularity_extra_params,
+    "in_simg_mode" => \$in_simg_mode,
     
     );
 
@@ -892,6 +912,9 @@ iworm_cdhit
 bfly_algorithm
 __KMER_SIZE
 no_symlink
+singularity_img
+singularity_extra_params
+in_simg_mode
 );   
 
 my %ACCEPTABLE_OPTS = map { + $_ => 1} @__ALL_TRINITY_PARAMS;
@@ -986,6 +1009,18 @@ if ($WORKDIR) {
 else {
     $WORKDIR = $output_directory;
 }
+
+
+if ($singularity_img && ! $in_simg_mode) {
+
+    $singularity_img = &create_full_path($singularity_img, 1);
+    
+    &run_singularity_Trinity();
+    
+    exit(0);
+}
+
+
 
 my $GRAPH_FROM_FASTA_CUSTOM_PARAMS = "";
 my $GRAPH_FROM_FASTA_KK = 2*($KMER_SIZE-1);
@@ -1106,6 +1141,11 @@ if (@single_files) {
     @single_files = split(",", join(",", @single_files));
 
     print STDERR "Single read files: " . Dumper(\@single_files) unless ($TRINITY_COMPLETE_FLAG);
+}
+
+
+if ($genome_guided_bam && (@left_files || @single_files)) {
+    die "Error - must specify either genome guided bam or fastq files, but not both. Use bam for genome-guided and fastq for genome-free de novo assembly.";
 }
 
 
@@ -3612,7 +3652,8 @@ sub run_partitioned_cmds {
         my $cmd = "$PARAFLY -c $cmds_file -CPU $CPU -v -shuffle ";
         &process_cmd($cmd);
     }
-    
+
+        
     return;
 }
 
@@ -3624,7 +3665,7 @@ sub write_trinity_partitioned_cmds {
     ##################################################
     ## write Trinity assembly commands for partitions:
     ##################################################
-
+    
     my $cmd = "$UTILDIR/support_scripts/write_partitioned_trinity_cmds.pl --reads_list_file $reads_list_file --CPU $grid_node_CPU --max_memory $grid_node_max_memory ";
     if ($PAIRED_MODE) {
         $cmd .= " --run_as_paired ";
@@ -3645,18 +3686,19 @@ sub write_trinity_partitioned_cmds {
     if ($LONG_READS_MODE) {
         $cmd .= " --long_reads_mode ";
     }
-        
+    
     my @potential_args = @ORIG_ARGS;
 
     if ($trinity_mode =~ /FREE/ && ! grep { /no_salmon/ } @potential_args) {
         push (@potential_args, "--no_salmon"); # now saving salmon for a final post-process using aggregated transcripts in genome-free mode.
     }
     
+
     while (@potential_args) {
         my $arg = shift @potential_args;
         
         # single value options that aren't needed:
-        if ($arg =~ /run_as_paired|normalize_by_read_set|trimmomatic|normalize_reads|prep|recurs|clean|monitoring/) {
+        if ($arg =~ /run_as_paired|normalize_by_read_set|trimmomatic|normalize_reads|prep|recurs|clean|monitoring|in_simg_mode/) {
             next;
         }
         
@@ -3672,7 +3714,7 @@ sub write_trinity_partitioned_cmds {
             next;
         }
         
-        if ($arg eq "--bfly_opts") {
+        if ($arg =~/bfly_opts|singularity_extra_params/) {
             # wrap val in quotes
             my $val = shift @potential_args;
             $cmd .= "$arg \"$val\" ";
@@ -4174,6 +4216,63 @@ sub salmon_expr_filtering {
     $pipeliner->run();
 
     $ALREADY_SALMON_FILTERED = 1;
+    
+    return;
+}
+
+
+
+
+
+####
+sub run_singularity_Trinity {
+    
+    for my $outdir ($output_directory, $WORKDIR) {
+        if (! -d $outdir) {
+            &process_cmd("mkdir -p $outdir");
+        }
+    }
+        
+    
+
+    my @candidate_args = @ORIG_ARGS;
+    my @args_use;
+    while (@candidate_args) {
+        my $arg = shift @candidate_args;
+        if ($arg =~ /grid_exec/) {
+            shift @candidate_args;
+        }
+        elsif ($arg =~ /^\-/ && $arg =~ /left|right|output|img/) {
+            my $val = shift @candidate_args;
+            $val = &create_full_path($val, 0);
+            push (@args_use, $arg, $val);
+        }
+        else {
+            push (@args_use, $arg);
+        }
+    }
+
+
+    my $cmd = join(" ", "Trinity", @args_use);
+    
+    # run initial 
+
+    my $bind_dir = "-B $output_directory";
+    if ($output_directory ne $WORKDIR) {
+        $bind_dir .= " -B $WORKDIR";
+    }
+    
+    $singularity_extra_params .= " -e -H /tmp $bind_dir";
+
+
+    my $stage1_cmd = "singularity exec $singularity_extra_params $singularity_img $cmd --no_distributed_trinity_exec --in_simg_mode --singularity_extra_params \"$singularity_extra_params\" ";
+    &process_cmd($stage1_cmd);
+    
+    my $recursive_trinity_cmds_file = "$output_directory/recursive_trinity.cmds";
+    &run_partitioned_cmds($recursive_trinity_cmds_file);
+    
+    my $stage2_cmd = "singularity exec -e -H /tmp $bind_dir $singularity_extra_params $singularity_img $cmd --FORCE --in_simg_mode"; # just gather results.
+    &process_cmd($stage2_cmd);
     
     return;
 }

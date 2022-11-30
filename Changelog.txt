@@ -1,3 +1,7 @@
+# Trinity-v2.15.0 Nov 30, 2022
+
+
+
 # Trinity-v2.14.0 Mar 11, 2022
 - bugfix for the rarely occurring butterfly error:  "after topo sort, still have edge unaccounted for: Edge..."
 - setting max value for max_mem to 200G to avoid potential problems

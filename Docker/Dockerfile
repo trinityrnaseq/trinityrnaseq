@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 MAINTAINER bhaas@broadinstitute.org
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -70,10 +70,16 @@ ENV BIN /usr/local/bin
 # Install R
 
 WORKDIR $SRC
+#####
+# Install R
 
-ENV R_VERSION=R-3.6.3
+WORKDIR $SRC
 
-RUN curl https://cran.r-project.org/src/base/R-3/$R_VERSION.tar.gz -o $R_VERSION.tar.gz && \
+RUN apt-get install -y texlive texlive-latex-extra
+
+ENV R_VERSION=R-4.2.0
+
+RUN curl https://cran.r-project.org/src/base/R-4/$R_VERSION.tar.gz -o $R_VERSION.tar.gz && \
     tar xvf $R_VERSION.tar.gz && \
     cd $R_VERSION && \
 	./configure && make && make install
@@ -96,10 +102,6 @@ RUN R -e 'BiocManager::install("fastcluster")'
 RUN R -e 'BiocManager::install("DEXSeq")'
 RUN R -e 'BiocManager::install("tximport")'
 RUN R -e 'BiocManager::install("tximportData")'
-
-
-##RUN R -e 'BiocManager::install("sm")'
-##RUN R -e 'BiocManager::install("vioplot")'
 
 
 ENV LD_LIBRARY_PATH=/usr/local/lib
@@ -240,8 +242,8 @@ RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v${SALMON_VERSI
 
 ## Trinity
 WORKDIR $SRC
-ENV TRINITY_VERSION="2.15.0-predev"
-ENV TRINITY_CO=ffe58a60ebc38315989fa6e47216e4332543e3bd
+ENV TRINITY_VERSION="2.15.0"
+ENV TRINITY_CO=fc6081a0d1ae8f46b020dc6c85d7e68767d1c00b
 
 WORKDIR $SRC
 

@@ -219,7 +219,7 @@ main: {
         print $ofh "dxr1 = DEXSeqResults( dxd )\n";
         print $ofh "dxr1.sorted = dxr1[order(dxr1\$padj),]\n";
         print $ofh "save(list = ls(all=TRUE), file = \"$out_prefix.Rdata\")\n";
-        print $ofh "write.table(dxr1.sorted, file=\"$out_prefix.results.dat\", quote=F, sep=\"\t\")\n";
+        print $ofh "write.table(apply(data.frame(dxr1.sorted), 2, as.character), file=\"$out_prefix.results.dat\", quote=F, sep=\"\t\")\n";
         
         print $ofh "pdf(\"$out_prefix.pdf\")\n";
         

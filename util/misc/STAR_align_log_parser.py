@@ -10,17 +10,15 @@ def main():
     if len(sys.argv) < 2:
         exit(usage)
 
-
-    
-    tokens = list()
+    tokens = ['sample_name']
     
     processed_first = False
     files = sys.argv[1:]
 
     for log_filename in files:
 
-        token_to_val = dict()
-
+        token_to_val = { 'sample_name' : log_filename }
+        
         with open(log_filename) as fh:
             for line in fh:
                 line = line.rstrip()

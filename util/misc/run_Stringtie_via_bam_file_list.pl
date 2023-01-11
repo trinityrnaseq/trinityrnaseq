@@ -92,7 +92,9 @@ main: {
 
     my $pipeliner = new Pipeliner(-verbose => 1);
       
-
+    
+    my @indiv_stringtie_outputs;
+    
     foreach my $entry (@entries) {
         my $cmd = "stringtie " . $entry->{bam} . 
             " -l STRG." . $entry->{sample_id} . " ";
@@ -111,6 +113,8 @@ main: {
 
         $cmd .= " -o " . $entry->{sample_id} . ".strg.gtf";
         
+        push (@indiv_stringtie_outputs, $entry->{sample_id} . ".strg.gtf");
+
         if ($gtf_file) {
             $cmd .= " -G $gtf_file ";
         }
@@ -121,6 +125,21 @@ main: {
     }
     
     $pipeliner->run();
+
+
+    # merge transcripts
+    if (scalar(@indiv_stringtie_outputs) > 1) {
+        my $cmd = "stringtie --merge -o stringtie.merged.gtf -g 1 ";
+        if ($gtf_file) {
+            $cmd .= " -G $gtf_file ";
+        }
+        $cmd .= join(" ", @indiv_stringtie_outputs);
+    
+        $pipeliner->add_commands( new Command($cmd, "stringtie_merge.ok"));
+        
+        $pipeliner->run();
+        
+    }
     
         
 	exit(0);

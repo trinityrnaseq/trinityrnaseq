@@ -31,6 +31,7 @@ my $usage = <<__EOUSAGE__;
 #  --patch <string>            genomic targets to patch the genome fasta with.
 #  --chim_search               include Chimeric.junction outputs
 #  --max_intron <int>          max intron length (and PE gap size)
+#  --one_pass                  do one pass alignment instead of two-pass
 #
 #######################################################################
 
@@ -55,6 +56,7 @@ my $star_path = "STAR";
 my $patch;
 my $chim_search;
 my $max_intron;
+my $one_pass = 0;
 
 &GetOptions( 'h' => \$help_flag,
              'genome=s' => \$genome,
@@ -68,6 +70,7 @@ my $max_intron;
              'patch=s' => \$patch,
              'chim_search' => \$chim_search,
              "max_intron=i" => \$max_intron,
+             'one_pass' => \$one_pass,
     );
 
 
@@ -143,13 +146,15 @@ main: {
     
     my $pipeliner = new Pipeliner(-verbose => 1);
 
+    my $pass_mode = ($one_pass) ? "None" : "Basic";
+
     my $cmd = "$star_prog "
         . " --runThreadN $CPU "
         . " --genomeDir $star_index "
         . " --outSAMtype BAM SortedByCoordinate "
         . " --runMode alignReads "
         . " --readFilesIn $reads "
-        . " --twopassMode Basic "
+        . " --twopassMode $pass_mode "
         . " --alignSJDBoverhangMin 10 "
         . " --outSAMstrandField intronMotif "
         . " --outSAMunmapped Within "

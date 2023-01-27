@@ -12,7 +12,7 @@ use Storable qw (store retrieve freeze thaw dclone);
 use warnings;
 use Data::Dumper;
 use Carp qw (croak cluck confess);
-use URI::Escape;
+#use URI::Escape;
 
 =head1 NAME
 
@@ -3596,6 +3596,7 @@ sub to_GFF3_format {
 	if ($com_name) {
         if ($preferences{uri_encode_name}) {
             # uri escape it:
+            use URI::Escape;
             $com_name = uri_escape($com_name);
         }
         else {

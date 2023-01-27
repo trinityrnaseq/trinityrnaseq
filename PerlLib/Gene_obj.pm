@@ -3594,10 +3594,17 @@ sub to_GFF3_format {
 	}
 	
 	if ($com_name) {
-		# uri escape it:
-		$com_name = uri_escape($com_name);
-	}
-
+        if ($preferences{uri_encode_name}) {
+            # uri escape it:
+            $com_name = uri_escape($com_name);
+        }
+        else {
+            unless (substr($com_name,0,1) =~ /\'|\"/ && substr($com_name, -1, 1) =~ /\'|\"/) {
+                $com_name = "\"$com_name\"";
+            }
+        }
+    }
+    
 	my $gene_alias = "";
 	if (my $pub_locus = $gene_obj->{pub_locus}) {
 		$gene_alias = "Alias=$pub_locus;";

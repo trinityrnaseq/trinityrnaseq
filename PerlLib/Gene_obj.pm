@@ -3569,7 +3569,10 @@ sub to_GFF3_format {
     my ($gene_obj, %preferences) = @_;
     
     my $gene_id = $gene_obj->{TU_feat_name};
-   
+    if ($gene_id =~ /;/) {
+        $gene_id = "\"$gene_id\"";
+    }
+    
     my $strand = $gene_obj->get_orientation();
     
     my @noteText;
@@ -3623,6 +3626,10 @@ sub to_GFF3_format {
         foreach my $gene_obj ($gene_obj_ref, $gene_obj_ref->get_additional_isoforms() ) {
             
             my $model_id = $gene_obj->{Model_feat_name};
+            if ($model_id =~ /;/) {
+                $model_id = "\"$model_id\"";
+            }
+            
             my $model_alias = "";
             if (my $model_locus = $gene_obj->{Model_pub_locus}) {
 				$model_alias = "Alias=$model_locus;";

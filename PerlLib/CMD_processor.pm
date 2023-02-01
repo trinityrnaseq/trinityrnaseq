@@ -27,6 +27,9 @@ sub process_cmd {
 sub process_parallel_cmds {
     my (@cmds) = @_;
 
+    print "Processing commands:\n" . join("\n", @cmds) . "\n\n";
+    
+
     foreach my $cmd (@cmds) {
         my $pid = fork();
         unless ($pid) {

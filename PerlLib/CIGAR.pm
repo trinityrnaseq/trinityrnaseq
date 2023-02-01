@@ -65,11 +65,10 @@ sub _check_intron_consensus {
 	my $right_dinuc = uc substr($$genome_sref, $right_segment_bound-3, 2);
 
 	if ($strand eq '-') {
-		my ($left_dinuc_copy, $right_dinuc_copy) = ($left_dinuc, $right_dinuc);
-		$left_dinuc = &reverse_complement($right_dinuc_copy);
-		$right_dinuc = &reverse_complement($left_dinuc_copy);
+		$left_dinuc = &reverse_complement($right_dinuc);
+		$right_dinuc = &reverse_complement($left_dinuc);
 	}
-	
+
 	if (  
 		( ($left_dinuc eq "GT" || $left_dinuc eq "GC") && $right_dinuc eq "AG")
 		||

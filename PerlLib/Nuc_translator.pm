@@ -11,9 +11,9 @@ use Carp;
 
 
 our @ISA = qw (Exporter);
-our @EXPORT = qw (translate_sequence get_protein reverse_complement);
+our @EXPORT = qw (get_genetic_codes translate_sequence get_protein reverse_complement);
 
-use vars qw ($currentCode %codon_table $init_codon_table_subref);
+use vars qw ($currentCode %codon_table $init_codon_table_subref $support_Thymine_and_Uracil_subref);
 
 
 =head1 NAME
@@ -41,6 +41,7 @@ Available genetic codes include universal, Euplotes, Tetrahymena, Candida, Aceta
 For info on these codes, visit:
 
 http://golgi.harvard.edu/biolinks/gencode.html
+(https://web.archive.org/web/20040216020103/http://golgi.harvard.edu/biolinks/gencode.html)
 
 Methods exported by this package include:
 
@@ -63,24 +64,100 @@ Nuc_translator::use_specified_genetic_code()
 
 
 ## See http://golgi.harvard.edu/biolinks/gencode.html
-my %SUPPORTED_GENETIC_CODES = ( universal => 1,
-                                Euplotes => 1,
+my %SUPPORTED_GENETIC_CODES = ( Universal => 1,
+                                
                                 Tetrahymena => 1,
-                                Candida => 1,
                                 Acetabularia => 1,
-                                'Mitochondrial-Canonical' => 1,
+                                Ciliate => 1,
+                                Dasycladacean => 1,
+                                Hexamita => 1,
+                                
+                                Candida => 1,
+                                
+                                Euplotid => 1,
+
+                                SR1_Gracilibacteria => 1,
+
+                                Pachysolen_tannophilus => 1,
+
+                                Mesodinium => 1,
+
+                                Peritrich => 1,
+                                
+                                
+                                
                                 'Mitochondrial-Vertebrates' => 1,
-                                'Mitochondrial-Arthropods' => 1,
-                                'Mitochondrial-Echinoderms' => 1,
-                                'Mitochondrial-Molluscs' => 1,
-                                'Mitochondrial-Ascidians' => 1,
-                                'Mitochondrial-Nematodes' => 1,
-                                'Mitochondrial-Platyhelminths' => 1,
-                                'Mitochondrial-Yeasts' => 1,
-                                'Mitochondrial-Euascomycetes' => 1,
-                                'Mitochondrial-Protozoans' => 1,
+                                'Mitochondrial-Yeast' => 1,
+                                'Mitochondrial-Invertebrates' => 1,
+                                "Mitochondrial-Protozoan" => 1,
+                                "Mitochondrial-Echinoderm" => 1,
+                                "Mitochondrial-Ascidian" => 1,
+                                "Mitochondrial-Flatworm" => 1,
+                                "Mitochondrial-Chlorophycean" => 1,
+                                "Mitochondrial-Trematode" => 1,
+                                "Mitochondrial-Scenedesmus_obliquus" => 1,
+                                "Mitochondrial-Thraustochytrium" => 1,
+                                "Mitochondrial-Pterobranchia" => 1,
+                                
                                 );
 
+
+
+
+
+=over 4
+
+=item get_genetic_codes()
+
+B<Description:> provides the list of supported genetic codes
+
+B<Parameters:> 
+
+B<Returns:> list of genetic codes
+
+=back
+
+=cut
+
+####
+sub get_genetic_codes {
+    return (sort keys %SUPPORTED_GENETIC_CODES);
+}
+
+
+
+####
+sub show_translation_table {
+    my ($genetic_code) = @_;
+    
+    &use_specified_genetic_code($genetic_code);
+
+    my @nucs = qw(T C A G);
+    
+
+    my $translation_line = "";
+    my $c1_line = "";
+    my $c2_line = "";
+    my $c3_line = "";
+    
+    for my $c1 (@nucs) {
+        for my $c2 (@nucs) {
+            for my $c3 (@nucs) {
+                $c1_line .= $c1;
+                $c2_line .= $c2;
+                $c3_line .= $c3;
+
+                my $codon = $c1 . $c2 . $c3;
+                my $translation = $codon_table{$codon};
+                $translation_line .= "$translation";
+            }
+        }
+    }
+
+    my $translation_table = join("\n", $translation_line, $c1_line, $c2_line, $c3_line) . "\n";
+
+    return($translation_table);
+}
 
 
 =over 4
@@ -210,7 +287,7 @@ sub reverse_complement {
     my($s) = @_;
     my ($rc);
     $rc = reverse ($s);
-    $rc =~tr/ACGTacgtyrkmYRKM/TGCAtgcarymkRYMK/;
+    $rc =~tr/ACGTacgtyrkmYRKMUu/TGCAtgcarymkRYMKAa/;
     return($rc);
 }
 
@@ -226,11 +303,8 @@ sub count_stops_in_prot_seq {
     return ($stop_num);
 }
 
-
-
 ####
-sub use_specified_genetic_code {
-    
+sub use_specified_genetic_code {    
     my ($special_code) = @_;
     print STDERR "using special genetic code $special_code\n" if $SEE;
     unless ($SUPPORTED_GENETIC_CODES{$special_code}) {
@@ -238,12 +312,12 @@ sub use_specified_genetic_code {
     }
     &$init_codon_table_subref(); ## Restore default universal code.  Others are variations on this.
     $currentCode = $special_code;
-    
-    if ($special_code eq "Euplotes") {
-        $codon_table{UGA} = "C";
-    } 
-    
-    elsif ($special_code eq "Tetrahymena" || $special_code eq "Acetabularia") {
+
+    if ($special_code eq "Universal") {
+        # already set.
+    }
+        
+    elsif ($special_code =~ /^(Tetrahymena|Acetabularia|Ciliate|Dasycladacean|Hexamita)$/) {
         $codon_table{UAA} = "Q";
         $codon_table{UAG} = "Q";
     }
@@ -251,16 +325,39 @@ sub use_specified_genetic_code {
     elsif ($special_code eq "Candida") {
         $codon_table{CUG} = "S";
     }
+
+    elsif ($special_code eq "Euplotid") {
+        $codon_table{UGA} = "C"; # not *
+    }
+
+    elsif ($special_code eq "SR1_Gracilibacteria") {
+        $codon_table{UGA} = "G"; # not *
+    }
+
+    elsif ($special_code eq "Pachysolen_tannophilus") {
+        $codon_table{CUG} = "A"; # not L
+    }
+    elsif ($special_code eq "Mesodinium") {
+        $codon_table{UAA} = "Y"; # not *
+        $codon_table{UAG} = "Y"; # not *
+    }
+
+    elsif ($special_code eq "Peritrich") {
+        $codon_table{UAA} = "E"; # not *
+        $codon_table{UAG} = "E"; # not *
+    }
     
     elsif ($special_code =~ /Mitochondrial/) {
         &_set_mitochondrial_code($special_code);
     }
- 
+    
     else {
         ## shouldn't ever get here anyway.
         confess "Error, code $special_code is not recognized.\n";
     }
     
+
+    &$support_Thymine_and_Uracil_subref();
     
 }
 
@@ -268,32 +365,72 @@ sub use_specified_genetic_code {
 ####
 sub _set_mitochondrial_code {
     my $code = shift;
-    ## set canonical by default:
-    $codon_table{AUA} = "I";
-    $codon_table{AAA} = "K";
-    $codon_table{AGA} = $codon_table{AGG} = "R";
-    $codon_table{CAU} = $codon_table{CAG} = $codon_table{CAC} = $codon_table{CAA} = "L";
+        
+    # see: https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi#SG2
     
-
     if ($code eq "Mitochondrial-Vertebrates") {
         $codon_table{UGA} = "W";
         $codon_table{AUA} = "M";
         $codon_table{AGA} = "*";
         $codon_table{AGG} = "*";
     }
-    elsif ($code eq "Mitochondrial-Arthropods") {
-        $codon_table{UGA} = "W";
-        $codon_table{AUA} = "M";
-        $codon_table{AGA} = "S";
+    elsif ($code eq "Mitochondrial-Yeast") {
+        $codon_table{AUA} = "M"; # instead of I
+        $codon_table{CUU} = $codon_table{CUC} = $codon_table{CUA} = $codon_table{CUG} = "T"; # instead of L
+        $codon_table{UGA} = "W"; # instead of *
     }
+    elsif ($code eq "Mitochondrial-Invertebrates") {
+        $codon_table{AGA} = "S";
+        $codon_table{AGG} = "S";
+        $codon_table{AUA} = "M";        
+        $codon_table{UGA} = "W";
+    }
+    elsif ($code eq "Mitochondrial-Protozoan") {
+        $codon_table{UGA} = "W";
+    }
+    elsif ($code eq "Mitochondrial-Echinoderm" || $code eq "Mitochondrial-Flatworm") {
+        $codon_table{AAA} = "N"; # not K
+        $codon_table{AGA} = "S"; # not R
+        $codon_table{AGG} = "S"; # not R
+        $codon_table{UGA} = "W"; # not *
+    }
+    elsif ($code eq "Mitochondrial-Ascidian") {
+        $codon_table{AGA} = "G"; # not R
+        $codon_table{AGG} = "G"; # not R
+        $codon_table{AUA} = "M"; # not I
+        $codon_table{UGA} = "W"; # not *
+    }
+    
+    elsif ($code eq "Mitochondrial-Chlorophycean") {
+        $codon_table{UAG} = "L"; # not *
+    }
+    elsif ($code eq "Mitochondrial-Trematode") {
+        $codon_table{UGA} = "W"; # not *
+        $codon_table{AUA} = "M"; # not I
+        $codon_table{AGA} = "S"; # not R
+        $codon_table{AGG} = "S"; # not R
+        $codon_table{AAA} = "N"; # not K
+    }
+    elsif ($code eq "Mitochondrial-Scenedesmus_obliquus") {
+        $codon_table{UCA} = "*"; # not S
+        $codon_table{UAG} = "L"; # not *
+    }
+    elsif ($code eq "Mitochondrial-Thraustochytrium") {
+        $codon_table{UUA} = "*";
+    }
+    elsif ($code eq "Mitochondrial-Pterobranchia") {
+        $codon_table{AGA} = "S"; # not R
+        $codon_table{AGG} = "K"; # not R
+        $codon_table{UGA} = "W"; # not *
+    }
+    
     
     else {
         confess "Sorry, $code hasn't been fully implemented yet.";
     }
-   
+    
 
-    ## need to finish
-
+    
 
     return;
 }
@@ -308,9 +445,9 @@ sub get_stop_codons {
             push (@stop_codons, $codon);
         }
     }
-    foreach my $codon (@stop_codons) {
-        $codon =~ tr/U/T/;
-    }
+    #foreach my $codon (@stop_codons) {
+    #    $codon =~ tr/U/T/;
+    #}
     return (@stop_codons);
 }
 
@@ -404,8 +541,103 @@ BEGIN {
                         );
   };
 
+
+  $support_Thymine_and_Uracil_subref = sub {
+
+      my @codons = keys %codon_table;
+      foreach my $codon (@codons) {
+          if ($codon =~ /U/) {
+              my $aa = $codon_table{$codon};
+              my $T_codon = $codon;
+              $T_codon =~ s/U/T/g;
+              $codon_table{$T_codon} = $aa;
+          }
+      }
+  };
+  
+  
+  # init codon table, using uracil codons
   &$init_codon_table_subref();
+
+  # update codon table to also support thymine
+  &$support_Thymine_and_Uracil_subref();
 }
+
+
+
+
+####
+sub run_test() {
+    my %expected_translation_tables = (
+        'Universal' => "FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+        'Mitochondrial-Vertebrates' => "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNKKSS**VVVVAAAADDEEGGGG",
+        'Mitochondrial-Yeast' => "FFLLSSSSYY**CCWWTTTTPPPPHHQQRRRRIIMMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+        'Mitochondrial-Protozoan' => "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+        'Mitochondrial-Invertebrates' => "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNKKSSSSVVVVAAAADDEEGGGG",
+        'Ciliate' => 'FFLLSSSSYYQQCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG',
+        'Mitochondrial-Echinoderm' => "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNNKSSSSVVVVAAAADDEEGGGG",
+        'Euplotid' => "FFLLSSSSYY**CCCWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+        'Candida' => "FFLLSSSSYY**CC*WLLLSPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+        'Mitochondrial-Ascidian' => "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNKKSSGGVVVVAAAADDEEGGGG",
+        'Mitochondrial-Chlorophycean' => "FFLLSSSSYY*LCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+        'Mitochondrial-Trematode' => "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNNKSSSSVVVVAAAADDEEGGGG",
+        'Mitochondrial-Scenedesmus_obliquus' => "FFLLSS*SYY*LCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+        'Mitochondrial-Thraustochytrium' => "FF*LSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+        'Mitochondrial-Pterobranchia' => "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSSKVVVVAAAADDEEGGGG",
+        'SR1_Gracilibacteria' => "FFLLSSSSYY**CCGWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+        'Pachysolen_tannophilus' => "FFLLSSSSYY**CC*WLLLAPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+        'Mesodinium' => "FFLLSSSSYYYYCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+        'Peritrich' => "FFLLSSSSYYEECC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+        );
+
+    my $exit_code = 0;
+    
+    foreach my $genetic_code (sort keys %expected_translation_tables) {
+        my $expected_translation = $expected_translation_tables{$genetic_code};
+
+        my $reconstructed_translation_table = &show_translation_table($genetic_code);
+        my @pts = split(/\n/, $reconstructed_translation_table);
+        my $trans_table = shift @pts;
+
+        if ($trans_table eq $expected_translation) {
+            print "$genetic_code\tOK\n";
+        }
+        else {
+            print "\n$genetic_code\tERROR:\n"
+                . "$expected_translation (EXPECTED)\n"
+                . "$trans_table (Computed)\n\n";
+            
+            $exit_code = 1;
+            
+        }
+        
+    }
+
+    exit($exit_code);
+    
+}
+
+unless (caller) {
+
+    my $genetic_code = $ARGV[0];
+
+    if ($genetic_code eq "TEST") {
+        &run_test();
+    }
+
+    if ($genetic_code) {
+        print "\nTranslation table for $genetic_code:\n\n";
+        print &show_translation_table($genetic_code) . "\n\n";
+    }
+    else {
+        print "Supported genetic codes:\n\n" . join("\n", &get_genetic_codes()) . "\n\n"
+            . "Choose one to show translation table.\n\n";
+    }
+
+    exit(0);
+    
+}
+
 
 
 1; #end of module

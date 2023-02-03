@@ -1,0 +1,100 @@
+#!/usr/bin/env Rscript
+
+
+main = function () {
+    
+            
+    suppressPackageStartupMessages(library("argparse"))
+    suppressPackageStartupMessages(library("tidyverse"))
+	suppressPackageStartupMessages(library("cowplot"))
+
+    
+    parser = ArgumentParser()
+    parser$add_argument("--E_inputs", help="file.isoform.TMM.EXPR.matrix.E-inputs", required=TRUE, nargs=1)
+	parser$add_argument("--bin_sample_size", help="sample size per expression bin", required=FALSE, default=100, nargs=1)
+	parser$add_argument("--max_logexpr_bin", help="max log2 expression bin", required=FALSE, default=10, nargs=1)
+    args = parser$parse_args()
+    
+    E_inputs_filename = args$E_inputs
+    bin_sample_size = args$bin_sample_size
+    max_logexpr_bin = args$max_logexpr_bin
+    
+
+    data = read.table(E_inputs_filename, header=T, com='', sep="\t", stringsAsFactors = F)
+	
+   	ordered_data = data %>% arrange(desc(max_expr_over_samples)) %>% mutate(r=row_number()) %>% 
+		  mutate(logexpr = log2(max_expr_over_samples+1)) 
+
+
+    p1 = ordered_data %>%
+      ggplot(aes(x=logexpr, y=r)) + geom_point() + ggtitle("logexpr ~ ordered_transcript_id")
+
+
+	## model the curve
+    
+	select_data = ordered_data %>% filter(logexpr <= max_logexpr_bin) %>% mutate(bin_logexpr = round(logexpr)) %>%
+        group_by(bin_logexpr) %>% slice_sample(n=bin_sample_size) %>% ungroup()
+
+	simple_data = data.frame(x=select_data$logexpr, y=select_data$r)
+    myfit = smooth.spline(simple_data$x, simple_data$y)
+
+    xvals = seq(0, max_logexpr_bin, 0.1)
+
+    spline_predict =predict(myfit, data.frame(x=xvals))
+	sim_df = data.frame(x=spline_predict$x$x, y=spline_predict$y$x)
+
+	p2 = simple_data %>% ggplot(aes(x=x, y=y)) + geom_point() + ylab("# transcripts") + xlab("log2expr") + ggtitle("# transcripts ~ log2expr threshold")
+    p2 = p2 + geom_line(data=sim_df, aes(x=x, y=y), color='green')
+
+
+    # examine the change in number of transcripts at expression threshold
+	sim_df = sim_df   %>% mutate(delta = y - lag(y))
+	p3 = sim_df %>% ggplot(aes(x=x, y=delta)) + geom_point() + ggtitle('Change in transcripts at expression threshold') + xlab("log2expr") + ylab("delta #transcripts")
+    
+
+	# examine rate of change in transcript counts
+    sim_df = sim_df   %>% mutate(delta_delta = delta - lag(delta))
+
+	threshold_x = sim_df %>% arrange(desc(delta_delta)) %>% head(n=1) %>% pull(x)
+	val_y = sim_df %>% arrange(desc(delta_delta)) %>% head(n=1) %>% pull(delta_delta)
+    
+	tpm_x = 2^threshold_x - 1
+    message(sprintf("Estimated threshold in TPM: %.3f", tpm_x))
+
+    p4 = sim_df %>% ggplot(aes(x=x, y=delta_delta)) + geom_point() + geom_line() +
+        ggtitle("Rate of change in transcript count ~ expression threshold") + xlab("log2expr") + ylab("rate change #transcripts") +
+        annotate("text", x=threshold_x, y=val_y, label= paste0("  ", threshold_x, "=", sprintf("%.3f TPM", tpm_x) ), hjust=0 )  
+
+
+    # estimate ExN50 based on that threshold and number of transcripts
+
+	filtered_data = data %>% filter(max_expr_over_samples >= tpm_x) %>% arrange(desc(length))
+	sum_length = sum(filtered_data$length)
+	filtered_data = filtered_data %>% mutate(cumsum_len = cumsum(length))
+	half_length = sum_length / 2
+	N50_entry = filtered_data %>% filter(cumsum_len <= half_length) %>% filter(row_number() == n())
+	Ex = N50_entry %>% pull(X.Ex)
+	N50 = N50_entry %>% pull(length)
+
+
+
+
+    pdf("estimate_TPM_threshold.pdf")
+
+	num_transcripts =  data %>% filter(max_expr_over_samples >= tpm_x) %>% nrow()
+    
+    p = plot_grid(p2 + geom_vline(xintercept=threshold_x, color='red') + annotate("text", x=threshold_x, y=num_transcripts, label=paste0("  # transcripts =", num_transcripts, " Ex=", Ex, " N50=", N50), hjust=0),
+    	p3  + geom_vline(xintercept=threshold_x, color='red'),
+    	p4  + geom_vline(xintercept=threshold_x, color='red'),
+    	ncol=1,
+    	align='v')
+	plot(p)
+    
+    quit(save = "no", status = 0, runLast = FALSE)
+
+}
+
+
+if (length(sys.calls())==0) {
+    main()
+}

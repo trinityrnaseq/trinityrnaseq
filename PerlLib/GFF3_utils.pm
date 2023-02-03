@@ -66,11 +66,11 @@ sub index_GFF3_gene_objs {
 
         unless ($feat_type) { die "Error, $_, no feat_type: line\[$_\]"; }
         
-        unless ($feat_type =~ /^(gene|mRNA|CDS|exon)$/) { next;} ## these are the only fields I care about right now.
+        unless ($feat_type =~ /^(gene|mRNA|CDS|exon)$/) { next;} 
 
         $gene_info = uri_unescape($gene_info);
         
-        $gene_info =~ /ID=([^;\s]+);?/;
+        $gene_info =~ /ID=\"?([^;\s\"]+)\"?;?/;
         my $id = $1 or die "Error, couldn't get the id field $_";
         
         if (exists $source_tracker{$id} && $source_tracker{$id} ne $source) {
@@ -102,7 +102,7 @@ sub index_GFF3_gene_objs {
 	 
         if ($feat_type eq 'gene') { next;} ## beyond this pt, gene is not needed.
         
-        $gene_info =~ /Parent=([^;\s]+);?/;
+        $gene_info =~ /Parent=\"?([^;\s\"]+)\"?;?/;
         my $parent = $1 or die "Error, couldn't get the parent info $_";
                 
         # print "id: $id, parent: $parent\n";
@@ -113,23 +113,28 @@ sub index_GFF3_gene_objs {
             next;
         }
         
-        my $transcript_id = $parent;
-        my $gene_id = $transcript_to_gene{$transcript_id};
-		unless (defined $gene_id) {
-			print STDERR "Error, no gene feature found for $transcript_id.... ignoring feature.\n";
-			next;
-		}
-
-			        
-        $gene_id_to_source_type{$gene_id} = $source;
-
-        my ($end5, $end3) = ($orient eq '+') ? ($lend, $rend) : ($rend, $lend);
+        my $transcript_id_listing = $parent;
         
-        $gene_coords{$asmbl_id}->{$gene_id}->{$transcript_id}->{$feat_type}->{$end5} = $end3;
-        # print "$asmbl_id, $gene_id, $transcript_id, $feat_type, $end5, $end3\n";
+        my @transcript_ids = split(/,/, $transcript_id_listing);
+        foreach my $transcript_id (@transcript_ids) {
         
-        if ($cds_phase =~ /^\d+$/) {
-            $cds_phases{$gene_id}->{$transcript_id}->{$end5} = $cds_phase;
+            my $gene_id = $transcript_to_gene{$transcript_id};
+            unless (defined $gene_id) {
+                print STDERR "Error, no gene feature found for $transcript_id.... ignoring feature.\n";
+                next;
+            }
+            
+            
+            $gene_id_to_source_type{$gene_id} = $source;
+            
+            my ($end5, $end3) = ($orient eq '+') ? ($lend, $rend) : ($rend, $lend);
+            
+            $gene_coords{$asmbl_id}->{$gene_id}->{$transcript_id}->{$feat_type}->{$end5} = $end3;
+            # print "$asmbl_id, $gene_id, $transcript_id, $feat_type, $end5, $end3\n";
+            
+            if ($cds_phase =~ /^\d+$/) {
+                $cds_phases{$gene_id}->{$transcript_id}->{$end5} = int($cds_phase);
+            }
         }
         
     }
@@ -141,7 +146,7 @@ sub index_GFF3_gene_objs {
         my $genes_href = $gene_coords{$asmbl_id};
         
 		foreach my $gene_id (keys %$genes_href) {
-            print STDERR "\r-indexing [$gene_id]  ";
+            print STDERR "\r-indexing [$gene_id]  " if $SEE;
             my $transcripts_href = $genes_href->{$gene_id};
             
             my @gene_objs;
@@ -211,9 +216,9 @@ sub index_GFF3_gene_objs {
                     foreach my $exon (@exons) {
                         if (my $cds = $exon->get_CDS_obj()) {
                             my ($end5, $end3) = $cds->get_coords();
-                            my $phase = $cds_phases_href->{$end5};
-                            unless ($phase =~ /\d+/) {
-                                confess "Error, should have phase set for cds $gene_id $transcript_id $end5, but I do not. ";
+                            my $phase = int($cds_phases_href->{$end5});
+                            unless ($phase == 0 || $phase == 1 || $phase == 2) {
+                                confess "Error, should have phase set for cds $gene_id $transcript_id $end5, but I do not know what $phase is. ";
                             }
                             $cds->set_phase($phase);
                         }
@@ -251,6 +256,7 @@ sub index_GFF3_gene_objs {
     print STDERR "\n";
     return (\%asmbl_id_to_gene_id_list);
 }
+
 
 
 1; #EOM

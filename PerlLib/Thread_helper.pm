@@ -40,7 +40,18 @@ use threads;
 =cut
 
 
+BEGIN {
 
+    my $process_group  = $$;
+    $SIG{'INT'} =sub {
+        warn "WARNING: Interrupt detected for PID group: $process_group, terminationg all child processes\n"; 
+        system("kill -9 -$process_group");
+    };
+    $SIG{'KILL'} = sub {
+        warn "WARNING: Interrupt for PID group: $process_group, terminating all child processes.\n"; 
+        system("kill -9 -$process_group");
+    }; 
+}
 
 
 my $SLEEPTIME = 1;
@@ -191,7 +202,10 @@ sub wait_for_all_threads_to_complete {
             $self->_add_error_thread($thread);
             $status = "ERROR";
         }
-        $self->report_thread_info($thread_id, $status);
+        $self->{thread_id_timing}->{end}->{$thread_id} = time();
+        if ($THREAD_MONITORING) { 
+            $self->report_thread_info($thread_id, $status);
+        }
     }
     
     @{$self->{current_threads}} = (); # clear them out.

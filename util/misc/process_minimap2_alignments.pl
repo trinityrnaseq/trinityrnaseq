@@ -129,6 +129,10 @@ main: {
         $cmd = "$FindBin::Bin/SAM_to_gff3.minimap2.pl $output > $output.gff3";
         &process_cmd($cmd);
     }
+
+
+
+    unlink("$output.tmp.sam", "$output.tmp.unsorted.bam");
     
 	exit(0);
 }

@@ -1,3 +1,5 @@
+#!/usr/bin/env perl
+
 package GFF3_alignment_utils;
 
 use strict;
@@ -5,10 +7,14 @@ use warnings;
 use Carp;
 
 use Gene_obj;
+use Gene_obj_indexer;
 use CDNA::Alignment_segment;
 use CDNA::CDNA_alignment;
+use File::Basename;
 
-sub index_GFF3_alignment_objs {
+__run_test() unless caller;
+
+sub index_alignment_objs {
     my ($gff3_alignment_file, $genome_alignment_indexer_href) = @_;
     
     unless ($gff3_alignment_file && -s $gff3_alignment_file) {
@@ -17,10 +23,11 @@ sub index_GFF3_alignment_objs {
     unless (ref $genome_alignment_indexer_href) {
         confess "Error, need genome indexer href as param ";
     }
-
     
-    	
+       	
 	my %genome_trans_to_alignment_segments;
+    my %trans_to_gene_id;
+
 	
 	open (my $fh, $gff3_alignment_file) or die "Error, cannot open file $gff3_alignment_file";
 	while (<$fh>) {
@@ -69,17 +76,19 @@ sub index_GFF3_alignment_objs {
 		
 		my ($end5, $end3) = ($orient eq '+') ? ($lend, $rend) : ($rend, $lend);
         
-        $info =~ /Target=\S+ (\d+) (\d+)( ([\+\-]))?/ or die "Error, cannot extract match coordinates from info: $info";
+        $info =~ /Target=\S+ (\d+) (\d+)/ or die "Error, cannot extract match coordinates from info: $info";
         my $cdna_seg_lend = $1;
         my $cdna_seg_rend = $2;
-        my $cdna_orient = $4 || '+'; # always set to + in pasa
+        
+        ($cdna_seg_lend, $cdna_seg_rend) = sort {$a<=>$b} ($cdna_seg_lend, $cdna_seg_rend); # always + orient for transcript coords.
+        
         
         my $alignment_segment = new CDNA::Alignment_segment($end5, $end3, $cdna_seg_lend, $cdna_seg_rend, $per_id);
         
 
-        push (@{$genome_trans_to_alignment_segments{$scaff}->{$gene_id}}, $alignment_segment);
+        push (@{$genome_trans_to_alignment_segments{$scaff}->{$trans_id}}, $alignment_segment);
         
-		
+		$trans_to_gene_id{$trans_id} = $gene_id;
         
 	}
     
@@ -109,14 +118,69 @@ sub index_GFF3_alignment_objs {
             $cdna_alignment_obj->set_acc($alignment_acc);
             $cdna_alignment_obj->{genome_acc} = $scaff;
             
-            $genome_alignment_indexer_href->{$alignment_acc} = $cdna_alignment_obj;
+            my $gene_id = $trans_to_gene_id{$alignment_acc} or confess "Error no gene_id for acc: $alignment_acc";
+
+            $cdna_alignment_obj->{gene_id} = $gene_id;
             
+
+            $cdna_alignment_obj->{source} = basename($gff3_alignment_file);
+            
+            if (ref $genome_alignment_indexer_href eq "Gene_obj_indexer") {
+                $genome_alignment_indexer_href->store_gene($alignment_acc, $cdna_alignment_obj);
+                
+            }
+            else {
+                                
+                $genome_alignment_indexer_href->{$alignment_acc} = $cdna_alignment_obj;
+            }
             push (@{$scaff_to_align_list{$scaff}}, $alignment_acc);
         }
     }
 
     return(%scaff_to_align_list);
 }
+
+
+
+#################
+## Testing
+#################
+
+
+sub __run_test {
+    
+    my $usage = "usage: $0 file.alignment.gff3\n\n";
+
+    my $gff3_file = $ARGV[0] or die $usage;
+
+    my $indexer = {};
+    my %scaff_to_alignments = &index_alignment_objs($gff3_file, $indexer);
+    
+    
+    foreach my $scaffold (keys %scaff_to_alignments) {
+
+        my @align_ids = @{$scaff_to_alignments{$scaffold}};
+
+        foreach my $align_id (@align_ids) {
+            my $cdna_obj = $indexer->{$align_id};
+
+            print $cdna_obj->toString();
+        }
+    }
+    
+    
+    
+    exit(0);
+    
+
+
+}
+
+
+
+
+
+
 
 1; #EOM
 

@@ -1,112 +1,122 @@
 #!/usr/bin/env Rscript
 
 
+## Identifies the approximate number of most relevant transcripts based on finding the point representing the elbow in the curve of expression ~ ordered transcript 
+    
+
 main = function () {
     
             
     suppressPackageStartupMessages(library("argparse"))
     suppressPackageStartupMessages(library("tidyverse"))
-	suppressPackageStartupMessages(library("cowplot"))
+
 
     
     parser = ArgumentParser()
     parser$add_argument("--E_inputs", help="file.isoform.TMM.EXPR.matrix.E-inputs", required=TRUE, nargs=1)
-	parser$add_argument("--bin_sample_size", help="sample size per expression bin", required=FALSE, default=100, nargs=1)
-	parser$add_argument("--max_logexpr_bin", help="max log2 expression bin", required=FALSE, default=5, nargs=1)
-	parser$add_argument("--lag_size", help="lag size for delta computations", required=FALSE, default=10, nargs=1)
-    parser$add_argument("--gradation", help="gradation of TPM values for computing deltas", required=FALSE, default=0.01, nargs=1)
-    
     args = parser$parse_args()
     	
     E_inputs_filename = args$E_inputs
-    bin_sample_size = as.numeric(args$bin_sample_size)
-    max_logexpr_bin = as.numeric(args$max_logexpr_bin)
-	lag_size = as.numeric(args$lag_size)
-    gradation = as.numeric(args$gradation)
-	    
 
-    data = read.table(E_inputs_filename, header=T, com='', sep="\t", stringsAsFactors = F)
+	message("-parsing:", E_inputs_filename)
+	data = read.table(E_inputs_filename, header=T, com='', sep="\t", stringsAsFactors = F)
 
-	data = data %>% filter(max_expr_over_samples > 0) # must have some evidence of expression
+	data = data %>% filter(max_expr_over_samples > 0.05) # must have some evidence of expression
+
+	data = data %>% arrange(desc(max_expr_over_samples)) %>% mutate(r=row_number())
+
+	data = data %>% mutate(logexpr = log2(max_expr_over_samples+1)) 
+
+    normalize = function(x) {
+  
+		x = unlist(x)
+  		min_x = min(x)
+ 		max_x = max(x)
+  
     
-   	ordered_data = data %>% arrange(desc(max_expr_over_samples)) %>% mutate(r=row_number())
-
-	ordered_data$max_expr_over_samples = as.numeric(smooth(ordered_data$max_expr_over_samples))
-	
-    ordered_data = ordered_data %>% 
-		  mutate(logexpr = log2(max_expr_over_samples+1)) 
+  		vals =  (x-min_x)/(max_x-min_x)
+  		return(vals)
+	}
 
 
-    p1 = ordered_data %>%
-      ggplot(aes(x=logexpr, y=r)) + geom_point() + ggtitle("logexpr ~ ordered_transcript_id")
-
-    
-
-	## model the curve
-    
-	select_data = ordered_data %>% filter(logexpr <= max_logexpr_bin) %>% mutate(bin_logexpr = round(logexpr)) %>%
-        group_by(bin_logexpr) %>% slice_sample(n=bin_sample_size) %>% ungroup()
-
-	simple_data = data.frame(x=select_data$logexpr, y=select_data$r)
-    myfit = smooth.spline(simple_data$x, simple_data$y)
-
-    xvals = log2(seq(0, 2^max_logexpr_bin, gradation)+1)
-	
-    spline_predict =predict(myfit, data.frame(x=xvals))
-	sim_df = data.frame(x=spline_predict$x$x, y=spline_predict$y$x)
-
-	p2 = simple_data %>% ggplot(aes(x=x, y=y)) + geom_point() + ylab("# transcripts") + xlab("log2expr") + ggtitle("# transcripts ~ log2expr threshold")
-    p2 = p2 + geom_line(data=sim_df, aes(x=x, y=y), color='green')
-
-
-    # examine the change in number of transcripts at expression threshold
-	sim_df = sim_df %>% mutate(delta = y - lag(y, n=lag_size))
-	p3 = sim_df %>% ggplot(aes(x=x, y=delta)) + geom_point() + ggtitle('Change in transcripts at expression threshold') + xlab("log2expr") + ylab("delta #transcripts")
+	data$x = normalize(list(data$logexpr))
+	data$y = normalize(list(data$r))
     
 
-	# examine rate of change in transcript counts
-    sim_df = sim_df %>% mutate(delta_delta = delta - lag(delta, n=lag_size))
-	p4 = sim_df %>% ggplot(aes(x=x, y=delta_delta)) + geom_point() + ggtitle('acceleration in transcripts at expression threshold') + xlab("log2expr") + ylab("delta #transcripts")
 
-    
-	# examine rate of rate of change (acceleration) in transcript counts
-    sim_df = sim_df %>% mutate(delta_delta_delta = -1 * (delta_delta - lag(delta_delta, n=lag_size)))
+	message("-performing elbow analysis to select threshold.")
+	get_dist_point_line <- function(point,
+                                line_coord1,
+                                line_coord2) {
+		# derived from https://github.com/ropensci/pathviewr/blob/HEAD/R/analytical_functions.R
+    	## Compute
+    	v1 <- line_coord1 - line_coord2
+    	v2 <- point - line_coord1
+    	m <- cbind(v1, v2)
+    	dist <- abs(det(m)) / sqrt(sum(v1 * v1))
+  
+  		## export
+  		return(dist)
+	}
 
-	    
-	threshold_x = sim_df %>% arrange(desc(delta_delta_delta)) %>% head(n=1) %>% pull(x)
-	val_y = sim_df %>% arrange(desc(delta_delta_delta)) %>% head(n=1) %>% pull(delta_delta_delta)
-    
-	tpm_x = 2^threshold_x - 1
-    message(sprintf("Estimated threshold in TPM: %.3f", tpm_x))
 
-    p5 = sim_df %>% ggplot(aes(x=x, y=delta_delta_delta)) + geom_point() + geom_line() +
-        ggtitle("Change in rate of acceleration in transcript count ~ expression threshold") + xlab("log2expr") + ylab("-1 * change in acceleration #transcripts") +
-        annotate("text", x=threshold_x, y=val_y, label= paste0("  ", threshold_x, "=", sprintf("%.3f TPM", tpm_x) ), hjust=0 )  
+    # get a line from the first and last point of the elbow curve
+    data = data %>% arrange(x)
+	first_pt = data %>% head(n=1)
+	last_pt = data %>% tail(n=1)
+	xs = c(first_pt$x, last_pt$x)
+	ys = c(first_pt$y, last_pt$y)
+	line = lm(ys ~ xs)
+	coeffs = coefficients(line)
+	intercept = coeffs[1]
+	slope = coeffs[2]
 
-    write.table(sim_df, file="_sim_df.tsv", quote=F, sep="\t", row.names=F)
-	
-    # estimate ExN50 based on that threshold and number of transcripts
+	dist_to_line_df = do.call(rbind, apply(data.frame(x=data$x, y=data$y), 1, function(row) { 
 
-	filtered_data = data %>% filter(max_expr_over_samples >= tpm_x) %>% arrange(desc(length))
+	 	x = row[1]
+ 	 	y = row[2]
+  
+  		point_dist = get_dist_point_line(c(x,y), c(first_pt$x, first_pt$y), c(last_pt$x, last_pt$y))
+  
+  		return(data.frame(dist=point_dist))
+  
+    }) )
+
+	data = bind_cols(data, dist_to_line_df)
+
+    # define threshold as that transcript with greatest distance to the line (elbow transcript)
+	threshold_entry = data %>% arrange(desc(dist)) %>% head(n=1) 
+
+    tpm_x = threshold_entry$max_expr_over_samples
+    message("-selected TPM threshold: ", tpm_x)
+
+
+	# compute some stats based on that threshold
+    filtered_data = data %>% filter(max_expr_over_samples >= tpm_x) %>% arrange(desc(length))
 	sum_length = sum(filtered_data$length)
 	filtered_data = filtered_data %>% mutate(cumsum_len = cumsum(length))
 	half_length = sum_length / 2
 	N50_entry = filtered_data %>% filter(cumsum_len <= half_length) %>% filter(row_number() == n())
-	Ex = N50_entry %>% pull(X.Ex)
+	Ex = threshold_entry %>% pull(X.Ex)
 	N50 = N50_entry %>% pull(length)
 
-    pdf("estimate_TPM_threshold.pdf")
-
 	num_transcripts =  data %>% filter(max_expr_over_samples >= tpm_x) %>% nrow()
+	message("-Number of transcripts >= tpm threshold: ", num_transcripts)
+	message("-Fraction of expression data represented: ", Ex)
+    message("-Contig N50 based on these transcripts: ", N50)
     
-    p = plot_grid(p2 + geom_vline(xintercept=threshold_x, color='red') + annotate("text", x=threshold_x, y=num_transcripts, label=paste0("  # transcripts =", num_transcripts, " Ex=", Ex, " N50=", N50), hjust=0),
-    	p3  + geom_vline(xintercept=threshold_x, color='red'),
-    	p4  + geom_vline(xintercept=threshold_x, color='red'),
-    	p5  + geom_vline(xintercept=threshold_x, color='red'),
-    	ncol=1,
-    	align='v')
+    pdf("estimate_TPM_threshold.pdf")
+    
+	p = data %>% ggplot(aes(x=logexpr, y=r)) + geom_point() +
+  	geom_vline(xintercept=threshold_entry$logexpr, color='red') + 
+  	annotate("text", x=threshold_entry$logexpr, y=num_transcripts, 
+           label=paste0("    # transcripts =", num_transcripts, " Ex=", Ex, " N50=", N50), hjust=0)
+
 	plot(p)
-    
+
+	    
+	message("-Done. See pdf: estimate_TPM_threshold.pdf")
+        
     quit(save = "no", status = 0, runLast = FALSE)
 
 }

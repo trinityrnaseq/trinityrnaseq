@@ -27,8 +27,6 @@ uname -v = #78~18.04.1-Ubuntu SMP Wed Apr 27 09:05:35 UTC 2022
 /usr/bin/oslevel       = unknown
 /bin/universe          = unknown
 
-PATH: /usr/local/go/bin
-PATH: /usr/local/bin
 PATH: /home/bhaas/.local/bin
 PATH: /usr/local/go/bin
 PATH: /usr/local/bin
@@ -43,9 +41,6 @@ PATH: /bin
 PATH: /usr/games
 PATH: /usr/local/games
 PATH: /snap/bin
-PATH: /home/bhaas/.local/bin
-PATH: /home/bhaas/utilities
-PATH: /home/bhaas/BIN
 PATH: /home/bhaas/.local/bin
 PATH: /home/bhaas/utilities
 PATH: /home/bhaas/BIN

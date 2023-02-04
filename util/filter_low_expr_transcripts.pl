@@ -146,7 +146,7 @@ main: {
             
             my $pct_dom_iso_expr = (defined $info_struct->{pct_dom_iso_expr}) ? $info_struct->{pct_dom_iso_expr} : "NA";
             
-            $header_line .= " top_iso:$top_iso_flag pct_iso_expr=$pct_iso_expr pct_dom_iso_expr=$pct_dom_iso_expr";
+            $header_line .= " top_iso:$top_iso_flag pct_iso_expr=$pct_iso_expr pct_dom_iso_expr=$pct_dom_iso_expr max_expr_any=$info_struct->{max_expr}";
             
             print join("\n", $header_line, @seq_lines) . "\n";
             

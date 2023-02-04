@@ -12,23 +12,35 @@ main = function () {
     parser = ArgumentParser()
     parser$add_argument("--E_inputs", help="file.isoform.TMM.EXPR.matrix.E-inputs", required=TRUE, nargs=1)
 	parser$add_argument("--bin_sample_size", help="sample size per expression bin", required=FALSE, default=100, nargs=1)
-	parser$add_argument("--max_logexpr_bin", help="max log2 expression bin", required=FALSE, default=10, nargs=1)
+	parser$add_argument("--max_logexpr_bin", help="max log2 expression bin", required=FALSE, default=5, nargs=1)
+	parser$add_argument("--lag_size", help="lag size for delta computations", required=FALSE, default=10, nargs=1)
+    parser$add_argument("--gradation", help="gradation of TPM values for computing deltas", required=FALSE, default=0.01, nargs=1)
+    
     args = parser$parse_args()
-    
+    	
     E_inputs_filename = args$E_inputs
-    bin_sample_size = args$bin_sample_size
-    max_logexpr_bin = args$max_logexpr_bin
-    
+    bin_sample_size = as.numeric(args$bin_sample_size)
+    max_logexpr_bin = as.numeric(args$max_logexpr_bin)
+	lag_size = as.numeric(args$lag_size)
+    gradation = as.numeric(args$gradation)
+	    
 
     data = read.table(E_inputs_filename, header=T, com='', sep="\t", stringsAsFactors = F)
+
+	data = data %>% filter(max_expr_over_samples > 0) # must have some evidence of expression
+    
+   	ordered_data = data %>% arrange(desc(max_expr_over_samples)) %>% mutate(r=row_number())
+
+	ordered_data$max_expr_over_samples = as.numeric(smooth(ordered_data$max_expr_over_samples))
 	
-   	ordered_data = data %>% arrange(desc(max_expr_over_samples)) %>% mutate(r=row_number()) %>% 
+    ordered_data = ordered_data %>% 
 		  mutate(logexpr = log2(max_expr_over_samples+1)) 
 
 
     p1 = ordered_data %>%
       ggplot(aes(x=logexpr, y=r)) + geom_point() + ggtitle("logexpr ~ ordered_transcript_id")
 
+    
 
 	## model the curve
     
@@ -38,8 +50,8 @@ main = function () {
 	simple_data = data.frame(x=select_data$logexpr, y=select_data$r)
     myfit = smooth.spline(simple_data$x, simple_data$y)
 
-    xvals = seq(0, max_logexpr_bin, 0.1)
-
+    xvals = log2(seq(0, 2^max_logexpr_bin, gradation)+1)
+	
     spline_predict =predict(myfit, data.frame(x=xvals))
 	sim_df = data.frame(x=spline_predict$x$x, y=spline_predict$y$x)
 
@@ -48,24 +60,31 @@ main = function () {
 
 
     # examine the change in number of transcripts at expression threshold
-	sim_df = sim_df   %>% mutate(delta = y - lag(y))
+	sim_df = sim_df %>% mutate(delta = y - lag(y, n=lag_size))
 	p3 = sim_df %>% ggplot(aes(x=x, y=delta)) + geom_point() + ggtitle('Change in transcripts at expression threshold') + xlab("log2expr") + ylab("delta #transcripts")
     
 
 	# examine rate of change in transcript counts
-    sim_df = sim_df   %>% mutate(delta_delta = delta - lag(delta))
+    sim_df = sim_df %>% mutate(delta_delta = delta - lag(delta, n=lag_size))
+	p4 = sim_df %>% ggplot(aes(x=x, y=delta_delta)) + geom_point() + ggtitle('acceleration in transcripts at expression threshold') + xlab("log2expr") + ylab("delta #transcripts")
 
-	threshold_x = sim_df %>% arrange(desc(delta_delta)) %>% head(n=1) %>% pull(x)
-	val_y = sim_df %>% arrange(desc(delta_delta)) %>% head(n=1) %>% pull(delta_delta)
+    
+	# examine rate of rate of change (acceleration) in transcript counts
+    sim_df = sim_df %>% mutate(delta_delta_delta = -1 * (delta_delta - lag(delta_delta, n=lag_size)))
+
+	    
+	threshold_x = sim_df %>% arrange(desc(delta_delta_delta)) %>% head(n=1) %>% pull(x)
+	val_y = sim_df %>% arrange(desc(delta_delta_delta)) %>% head(n=1) %>% pull(delta_delta_delta)
     
 	tpm_x = 2^threshold_x - 1
     message(sprintf("Estimated threshold in TPM: %.3f", tpm_x))
 
-    p4 = sim_df %>% ggplot(aes(x=x, y=delta_delta)) + geom_point() + geom_line() +
-        ggtitle("Rate of change in transcript count ~ expression threshold") + xlab("log2expr") + ylab("rate change #transcripts") +
+    p5 = sim_df %>% ggplot(aes(x=x, y=delta_delta_delta)) + geom_point() + geom_line() +
+        ggtitle("Change in rate of acceleration in transcript count ~ expression threshold") + xlab("log2expr") + ylab("-1 * change in acceleration #transcripts") +
         annotate("text", x=threshold_x, y=val_y, label= paste0("  ", threshold_x, "=", sprintf("%.3f TPM", tpm_x) ), hjust=0 )  
 
-
+    write.table(sim_df, file="_sim_df.tsv", quote=F, sep="\t", row.names=F)
+	
     # estimate ExN50 based on that threshold and number of transcripts
 
 	filtered_data = data %>% filter(max_expr_over_samples >= tpm_x) %>% arrange(desc(length))
@@ -76,9 +95,6 @@ main = function () {
 	Ex = N50_entry %>% pull(X.Ex)
 	N50 = N50_entry %>% pull(length)
 
-
-
-
     pdf("estimate_TPM_threshold.pdf")
 
 	num_transcripts =  data %>% filter(max_expr_over_samples >= tpm_x) %>% nrow()
@@ -86,6 +102,7 @@ main = function () {
     p = plot_grid(p2 + geom_vline(xintercept=threshold_x, color='red') + annotate("text", x=threshold_x, y=num_transcripts, label=paste0("  # transcripts =", num_transcripts, " Ex=", Ex, " N50=", N50), hjust=0),
     	p3  + geom_vline(xintercept=threshold_x, color='red'),
     	p4  + geom_vline(xintercept=threshold_x, color='red'),
+    	p5  + geom_vline(xintercept=threshold_x, color='red'),
     	ncol=1,
     	align='v')
 	plot(p)

@@ -9,17 +9,23 @@ use Fasta_reader;
 use File::Basename;
 
 
-my $usage = "usage: $0 EXPR.matrix Trinity.fasta\n\n";
+my $usage = "usage: $0 EXPR.matrix Trinity.fasta [by=transcript|gene (default:transcript)]\n\n";
 
 
 my $matrix_file = $ARGV[0] or die $usage;
 my $fasta_file = $ARGV[1] or die $usage;
+my $by_feature_type = $ARGV[2] || "transcript";
+
 
 unless (-s $matrix_file) {
     die "Error, cannot locate matrix file: $matrix_file";
 }
 unless (-s $fasta_file) {
     die "Error, cannot locate fasta file: $fasta_file";
+}
+
+unless ($by_feature_type =~ /^(transcript|gene)$/) {
+    die "Error, cannot discern feature type: [$by_feature_type] ";
 }
 
 my %trans_lengths;
@@ -43,6 +49,7 @@ my %gene_to_trans;
 
 my $sum_expr = 0;
 
+
 my $feature_type = "transcript";
 
 while (<$fh>) {
@@ -65,9 +72,16 @@ while (<$fh>) {
     my $seq_len = $trans_lengths{$acc} or die "Error, no seq length for acc: $acc";
 
     my $gene_id = $acc;
-    if ($acc =~ /^(\S+)_i\d+/) {
-        $gene_id = $1;
-        $feature_type = "gene";
+
+    
+    if ($by_feature_type =~ /gene/) {
+        if ($acc =~ /^(\S+)_i\d+/) {
+            $gene_id = $1;
+            $feature_type = "gene";
+        }
+        else {
+            die "Error, by_feature_type is gene, but cannot extract gene_id from $acc ";
+        }
     }
     
     push (@{$gene_to_trans{$gene_id}}, { acc => $acc,
@@ -135,7 +149,7 @@ while (@genes) {
 
     my $pct = int($sum/$sum_expr * 100);
     
-    print $ofh join("\t", $pct, $t->{acc}, int($t->{len}), sprintf("%.1f", $t->{max_expr}), sprintf("%.1f", $t->{sum_expr})) . "\n";
+    print $ofh join("\t", $pct, $t->{acc}, int($t->{len}), sprintf("%.3f", $t->{max_expr}), sprintf("%.3f", $t->{sum_expr})) . "\n";
     
     if ($prev_pct > 0 && $pct > $prev_pct) {
         

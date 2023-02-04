@@ -26,8 +26,11 @@ for (i in 1:length(args)) {
     }
 }
 
-
-pdf_filename = "ExN50_plot.pdf"
+if (length(args) == 1) {
+    pdf_filename = paste0(args[1], ".ExN50_plot.pdf")
+} else {
+    pdf_filename = "ExN50_plot.pdf"
+}
 pdf(pdf_filename)
 
 p = alldata %>% ggplot(aes(x=Ex, y=ExN50, color=sample)) + geom_line() + xlim(c(30,100))

@@ -9,7 +9,8 @@ use Fasta_reader;
 use File::Basename;
 
 
-my $usage = "usage: $0 EXPR.matrix Trinity.fasta [by=transcript|gene (default:transcript)]\n\n";
+my $usage = "usage: $0 isoform.EXPR.matrix Trinity.fasta [by=transcript|gene (default:transcript)]\n\n"
+    . "\t note, use the isoform.EXPR.matrix file regardiess of wehther you choose transcript | gene feature type to explore.\n\n";
 
 
 my $matrix_file = $ARGV[0] or die $usage;
@@ -132,7 +133,7 @@ foreach my $gene (keys %gene_to_trans) {
 ## write output table
 
 
-my $E_file = basename($matrix_file) . ".E-inputs";
+my $E_file = basename($matrix_file) . ".by-$feature_type.E-inputs";
 open (my $ofh, ">$E_file") or die $!;
 print $ofh join("\t", "#Ex", "acc", "length", "max_expr_over_samples", "sum_expr_over_samples") . "\n";
 

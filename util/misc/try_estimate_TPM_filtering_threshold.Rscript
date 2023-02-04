@@ -14,9 +14,11 @@ main = function () {
     
     parser = ArgumentParser()
     parser$add_argument("--E_inputs", help="file.isoform.TMM.EXPR.matrix.E-inputs", required=TRUE, nargs=1)
+    parser$add_argument("--out_pdf", help="name for output pdf filename", required=FALSE, nargs=1, default="estimate_TPM_threshold.pdf")
     args = parser$parse_args()
     	
     E_inputs_filename = args$E_inputs
+    output_pdf_filename = args$out_pdf
 
 	message("-parsing:", E_inputs_filename)
 	data = read.table(E_inputs_filename, header=T, com='', sep="\t", stringsAsFactors = F)
@@ -105,7 +107,7 @@ main = function () {
 	message("-Fraction of expression data represented: ", Ex)
     message("-Contig N50 based on these transcripts: ", N50)
     
-    pdf("estimate_TPM_threshold.pdf")
+    pdf(output_pdf_filename)
     
 	p = data %>% ggplot(aes(x=logexpr, y=r)) + geom_point() +
   	geom_vline(xintercept=threshold_entry$logexpr, color='red') + 

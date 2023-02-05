@@ -167,19 +167,19 @@ my $usage = <<__EOUSAGE__;
 #
 #   ## Just prepare the reference for alignment and abundance estimation
 #
-#    $0 --transcripts Trinity.fasta --est_method RSEM --aln_method bowtie --trinity_mode --prep_reference
+#    $0 --transcripts Trinity.fasta --est_method salmon --trinity_mode --prep_reference
 #
 #   ## Run the alignment and abundance estimation (assumes reference has already been prepped, errors-out if prepped reference not located.)
 #
-#    $0 --transcripts Trinity.fasta --seqType fq --left reads_1.fq --right reads_2.fq --est_method RSEM --aln_method bowtie --trinity_mode --output_dir rsem_outdir
+#    $0 --transcripts Trinity.fasta --seqType fq --left reads_1.fq --right reads_2.fq --est_method salmon --trinity_mode --output_dir salmon_quant
 #
 ##  ## prep the reference and run the alignment/estimation
 #
-#    $0 --transcripts Trinity.fasta --seqType fq --left reads_1.fq --right reads_2.fq --est_method RSEM --aln_method bowtie --trinity_mode --prep_reference --output_dir rsem_outdir
+#    $0 --transcripts Trinity.fasta --seqType fq --left reads_1.fq --right reads_2.fq --est_method salmon --trinity_mode --prep_reference --output_dir salmon_quant
 #
 #   ## Use a samples.txt file:
 #
-#    $0 --transcripts Trinity.fasta --est_method RSEM --aln_method bowtie2 --prep_reference --trinity_mode --samples_file samples.txt --seqType fq  
+#    $0 --transcripts Trinity.fasta --est_method salmon --prep_reference --trinity_mode --samples_file samples.txt --seqType fq  
 #
 #########################################################################
 

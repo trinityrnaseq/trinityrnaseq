@@ -70,7 +70,7 @@ while (<$fh>) {
         }
     }
     
-    my $seq_len = $trans_lengths{$acc} or die "Error, no seq length for acc: $acc";
+    my $seq_len = $trans_lengths{$acc} or die "Error, no seq length for acc: $acc.  Be sure to give the isoform.TPM expression matrix as input parameter";
 
     my $gene_id = $acc;
 

@@ -27,7 +27,7 @@ for (i in 1:length(args)) {
 }
 
 if (length(args) == 1) {
-    pdf_filename = paste0(args[1], ".ExN50_plot.pdf")
+    pdf_filename = paste0(basename(args[1]), ".ExN50_plot.pdf")
 } else {
     pdf_filename = "ExN50_plot.pdf"
 }

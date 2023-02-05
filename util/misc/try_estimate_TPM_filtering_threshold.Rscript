@@ -21,10 +21,20 @@ main = function () {
     output_pdf_filename = args$out_pdf
 
 	message("-parsing:", E_inputs_filename)
-	data = read.table(E_inputs_filename, header=T, com='', sep="\t", stringsAsFactors = F)
 
-	data = data %>% filter(max_expr_over_samples > 0.05) # must have some evidence of expression
+    if (grepl(".gz$", E_inputs_filename)) {
+		data = read.table(gzfile(E_inputs_filename), header=T, com='', sep="\t", stringsAsFactors = F)
+	} else {
+		data = read.table(E_inputs_filename, header=T, com='', sep="\t", stringsAsFactors = F)
+    }	
+	data = data %>% filter(max_expr_over_samples > 0.05 & max_expr_over_samples <= 2^5) # must have some evidence of expression
 
+
+    if (nrow(data) < 1000) {
+    	message("Too few data points in the low-expression range to perform a meaningful analysis here.")
+    	quit(save = "no", status = 0, runLast = FALSE)
+	}
+    
 	data = data %>% arrange(desc(max_expr_over_samples)) %>% mutate(r=row_number())
 
 	data = data %>% mutate(logexpr = log2(max_expr_over_samples+1)) 
@@ -90,7 +100,7 @@ main = function () {
 	threshold_entry = data %>% arrange(desc(dist)) %>% head(n=1) 
 
     tpm_x = threshold_entry$max_expr_over_samples
-    message("-selected TPM threshold: ", tpm_x)
+
 
 
 	# compute some stats based on that threshold
@@ -101,20 +111,35 @@ main = function () {
 	N50_entry = filtered_data %>% filter(cumsum_len <= half_length) %>% filter(row_number() == n())
 	Ex = threshold_entry %>% pull(X.Ex)
 	N50 = N50_entry %>% pull(length)
+	logexpr_x = threshold_entry$logexpr
 
-	num_transcripts =  data %>% filter(max_expr_over_samples >= tpm_x) %>% nrow()
-	message("-Number of transcripts >= tpm threshold: ", num_transcripts)
-	message("-Fraction of expression data represented: ", Ex)
-    message("-Contig N50 based on these transcripts: ", N50)
+    # ensure line is above the elbow
+    line_y = threshold_entry$x * slope + intercept
     
+
     pdf(output_pdf_filename)
+    p = data %>% ggplot(aes(x=logexpr, y=r)) + geom_point()
     
-	p = data %>% ggplot(aes(x=logexpr, y=r)) + geom_point() +
-  	geom_vline(xintercept=threshold_entry$logexpr, color='red') + 
-  	annotate("text", x=threshold_entry$logexpr, y=num_transcripts, 
-           label=paste0("    # transcripts =", num_transcripts, " Ex=", Ex, " N50=", N50), hjust=0)
+    if (line_y < threshold_entry$y) {
+    	message("Not finding a lower elbow curve, cannot estimate min threshold")
+    	
+    }
+    else {
+    
+		num_transcripts =  data %>% filter(max_expr_over_samples >= tpm_x) %>% nrow()
 
-	plot(p)
+   		message("-Number of transcripts >= tpm threshold: ", num_transcripts)
+		message("-Fraction of expression data represented: ", Ex)
+    	message("-Contig N50 based on these transcripts: ", N50)
+    	message("-selected TPM threshold: ", tpm_x)
+     	
+  		p = p + geom_vline(xintercept=logexpr_x, color='red') + 
+  		annotate("text", x=threshold_entry$logexpr, y=num_transcripts, 
+           label=paste0("    # transcripts =", num_transcripts, " Ex=", Ex, " N50=", N50, " TPMthresh=", tpm_x), hjust=0)
+
+    }
+
+   	plot(p)
 
 	    
 	message("-Done. See pdf: estimate_TPM_threshold.pdf")

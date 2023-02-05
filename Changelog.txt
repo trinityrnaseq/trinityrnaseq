@@ -1,3 +1,8 @@
+# Trinity-v2.15.1 Feb 5, 2023
+- bamsifter update to ease compilation issues
+- update to contig_ExN50_statistic.pl to provide either transcript (default) or gene based analysis (note, both use the isoform expression matrix!)
+- inclusion of try_estimate_TPM_filtering_threshold.Rscript, which tries to estimate the count of transcripts with sufficient expression.
+
 # Trinity-v2.15.0 Nov 30, 2022
 - use DB_File for storing read names wanted during normalization step eliminating excessive RAM usage.
 - support for hpc_gridrunner/singularity

@@ -33,7 +33,7 @@ if (length(args) == 1) {
 }
 pdf(pdf_filename)
 
-p = alldata %>% ggplot(aes(x=Ex, y=ExN50, color=sample)) + geom_line() + xlim(c(30,100))
+p = alldata %>% filter(Ex >= 30) %>% ggplot(aes(x=Ex, y=ExN50, color=sample)) + geom_line() + xlim(c(30,100))
 
 plot(p)
 

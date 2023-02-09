@@ -27,6 +27,7 @@ my $usage = <<__EOUSAGE__;
 #  -I|--max_intron_length <int>   maximum intron length (default: 100000)
 #
 #  --incl_out_gff3             include gff3 formatted output file for alignments.
+#  --allow_secondary           allow secondary alignments (default secondary=no)
 #
 #######################################################################
 
@@ -44,6 +45,7 @@ my $help_flag;
 my $output;
 my $max_intron_length = 100000;
 my $incl_out_gff3;
+my $allow_secondary = 0;
 
 
 &GetOptions( 'h' => \$help_flag,
@@ -54,6 +56,7 @@ my $incl_out_gff3;
              'o|output=s' => \$output,
              'I|max_intron_length=i' => \$max_intron_length,
              'incl_out_gff3' => \$incl_out_gff3,
+             'allow_secondary' => \$allow_secondary,
     );
 
 
@@ -112,7 +115,8 @@ main: {
         $splice_param = "--junc-bed $splice_file";
     }
 
-    my $cmd = "minimap2 -ax splice $splice_param --secondary=no -O6,24 -B4 -L -t $CPU -cs -ub -G $max_intron_length $mm2_idx $transcripts > $output.tmp.sam";
+    my $secondary = ($allow_secondary) ? "" : "--secondary=no";
+    my $cmd = "minimap2 -ax splice $splice_param $secondary -O6,24 -B4 -L -t $CPU -cs -ub -G $max_intron_length $mm2_idx $transcripts > $output.tmp.sam";
     &process_cmd($cmd);
 
     $cmd = "samtools view -Sb -T $genome $output.tmp.sam -o $output.tmp.unsorted.bam";

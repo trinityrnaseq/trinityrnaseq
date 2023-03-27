@@ -336,6 +336,9 @@ my $top_variable_via_stdev_and_mean_expr_flag = 0;
 my $min_stdev_expr = undef;
 my $min_mean_expr = undef;
 
+my $cexCol = 0.5;
+my $cexRow = 0.5;
+
 my $imgfmt = "pdf"; # alt is svg
 
 &GetOptions (  
@@ -458,6 +461,9 @@ my $imgfmt = "pdf"; # alt is svg
     ## Misc params
     'help|h' => \$help_flag,
     'write_intermediate_data_tables' => \$write_intermediate_data_tables_flag,
+
+    'cexRow=f' => \$cexRow,
+    'cexCol=f' => \$cexCol,
     
     'show_pipeline_flowchart' => \$show_pipeline_flowchart,
 
@@ -1077,7 +1083,7 @@ main: {
 
         $Rscript .= "if (is.null(hc_samples)) { RowV=NULL; ColV=NULL} else { RowV=as.dendrogram(hc_samples); ColV=RowV }\n";
         
-        $Rscript .= "heatmap.3(sample_cor_for_plot, dendrogram='both', Rowv=RowV, Colv=ColV, col = myheatcol, scale='none', symm=TRUE, key=TRUE,density.info='none', trace='none', symkey=FALSE, symbreaks=F, margins=c(10,10), cexCol=1, cexRow=1, cex.main=0.75, main=paste(\"sample correlation matrix\n\", \"$output_prefix\") ";
+        $Rscript .= "heatmap.3(sample_cor_for_plot, dendrogram='both', Rowv=RowV, Colv=ColV, col = myheatcol, scale='none', symm=TRUE, key=TRUE,density.info='none', trace='none', symkey=FALSE, symbreaks=F, margins=c(10,10), cexCol=$cexCol, cexRow=$cexRow, cex.main=0.75, main=paste(\"sample correlation matrix\n\", \"$output_prefix\") ";
         
         if ($samples_file || $use_columns_as_samples || $sample_cor_sum_gene_factor_expr) {
             
@@ -1143,7 +1149,7 @@ main: {
         $Rscript .= "sampleAnnotations_row_subset = sampleAnnotations[rownames(sampleAnnotations) \%in% subset_rowsamples, subset_rownames]\n";            
         
 
-        $Rscript .= "heatmap.3(sample_subset_cor_matrix, dendrogram='both', Rowv=as.dendrogram(hc_subset_row), Colv=as.dendrogram(hc_subset_col), col = greenred(75), scale='none', key=TRUE,density.info='none', trace='none', symkey=FALSE, margins=c(10,10), cexCol=1, cexRow=1, cex.main=0.75, main=paste(\"sample correlation matrix\n\", \"$output_prefix\"), ColSideColors=sampleAnnotations_col_subset, RowSideColors=t(sampleAnnotations_row_subset) ";
+        $Rscript .= "heatmap.3(sample_subset_cor_matrix, dendrogram='both', Rowv=as.dendrogram(hc_subset_row), Colv=as.dendrogram(hc_subset_col), col = greenred(75), scale='none', key=TRUE,density.info='none', trace='none', symkey=FALSE, margins=c(10,10), cexCol=$cexCol, cexRow=$cexRow, cex.main=0.75, main=paste(\"sample correlation matrix\n\", \"$output_prefix\"), ColSideColors=sampleAnnotations_col_subset, RowSideColors=t(sampleAnnotations_row_subset) ";
         #$Rscript .= "heatmap.3(sample_cor, dendrogram='both', Rowv=as.dendrogram(hc_samples), Colv=as.dendrogram(hc_samples), col = greenred(75), scale='none', symm=TRUE, key=TRUE,density.info='none', trace='none', symkey=FALSE, margins=c(10,10), cexCol=1, cexRow=1, cex.main=0.75, main=paste(\"sample correlation matrix\n\", \"$output_prefix\") ";
         
         #if ($samples_file || $use_columns_as_samples) {
@@ -1341,7 +1347,7 @@ main: {
             }
             
 
-            $Rscript .= "heatmap.3(gene_cor, dendrogram='both', Rowv=as.dendrogram(hc_genes), Colv=as.dendrogram(hc_genes), col=colorpanel(256,'purple','black','yellow'), scale='none', symm=TRUE, key=TRUE,density.info='none', trace='none', symkey=FALSE, margins=c(10,10), cexCol=1, cexRow=1, cex.main=0.75, main=paste(\"feature correlation matrix\n\", \"$output_prefix\" ) ";
+            $Rscript .= "heatmap.3(gene_cor, dendrogram='both', Rowv=as.dendrogram(hc_genes), Colv=as.dendrogram(hc_genes), col=colorpanel(256,'purple','black','yellow'), scale='none', symm=TRUE, key=TRUE,density.info='none', trace='none', symkey=FALSE, margins=c(10,10), cexCol=$cexCol, cexRow=$cexRow, cex.main=0.75, main=paste(\"feature correlation matrix\n\", \"$output_prefix\" ) ";
             
             if ($gene_factors_file) {
                 $Rscript .= ", RowSideColors=geneFactorAnnotations, ColSideColors=t(geneFactorAnnotations)";
@@ -1504,7 +1510,7 @@ main: {
             $Rowv = "F";            
         }
         
-        $Rscript .= "heatmap.3(heatmap_data, dendrogram=\'$dendrogram\', Rowv=$Rowv, Colv=$Colv, col=myheatcol, scale=\"none\", density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=1, margins=c(10,10), cex.main=0.75, main=paste(\"samples vs. features\n\", \"$output_prefix\" ) ";
+        $Rscript .= "heatmap.3(heatmap_data, dendrogram=\'$dendrogram\', Rowv=$Rowv, Colv=$Colv, col=myheatcol, scale=\"none\", density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=$cexCol, margins=c(10,10), cex.main=0.75, main=paste(\"samples vs. features\n\", \"$output_prefix\" ) ";
         
         
         if ($gene_factors_file) {
@@ -1607,7 +1613,7 @@ main: {
         }
         
         $Rscript .= "$imgfmt(\"$output_prefix.${var_method}_vs_count_hist.$imgfmt\")\n";
-        $Rscript .= "heatmap.3(count_hist_matrix, Rowv=F, Colv=F, dendrogram='none', col=colorpanel(max(count_hist_matrix), low='black', high='yellow'), scale='none', symm=TRUE, key=TRUE,density.info='none', trace='none', symkey=FALSE, margins=c(10,10), cexCol=1, cexRow=1, cex.main=0.75, main=\"$var_method vs. count hist\", RowSideColors=t(cv_colors))\n";
+        $Rscript .= "heatmap.3(count_hist_matrix, Rowv=F, Colv=F, dendrogram='none', col=colorpanel(max(count_hist_matrix), low='black', high='yellow'), scale='none', symm=TRUE, key=TRUE,density.info='none', trace='none', symkey=FALSE, margins=c(10,10), cexCol=$cexCol, cexRow=$cexRow, cex.main=0.75, main=\"$var_method vs. count hist\", RowSideColors=t(cv_colors))\n";
         
         $Rscript .= "dev.off()\n";
     }
@@ -1766,7 +1772,7 @@ sub add_sample_QC_analysis_R {
                 # . "        pairs3(d, XY_convert_fun=function(x,y) qqplot(x,y,plot.it=F), main=paste('Replicate QQplots:', sample_name)) # QQ plots\n" 
                 . "        reps_cor = cor(d, method=\"$sample_cor\", use='pairwise.complete.obs')\n"
                 . "        hc_samples = hclust(as.dist(1-reps_cor), method=\"complete\")\n"
-                . "        heatmap.3(reps_cor, dendrogram='both', Rowv=as.dendrogram(hc_samples), Colv=as.dendrogram(hc_samples), col = cm.colors(256), scale='none', symm=TRUE, key=TRUE,density.info='none', trace='none', symbreaks=F, margins=c(10,10), cexCol=1, cexRow=1, main=paste('Replicate Correlations:', sample_name) )\n"
+                . "        heatmap.3(reps_cor, dendrogram='both', Rowv=as.dendrogram(hc_samples), Colv=as.dendrogram(hc_samples), col = cm.colors(256), scale='none', symm=TRUE, key=TRUE,density.info='none', trace='none', symbreaks=F, margins=c(10,10), cexCol=$cexCol, cexRow=$cexRow, main=paste('Replicate Correlations:', sample_name) )\n"
                 . "        dev.off()\n"
                 . "    }\n"
                 . "}\n";
@@ -1927,7 +1933,7 @@ sub add_prin_comp_heatmaps {
     $Rscript .=     "    write.table(selected_genes_matrix, file=paste(\"$output_prefix\", '.PC',i,'_extreme',$num_top_genes_PC_extreme,'.matrix', sep=''), quote=F, sep=\"\t\")\n";
     
 
-    $Rscript .= "    heatmap.3(selected_genes_matrix, col=myheatcol, scale='none', density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=1, margins=c(10,10), cex.main=0.75, RowSideColors=pc_color_bar, cexRow=0.5, main=paste('heatmap for', $num_top_genes_PC_extreme, ' extreme of PC', i)";
+    $Rscript .= "    heatmap.3(selected_genes_matrix, col=myheatcol, scale='none', density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=$cexCol, margins=c(10,10), cex.main=0.75, RowSideColors=pc_color_bar, cexRow=$cexRow, main=paste('heatmap for', $num_top_genes_PC_extreme, ' extreme of PC', i)";
 
     if ($samples_file) {
         $Rscript .= ", ColSideColors=sampleAnnotations";
@@ -1942,7 +1948,7 @@ sub add_prin_comp_heatmaps {
     
     $Rscript .= "write.table(all_selected_genes_matrix, file=paste(\"$output_prefix\", '.PC_all','_extreme',$num_top_genes_PC_extreme,'.matrix', sep=''), quote=F, sep=\"\t\")\n";
 
-    $Rscript .= "heatmap.3(all_selected_genes_matrix, col=myheatcol, scale='none', density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=1, margins=c(10,10), cex.main=0.75, cexRow=0.5, main=paste('heatmap for ALL selected ', $num_top_genes_PC_extreme, ' extreme of all PCs')";
+    $Rscript .= "heatmap.3(all_selected_genes_matrix, col=myheatcol, scale='none', density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=0.5, margins=c(10,10), cex.main=0.75, cexRow=$cexRow, main=paste('heatmap for ALL selected ', $num_top_genes_PC_extreme, ' extreme of all PCs')";
     
     if ($samples_file) {
         $Rscript .= ", ColSideColors=sampleAnnotations";
@@ -1990,7 +1996,7 @@ sub add_top_loadings_pc_heatmap {
     }
     
 
-    $Rscript .= "    heatmap.3(top_loadings_pc_matrix, col=myheatcol, scale='none', density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=1, margins=c(10,10), cex.main=0.75, cexRow=0.5, main=paste('heatmap for', $top_loadings_pc_heatmap, ' extreme all Prin. Comps.')";
+    $Rscript .= "    heatmap.3(top_loadings_pc_matrix, col=myheatcol, scale='none', density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=$cexCol, margins=c(10,10), cex.main=0.75, cexRow=$cexRow, main=paste('heatmap for', $top_loadings_pc_heatmap, ' extreme all Prin. Comps.')";
     
     if ($samples_file) {
         $Rscript .= ", ColSideColors=sampleAnnotations";
@@ -2049,14 +2055,14 @@ sub write_study_individual_gene_correlations_function {
     $Rscript .= "    this_sample_cor = cor(gene_expr_submatrix, method=\"$sample_cor\", use='pairwise.complete.obs')\n"
              .  "    this_hc_samples = hclust(as.dist(1-this_sample_cor), method=\"$sample_clust\")\n";
 
-    $Rscript .= "    heatmap.3(this_gene_cor_matrix, dendrogram='both', Rowv=as.dendrogram(this_hc_genes), Colv=as.dendrogram(this_hc_genes), col=myheatcol, scale='none', symm=TRUE, key=TRUE,density.info='none', trace='none', symkey=FALSE, margins=c(10,10), cexCol=1, cexRow=1, cex.main=0.75, main=paste(\"feature correlation matrix\n\", gene_id))\n";
+    $Rscript .= "    heatmap.3(this_gene_cor_matrix, dendrogram='both', Rowv=as.dendrogram(this_hc_genes), Colv=as.dendrogram(this_hc_genes), col=myheatcol, scale='none', symm=TRUE, key=TRUE,density.info='none', trace='none', symkey=FALSE, margins=c(10,10), cexCol=$cexCol, cexRow=$cexRow, cex.main=0.75, main=paste(\"feature correlation matrix\n\", gene_id))\n";
 
     # gene vs. samples plot
 
     # center rows
     $Rscript .= "    gene_expr_submatrix = t(scale(t(gene_expr_submatrix), scale=F))\n";
     
-    $Rscript .= "    heatmap.3(gene_expr_submatrix, col=myheatcol, Rowv=as.dendrogram(this_hc_genes), Colv=as.dendrogram(this_hc_samples), scale='none', density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=1, margins=c(10,10), cex.main=0.75, cexRow=0.5, main=paste('heatmap for most correlated to', gene_id)";
+    $Rscript .= "    heatmap.3(gene_expr_submatrix, col=myheatcol, Rowv=as.dendrogram(this_hc_genes), Colv=as.dendrogram(this_hc_samples), scale='none', density.info=\"none\", trace=\"none\", key=TRUE, keysize=1.2, cexCol=$cexCol, margins=c(10,10), cex.main=0.75, cexRow=$cexRow, main=paste('heatmap for most correlated to', gene_id)";
 
     if ($samples_file) {
         $Rscript .= ", ColSideColors=these_sample_annotations";

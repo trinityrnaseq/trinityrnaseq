@@ -26,7 +26,10 @@ main = function () {
 		data = read.table(gzfile(E_inputs_filename), header=T, com='', sep="\t", stringsAsFactors = F)
 	} else {
 		data = read.table(E_inputs_filename, header=T, com='', sep="\t", stringsAsFactors = F)
-    }	
+    }
+
+    orig_data = data
+    
 	data = data %>% filter(max_expr_over_samples > 0.05 & max_expr_over_samples <= 2^5) # must have some evidence of expression
 
 
@@ -104,8 +107,8 @@ main = function () {
 
 
 	# compute some stats based on that threshold
-    filtered_data = data %>% filter(max_expr_over_samples >= tpm_x) %>% arrange(desc(length))
-	sum_length = sum(filtered_data$length)
+    filtered_data = orig_data %>% filter(max_expr_over_samples >= tpm_x) %>% arrange(desc(length))
+    sum_length = sum(filtered_data$length)
 	filtered_data = filtered_data %>% mutate(cumsum_len = cumsum(length))
 	half_length = sum_length / 2
 	N50_entry = filtered_data %>% filter(cumsum_len <= half_length) %>% filter(row_number() == n())

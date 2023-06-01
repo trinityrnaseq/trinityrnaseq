@@ -28,7 +28,7 @@ upp_quartiles = apply(data, 2, get_upper_quartile)
 m = sweep(data, MARGIN=2, upp_quartiles, '/')
 mean_upp_quart = mean(upp_quartiles)
 m = m * mean_upp_quart
-write.table(m, file=output_filename, quote=F, sep="\t")
+write.table(m, file=output_filename, quote=F, sep="\t", col.names="GeneID")
 
 
 quit(save = "no", status = 0, runLast = FALSE)

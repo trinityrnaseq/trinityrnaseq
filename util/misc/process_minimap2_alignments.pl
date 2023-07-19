@@ -116,7 +116,7 @@ main: {
     }
 
     my $secondary = ($allow_secondary) ? "" : "--secondary=no";
-    my $cmd = "minimap2 -ax splice $splice_param $secondary -t $CPU -u b -G $max_intron_length $mm2_idx $transcripts > $output.tmp.sam";
+    my $cmd = "minimap2 --sam-hit-only  -ax splice $splice_param $secondary -t $CPU -u b -G $max_intron_length $mm2_idx $transcripts > $output.tmp.sam";
     &process_cmd($cmd);
 
     $cmd = "samtools view -Sb -T $genome $output.tmp.sam -o $output.tmp.unsorted.bam";

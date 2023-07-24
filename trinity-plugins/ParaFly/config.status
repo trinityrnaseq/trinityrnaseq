@@ -440,7 +440,7 @@ gives unlimited permission to copy, distribute and modify it."
 ac_pwd='/home/bhaas/GITHUB/trinityrnaseq/trinity-plugins/ParaFly'
 srcdir='.'
 INSTALL='/usr/bin/install -c'
-MKDIR_P='/bin/mkdir -p'
+MKDIR_P='/usr/bin/mkdir -p'
 AWK='gawk'
 test -n "$AWK" || AWK=awk
 # The default lists apply if the user does not specify any file.
@@ -643,8 +643,8 @@ S["AMTAR"]="${SHELL} /home/bhaas/GITHUB/trinityrnaseq/trinity-plugins/ParaFly/mi
 S["am__leading_dot"]="."
 S["SET_MAKE"]=""
 S["AWK"]="gawk"
-S["mkdir_p"]="/bin/mkdir -p"
-S["MKDIR_P"]="/bin/mkdir -p"
+S["mkdir_p"]="/usr/bin/mkdir -p"
+S["MKDIR_P"]="/usr/bin/mkdir -p"
 S["INSTALL_STRIP_PROGRAM"]="$(install_sh) -c -s"
 S["STRIP"]=""
 S["install_sh"]="${SHELL} /home/bhaas/GITHUB/trinityrnaseq/trinity-plugins/ParaFly/install-sh"

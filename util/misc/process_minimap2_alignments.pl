@@ -76,39 +76,28 @@ unless ($output) {
 main: {
 
 	
-	my $genomeBaseDir = dirname($genome);
-	my $genomeName = basename($genome);
-	my $genomeDir = "$genomeBaseDir/$genomeName" . ".mm2";
+    my $genomeBaseDir = dirname($genome);
+    my $genomeName = basename($genome);
+    my $mm2_idx = "$genomeBaseDir/$genomeName" . ".mm2";
     
+    my $cwd = cwd();
 
-    unless (-d $genomeDir) {
-        &process_cmd("mkdir $genomeDir");
-    }
-    
-	my $cwd = cwd();
-	
-    my $mm2_idx = "$genomeDir/$genomeName.mmi";
-	
-    my $splice_file = "";
-    if ($gtf) {
-        $splice_file = "$genomeDir/anno.bed";
-    }
-
+    my $splice_file = "$mm2_idx.splice.bed";
 
     unless (-e $mm2_idx) {
         
         my $cmd = "minimap2 -d $mm2_idx $genome";
         &process_cmd($cmd);
-
-        if ($gtf) {
-            my $cmd = "paftools.js gff2bed $gtf > $splice_file";
-            &process_cmd($cmd);
-        }
-	
     }
+
     
+    if ($gtf && ! -s $splice_file) {
+	my $cmd = "paftools.js gff2bed $gtf > $splice_file";
+	&process_cmd($cmd);
+    }
 	
-	## run minimap2
+	
+    ## run minimap2
 
     my $splice_param = "";
     if ($splice_file) {

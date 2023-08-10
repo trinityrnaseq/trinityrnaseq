@@ -187,8 +187,13 @@ main: {
             $pipeliner->add_commands( new Command("samtools index $renamed_bam_outfile", "$checkpoint_dir/$renamed_bam_outfile.bai.ok") );
         }
         
+        $pipeliner->add_commands( new Command("mv Log.final.out $sample_id.STAR.Log.final.out", "$checkpoint_dir/$sample_id.STAR_log_renamed.ok"));
         
+
         $pipeliner->run();
+
+        
+        
     }
     
     

@@ -132,11 +132,11 @@ main: {
         
         $cmd .= " -O --fraction -M -t exonic_part -g exonic_gene_part_number -a $genes_gtf_file.dexseq.gff -f -o $bam_file.fc  $bam_file";
         
-        $pipeliner->add_commands(new Command($cmd, "$analysis_token.$bam_file.fc.ok"));
+        $pipeliner->add_commands(new Command($cmd, "$analysis_token." . basename($bam_file) . ".fc.ok"));
 
         
-        $pipeliner->add_commands(new Command("$FindBin::Bin/util/reformat_featureCounts.pl $bam_file.fc > $bam_file.counts",
-                                             "$analysis_token.$bam_file.counts.ok"));
+        $pipeliner->add_commands(new Command("$FindBin::Bin/../SuperTranscripts/DTU/util/reformat_featureCounts.pl $bam_file.fc > $bam_file.counts",
+                                             "$analysis_token." . basename($bam_file) . ".counts.ok"));
         
         push (@counts_files, "$bam_file.counts");
         

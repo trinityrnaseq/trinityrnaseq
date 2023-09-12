@@ -99,12 +99,12 @@ heatmap.3 <- function(x,
         warning("Using scale=\"row\" or scale=\"column\" when breaks are",
             "specified can produce unpredictable results.", "Please consider using only one or the other.")
 
-    if (is.null(Rowv) || is.na(Rowv))
+    if (all(is.null(Rowv)) || all(is.na(Rowv)))
         Rowv <- FALSE
 
-    if (is.null(Colv) || is.na(Colv))
+    if (all(is.null(Colv)) || all(is.na(Colv)))
         Colv <- FALSE
-    else if (Colv == "Rowv" && !isTRUE(Rowv))
+    else if (all(Colv == "Rowv") && !all(isTRUE(Rowv)))
         Colv <- FALSE
 
     if (length(di <- dim(x)) != 2 || !is.numeric(x))

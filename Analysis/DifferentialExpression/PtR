@@ -1746,7 +1746,7 @@ sub add_sample_QC_analysis_R {
         . "    samples_want = colnames(data) \%in% samples_want\n"
         #. "    print(samples_want)\n"
         
-        . "    if (sum(samples_want) > 1) {\n"
+        . "    if (sum(samples_want) >= 1) {\n" # not sure why this was prev set to >1 
         . "        $imgfmt(file=paste(sample_name, \'.rep_compare.$imgfmt\', sep='')";
     if ($img_width) {                                                                                                                                                                                          
         $Rscript .= ", width=$img_width";                                                                                                                                                                      

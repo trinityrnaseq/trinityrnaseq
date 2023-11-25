@@ -234,10 +234,10 @@ RUN STAR_URL="https://github.com/alexdobin/STAR/archive/${STAR_VERSION}.tar.gz" 
 
 ## Salmon
 WORKDIR $SRC
-ENV SALMON_VERSION=1.5.2
-RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v${SALMON_VERSION}/Salmon-${SALMON_VERSION}_linux_x86_64.tar.gz && \
-    tar xvf Salmon-${SALMON_VERSION}_linux_x86_64.tar.gz && \
-    ln -s $SRC/salmon-${SALMON_VERSION}_linux_x86_64/bin/salmon $BIN/.
+ENV SALMON_VERSION=1.10.0
+RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v1.10.0/salmon-1.10.0_linux_x86_64.tar.gz -O salmon-1.10.0_linux_x86_64.tar.gz && \
+    tar xvf  salmon-1.10.0_linux_x86_64.tar.gz && \
+    ln -s $SRC/salmon-latest_linux_x86_64/bin/salmon $BIN/.
 
 
 ## Trinity

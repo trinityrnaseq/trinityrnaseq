@@ -140,7 +140,15 @@ def main():
         default="",
         help="options to pass through to STAR's genomeGenerate function. ie. might need:  --genomeChrBinNbits to log2[SequenceLength/NumberOfContigs]   ",
     )
-    
+
+
+    parser.add_argument(
+        "--STAR_genomeAlign_opts",
+        type=str,
+        default="",
+        help="options to pass through to STAR's alignment function. ",
+    )
+ 
     args = parser.parse_args()
 
     PICARD_HOME = os.getenv("PICARD_HOME")
@@ -277,6 +285,7 @@ def main():
         + " --alignSJDBoverhangMin 10 "
         + " --outSAMtype BAM SortedByCoordinate "
         + " --limitBAMsortRAM {} ".format(args.maxram)
+        + " {} ".format(args.STAR_genomeAlign_opts)
         + " --readFilesIn "
         + " ".join(reads_paths)
     )
@@ -284,6 +293,8 @@ def main():
     if re.search("\.gz$", reads_paths[0]):
         cmd += " --readFilesCommand 'gunzip -c' "
 
+    
+        
     pipeliner.add_commands([Pipeliner.Command(cmd, "star_aln.ok")])
     pipeliner.run()
 

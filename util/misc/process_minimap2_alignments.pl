@@ -29,6 +29,10 @@ my $usage = <<__EOUSAGE__;
 #  --incl_out_gff3             include gff3 formatted output file for alignments.
 #  --allow_secondary           allow secondary alignments (default secondary=no)
 #
+#  --eqx                       include --eqx flag
+#  --cs                        include long format via --cs w/ minimap2
+#  --hq                        pacbio CCS reads (--splice:hq for mm2)
+#
 #######################################################################
 
 
@@ -46,7 +50,9 @@ my $output;
 my $max_intron_length = 100000;
 my $incl_out_gff3;
 my $allow_secondary = 0;
-
+my $include_cs_flag = 0;
+my $include_eqx_flag = 0;
+my $include_hq_flag = 0;
 
 &GetOptions( 'h' => \$help_flag,
              'genome=s' => \$genome,
@@ -57,6 +63,8 @@ my $allow_secondary = 0;
              'I|max_intron_length=i' => \$max_intron_length,
              'incl_out_gff3' => \$incl_out_gff3,
              'allow_secondary' => \$allow_secondary,
+             'cs' => \$include_cs_flag,
+             'hq' => \$include_hq_flag,
     );
 
 
@@ -69,9 +77,36 @@ unless ($genome && $transcripts) {
     die $usage;
 }
 
-unless ($output) {
-    $output = basename($transcripts) . ".mm2.bam";
+
+my $include_cs_param = "";
+my $include_cs_token = "";
+if ($include_cs_flag) {
+    $include_cs_param = "--cs";
+    $include_cs_token = ".cs";
 }
+
+my $include_eqx_param = "";
+my $include_eqx_token = "";
+if ($include_eqx_flag) {
+    $include_eqx_param = "--eqx";
+    $include_eqx_token = ".eqx";
+}
+
+
+my $include_hq_param = "";
+my $include_hq_token = "";
+if ($include_hq_flag) {
+    $include_hq_param = ":hq";
+    $include_hq_token = ".hq";
+}
+
+
+unless ($output) {
+    $output = basename($transcripts) . ".mm2${include_cs_token}${include_eqx_token}${include_hq_token}.bam";
+}
+
+
+
 
 main: {
 
@@ -105,7 +140,8 @@ main: {
     }
 
     my $secondary = ($allow_secondary) ? "" : "--secondary=no";
-    my $cmd = "minimap2 --sam-hit-only  -ax splice $splice_param $secondary -t $CPU -u b -G $max_intron_length $mm2_idx $transcripts > $output.tmp.sam";
+
+    my $cmd = "minimap2 --sam-hit-only  -ax splice$include_hq_param $splice_param $secondary -t $CPU -u b -G $max_intron_length $include_cs_param $include_eqx_param $mm2_idx $transcripts > $output.tmp.sam";
     &process_cmd($cmd);
 
     $cmd = "samtools view -Sb -T $genome $output.tmp.sam -o $output.tmp.unsorted.bam";
@@ -122,8 +158,6 @@ main: {
         $cmd = "$FindBin::Bin/SAM_to_gff3.minimap2.pl $output > $output.gff3";
         &process_cmd($cmd);
     }
-
-
 
     unlink("$output.tmp.sam", "$output.tmp.unsorted.bam");
     

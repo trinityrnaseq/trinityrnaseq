@@ -67,7 +67,7 @@ main: {
 
     print $ofh "# capture list of genes for functional enrichment testing\n";
     if ($genes_single_factor_file) {
-        print $ofh "factor_labeling = read.table(\"$genes_single_factor_file\", row.names=1)\n";
+        print $ofh "factor_labeling = read.table(\"$genes_single_factor_file\", header=T, row.names=1)\n";
         print $ofh "factor_labeling[,1] = rep('custom_list', dim(factor_labeling)[1])\n";
         print $ofh "factor_labeling = factor_labeling[,1,drop=F]\n";
     }

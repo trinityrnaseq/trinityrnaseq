@@ -1,0 +1,35 @@
+#!/usr/bin/env Rscript
+
+################################################
+# for info on upper quartile normalization, see:
+# http://vinaykmittal.blogspot.com/2013/10/fpkmrpkm-normalization-caveat-and-upper.html
+################################################
+
+suppressPackageStartupMessages(library("argparse"))
+
+parser = ArgumentParser()
+parser$add_argument("--matrix", help="input data file", required=TRUE, nargs=1)
+parser$add_argument("--output", help="output data file", required=TRUE, nargs=1)    
+
+args = parser$parse_args()
+matrix_filename = args$matrix
+output_filename = args$output
+    
+data = read.table(gzfile(matrix_filename), header=T, sep="\t", row.names=1, check.names=F, com='')
+
+
+get_upper_quartile = function(vec) {
+     vec = vec[vec > 0]
+     quantile(vec, 0.75)
+}
+
+data = as.matrix(data)
+upp_quartiles = apply(data, 2, get_upper_quartile)
+m = sweep(data, MARGIN=2, upp_quartiles, '/')
+mean_upp_quart = mean(upp_quartiles)
+m = m * mean_upp_quart
+write.table(m, file=output_filename, quote=F, sep="\t", col.names=NA)
+
+
+quit(save = "no", status = 0, runLast = FALSE)
+

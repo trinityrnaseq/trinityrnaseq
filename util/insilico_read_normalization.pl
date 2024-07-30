@@ -310,13 +310,13 @@ main: {
             ($left_SS_type, $right_SS_type) = split(//, $SS_lib_type);
         }
 
-        print STDERR "Converting input files. (both directions in parallel)";
+        print STDERR "Converting input files. (both directions in parallel);";
         
         my $thr1;
         my $thr2;
 
         if (-s "left.fa" && -e "left.fa.ok") {
-            $thr1 = threads->create(sub { print STDERR ("left file exists, nothing to do");});
+            $thr1 = threads->create(sub { print STDERR (" Left file exists, nothing to do;");});
         }
         else {
             $thr1 = threads->create('prep_list_of_seqs', \@left_files, $seqType, "left", $left_SS_type);
@@ -324,7 +324,7 @@ main: {
         }
         
         if (-s "right.fa" && -e "right.fa.ok") {
-            $thr2 = threads->create(sub { print STDERR ("right file exists, nothing to do");});
+            $thr2 = threads->create(sub { print STDERR (" Right file exists, nothing to do;");});
         }
         else {
             $thr2 = threads->create('prep_list_of_seqs', \@right_files, $seqType, "right", $right_SS_type);
@@ -340,7 +340,7 @@ main: {
         
         &process_checkpoints(@checkpoints);
         
-		print STDERR "Done converting input files.";
+		print STDERR " Done converting input files. ";
         
         push (@files_need_stats, 
               [\@left_files, "left.fa"], 
@@ -426,7 +426,7 @@ main: {
     foreach my $thread (@threads) {
         $thread->join();
         if ($thread->error()) {
-            print STDERR "Error encountered with thread.\n";
+            print STDERR " Error encountered with thread.\n";
             $num_fail++;
         }
     }

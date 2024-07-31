@@ -1,3 +1,9 @@
+
+# Trinity-v2.15.2 July 31, 2024
+- bamsifter compilation issue addressed
+- minor updates to accessory scripts
+
+
 # Trinity-v2.15.1 Feb 5, 2023
 - bamsifter update to ease compilation issues
 - update to contig_ExN50_statistic.pl to provide either transcript (default) or gene based analysis (note, both use the isoform expression matrix!)

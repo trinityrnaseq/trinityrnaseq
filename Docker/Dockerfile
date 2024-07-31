@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:24.04
 MAINTAINER bhaas@broadinstitute.org
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -42,7 +42,6 @@ RUN apt-get -qq update && apt-get -qq -y install \
     pkg-config \
     python3 \
     python3-dev \
-    python3-distutils \
     python3-pip \
     python3-setuptools \
     rsync \
@@ -77,7 +76,7 @@ WORKDIR $SRC
 
 RUN apt-get install -y texlive texlive-latex-extra
 
-ENV R_VERSION=R-4.2.0
+ENV R_VERSION=R-4.4.0
 
 RUN curl https://cran.r-project.org/src/base/R-4/$R_VERSION.tar.gz -o $R_VERSION.tar.gz && \
     tar xvf $R_VERSION.tar.gz && \
@@ -112,9 +111,9 @@ RUN apt-get install -y cython3
 RUN ln -sf /usr/bin/python3 /usr/bin/python
 
 ## some python modules
-RUN pip3 install numpy
-RUN pip3 install git+https://github.com/ewels/MultiQC.git
-RUN pip3 install HTSeq
+#RUN pip3 install numpy
+#RUN pip3 install git+https://github.com/ewels/MultiQC.git
+#RUN pip3 install HTSeq
 
 
 ## bowtie
@@ -240,6 +239,15 @@ RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v1.10.0/salmon-
     ln -s $SRC/salmon-latest_linux_x86_64/bin/salmon $BIN/.
 
 
+## autoconf 2.69 needed for trinity installed verison of htslib
+WORKDIR $SRC
+RUN wget http://ftp.gnu.org/gnu/autoconf/autoconf-2.69.tar.gz && \
+      tar xf autoconf* && \
+      cd autoconf-2.69 && \
+      sh configure --prefix /usr/local && \
+      make install
+
+
 ## Trinity
 WORKDIR $SRC
 ENV TRINITY_VERSION="2.15.2"
@@ -262,6 +270,10 @@ ENV TRINITY_HOME /usr/local/bin
 
 ENV PATH=${TRINITY_HOME}:${PATH}
 
+
+RUN install python3-numpy git
+RUN pip3 install git+https://github.com/ewels/MultiQC.git --break-system-packages
+RUN pip3 install HTSeq --break-system-packages
 
 # some cleanup
 WORKDIR $SRC

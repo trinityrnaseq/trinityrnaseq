@@ -1,5 +1,6 @@
 
 # Trinity-v2.15.2 July 31, 2024
+- updated docker (and apptainer/singularity) to ubuntu 24.04
 - bamsifter compilation issue addressed
 - minor updates to accessory scripts
 

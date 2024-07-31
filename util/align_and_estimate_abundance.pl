@@ -344,10 +344,6 @@ elsif ( ($left && $right) || $single) {
 }
 
 
-
-print Dumper(\@samples_to_process);
-die;
-
 my $PE_mode = 1;
 
 if ($single || (@samples_to_process && $samples_to_process[0]->{single})) {

@@ -248,10 +248,15 @@ RUN wget http://ftp.gnu.org/gnu/autoconf/autoconf-2.69.tar.gz && \
       make install
 
 
+RUN apt-get install -y python3-numpy git
+RUN pip3 install git+https://github.com/ewels/MultiQC.git --break-system-packages
+RUN pip3 install HTSeq --break-system-packages
+
+
 ## Trinity
 WORKDIR $SRC
 ENV TRINITY_VERSION="2.15.2"
-ENV TRINITY_CO=09fcff5843d6380cd7ca3b64cb0e766ac550596e
+ENV TRINITY_CO=85bd79225d8afaf03e67b9c8cd61e2701ba4930f
 
 WORKDIR $SRC
 
@@ -270,10 +275,6 @@ ENV TRINITY_HOME /usr/local/bin
 
 ENV PATH=${TRINITY_HOME}:${PATH}
 
-
-RUN install python3-numpy git
-RUN pip3 install git+https://github.com/ewels/MultiQC.git --break-system-packages
-RUN pip3 install HTSeq --break-system-packages
 
 # some cleanup
 WORKDIR $SRC

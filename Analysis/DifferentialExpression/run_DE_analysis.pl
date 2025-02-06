@@ -346,12 +346,17 @@ sub get_sample_name_to_column_index {
         my @x = split(/\t/, $next_line);
         print STDERR "Got " . scalar(@samples) . " samples, and got: " . scalar(@x) . " data fields.\n";
         print STDERR "Header: $header_line\nNext: $next_line\n";
+
+        if (scalar(@x) != scalar(@samples) - 1 || scalar(@x) != scalar(@samples) ) {
+            croak "Number of column names doesn't match up with number of row fields. Please check your input matrix.";
+        }
         
         if (scalar(@x) == scalar(@samples)) {
             # problem... shift headers over, no need for gene column heading
             shift @samples;
             print STDERR "-shifting sample indices over.\n";
         }
+        
     }
     close $fh;
             

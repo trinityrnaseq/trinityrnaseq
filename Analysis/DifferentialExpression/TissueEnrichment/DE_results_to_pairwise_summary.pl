@@ -55,7 +55,7 @@ main: {
                         . "line: @x\n";
                 }
                 for (my $i = 0; $i <= $#header_fields; $i++) {
-                    if ($header_fields[$i] eq 'FDR') {
+                    if ($header_fields[$i] eq 'FDR' || $header_fields[$i] eq "padj") {
                         $FDR_field = $i;
                     }
                 }

@@ -127,8 +127,8 @@ main: {
 
     
     if ($gtf && ! -s $splice_file) {
-	my $cmd = "paftools.js gff2bed $gtf > $splice_file";
-	&process_cmd($cmd);
+        my $cmd = "$FindBin::Bin/paftools.js gff2bed $gtf > $splice_file";
+        &process_cmd($cmd);
     }
 	
 	

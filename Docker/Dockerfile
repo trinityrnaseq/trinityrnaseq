@@ -101,6 +101,7 @@ RUN R -e 'BiocManager::install("fastcluster")'
 RUN R -e 'BiocManager::install("DEXSeq")'
 RUN R -e 'BiocManager::install("tximport")'
 RUN R -e 'BiocManager::install("tximportData")'
+RUN R -e 'BiocManager::install("vioplot")'  # used by examine strand specificity plots (pulls in sm)
 
 
 ENV LD_LIBRARY_PATH=/usr/local/lib
@@ -153,7 +154,7 @@ RUN wget http://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v${FAST
 # blast
 WORKDIR $SRC
 ENV BLASTPLUS_VERSION 2.12.0
-RUN wget ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/${BLASTPLUS_VERSION}/ncbi-blast-${BLASTPLUS_VERSION}+-x64-linux.tar.gz && \
+RUN wget https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/${BLASTPLUS_VERSION}/ncbi-blast-${BLASTPLUS_VERSION}+-x64-linux.tar.gz && \
     tar xvf ncbi-blast-${BLASTPLUS_VERSION}+-x64-linux.tar.gz && \
     cp ncbi-blast-${BLASTPLUS_VERSION}+/bin/* $BIN && \
     rm -r ncbi-blast-${BLASTPLUS_VERSION}+

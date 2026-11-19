@@ -100,7 +100,9 @@ my $usage = <<__EOUSAGE__;
 ###################################
 #
 # --output_dir <string>            write all files to output directory 
-#                                  (note, if using --samples_file, output_dir will be set automatically according to replicate name))
+#                                  (note, if using --samples_file, each replicate is written to a directory named
+#                                   according to its replicate name, placed under --output_dir if specified, otherwise
+#                                   under the current directory)
 #  
 #
 #  if alignment_based est_method:
@@ -933,7 +935,7 @@ sub parse_samples_file {
         }
         $seen{$rep_name}++;
         
-        my $output_dir = $rep_name;
+        my $sample_output_dir = ($output_dir) ? "$output_dir/$rep_name" : $rep_name;
         
         my $left_fq = $x[2];
         my $right_fq = $x[3];
@@ -965,12 +967,12 @@ sub parse_samples_file {
 
             push (@samples_to_process, { left => $left_fq,
                                          right => $right_fq,
-                                         output_dir => $output_dir,
+                                         output_dir => $sample_output_dir,
                   } );
         }
         else {
             push (@samples_to_process, { single => $left_fq,
-                                         output_dir => $output_dir,
+                                         output_dir => $sample_output_dir,
                   } );
         }
         

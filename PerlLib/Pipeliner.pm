@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use Carp;
 use Cwd;
+use Process_cmd qw(describe_exit_status);
 
 ################################
 ## Verbose levels:
@@ -38,7 +39,7 @@ sub process_cmd {
     print STDERR "CMD: $cmd\n";
     my $ret = system($cmd);
     if ($ret) {
-        die "Error, CMD: $cmd died with ret $ret";
+        die "Error, CMD: $cmd died with ret $ret" . &describe_exit_status($ret);
     }
     return;
 }
@@ -155,6 +156,12 @@ sub run {
 
         my $checkpoint_file = $cmd_obj->get_checkpoint_file();
         
+        if (-e $checkpoint_file && (my @missing_outputs = $cmd_obj->get_missing_outputs())) {
+            print STDERR "-- WARNING: checkpoint [$checkpoint_file] exists but expected output(s) are missing or empty: @missing_outputs\n"
+                . "--          re-running CMD: $cmdstr\n";
+            unlink($checkpoint_file);
+        }
+        
         if (-e $checkpoint_file) {
             print STDERR "-- Skipping CMD: $cmdstr, checkpoint [$checkpoint_file] exists.\n" if $VERBOSE;
         }
@@ -184,7 +191,7 @@ sub run {
                     unlink($tmp_stderr);
                 }
                                 
-                confess "Error, cmd: $cmdstr died with ret $ret $!";
+                confess "Error, cmd: $cmdstr died with ret $ret" . &describe_exit_status($ret);
             }
             else {
                 `touch $checkpoint_file`;
@@ -226,7 +233,7 @@ use Carp;
 sub new {
     my $packagename = shift;
     
-    my ($cmdstr, $checkpoint_file, $message) = @_;
+    my ($cmdstr, $checkpoint_file, $message, @expected_outputs) = @_;
 
     unless ($cmdstr && $checkpoint_file) {
         confess "Error, need cmdstr and checkpoint filename as params";
@@ -235,6 +242,7 @@ sub new {
     my $self = { cmdstr => $cmdstr,
                  checkpoint_file => $checkpoint_file,
                  msg => $message,
+                 expected_outputs => [@expected_outputs],
     };
 
     bless ($self, $packagename);
@@ -260,6 +268,20 @@ sub reset_checkpoint_file {
     my $checkpoint_file = shift;
 
     $self->{checkpoint_file} = $checkpoint_file;
+}
+
+####
+# Declare files that must exist (and be non-empty) for a completed checkpoint to be trusted.
+sub add_expected_outputs {
+    my $self = shift;
+    push (@{$self->{expected_outputs}}, @_);
+    return($self);
+}
+
+####
+sub get_missing_outputs {
+    my $self = shift;
+    return( grep { ! -s $_ } @{$self->{expected_outputs}} );
 }
 
 1; #EOM

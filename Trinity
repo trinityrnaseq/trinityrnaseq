@@ -14,6 +14,7 @@ use Carp;
 use COMMON;
 use Getopt::Long qw(:config posix_default no_ignore_case pass_through gnu_compat no_auto_abbrev); 
 use Pipeliner;
+use Process_cmd qw(describe_exit_status);
 use Fasta_reader;
 use SAM_reader;
 use SAM_entry;
@@ -1539,6 +1540,11 @@ main: {
             &process_cmd("mv $Trinity_tmp_fasta_file $final_Trinity_fasta_file");        
         }
         
+        unless (-s $final_Trinity_fasta_file) {
+            die "Error, final Trinity assembly file $final_Trinity_fasta_file was not created or is empty. "
+                . "If re-running in a previously used output directory, consider starting with a fresh output directory.\n";
+        }
+        
         if ($VERBOSE || ! $TRINITY_COMPLETE_FLAG) {
             print "\n\n"
                 . "#############################################################################\n"
@@ -1569,7 +1575,7 @@ main: {
             
         }
         
-        if ($MKDIR_PHASE1_OUTDIR_FLAG && basename($TRINITY_PHASE1_OUTDIR =~ /trinity/i) && -d $TRINITY_PHASE1_OUTDIR) {
+        if ($MKDIR_PHASE1_OUTDIR_FLAG && basename($TRINITY_PHASE1_OUTDIR) =~ /trinity/i && -d $TRINITY_PHASE1_OUTDIR) {
             system("rm -rf $TRINITY_PHASE1_OUTDIR");
         }
     }
@@ -2935,7 +2941,7 @@ sub process_cmd {
 
     if ($ret) {
         
-        confess "Error, cmd: $cmd died with ret $ret";
+        confess "Error, cmd: $cmd died with ret $ret" . &describe_exit_status($ret);
     }
     
     print STDERR "CMD finished (" . ($end_time - $start_time) . " seconds)\n" if $VERBOSE;
@@ -3666,8 +3672,47 @@ sub run_partitioned_cmds {
         
     }
     else {
-        my $cmd = "$PARAFLY -c $cmds_file -CPU $CPU -v -shuffle ";
-        &process_cmd($cmd);
+        my $failed_cmds_file = "$cmds_file.FailedCommands";
+        my $cmd = "$PARAFLY -c $cmds_file -CPU $CPU -v -shuffle -failed_cmds $failed_cmds_file ";
+        eval {
+            &process_cmd($cmd);
+        };
+        if ($@) {
+            my $num_failed = 0;
+            my @example_outdirs;
+            if (-s $failed_cmds_file) {
+                open(my $fh, $failed_cmds_file) or confess "Error, cannot open $failed_cmds_file";
+                while (my $line = <$fh>) {
+                    next unless $line =~ /\S/;
+                    $num_failed++;
+                    if (scalar(@example_outdirs) < 3 && $line =~ /--output\s+"?([^"\s]+)/) {
+                        push (@example_outdirs, $1);
+                    }
+                }
+                close $fh;
+            }
+            
+            print STDERR "\n\n"
+                . "################################################################################\n"
+                . "Trinity Phase 2 failed: $num_failed of the partitioned assembly commands failed.\n"
+                . "  Failed commands are listed in: $failed_cmds_file\n";
+            if (@example_outdirs) {
+                print STDERR "  Example failed partition output directories:\n"
+                    . join("", map { "     $_\n" } @example_outdirs);
+            }
+            print STDERR "\n"
+                . "  Common causes and remedies:\n"
+                . "   - out of memory (eg. 'ret 9', 'ret 137', 'killed', java OutOfMemoryError): lower --CPU and/or\n"
+                . "     increase --bflyHeapSpaceMax (applies per Butterfly process), or provide more RAM.\n"
+                . "   - a full disk or file-count quota: check available space; consider --workdir on local disk.\n"
+                . "   - a partially-written partition from an earlier crash: remove that partition's '.out'\n"
+                . "     output directory listed above and simply re-run the same Trinity command;\n"
+                . "     completed partitions will be skipped.\n"
+                . "  To see the actual error, run one of the failed commands from the failed commands file directly.\n"
+                . "################################################################################\n\n";
+            
+            die $@;
+        }
     }
 
         
@@ -4256,10 +4301,10 @@ sub salmon_expr_filtering {
 
     my $pipeliner = new Pipeliner(-verbose => ($TRINITY_COMPLETE_FLAG) ? $VERBOSE : max(1, $VERBOSE));
     my $cmd = "$UTILDIR/support_scripts/salmon_runner.pl $input_fasta $reads_fasta $CPU";
-    $pipeliner->add_commands( new Command($cmd, "$polish_checkpoints_dir/salmon.ok") );
+    $pipeliner->add_commands( new Command($cmd, "$polish_checkpoints_dir/salmon.ok", undef, $salmon_quant_file) );
     
     $cmd = "$UTILDIR/support_scripts/filter_transcripts_require_min_cov.pl $input_fasta $reads_fasta $salmon_quant_file $min_eff_read_cov > $output_fasta";
-    $pipeliner->add_commands( new Command($cmd, "$polish_checkpoints_dir/salmon.filt.ok"));
+    $pipeliner->add_commands( new Command($cmd, "$polish_checkpoints_dir/salmon.filt.ok", undef, $output_fasta));
 
     $pipeliner->run();
 

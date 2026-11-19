@@ -12,6 +12,7 @@ use Cwd;
 use Carp;
 use Getopt::Long qw(:config no_ignore_case pass_through);
 use Fastq_reader;
+use Process_cmd qw(describe_exit_status);
 use Fasta_reader;
 use threads;
 use Data::Dumper;
@@ -804,7 +805,7 @@ sub process_cmd {
     my $end_time = time();
 
     if ($ret) {
-        die "Error, cmd: $cmd died with ret $ret";
+        die "Error, cmd: $cmd died with ret $ret" . &describe_exit_status($ret);
     }
     
     print STDERR "CMD finished (" . ($end_time - $start_time) . " seconds)\n";    

@@ -17,3 +17,7 @@
 /trinity-plugins/ParaFly/src/Makefile
 /trinity-plugins/ParaFly/src/.deps/
 /trinity-plugins/ParaFly/src/*.o
+/trinity-plugins/ParaFly/autom4te.cache/
+/trinity-plugins/ParaFly/src/ParaFly
+/trinity-plugins/BIN/ParaFly
+/trinity-plugins/BIN/seqtk-trinity

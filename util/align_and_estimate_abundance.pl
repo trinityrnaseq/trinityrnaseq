@@ -326,7 +326,7 @@ unless ($est_method =~ /^(RSEM|kallisto|salmon|none)$/i) {
 my @samples_to_process;
 if ($samples_file) {
     @samples_to_process = &parse_samples_file($samples_file);
-    if ($samples_idx >= 0) {
+    if ($samples_idx > 0) {
         my $num_samples = scalar(@samples_to_process);
         if ($samples_idx > $num_samples) {
             die "Error, sample index $samples_idx > $num_samples num samples ";
@@ -342,7 +342,6 @@ elsif ( ($left && $right) || $single) {
     @samples_to_process = &create_sample_definition($output_dir, $left, $right, $single);
     
 }
-
 
 
 my $PE_mode = 1;

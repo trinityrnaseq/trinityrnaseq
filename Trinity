@@ -915,6 +915,10 @@ no_symlink
 singularity_img
 singularity_extra_params
 in_simg_mode
+
+                           grid_node_CPU grid_node_max_memory java_opts long_reads_bam min_eff_read_cov
+                           monitor_sec no_check_coordsorted_bam no_parallel_norm_stats no_salmon
+                           no_super_reads verbose_level NO_SEQTK CuffFly PasaFly
 );   
 
 my %ACCEPTABLE_OPTS = map { + $_ => 1} @__ALL_TRINITY_PARAMS;
@@ -1226,6 +1230,10 @@ my $bflyHeapSpaceInitBytes = bfly_check($bflyHeapSpaceInit, 'bflyHeapSpaceInit')
 if ($bflyHeapSpaceInitBytes > $bflyHeapSpaceMaxBytes) {
     die "Error, bflyHeapSpaceInit ($bflyHeapSpaceInit) must be less or equal to bflyHeapSpaceMax ($bflyHeapSpaceMax).\n";
 }
+
+# Butterfly thread stack size: historically set to bflyHeapSpaceInit, but the JVM
+# rejects -Xss values above 1G ("Invalid thread stack size"), so cap it there.
+my $bflyThreadStackSize = ($bflyHeapSpaceInitBytes > 1024**3) ? "1G" : $bflyHeapSpaceInit;
 
 
 
@@ -2379,7 +2387,7 @@ sub run_chrysalis {
             { # butterfly command
                 
 
-                my $bfly_cmd = "java -Xmx$bflyHeapSpaceMax -Xms$bflyHeapSpaceInit -Xss$bflyHeapSpaceInit $JAVA_OPTS ";
+                my $bfly_cmd = "java -Xmx$bflyHeapSpaceMax -Xms$bflyHeapSpaceInit -Xss$bflyThreadStackSize $JAVA_OPTS ";
         
                 if (defined($bflyGCThreads)) {
                     $bfly_cmd .= " -XX:ParallelGCThreads=$bflyGCThreads ";
@@ -3696,42 +3704,55 @@ sub write_trinity_partitioned_cmds {
         $cmd .= " --long_reads_mode ";
     }
     
-    my @potential_args = @ORIG_ARGS;
+    my @potential_args = &normalize_cmdline_args(@ORIG_ARGS);
 
-    if ($trinity_mode =~ /FREE/ && ! grep { /no_salmon/ } @potential_args) {
+    if ($trinity_mode =~ /FREE/ && ! grep { /^-+no_salmon$/ } @potential_args) {
         push (@potential_args, "--no_salmon"); # now saving salmon for a final post-process using aggregated transcripts in genome-free mode.
     }
     
-
+    # flags that aren't needed or are already represented by the opt configuration above.
+    my %skip_flags = map { $_ => 1 } qw(run_as_paired normalize_by_read_set trimmomatic
+                                        normalize_reads no_normalize_reads just_normalize_reads
+                                        prep genome_guided_just_prep no_cleanup full_cleanup
+                                        monitoring in_simg_mode long_reads_mode);
+    
+    # value-specified options that aren't needed or are already represented above.
+    my %skip_with_values = map { $_ => 1 } qw(seqType left right single samples_file SS_lib_type
+                                              genome_guided_bam genome_guided_max_intron
+                                              genome_guided_min_coverage genome_guided_min_reads_per_partition
+                                              quality_trimming_params output normalize_max_read_cov
+                                              max_memory M grid_exec grid_node_CPU grid_node_max_memory
+                                              long_reads long_reads_bam inchworm_cpu monitor_sec CPU);
+    
+    # options whose (single) value may contain spaces or begin with a dash
+    my %quoted_value_opts = map { $_ => 1 } qw(bfly_opts java_opts iworm_opts INCHWORM_CUSTOM_PARAMS singularity_extra_params);
+    
     while (@potential_args) {
         my $arg = shift @potential_args;
         
-        # single value options that aren't needed:
-        if ($arg =~ /run_as_paired|normalize_by_read_set|trimmomatic|normalize_reads|prep|recurs|clean|monitoring|in_simg_mode/) {
-            next;
-        }
-        
-        # value specified options that aren't needed
-        if ($arg =~ /seqType|left|right|single|genome|SS_lib_type|quality_trimming|output|normalize_max_read_cov|grid_conf|max_mem|grid|long_reads|inchworm_cpu|samples_file|monitor_sec/
-            ||
-            # more precise identification of parameter
-            $arg =~ /^(--CPU)$/
+        if ($arg =~ /^-+(\S+)$/) {
+            my $opt_name = $1;
             
-            ) {
-            # skipping these, already represented by opt configuration above.
-            my $val = shift @potential_args;
-            next;
+            if ($skip_flags{$opt_name}) {
+                next;
+            }
+            elsif ($skip_with_values{$opt_name}) {
+                # remove all values (ie. --left can have multiple space-separated values)
+                while (@potential_args && $potential_args[0] !~ /^-/) {
+                    shift @potential_args;
+                }
+                next;
+            }
+            elsif ($quoted_value_opts{$opt_name}) {
+                my $val = shift @potential_args;
+                $val = "" unless defined $val;
+                $cmd .= " $arg \"$val\" ";
+                next;
+            }
         }
         
-        if ($arg =~/bfly_opts|singularity_extra_params/) {
-            # wrap val in quotes
-            my $val = shift @potential_args;
-            $cmd .= "$arg \"$val\" ";
-        }
-        else {
-            ## just passing it on.
-            $cmd .= " $arg ";
-        }
+        ## just passing it on.
+        $cmd .= " $arg ";
     }
     
     $cmd .= " > $cmds_file";
@@ -4206,6 +4227,24 @@ sub evaluate_paired_end_bam {
 
 
 ####
+sub normalize_cmdline_args {
+    my (@args) = @_;
+
+    ## split any --opt=value into (--opt, value) so args can be processed uniformly
+    my @normalized;
+    foreach my $arg (@args) {
+        if ($arg =~ /^(-+[A-Za-z_]\w*)=(.*)$/s) {
+            push (@normalized, $1, $2);
+        }
+        else {
+            push (@normalized, $arg);
+        }
+    }
+    return(@normalized);
+}
+
+
+####
 sub salmon_expr_filtering {
     my ($input_fasta, $reads_fasta, $output_fasta) = @_;
     
@@ -4244,14 +4283,22 @@ sub run_singularity_Trinity {
         
     
 
-    my @candidate_args = @ORIG_ARGS;
+    my @candidate_args = &normalize_cmdline_args(@ORIG_ARGS);
     my @args_use;
     while (@candidate_args) {
         my $arg = shift @candidate_args;
-        if ($arg =~ /grid_exec/) {
+        if ($arg =~ /^-+grid_exec$/) {
             shift @candidate_args;
         }
-        elsif ($arg =~ /^\-/ && $arg =~ /left|right|output|img/) {
+        elsif ($arg =~ /^-+(left|right|single)$/) {
+            # may have multiple space-separated values
+            push (@args_use, $arg);
+            while (@candidate_args && $candidate_args[0] !~ /^-/) {
+                my $val = shift @candidate_args;
+                push (@args_use, join(",", map { &create_full_path($_, 0) } grep { /\S/ } split(/,/, $val)));
+            }
+        }
+        elsif ($arg =~ /^-+(output|singularity_img|samples_file)$/) {
             my $val = shift @candidate_args;
             $val = &create_full_path($val, 0);
             push (@args_use, $arg, $val);

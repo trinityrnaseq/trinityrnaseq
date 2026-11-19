@@ -3571,7 +3571,7 @@ sub run_genome_guided_Trinity {
         #      . " O=$merged_long_reads_bam ";
         
         # using samtools merge now instead, as more reliable here.
-        $cmd = "samtools merge $merged_long_reads_bam $genome_guided_bam $RGLR_bam && samtools index $merged_long_reads_bam";
+        $cmd = "samtools merge $merged_long_reads_bam $genome_guided_bam $RGLR_bam && samtools index -c $merged_long_reads_bam";
         
         $pipeliner->add_commands(new Command($cmd, "$merged_long_reads_bam.ok"));
         
@@ -3583,20 +3583,9 @@ sub run_genome_guided_Trinity {
     
     ## partition the reads according to coverage piles:
     
-    ## Be sure that the bam file is coordinate sorted.
-    ## Simply index it using samtools.  If it's not coord sorted, samtools will error
+    ## note: coordinate-sortedness of the bam is verified up front via ensure_coord_sorted_sam.pl
     
-    my $cmd = "samtools index $genome_guided_bam";
-    unless ("-s $genome_guided_bam.bai") {
-        eval {
-            &process_cmd($cmd);
-        };
-        if ($@) {
-            die "$@\n\nPlease be sure that your bam file: $genome_guided_bam is coordinate-sorted before running genome-guided Trinity.\n";
-        }
-    }
-    
-    $cmd = "$UTILDIR/support_scripts/prep_rnaseq_alignments_for_genome_assisted_assembly.pl --coord_sorted_SAM $genome_guided_bam -I $genome_guided_max_intron --sort_buffer $max_memory --CPU $CPU ";
+    my $cmd = "$UTILDIR/support_scripts/prep_rnaseq_alignments_for_genome_assisted_assembly.pl --coord_sorted_SAM $genome_guided_bam -I $genome_guided_max_intron --sort_buffer $max_memory --CPU $CPU ";
     
     if ($SS_lib_type) {
         $cmd .= " --SS_lib_type $SS_lib_type ";

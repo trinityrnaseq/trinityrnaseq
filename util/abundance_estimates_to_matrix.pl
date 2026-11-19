@@ -73,6 +73,12 @@ unless ($est_method && (@ARGV || $quant_files)) {
     die $usage;
 }
 
+foreach my $opt_val ($gene_trans_map_file, $quant_files, $out_prefix) {
+    if (defined($opt_val) && $opt_val =~ /^-/) {
+        die "Error, option value '$opt_val' looks like a parameter name - a value is likely missing for a preceding option (eg. --gene_trans_map <file|none>).\n";
+    }
+}
+
 unless ($gene_trans_map_file) {
     die "Error, specify gene-to-trans map file via: --gene_trans_map, or indicate 'none' if you dont want gene estimates";
 }

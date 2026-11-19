@@ -260,7 +260,7 @@ main: {
     print $ofh_counts join("\t", "", @filenames) . "\n";
     print $ofh_TPM join("\t", "", @filenames) . "\n";
 
-    foreach my $acc (keys %data) {
+    foreach my $acc (sort keys %data) {
 
         print $ofh_counts "$acc";
         print $ofh_TPM "$acc";

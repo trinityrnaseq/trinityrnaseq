@@ -96,7 +96,7 @@ while (<$fh>) {
 my @genes;
 
 ## make expression weighted gene length
-foreach my $gene (keys %gene_to_trans) {
+foreach my $gene (sort keys %gene_to_trans) {
     my @trans_structs = @{$gene_to_trans{$gene}};
 
     my $sum_expr = 0;

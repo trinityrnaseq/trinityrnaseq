@@ -1516,7 +1516,16 @@ main: {
         # expression filtered.
         if ( (! $NO_SALMON) && (! $ALREADY_SALMON_FILTERED)) { ## //FIXME - super hacky
             
-            &salmon_expr_filtering($Trinity_tmp_fasta_file, $inchworm_target_reads_fa, $final_Trinity_fasta_file);
+            eval {
+                &salmon_expr_filtering($Trinity_tmp_fasta_file, $inchworm_target_reads_fa, $final_Trinity_fasta_file);
+            };
+            if ($@) {
+                print STDERR "$@\n"
+                    . "WARNING - salmon-based expression filtering of the final assembly failed (see error above).\n"
+                    . " - retaining the unfiltered Trinity transcripts as the final assembly.\n"
+                    . " - to skip this step in future runs, use --no_salmon\n\n";
+                &process_cmd("mv $Trinity_tmp_fasta_file $final_Trinity_fasta_file");
+            }
         }
         else {
             &process_cmd("mv $Trinity_tmp_fasta_file $final_Trinity_fasta_file");        
@@ -4103,7 +4112,7 @@ sub check_required_3rd_party_tool_installations {
 
             if ($version_info =~ /\s(\d+)\.(\d+)\.(\d+)/) {
                 my ($major, $minor, $patch) = ($1, $2, $3);
-                if ($major < 1 && $minor < 0) {
+                if ($major < 1) {
                     die "Error, please install a version of salmon that is at least as new as version 1.0.  Get it here: https://combine-lab.github.io/salmon/";
                 }
             }

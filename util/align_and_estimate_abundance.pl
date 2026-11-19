@@ -876,14 +876,14 @@ sub run_salmon {
                 ## PE mode
                 my $libtype = ($SS_lib_type) ? "IS" . substr($SS_lib_type, 0, 1) : "IU";
                 
-                my $cmd = "salmon quant -i $salmon_index -l $libtype -1 $left_file -2 $right_file -o $outdir $salmon_add_opts -p $thread_count --validateMappings ";
+                my $cmd = "salmon quant -i $salmon_index -l $libtype -1 $left_file -2 $right_file -o $outdir $salmon_add_opts -p $thread_count ";
                 
                 &process_cmd($cmd);
                 
             }
             elsif ($single_file) {
                 my $libtype = ($SS_lib_type) ? "S" . substr($SS_lib_type, 0, 1) : "U";
-                my $cmd = "salmon quant -i $salmon_index -l $libtype -r $single_file -o $outdir $salmon_add_opts -p $thread_count --validateMappings ";
+                my $cmd = "salmon quant -i $salmon_index -l $libtype -r $single_file -o $outdir $salmon_add_opts -p $thread_count ";
                 &process_cmd($cmd);
                 
             }

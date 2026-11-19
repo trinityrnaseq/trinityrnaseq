@@ -47,11 +47,10 @@ collectl_target:
 clean:
 	cd seqtk-trinity && $(MAKE) clean
 	cd scaffold_iworm_contigs && $(MAKE) clean
-	cd ${PARAFLY_CODE} && $(MAKE) clean
+	-cd ${PARAFLY_CODE} && $(MAKE) clean
 	rm -f ./Trimmomatic # rm symlink
 	cd slclust && $(MAKE) clean
 	cd COLLECTL && rm -rf ${COLLECTL_CODE} && rm -f collectl
-	cd htslib && $(MAKE) clean
 	cd bamsifter && $(MAKE) clean
 	rm -f ./htslib.ok
 	@echo "\n\n** Done cleaning plugins area **"

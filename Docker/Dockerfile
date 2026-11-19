@@ -20,6 +20,13 @@ RUN apt-get -qq update && apt-get -qq -y install \
     libbz2-dev \
     libcairo2-dev \
     libcurl4-openssl-dev \
+    libfontconfig1-dev \
+    libfreetype-dev \
+    libfribidi-dev \
+    libharfbuzz-dev \
+    libtiff-dev \
+    libuv1-dev \
+    libwebp-dev \
     libdb-dev \
     libghc-zlib-dev \
     libjpeg-dev \

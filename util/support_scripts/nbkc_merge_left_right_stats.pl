@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+use List::Util qw(min);
 
 use FindBin;
 use lib ("$FindBin::Bin/../../PerlLib");
@@ -85,6 +86,11 @@ main: {
     
     my $left_row = $left_delim_parser->get_row();
     my $right_row = $right_delim_parser->get_row();
+
+    my $num_left = ($left_row) ? 1 : 0;
+    my $num_right = ($right_row) ? 1 : 0;
+    my $num_paired = 0;
+    my ($example_left_acc, $example_right_acc) = (($left_row) ? $left_row->{acc} : "", ($right_row) ? $right_row->{acc} : "");
     
     while (1) {
         
@@ -118,10 +124,12 @@ main: {
             if ($sorted_flag) {
                 if ($left_acc lt $right_acc) {
                     $left_row = $left_delim_parser->get_row(); # advance left
+                    $num_left++ if $left_row;
                 }
                 else {
                     # advance right
                     $right_row = $right_delim_parser->get_row();
+                    $num_right++ if $right_row;
                 }
                 next;
             }
@@ -140,11 +148,34 @@ main: {
             ) . "\n";
         
         
+        $num_paired++;
+        
         ## advance next entries.
         
         $left_row = $left_delim_parser->get_row();
         $right_row = $right_delim_parser->get_row();
-        
+        $num_left++ if $left_row;
+        $num_right++ if $right_row;
+    }
+
+    # count any remaining unpaired entries
+    while ($left_delim_parser->get_row()) { $num_left++; }
+    while ($right_delim_parser->get_row()) { $num_right++; }
+    
+    print STDERR "-paired $num_paired reads (left entries: $num_left, right entries: $num_right)\n";
+    
+    my $read_naming_hint = "Left and right read names must match except for a trailing /1 or /2 (or an Illumina '1:N:...' / '2:N:...' comment), "
+        . "and both files must contain the same set of read pairs. Example names seen: left [$example_left_acc], right [$example_right_acc]. "
+        . "Reads from SRA should be dumped with the paired reads split into separate files with consistent names "
+        . "(eg. fasterq-dump --split-files), and both files should be trimmed/filtered together as pairs. "
+        . "You can check your reads with \$TRINITY_HOME/util/misc/validate_fastqs.py "
+        . "or run with --no_normalize_reads to skip normalization.\n";
+    
+    if ($num_paired == 0 && ($num_left > 0 || $num_right > 0)) {
+        die "Error, no left/right read pairs could be matched by name during normalization. $read_naming_hint";
+    }
+    elsif ($num_paired < 0.5 * min($num_left, $num_right)) {
+        print STDERR "WARNING: only $num_paired of $num_left left and $num_right right reads could be paired by name. $read_naming_hint";
     }
     
     exit(0);

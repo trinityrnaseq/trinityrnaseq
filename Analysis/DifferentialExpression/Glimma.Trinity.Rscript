@@ -11,8 +11,8 @@
 
 ## ---------------------------------------------
 ## in case you need to install Glimma:
-#  source("https://bioconductor.org/biocLite.R")
-#  biocLite("Glimma")
+#  install.packages("BiocManager")
+#  BiocManager::install(c("Glimma", "edgeR", "limma", "argparse"))
 ## ---------------------------------------------
 
 
@@ -26,10 +26,6 @@ args = parser$parse_args()
 DE_results_file = args$DE_results
 counts_matrix_file = args$counts_matrix
 samples_file = args$samples_file
-
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager","Glimma","argparse","edgeR")
-BiocManager::install()
 
 library(edgeR)
 library(limma)
@@ -69,7 +65,8 @@ write.csv(cpm.DE, file="cpm.DE_results.csv")
 ### Set significance level for different colors on plot
 DE_results$GeneID <- rownames(DE_results)
 DE_results$logCPM <- DE_results$logCPM
-DE_results$Sig <- as.numeric(DE_results$FDR < 0.001)
+# status: -1 = down, 0 = not significant, 1 = up (Glimma's default status coding and colors)
+DE_results$Sig <- sign(DE_results$logFC) * as.numeric(DE_results$FDR < 0.001)
 
 
 ### Make the Glimma MA-plot
@@ -78,7 +75,7 @@ glMDPlot(DE_results, counts=cpm_table, samples=samples$Sample,
          xval="logCPM", yval="logFC", 
          display.columns=colnames(cpm.DE), 
          folder="glimma_MA", html="MA-plot",
-         search.by="GeneID", status=DE_results$Sig, cols=c("red","gray","blue") )
+         search.by="GeneID", status=DE_results$Sig, launch=FALSE)
 
 
 ### Make the Glimma Volcano Plot
@@ -88,4 +85,4 @@ DE_results$logFDR <- -log(DE_results$FDR+1e-100)
 glMDPlot(DE_results, xval="logFC", yval="logFDR", counts=cpm_table, 
          anno=cpm.DE, groups=samples$Group, samples = samples$Sample,
          status=DE_results$Sig, display.columns=colnames(cpm.DE), 
-         folder="glimma_volcano", html="volcano", launch=TRUE)
+         folder="glimma_volcano", html="volcano", launch=FALSE)

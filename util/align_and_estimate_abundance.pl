@@ -800,7 +800,7 @@ sub run_kallisto {
         # add strand-specific options for kallisto
         my $kallisto_ss_opt = ($SS_lib_type =~ /^R/) ? "--rf-stranded" : "--fr-stranded";
         if ($kallisto_add_opts !~ /$kallisto_ss_opt/) {
-            $kallisto_add_opts .= " $kallisto_add_opts";
+            $kallisto_add_opts .= " $kallisto_ss_opt";
         }
     }
         

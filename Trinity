@@ -23,7 +23,7 @@ use Data::Dumper;
 
 
 
-my $VERSION = "Trinity-v2.15.2";
+my $VERSION = "Trinity-v2.16.0";
 #my $VERSION = "__BLEEDING_EDGE__"; 
 
 
@@ -4120,7 +4120,7 @@ sub check_required_3rd_party_tool_installations {
         my @pts = split(/\s+/, $version_info);
         my $version = $pts[1];
         my ($major, $minor, $patch) = split(/[\.\-]/, $version);
-        if ($major != 1 || $minor < 3) {
+        if ($major < 1 || ($major == 1 && $minor < 3)) {
             die "Error, need samtools installed that is at least as new as version 1.3";
         }
     }
@@ -4136,11 +4136,11 @@ sub check_required_3rd_party_tool_installations {
         my $version_info = `jellyfish --version`;
         my ($name, $version) = split(/\s+/, $version_info);
         unless ($version =~ /^2\./) {
-            die "Error, need jellyfish v2, instead found $version_info ; Get it here: http://www.genome.umd.edu/jellyfish.html";
+            die "Error, need jellyfish v2, instead found $version_info ; Get it here: https://github.com/gmarcais/Jellyfish/releases";
         }
     }
     else {
-        die "Error, cannot find jellyfish installed on this system. Be sure to install it. You can get it here: http://www.genome.umd.edu/jellyfish.html";
+        die "Error, cannot find jellyfish installed on this system. Be sure to install it. You can get it here: https://github.com/gmarcais/Jellyfish/releases";
     }
     
     

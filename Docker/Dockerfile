@@ -76,7 +76,7 @@ WORKDIR $SRC
 
 RUN apt-get install -y texlive texlive-latex-extra
 
-ENV R_VERSION=R-4.4.0
+ENV R_VERSION=R-4.6.2
 
 RUN curl https://cran.r-project.org/src/base/R-4/$R_VERSION.tar.gz -o $R_VERSION.tar.gz && \
     tar xvf $R_VERSION.tar.gz && \
@@ -119,9 +119,9 @@ RUN ln -sf /usr/bin/python3 /usr/bin/python
 
 ## bowtie
 WORKDIR $SRC
-RUN wget https://sourceforge.net/projects/bowtie-bio/files/bowtie/1.2.1.1/bowtie-1.2.1.1-linux-x86_64.zip/download -O bowtie-1.2.1.1-linux-x86_64.zip && \
-    unzip bowtie-1.2.1.1-linux-x86_64.zip && \
-	mv bowtie-1.2.1.1/bowtie* $BIN
+RUN wget https://sourceforge.net/projects/bowtie-bio/files/bowtie/1.3.1/bowtie-1.3.1-linux-x86_64.zip/download -O bowtie-1.3.1-linux-x86_64.zip && \
+    unzip bowtie-1.3.1-linux-x86_64.zip && \
+	mv bowtie-1.3.1-linux-x86_64/bowtie* $BIN
 
 ## RSEM
 RUN mkdir /usr/local/lib/site_perl
@@ -138,22 +138,22 @@ RUN wget https://github.com/deweylab/RSEM/archive/v1.3.3.tar.gz && \
 
 ## Kallisto
 WORKDIR $SRC
-RUN wget https://github.com/pachterlab/kallisto/releases/download/v0.46.1/kallisto_linux-v0.46.1.tar.gz && \
-    tar xvf kallisto_linux-v0.46.1.tar.gz && \
+RUN wget https://github.com/pachterlab/kallisto/releases/download/v0.46.2/kallisto_linux-v0.46.2.tar.gz && \
+    tar xvf kallisto_linux-v0.46.2.tar.gz && \
     mv kallisto/kallisto $BIN
 
 
 ## FASTQC
-ENV FASTQC_VERSION 0.11.9
+ENV FASTQC_VERSION 0.12.1
 WORKDIR $SRC
-RUN wget http://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v${FASTQC_VERSION}.zip && \
+RUN wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v${FASTQC_VERSION}.zip && \
     unzip fastqc_v${FASTQC_VERSION}.zip && \
     chmod 755 /usr/local/src/FastQC/fastqc && \
     ln -s /usr/local/src/FastQC/fastqc $BIN/.
 
 # blast
 WORKDIR $SRC
-ENV BLASTPLUS_VERSION 2.12.0
+ENV BLASTPLUS_VERSION 2.17.0
 RUN wget https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/${BLASTPLUS_VERSION}/ncbi-blast-${BLASTPLUS_VERSION}+-x64-linux.tar.gz && \
     tar xvf ncbi-blast-${BLASTPLUS_VERSION}+-x64-linux.tar.gz && \
     cp ncbi-blast-${BLASTPLUS_VERSION}+/bin/* $BIN && \
@@ -161,7 +161,7 @@ RUN wget https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/${BLASTPLUS_VERSI
 
 ## Bowtie2
 WORKDIR $SRC
-ENV BOWTIE2_VERSION 2.4.4
+ENV BOWTIE2_VERSION 2.5.5
 RUN wget https://sourceforge.net/projects/bowtie-bio/files/bowtie2/${BOWTIE2_VERSION}/bowtie2-${BOWTIE2_VERSION}-linux-x86_64.zip/download -O bowtie2-${BOWTIE2_VERSION}-linux-x86_64.zip && \
     unzip bowtie2-${BOWTIE2_VERSION}-linux-x86_64.zip && \
     mv bowtie2-${BOWTIE2_VERSION}-linux-x86_64/bowtie2* $BIN && \
@@ -169,7 +169,7 @@ RUN wget https://sourceforge.net/projects/bowtie-bio/files/bowtie2/${BOWTIE2_VER
     rm -r bowtie2-${BOWTIE2_VERSION}-linux-x86_64
 
 ## Samtools
-ENV SAMTOOLS_VERSION 1.13
+ENV SAMTOOLS_VERSION 1.25
 RUN wget https://github.com/samtools/samtools/releases/download/${SAMTOOLS_VERSION}/samtools-${SAMTOOLS_VERSION}.tar.bz2 && \
     tar xvf samtools-${SAMTOOLS_VERSION}.tar.bz2 && \
     cd samtools-${SAMTOOLS_VERSION} && \
@@ -177,14 +177,14 @@ RUN wget https://github.com/samtools/samtools/releases/download/${SAMTOOLS_VERSI
 
 
 ## Jellyfish
-ENV JELLYFISH_VERSION 2.3.0
+ENV JELLYFISH_VERSION 2.3.1
 RUN wget https://github.com/gmarcais/Jellyfish/releases/download/v${JELLYFISH_VERSION}/jellyfish-${JELLYFISH_VERSION}.tar.gz && \
     tar xvf jellyfish-${JELLYFISH_VERSION}.tar.gz && \
     cd jellyfish-${JELLYFISH_VERSION}/ && \
     ./configure && make && make install
 
 ## FeatureCounts
-ENV SUBREAD_VERSION 2.0.2
+ENV SUBREAD_VERSION 2.1.1
 RUN wget https://sourceforge.net/projects/subread/files/subread-${SUBREAD_VERSION}/subread-${SUBREAD_VERSION}-Linux-x86_64.tar.gz/download -O subread-${SUBREAD_VERSION}-Linux-x86_64.tar.gz && \
     tar xvf subread-${SUBREAD_VERSION}-Linux-x86_64.tar.gz && \
     cp -r subread-${SUBREAD_VERSION}-Linux-x86_64/bin/* $BIN/
@@ -210,13 +210,13 @@ RUN wget http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/blat/blat -P $BIN
 
 ## Picard tools
 WORKDIR $SRC
-RUN wget https://github.com/broadinstitute/picard/releases/download/2.25.7/picard.jar
+RUN wget https://github.com/broadinstitute/picard/releases/download/2.27.5/picard.jar
 ENV PICARD_HOME $SRC
 
 ####
 ## GATK4 installation
 WORKDIR $SRC
-ENV GATK_VERSION=4.2.1.0
+ENV GATK_VERSION=4.6.2.0
 RUN wget https://github.com/broadinstitute/gatk/releases/download/${GATK_VERSION}/gatk-${GATK_VERSION}.zip && \
     unzip gatk-${GATK_VERSION}.zip
 
@@ -224,7 +224,7 @@ ENV GATK_HOME $SRC/gatk-${GATK_VERSION}
 
 
 ## STAR
-ENV STAR_VERSION=2.7.8a
+ENV STAR_VERSION=2.7.11b
 RUN STAR_URL="https://github.com/alexdobin/STAR/archive/${STAR_VERSION}.tar.gz" &&\
     wget -P $SRC $STAR_URL &&\
         tar -xvf $SRC/${STAR_VERSION}.tar.gz -C $SRC && \
@@ -256,7 +256,7 @@ RUN pip3 install HTSeq --break-system-packages
 
 ## Trinity
 WORKDIR $SRC
-ENV TRINITY_VERSION="2.15.2"
+ENV TRINITY_VERSION="2.16.0"
 ENV TRINITY_CO=4be803497fd22ce8461a9637eff46bc3b75a594a
 
 WORKDIR $SRC

@@ -18,9 +18,6 @@
 [submodule "trinity-plugins/bamsifter"]
 	path = trinity-plugins/bamsifter
 	url = https://github.com/trinityrnaseq/bamsifter.git
-[submodule "trinity-plugins/htslib"]
-	path = trinity-plugins/htslib
-	url = https://github.com/samtools/htslib.git
 [submodule "Butterfly/Butterfly"]
 	path = Butterfly/Butterfly
 	url = https://github.com/trinityrnaseq/Butterfly.git

@@ -1132,18 +1132,18 @@ unless ($genome_guided_bam) {
 
 
 if (@left_files) {
-    @left_files = split(",", join(",", @left_files));
+    @left_files = &split_file_list(@left_files);
 
     print STDERR "Left read files: " . Dumper(\@left_files) unless ($TRINITY_COMPLETE_FLAG);
     
 }
 if (@right_files) {
-    @right_files = split(",", join(",", @right_files));
+    @right_files = &split_file_list(@right_files);
 
     print STDERR "Right read files: " . Dumper(\@right_files) unless ($TRINITY_COMPLETE_FLAG);
 }
 if (@single_files) {
-    @single_files = split(",", join(",", @single_files));
+    @single_files = &split_file_list(@single_files);
 
     print STDERR "Single read files: " . Dumper(\@single_files) unless ($TRINITY_COMPLETE_FLAG);
 }
@@ -2772,7 +2772,9 @@ sub prep_seqs {
     my @initial_files = @$initial_files_ref;
     
 
-    my $read_type = ($file_prefix eq "right") ? "2" : "1";  # puts the /1 or /2 on the end of the read name.
+    # puts the /1 or /2 on the end of the read name.
+    # For single-end (or interleaved --run_as_paired) reads, keep any existing /1 or /2 designations (read_type 0).
+    my $read_type = ($file_prefix eq "right") ? "2" : ($file_prefix eq "left") ? "1" : "0";
 
     return if -e "$file_prefix.fa.ok";
    	
@@ -4257,6 +4259,16 @@ sub evaluate_paired_end_bam {
     print STDERR "-not finding a paired-end read in aligned bam file among first 1k reads, assuming single-end\n"; 
     
     return(0); # not finding a paired-end read within the first 1k reads, just assume single end mode.
+}
+
+
+####
+sub split_file_list {
+    my (@entries) = @_;
+    # entries may be comma-delimited and/or given as multiple space-separated values.
+    # Trim whitespace and drop empty entries (eg. from 'a.fq, b.fq' or a trailing comma).
+    my @files = grep { length($_) } map { s/^\s+|\s+$//gr } split(/,/, join(",", @entries));
+    return(@files);
 }
 
 

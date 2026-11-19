@@ -661,7 +661,9 @@ sub run_jellyfish {
 sub prep_seqs {
     my ($initial_file, $seqType, $file_prefix, $SS_lib_type) = @_;
 
-    my $read_type = ($file_prefix eq "right") ? "2" : "1";
+    # puts the /1 or /2 on the end of the read name.
+    # For single-end (or interleaved --run_as_paired) reads, keep any existing /1 or /2 designations (read_type 0).
+    my $read_type = ($file_prefix eq "right") ? "2" : ($file_prefix eq "left") ? "1" : "0";
 
 
     my $using_FIFO_flag = 0;

@@ -1,58 +1,8 @@
+Release procedure, pre-release checks, and lessons learned: see RELEASING.md
+
+FL regression benchmark: see benchmarking/FL_regression/README.md
 
 git clone --recursive https://github.com/trinityrnaseq/trinityrnaseq.git
-
-#############################
 
 Release info:
-
 curl https://api.github.com/repos/trinityrnaseq/trinityrnaseq/releases
-
-
-## master upgrade to latest devel:
-
-git pull origin devel
-git submodule foreach --recursive git checkout master
-git submodule foreach --recursive git pull
-git submodule foreach --recursive git submodule init 
-git submodule foreach --recursive git submodule update 
-
-
-#####
-
-Checks before release:
-
--pombe, mouse FL regression: see benchmarking/FL_regression/README.md (record results in results_history.tsv)
--make test_all
--docker: run_test_docker.sh
--singularity: run_ext_test_singularity.sh
-
--update version string in Trinity
--update Changelog.txt for new version release notes.
-
-
-git clone --recursive https://github.com/trinityrnaseq/trinityrnaseq.git
-
-Make 2 release tarballs, identical except the latter includes the extended test data.
-
-make clean -i
-find . -regex ".*git" -exec rm -rf {} \;
-
--release naming convention:
-   release version tag on github: Trinity-v2.8.6
-   
-   -standard release (extended test data removed)
-	  basedir: trinityrnaseq-v2.8.6
-	  filename: trinityrnaseq-v2.8.6.FULL.tar.gz
-      
-
-   -including extended test data
-      same basedir as above
-	  filename: trinityrnaseq-v2.8.6.FULL_with_extendedTestData.tar.gz
-
-
-
-singularity:
-  copy the simg to gs://trinityrnaseq/Singularity/
-  add to https://data.broadinstitute.org/Trinity/TRINITY_SINGULARITY/
-
-

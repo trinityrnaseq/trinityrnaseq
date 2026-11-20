@@ -1,3 +1,9 @@
+# Trinity-v2.16.1 (unreleased)
+- Trinity now requires salmon 1.x (tested with 1.10.0) for the final expression-based filtering of the assembly, and stops with an explanation if salmon 2.x is found (or use --no_salmon). On the same assembly, salmon 2.12 assigned zero reads to well-supported isoforms (up to ~490 reads with salmon 1.10), which the filter would then discard. align_and_estimate_abundance.pl warns when run with salmon 2.x.
+- analyze_diff_expr.pl: --include_GOplot removed; using it is now an error (update pipelines accordingly). See Analysis/DifferentialExpression/GOplot.Rscript for GOplot figures.
+- version check (--version and at startup) uses GitHub's latest release and compares version numbers, so a version newer than the latest published release is no longer reported as outdated
+- added RELEASING.md: release checklist, pre-release checks and procedure
+
 # Trinity-v2.16.0 November 20, 2026
 - restored Chrysalis read pct-mapping binning (tiers of 10%) that keeps read pairs together when partitions are capped by --max_reads_per_graph; introduced in v2.13.2 but inadvertently reverted in v2.15.0
 - salmon 2.x support: --minAssignedFrags only passed to salmon 1.x; obsolete --validateMappings dropped; salmon version check fixed (#1363, #1446, #1476)

@@ -841,7 +841,14 @@ sub run_salmon {
     my (@samples) = @_;
     
     my $salmon_index = "$transcripts.salmon.idx";
-    
+
+    my $salmon_version_info = `salmon --version 2>&1`;
+    if ($salmon_version_info =~ /(\d+)\.\d+\.\d+/ && $1 >= 2) {
+        print STDERR "WARNING: found salmon $salmon_version_info"
+            . "Trinity has been validated with salmon 1.x (1.10.0). Salmon 2.x assigns reads among isoforms differently, so isoform-level estimates can differ substantially from salmon 1.x.\n"
+            . "Note, salmon 2.x cannot read indexes built by salmon 1.x: remove any existing $salmon_index and rerun with --prep_reference.\n";
+    }
+
     if ( (! $prep_reference) && (! -e $salmon_index)) {
         confess "Error, no salmon index file: $salmon_index, and --prep_reference not set.  Re-run with --prep_reference";
     }

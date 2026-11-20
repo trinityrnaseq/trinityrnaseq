@@ -73,7 +73,6 @@ my $order_columns_by_samples_file = 0;
 my $examine_GO_enrichment_flag;
 my $GO_annots_file;
 my $gene_lengths_file;
-my $RUN_GOPLOT = 0;
 
 
 &GetOptions (  'h' => \$help_flag,
@@ -92,7 +91,6 @@ my $RUN_GOPLOT = 0;
                'examine_GO_enrichment' => \$examine_GO_enrichment_flag,
                'GO_annots=s' => \$GO_annots_file,
                'gene_lengths=s' => \$gene_lengths_file,
-               'include_GOplot' => \$RUN_GOPLOT,
 
   
                'samples|s=s' => \$samples_file,
@@ -108,6 +106,10 @@ if ($help_flag) {
     die $usage;
 }
 
+if (grep { /^-+include_GOplot$/i } @ARGV) {
+    die "Error, --include_GOplot has been removed (as of Trinity v2.16.1). Remove it from your command. For GOplot-based figures, see Analysis/DifferentialExpression/GOplot.Rscript\n";
+}
+
 
 unless ($matrix_file && -s $matrix_file) {
     die $usage;
@@ -115,10 +117,6 @@ unless ($matrix_file && -s $matrix_file) {
 
 if ($examine_GO_enrichment_flag && ! ($GO_annots_file && $gene_lengths_file)) {
     die "Error, need --GO_annots and --gene_lengths parameters specified for GO enrichment analysis";
-}
-
-if ($RUN_GOPLOT) {
-    print STDERR "WARNING: --include_GOplot is deprecated and ignored (prep_n_run_GOplot.pl was removed). See Analysis/DifferentialExpression/GOplot.Rscript instead.\n";
 }
 
 unless ($output_prefix) {

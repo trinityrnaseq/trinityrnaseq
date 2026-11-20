@@ -3603,7 +3603,7 @@ printf "%s\n" "$ac_cv_prog_cxx_openmp" >&6; }
   fi
 
 
-AM_CXXFLAGS=-m64 $OPENMP_CXXFLAGS
+AM_CXXFLAGS=$OPENMP_CXXFLAGS
 
 case $CXX in
   g++*) AM_CXXFLAGS="-pedantic -Wall -Wextra -Wno-long-long -Wno-deprecated $AM_CXXFLAGS"

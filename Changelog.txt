@@ -9,6 +9,8 @@
 - comma-separated read file lists tolerate spaces/empty entries (#1222)
 - Butterfly -Xss capped at 1G, so --bflyHeapSpaceInit > 1G no longer breaks Butterfly (#1332)
 - build: bamsifter/htslib builds from tarballs and on newer toolchains (Ubuntu 24.04), statically linked (#1466, #1427); CMake 4 compatibility for Inchworm/Chrysalis
+- build: x86-only -m64 flag replaced by an explicit CMake 64-bit platform check (Inchworm/Chrysalis), so aarch64/arm64 build without patches while 32-bit platforms remain unsupported; bamsifter can link an existing htslib via HTSLIB_PREFIX (eg. for conda)
+- added benchmarking/FL_regression: pre-release mouse/pombe full-length reconstruction benchmark, scripts and running results table
 - align_and_estimate_abundance.pl: kallisto strand-specific flag now applied (#1480); --output_dir honored with --samples_file (#1260)
 - abundance_estimates_to_matrix.pl / contig_ExN50_statistic.pl: deterministic row order (#1478); detect missing option values (#1349)
 - run_DE_analysis.pl: matrix header/column sanity check now works (#1457)

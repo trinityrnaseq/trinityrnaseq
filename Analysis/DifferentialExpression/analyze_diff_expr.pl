@@ -43,8 +43,6 @@ my $usage = <<__EOUSAGE__;
 #       --GO_annots <string>              GO annotations file
 #       --gene_lengths <string>           lengths of genes file
 #
-#       --include_GOplot                  optional: will generate inputs to GOplot and attempt to make a preliminary pdf plot/report for it.
-#
 ##############################################################
 
 
@@ -117,6 +115,10 @@ unless ($matrix_file && -s $matrix_file) {
 
 if ($examine_GO_enrichment_flag && ! ($GO_annots_file && $gene_lengths_file)) {
     die "Error, need --GO_annots and --gene_lengths parameters specified for GO enrichment analysis";
+}
+
+if ($RUN_GOPLOT) {
+    print STDERR "WARNING: --include_GOplot is deprecated and ignored (prep_n_run_GOplot.pl was removed). See Analysis/DifferentialExpression/GOplot.Rscript instead.\n";
 }
 
 unless ($output_prefix) {
@@ -444,22 +446,6 @@ sub parse_result_files_find_diffExp {
                 if ($@) {
                     print STDERR "Warning, go-seq failed for $either_subset_file: $@";
                     system("touch $either_subset_file.FAILED");
-                }
-                
-                if ($RUN_GOPLOT) {
-                    $cmd = "$FindBin::RealBin/prep_n_run_GOplot.pl --GO_annots $GO_annots_file "
-                        . " --DE_subset $either_subset_file "
-                        . " --DE_GO_enriched $either_subset_file.GOseq.enriched "
-                        . " --tmpdir $either_subset_file.GOseq.enriched.GOplot_dat"
-                        . " --pdf_filename $either_subset_file.GOseq.enriched.GOplot_dat.pdf";
-
-                    eval {
-                        &process_cmd($cmd);
-                    };
-                    if ($@) {
-                        # can't afford for this to be fatal, so just reporting a failure message for this part.
-                        print STDERR "WARNING: GOplot failed to run successfully on $either_subset_file.GOseq.enriched\n";
-                    }
                 }
             }
             

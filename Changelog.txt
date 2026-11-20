@@ -1,4 +1,4 @@
-# Trinity-v2.16.0 (unreleased)
+# Trinity-v2.16.0 November 20, 2026
 - restored Chrysalis read pct-mapping binning (tiers of 10%) that keeps read pairs together when partitions are capped by --max_reads_per_graph; introduced in v2.13.2 but inadvertently reverted in v2.15.0
 - salmon 2.x support: --minAssignedFrags only passed to salmon 1.x; obsolete --validateMappings dropped; salmon version check fixed (#1363, #1446, #1476)
 - salmon failure during filtering of the final assembly no longer kills a finished run: unfiltered transcripts are retained with a warning

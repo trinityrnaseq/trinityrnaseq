@@ -1106,11 +1106,29 @@ if ($SS_lib_type) {
     }
     
     if (@single_files) {
-        if ($run_as_paired_flag && ! $TRINITY_COMPLETE_FLAG) {
-            die "Error, if you have paired-end reads and want to run as strand-specific, then you must specify the --left and --right parameters";
-        }
         if (length($SS_lib_type) != 1) {
+            if ($run_as_paired_flag) {
+                die "Error, with --single --run_as_paired, the --SS_lib_type can be 'F' or 'R' only: both mates of every pair must already be oriented to the same (transcribed) strand.\n"
+                    . "If your paired reads are in separate left/right files in their original orientation, use --left and --right with --SS_lib_type RF or FR instead.\n";
+            }
             die "Error, with --single reads, the --SS_lib_type can be 'F' or 'R' only.\n";
+        }
+        if ($run_as_paired_flag && ! $TRINITY_COMPLETE_FLAG) {
+            # Supported for the mixed paired+single workflow (see wiki: How do I combine paired-end and single-end reads?).
+            # This is the same mode Trinity uses internally for phase-2 partitions (reads already reoriented, --SS_lib_type F).
+            print STDERR "\n"
+                . "################################################################################\n"
+                . "## WARNING: --single --run_as_paired --SS_lib_type $SS_lib_type\n"
+                . "##   This is only correct if you have already reoriented BOTH mates of every pair\n"
+                . "##   (and any unpaired reads) so they all match the transcribed strand ('F'),\n"
+                . "##   or all match the opposite strand ('R'). For dUTP (RF) libraries, that means\n"
+                . "##   reverse-complementing the /1 reads and leaving the /2 reads as they are.\n"
+                . "##   Mates must be named with /1 and /2 suffixes. Reads in their original\n"
+                . "##   sequencer orientation will assemble poorly.\n"
+                . "##   If you have plain paired-end files, use --left/--right with --SS_lib_type RF|FR.\n"
+                . "##   Normalize each library beforehand and use --no_normalize_reads, since\n"
+                . "##   in silico normalization of --single input does not keep mates together.\n"
+                . "################################################################################\n\n";
         }
     }
     if (@left_files && @right_files) {

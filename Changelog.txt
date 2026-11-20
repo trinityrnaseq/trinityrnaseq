@@ -7,6 +7,7 @@
 - readable explanations for failed commands (eg. 'ret 9' / 'ret 35072' => killed, likely out of memory; 'ret 32512' => command not found); phase-2 failures report failed partitions and remedies
 - single-end FASTQ and interleaved --run_as_paired input keep existing /1 /2 read designations (seqtk-trinity -R 0) (#1447, #1196, #1401)
 - comma-separated read file lists tolerate spaces/empty entries (#1222)
+- --single --run_as_paired now accepted with --SS_lib_type F|R for reads the user has pre-oriented to one strand (the mixed PE+SE recipe in the wiki), with a prominent warning; RF/FR with --single is rejected with a clearer message (#1285, #1240)
 - Butterfly -Xss capped at 1G, so --bflyHeapSpaceInit > 1G no longer breaks Butterfly (#1332)
 - build: bamsifter/htslib builds from tarballs and on newer toolchains (Ubuntu 24.04), statically linked (#1466, #1427); CMake 4 compatibility for Inchworm/Chrysalis
 - build: x86-only -m64 flag replaced by an explicit CMake 64-bit platform check (Inchworm/Chrysalis), so aarch64/arm64 build without patches while 32-bit platforms remain unsupported; bamsifter can link an existing htslib via HTSLIB_PREFIX (eg. for conda)

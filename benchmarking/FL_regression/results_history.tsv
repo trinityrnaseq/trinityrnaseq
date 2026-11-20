@@ -1,0 +1,7 @@
+# Running tab of FL regression benchmark results. One row per (date, Trinity version, data set). See README.md.
+# FL_* columns are FL genes / FL transcripts from FL.pslx.maps.summary (cols 2,3).
+date	trinity_version	dataset	reads	settings	reference_set	transcripts	genes	contig_N50	FL_CDS_genes	FL_CDS_transcripts	FL_cDNA_genes	FL_cDNA_transcripts	wall_s	host	notes
+2026-11-19	v2.15.2	pombe	SP2 first 10M PE	SS RF;CPU6;20G	PomBase CDS (5362) / EnsemblFungi r63 cDNA (5175)	8383	7261	2037	4046	4046	1010	1010	8150	shared 28-core; apptainer of docker 2.15.2	baseline
+2026-11-19	v2.16.0	pombe	SP2 first 10M PE	SS RF;CPU6;20G	PomBase CDS (5362) / EnsemblFungi r63 cDNA (5175)	8376	7265	2037	4051	4051	1012	1012	8168	shared 28-core; devel 3aff870 Dockerfile replica	release candidate; consistent
+2026-11-19	v2.15.2	mouse	mouse first 10M PE	SS RF;CPU6;20G	GENCODE vM39 pc CDS (185119) / pc cDNA (180384)	34784	29600	2069	6378	8482	1283	1512	18134	shared 28-core; apptainer of docker 2.15.2	baseline
+2026-11-19	v2.16.0	mouse	mouse first 10M PE	SS RF;CPU6;20G	GENCODE vM39 pc CDS (185119) / pc cDNA (180384)	34800	29610	2071	6377	8495	1287	1519	18075	shared 28-core; devel 3aff870 Dockerfile replica	release candidate; consistent

@@ -21,7 +21,7 @@ git submodule foreach --recursive git submodule update
 
 Checks before release:
 
--pombe, mouse, drosoph, k562
+-pombe, mouse FL regression: see benchmarking/FL_regression/README.md (record results in results_history.tsv)
 -make test_all
 -docker: run_test_docker.sh
 -singularity: run_ext_test_singularity.sh

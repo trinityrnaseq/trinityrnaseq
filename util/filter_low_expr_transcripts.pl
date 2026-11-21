@@ -116,8 +116,12 @@ main: {
 
         my $keep_flag = 1;
 
-        my $info_struct = $expr_vals{$acc} or die "Error, no expression record stored for acc: [$acc].  Be sure to provide the transcript expression matrix and all transcripts in the $transcripts_file must have records in the transcript expression matrix file.";
-        
+        # note: add_pct_iso_stats() can create empty records for transcripts missing from the matrix, so check max_expr too.
+        my $info_struct = $expr_vals{$acc};
+        unless ($info_struct && defined($info_struct->{max_expr})) {
+            die "Error, no expression record stored for acc: [$acc].  Be sure to provide the transcript expression matrix and all transcripts in the $transcripts_file must have records in the transcript expression matrix file.";
+        }
+
         if ($min_expr_any && $info_struct->{max_expr} < $min_expr_any) {
             $keep_flag = 0;
             print STDERR "-excluding $acc, max_expr: $info_struct->{max_expr} < $min_expr_any\n";

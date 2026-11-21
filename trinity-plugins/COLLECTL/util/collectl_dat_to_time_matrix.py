@@ -234,16 +234,18 @@ def parse_collectl_dat(collectl_dat_file, cpu_usage_matrix, memory_usage_matrix,
     
 def compute_GB(memory_val):
 
-    r = re.search("^(\d+)([MKG])$", memory_val)
+    r = re.search(r"^(\d+(?:\.\d+)?)([KMGT])$", memory_val)
 
     if r:
-        numG = int(r.group(1))
+        numG = float(r.group(1))
         metric = r.group(2)
 
         if metric == 'M':
             numG /= 1024
         elif metric == 'K':
             numG /= 1024**2
+        elif metric == 'T':
+            numG *= 1024
     else:
         memory_val = int(memory_val)
         numG = memory_val / (1024**3)

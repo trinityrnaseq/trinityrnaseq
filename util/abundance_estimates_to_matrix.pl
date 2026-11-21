@@ -263,6 +263,26 @@ main: {
     #}
 
 
+    ## every quant file should report every transcript; if not, the samples were
+    ## almost always quantified against different assemblies, and the NA values
+    ## would otherwise only surface later as a cryptic edgeR error ("NA counts not permitted").
+    {
+        my $num_feats = scalar(keys %data);
+        my @missing_summary;
+        foreach my $file (@files) {
+            my $num_missing = grep { ! defined $data{$_}->{$file}->{count} } keys %data;
+            if ($num_missing) {
+                push (@missing_summary, "\t$file is missing $num_missing of $num_feats features\n");
+            }
+        }
+        if (@missing_summary) {
+            die "Error, not all quantification files report the same set of features:\n"
+                . join("", @missing_summary)
+                . "This usually means the samples were quantified against different Trinity assemblies (or different versions of the same assembly). "
+                . "Quantify every sample against the same Trinity.fasta and rerun.\n";
+        }
+    }
+
     print $ofh_counts join("\t", "", @filenames) . "\n";
     print $ofh_TPM join("\t", "", @filenames) . "\n";
 

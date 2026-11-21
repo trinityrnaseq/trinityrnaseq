@@ -25,8 +25,9 @@ my $usage = <<_EOUSAGE_;
 #  --coord_sorted_SAM <string>      coordinate-sorted SAM file.
 #
 #  -I  <int>                       maximum intron length  
-#                                     (reads with longer intron lengths are ignored, and fragment reads 
-#                                      farther apart on the genome are treated as unpaired))
+#                                     (paired reads farther apart on the genome are treated as unpaired, so they
+#                                      don't join partitions; no reads are discarded, and a spliced read always
+#                                      spans its own intron. Long introns are limited by the aligner's settings.)
 #  -C  <int>                       min coverage for region boundary (default: 1)
 #                             
 #  *If Strand-specific, specify:

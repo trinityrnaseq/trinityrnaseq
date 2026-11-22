@@ -2145,8 +2145,19 @@ sub run_chrysalis {
             my $samtools_max_memory = int($jellyfish_ram/($CPU*2));
 
             my $bowtie2_scoring = "G,20,8"; # default bowtie2 params for local alignment
-                        
-            $cmd = "bash -c \" set -o pipefail;$bowtie2_path --local -k 2 --no-unal --threads $CPU -f --score-min $bowtie2_scoring -x $iworm_min100_fa_file $bowtie_reads_fa  | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort -m $samtools_max_memory $PARALLEL_SAMTOOLS_SORT_TOKEN -no $bowtie_sam_file\" ";  
+            my $bowtie2_cmd = "$bowtie2_path --local -k 2 --no-unal --threads $CPU -f --score-min $bowtie2_scoring -x $iworm_min100_fa_file $bowtie_reads_fa";
+
+            if ($ENV{TRINITY_FORCE_HEADERLESS_SCAFFOLD_SAM} || &bam_header_too_large($iworm_min100_fa_file)) {
+                # A BAM header (one \@SQ line per inchworm contig) must be < 2 GB (#1475). The scaffolder only needs the
+                # alignments grouped by read name, so write headerless SAM, sorted by read name, instead of BAM.
+                $bowtie_sam_file = "$chrysalis_output_dir/iworm.bowtie.nameSorted.sam";
+                my $sort_mem = max(1, int($jellyfish_ram/2/1024**2)) . "M"; # bare numbers mean KiB to sort -S
+                print STDERR "-too many inchworm contigs for a BAM header; writing name-sorted SAM instead: $bowtie_sam_file\n";
+                $cmd = "bash -c \" set -o pipefail; $bowtie2_cmd --no-hd | LC_ALL=C $sort_exec -k1,1 -S $sort_mem -T $chrysalis_output_dir > $bowtie_sam_file\" ";
+            }
+            else {
+                $cmd = "bash -c \" set -o pipefail;$bowtie2_cmd | samtools view $PARALLEL_SAMTOOLS_SORT_TOKEN -F4 -Sb - | samtools sort -m $samtools_max_memory $PARALLEL_SAMTOOLS_SORT_TOKEN -no $bowtie_sam_file\" ";
+            }
             
             $pipeliner->add_commands( new Command($cmd, "$bowtie_sam_file.ok"));
             
@@ -4144,6 +4155,30 @@ sub parse_samples_file {
     }
 
     return;
+}
+
+
+####
+sub bam_header_too_large {
+    my ($fasta_file) = @_;
+
+    # Estimate the size of the BAM header text (one '@SQ\tSN:<acc>\tLN:<len>\n' line per sequence), which
+    # htslib limits to < 2^31 bytes. Lengths are taken as 6 digits, which slightly overestimates.
+    my $header_bytes = 0;
+    my $limit = 0.9 * 2**31;
+    open(my $fh, $fasta_file) or die "Error, cannot open file $fasta_file";
+    while (<$fh>) {
+        if (/^>(\S+)/) {
+            $header_bytes += length($1) + 18;
+            if ($header_bytes > $limit) {
+                close $fh;
+                return(1);
+            }
+        }
+    }
+    close $fh;
+
+    return(0);
 }
 
 

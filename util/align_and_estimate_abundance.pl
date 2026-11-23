@@ -131,10 +131,10 @@ my $usage = <<__EOUSAGE__;
 #
 ########################################
 #
-#  Parameters for single-end reads:
+#  Parameters for single-end reads (used by RSEM, kallisto and salmon):
 #
-#  --fragment_length <int>         specify RNA-Seq fragment length (default: 200) 
-#  --fragment_std <int>            fragment length standard deviation (defalt: 80)
+#  --fragment_length <int>         mean RNA-Seq fragment length (not the read length) (default: 200)
+#  --fragment_std <int>            fragment length standard deviation (default: 80)
 #
 ########################################
 #  
@@ -671,7 +671,7 @@ sub run_RSEM {
     my $keep_intermediate_files_opt = ($DEBUG_flag) ? "--keep-intermediate-files" : "";
     
     my $fraglength_info_txt = "";
-    if ($single) {
+    if (! $PE_mode) {
         $fraglength_info_txt = "--fragment-length-mean $fragment_length --fragment-length-sd $fragment_std";
     }
     
@@ -843,10 +843,13 @@ sub run_salmon {
     my $salmon_index = "$transcripts.salmon.idx";
 
     my $salmon_version_info = `salmon --version 2>&1`;
-    if ($salmon_version_info =~ /(\d+)\.\d+\.\d+/ && $1 >= 2) {
-        print STDERR "WARNING: found salmon $salmon_version_info"
-            . "Trinity has been validated with salmon 1.x (1.10.0). Salmon 2.x assigns reads among isoforms differently, so isoform-level estimates can differ substantially from salmon 1.x.\n"
-            . "Note, salmon 2.x cannot read indexes built by salmon 1.x: remove any existing $salmon_index and rerun with --prep_reference.\n";
+    unless ($salmon_version_info =~ /\b2\.(\d+)\.\d+/ && $1 >= 9) {
+        confess "Error, salmon 2.x (2.9.0 or later) is required, but found: $salmon_version_info";
+    }
+    if (-e "$salmon_index/versionInfo.json") {
+        # versionInfo.json is written only by salmon 1.x indexes, which salmon 2.x cannot read.
+        confess "Error, $salmon_index was built by salmon 1.x and cannot be read by $salmon_version_info"
+            . "Remove $salmon_index and rerun with --prep_reference to rebuild it.\n";
     }
 
     if ( (! $prep_reference) && (! -e $salmon_index)) {
@@ -893,6 +896,11 @@ sub run_salmon {
             elsif ($single_file) {
                 my $libtype = ($SS_lib_type) ? "S" . substr($SS_lib_type, 0, 1) : "U";
                 my $cmd = "salmon quant -i $salmon_index -l $libtype -r $single_file -o $outdir $salmon_add_opts -p $thread_count ";
+                # salmon cannot estimate the fragment length distribution from single-end reads, so pass ours
+                # (otherwise salmon >= 2.9 assumes N(250,100)), unless given explicitly via --salmon_add_opts.
+                unless ($salmon_add_opts =~ /--fld(Mean|SD)\b/) {
+                    $cmd .= " --fldMean $fragment_length --fldSD $fragment_std ";
+                }
                 &process_cmd($cmd);
                 
             }

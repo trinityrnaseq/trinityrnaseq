@@ -100,15 +100,35 @@ salmon is used in two places:
       are kept.
 - [ ] If any of these fail, or the filtering changes materially, cap the version: Trinity's
       `check_required_3rd_party_tool_installations()` check, the Dockerfile, and the Bioconda range (for example
-      `salmon >=1.10,<2`).
+      `salmon >=2.9,<3`).
+- [ ] Check that each salmon version runs the final filter with the intended options (`salmon_outdir/cmd_info.json`).
 
-**Status as of v2.16.1 (2026-11):** Trinity requires salmon 1.x and is tested with 1.10.0.
-- salmon 2.x (2.12.0, the Rust rewrite) runs and its exit codes are fine.
-- On the sample assembly, though, it assigned zero reads to 11 of 89 transcripts, against 3 for salmon 1.10.
-  That included isoforms with 200–490 reads under 1.10, so the final filter kept 74 transcripts instead of 82.
-- salmon 2.x also cannot read indexes built by 1.x.
-- Re-test before allowing salmon 2.x. Salmon 1.11 and 1.12 Linux binaries threw a locale exception on Ubuntu 24.04,
-  which is why the Docker image uses 1.10.0.
+**Status as of v2.16.2 (2026-11):** Trinity requires salmon 2.x (2.9.0 or later; tested with 2.12.0, used in the
+Docker image). salmon 1.x support was dropped; Trinity, `salmon_runner.pl` and `align_and_estimate_abundance.pl`
+all check the version.
+- For single-end reads, salmon >= 2.9 widens its default fragment-length prior from N(250,25) to N(250,100)
+  unless `--fldMean`/`--fldSD` are given (intentional upstream change, salmon PR #1251). Trinity's final filter
+  runs salmon on single-end reads, and with the wider prior short transcripts claim reads from the longer
+  transcripts they overlap. On pombe, the filter then kept 9,007 transcripts instead of 8,376. It dropped only
+  49% of what 1.10 drops; the extras were mostly short fragments of genes that were already represented.
+- salmon >= 2.9 also decides VBEM convergence per connected component. Reads among near-identical isoforms then
+  settle differently, and isoforms that 1.10 supports with 70-170 reads can get zero. In the genome-guided test
+  `run_small_GG_mutliScaff_test.sh`, this dropped 223 transcripts to 214 and failed its size check.
+  The hidden option `--stopRule global` restores the 1.x rule.
+- `salmon_runner.pl` therefore passes `--fldMean 250 --fldSD 25 --stopRule global` (N(250,25) was salmon 1.x's
+  default prior). With these options,
+  on the v2.16.0 pre-filter assemblies:
+  - pombe kept 8,396 (1.10: 8,376; 8,370 shared), and 98% of what 1.10 drops is still dropped;
+  - mouse kept 34,806 (1.10: 34,806; 34,757 shared).
+  On pombe, every reference-aligned transcript whose fate differs belongs to a gene that is still represented.
+  Full-length counts are in benchmarking/FL_regression/results_history.tsv. Re-check whenever
+  salmon changes its single-end fragment-length handling or EM convergence.
+- salmon < 2.9 rejects the uncompressed FASTA reads used by the final filter. salmon 2.x cannot read 1.x indexes,
+  and some 2.x releases cannot read indexes from earlier 2.x releases.
+  `align_and_estimate_abundance.pl` stops with a message if it finds a 1.x index. For single-end samples it passes
+  `--fragment_length`/`--fragment_std` (default 200/80) to salmon as `--fldMean`/`--fldSD`, unless they are
+  already in `--salmon_add_opts`.
+- Salmon 1.11 and 1.12 Linux binaries threw a locale exception on Ubuntu 24.04.
 
 ### 2.5 Version check
 - [ ] `Trinity --version` prints `Trinity version: Trinity-vX.Y.Z`.

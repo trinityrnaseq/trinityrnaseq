@@ -1,4 +1,14 @@
-# Trinity-v2.16.2 (unreleased)
+# Trinity-v2.16.2 November 23, 2026
+- Trinity now requires salmon 2.x (2.9.0 or later; tested with 2.12.0, now in the Docker image); salmon 1.x is no longer
+  supported. The final expression-based filtering passes --fldMean 250 --fldSD 25 --stopRule global. Without them,
+  salmon >= 2.9 widens its single-end fragment-length prior, which lets short redundant fragments survive the filter.
+  It also decides convergence per group of isoforms, which zeroes some well-supported isoforms, notably in
+  genome-guided partitions. With these options, salmon 2.12 reproduces salmon 1.10's filtering on the mouse and pombe
+  benchmark assemblies (34,806 vs 34,806 and 8,396 vs 8,376 transcripts kept), with the same full-length recovery.
+- align_and_estimate_abundance.pl: requires salmon 2.9 or later, and stops with a clear message on an index built by
+  salmon 1.x (remove it and rerun with --prep_reference). For single-end reads, --fragment_length/--fragment_std
+  (default 200/80) are now passed to salmon as --fldMean/--fldSD (previously ignored for salmon), and are also applied
+  to RSEM for single-end samples given via --samples_file (previously only with --single).
 - Chrysalis read scaffolding no longer fails with "[E::bam_hdr_write] Header too long for BAM format" on very large assemblies: when the inchworm contigs would exceed the BAM header limit, the read alignments are written as name-sorted headerless SAM instead of BAM (#1475)
 - DE MA and volcano plots (run_DE_analysis.pl, plot_all_DE_MAplots.Rscript, plot_all_DE_volcanos.Rscript) are now drawn with ggplot2, with semi-transparent points, reference lines, and gene labels via ggrepel when installed (#1153)
 - abundance_estimates_to_matrix.pl: stops with a clear error if the quantification files don't all report the same transcripts (usually quants against different assemblies), instead of writing NA values that later fail in edgeR with "NA counts not permitted" (#1100, #1130)

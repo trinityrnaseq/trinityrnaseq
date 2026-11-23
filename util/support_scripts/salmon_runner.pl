@@ -18,7 +18,7 @@ my $ZERO_ASSIGNED_MSG = "Salmon was only able to assign 0 fragments to transcrip
 
 main: {
 
-    my $salmon_major_version = &get_salmon_major_version();
+    &check_salmon_version();
     
     my $salmon_index = "$trin_fa.salmon.idx";
     my $salmon_stderr = "_salmon.$$.stderr";
@@ -27,10 +27,15 @@ main: {
 
     ## note: selective alignment (formerly --validateMappings) is the default as of salmon 1.0
     $cmd = "salmon --no-version-check quant -i $salmon_index -l U -r $reads_fa -o salmon_outdir -p $CPU";
-    if ($salmon_major_version < 2) {
-        # --minAssignedFrags was removed in salmon 2.0 (rust rewrite)
-        $cmd .= " --minAssignedFrags 1";
-    }
+    # For single-end reads, salmon >= 2.9 widens its default fragment-length prior to N(250,100)
+    # unless --fldMean/--fldSD are given. The wider prior lets short transcripts (shorter than a typical fragment)
+    # claim reads from the longer transcripts they overlap, so far fewer short redundant fragments get filtered out.
+    # N(250,25) is the prior Trinity's filtering was developed with (salmon 1.x default).
+    #
+    # salmon >= 2.9 also decides VBEM convergence per connected component by default. Reads among near-identical
+    # isoforms then settle differently, and well-supported isoforms can end up at zero reads and be filtered out.
+    # --stopRule global decides convergence over all transcripts at once.
+    $cmd .= " --fldMean 250 --fldSD 25 --stopRule global";
     $cmd .= " > $salmon_stderr 2>&1";
     
     eval {
@@ -38,9 +43,9 @@ main: {
     };
     if ($@) {
         my $errmsg = $@;
-        # salmon >= 2.0 writes its outputs but exits non-zero when no fragments map.
-        # Report it the same way salmon 1.x does so Trinity can recognize it.
-        if ($salmon_major_version >= 2 && &no_fragments_mapped("salmon_outdir")) {
+        # salmon writes its outputs but exits non-zero when no fragments map.
+        # Report it with the message Trinity recognizes (and skips filtering for).
+        if (&no_fragments_mapped("salmon_outdir")) {
             die "$ZERO_ASSIGNED_MSG.\n$errmsg";
         }
         die $errmsg;
@@ -67,10 +72,14 @@ sub run_cmd_capture_stderr {
 }
 
 ####
-sub get_salmon_major_version {
+sub check_salmon_version {
     my $version_info = `salmon --version 2>&1`;
     if ($version_info =~ /(\d+)\.(\d+)\.(\d+)/) {
-        return($1);
+        my ($major, $minor) = ($1, $2);
+        unless ($major == 2 && $minor >= 9) {
+            die "Error, salmon 2.x (2.9.0 or later) is required, but found: $version_info";
+        }
+        return;
     }
     die "Error, cannot determine salmon version from: $version_info";
 }

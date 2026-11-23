@@ -23,7 +23,7 @@ use Data::Dumper;
 
 
 
-my $VERSION = "Trinity-v2.16.1";
+my $VERSION = "Trinity-v2.16.2";
 #my $VERSION = "__BLEEDING_EDGE__"; 
 
 
@@ -4244,13 +4244,13 @@ sub check_required_3rd_party_tool_installations {
 
             if ($version_info =~ /\s(\d+)\.(\d+)\.(\d+)/) {
                 my ($major, $minor, $patch) = ($1, $2, $3);
-                if ($major != 1) {
-                    ## salmon 2.x (the rust rewrite) resolves multi-mapping reads among isoforms differently from salmon 1.x,
-                    ## assigning zero reads to many well-supported isoforms, which Trinity's final expression filtering would then discard.
-                    die "Error, $VERSION requires salmon version 1.x (tested with 1.10.0), but found: $version_info"
-                        . "Salmon 2.x changes how reads are assigned among isoforms, and Trinity's final expression-based filtering of the assembly has not been validated with it.\n"
-                        . "Please install salmon 1.10 (eg. 'conda install -c bioconda salmon=1.10'; https://github.com/COMBINE-lab/salmon/releases/tag/v1.10.0), "
-                        . "or run Trinity with --no_salmon to skip the final filtering step.\n";
+                ## tested with salmon 2.12.0.
+                ## salmon 2.x before 2.9.0 rejects the uncompressed FASTA reads that Trinity's final filtering uses,
+                ## and salmon 1.x is no longer supported.
+                if ($major != 2 || $minor < 9) {
+                    die "Error, $VERSION requires salmon 2.x (2.9.0 or later; tested with 2.12.0), but found: $version_info"
+                        . "Please install a supported salmon (eg. 'conda install -c bioconda salmon=2.12'; https://github.com/COMBINE-lab/salmon/releases), "
+                        . "or run Trinity with --no_salmon to skip the final expression-based filtering of the assembly.\n";
                 }
             }
             else {

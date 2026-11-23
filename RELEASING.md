@@ -101,7 +101,7 @@ salmon is used in two places:
 - [ ] If any of these fail, or the filtering changes materially, cap the version: Trinity's
       `check_required_3rd_party_tool_installations()` check, the Dockerfile, and the Bioconda range (for example
       `salmon >=2.9,<3`).
-- [ ] Check that each salmon version runs the final filter with the intended options (`salmon_outdir/cmd_info.json`).
+- [ ] Check that salmon ran the final filter with the intended options: salmon 2.x records them in `salmon_outdir/aux_info/meta_info.json` (`frag_length_mean`, `frag_length_sd`, `stop_rule`), not in `cmd_info.json`.
 
 **Status as of v2.16.2 (2026-11):** Trinity requires salmon 2.x (2.9.0 or later; tested with 2.12.0, used in the
 Docker image). salmon 1.x support was dropped; Trinity, `salmon_runner.pl` and `align_and_estimate_abundance.pl`

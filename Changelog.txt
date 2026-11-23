@@ -1,3 +1,6 @@
+# Trinity-v2.16.3 (unreleased)
+- Inchworm and Chrysalis use CMake's FindOpenMP instead of a hardcoded -fopenmp, so they build with Apple clang + libomp on macOS (e.g. Homebrew) without patching; no change on Linux/GCC. CMake >= 3.9 now required (Inchworm#3, Chrysalis#3, thanks @BenjaminDEMAILLE)
+
 # Trinity-v2.16.2 November 23, 2026
 - Trinity now requires salmon 2.x (2.9.0 or later; tested with 2.12.0, now in the Docker image); salmon 1.x is no longer
   supported. The final expression-based filtering passes --fldMean 250 --fldSD 25 --stopRule global. Without them,

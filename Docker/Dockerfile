@@ -241,10 +241,12 @@ RUN STAR_URL="https://github.com/alexdobin/STAR/archive/${STAR_VERSION}.tar.gz" 
 
 ## Salmon
 WORKDIR $SRC
-ENV SALMON_VERSION=1.10.0
-RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v1.10.0/salmon-1.10.0_linux_x86_64.tar.gz -O salmon-1.10.0_linux_x86_64.tar.gz && \
-    tar xvf  salmon-1.10.0_linux_x86_64.tar.gz && \
-    ln -s $SRC/salmon-latest_linux_x86_64/bin/salmon $BIN/.
+ENV SALMON_VERSION=2.12.0
+RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v${SALMON_VERSION}/salmon-cli-x86_64-unknown-linux-gnu.tar.xz && \
+    wget https://github.com/COMBINE-lab/salmon/releases/download/v${SALMON_VERSION}/salmon-cli-x86_64-unknown-linux-gnu.tar.xz.sha256 && \
+    sha256sum -c salmon-cli-x86_64-unknown-linux-gnu.tar.xz.sha256 && \
+    tar xf salmon-cli-x86_64-unknown-linux-gnu.tar.xz && \
+    ln -s $SRC/salmon-cli-x86_64-unknown-linux-gnu/salmon $BIN/salmon
 
 
 ## autoconf 2.69 needed for trinity installed verison of htslib
@@ -263,8 +265,8 @@ RUN pip3 install HTSeq --break-system-packages
 
 ## Trinity
 WORKDIR $SRC
-ENV TRINITY_VERSION="2.16.1"
-ENV TRINITY_CO=e9b6c27b9a62713cd21259eb48f25f0bf028947c
+ENV TRINITY_VERSION="2.16.2"
+ENV TRINITY_CO=fde6012e240fd5de8c12cfd6e50f3e5d8522758a
 
 WORKDIR $SRC
 

@@ -23,7 +23,7 @@ use Data::Dumper;
 
 
 
-my $VERSION = "Trinity-v2.16.2";
+my $VERSION = "Trinity-v2.16.3";
 #my $VERSION = "__BLEEDING_EDGE__"; 
 
 

@@ -1,5 +1,6 @@
 # Trinity-v2.16.3 (unreleased)
 - Inchworm and Chrysalis use CMake's FindOpenMP instead of a hardcoded -fopenmp, so they build with Apple clang + libomp on macOS (e.g. Homebrew) without patching; no change on Linux/GCC. CMake >= 3.9 now required (Inchworm#3, Chrysalis#3, thanks @BenjaminDEMAILLE)
+- ParaFly (trinity-plugins/Makefile) is built with Apple clang's OpenMP flags (-Xpreprocessor -fopenmp -lomp) on macOS, finding Homebrew's libomp automatically; on Linux it is built exactly as before. On macOS, set CMAKE_PREFIX_PATH and CXXFLAGS to Homebrew's libomp before running make (see the Installing Trinity wiki page)
 
 # Trinity-v2.16.2 November 23, 2026
 - Trinity now requires salmon 2.x (2.9.0 or later; tested with 2.12.0, now in the Docker image); salmon 1.x is no longer

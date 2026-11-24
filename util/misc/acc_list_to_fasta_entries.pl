@@ -45,6 +45,19 @@ sub next {
     $/="\n>";
     my $filehandle = $self->{fileHandle};
     my $next_text_input = <$filehandle>;
+
+    unless ($self->{_read_first_record}) {
+        $self->{_read_first_record} = 1;
+        ## drop a UTF-8 byte order mark or whitespace right before the first '>', so that it's still read as a header
+        $next_text_input =~ s/^(?:\xEF\xBB\xBF|\x{FEFF})?\s*(?=>)// if defined($next_text_input);
+        ## skip any text before the first '>' header line (e.g. ';' comment lines, as in FHR headers)
+        if (defined($next_text_input) && $next_text_input !~ /^>/ && $next_text_input =~ /\n>$/) {
+            if ($next_text_input =~ /\w/) {
+                print STDERR "Warning: skipping text before the first '>' header line in the FASTA file\n";
+            }
+            $next_text_input = <$filehandle>;
+        }
+    }
     
 	if (defined($next_text_input) && $next_text_input !~ /\w/) {
 		## must have been some whitespace at start of fasta file, before first entry.

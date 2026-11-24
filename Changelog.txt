@@ -1,3 +1,11 @@
+# Trinity-v2.16.4 (unreleased)
+- FASTA reader (PerlLib/Fasta_reader.pm, also the copy in util/misc/acc_list_to_fasta_entries.pl): text before the
+  first '>' header line (e.g. ';' comment lines, as in FAIR Header Reference files) is now skipped with a warning.
+  Previously it was read as an extra transcript, named after its first word, so TrinityStats.pl reported an extra
+  transcript, miscounted 'genes', counted the comment text as sequence, and dropped the longest-isoform-per-gene section.
+  Same fix as TransDecoder 7.0.0 (TransDecoder#213). A UTF-8 byte order mark or whitespace before the first '>' is
+  also dropped, so that the first record is still read
+
 # Trinity-v2.16.3 November 23, 2026
 - Inchworm and Chrysalis use CMake's FindOpenMP instead of a hardcoded -fopenmp, so they build with Apple clang + libomp on macOS (e.g. Homebrew) without patching; no change on Linux/GCC. CMake >= 3.9 now required (Inchworm#3, Chrysalis#3, thanks @BenjaminDEMAILLE)
 - ParaFly (trinity-plugins/Makefile) is built with Apple clang's OpenMP flags (-Xpreprocessor -fopenmp -lomp) on macOS, finding Homebrew's libomp automatically; on Linux it is built exactly as before. On macOS, set CMAKE_PREFIX_PATH and CXXFLAGS to Homebrew's libomp before running make (see the Installing Trinity wiki page)

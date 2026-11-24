@@ -5,6 +5,9 @@
 - ParaFly now stops at once on Ctrl-C (SIGINT to the process group) and exits with status 130, on Linux and macOS.
   Previously system() made ParaFly ignore the signal: with the default -max_retry it retried the interrupted commands
   and kept running, and with -max_retry 1 it exited with status 2 once the running commands had finished
+- The bundled Trimmomatic used by --trimmomatic is updated from 0.36 (2016) to 0.40 (2025). It still runs on Java 8,
+  and its trimmed reads are byte-identical to 0.36's on the sample data with Trinity's default trimming settings.
+  0.41 was not used because it requires Java 25
 
 # Trinity-v2.16.3 November 23, 2026
 - Inchworm and Chrysalis use CMake's FindOpenMP instead of a hardcoded -fopenmp, so they build with Apple clang + libomp on macOS (e.g. Homebrew) without patching; no change on Linux/GCC. CMake >= 3.9 now required (Inchworm#3, Chrysalis#3, thanks @BenjaminDEMAILLE)

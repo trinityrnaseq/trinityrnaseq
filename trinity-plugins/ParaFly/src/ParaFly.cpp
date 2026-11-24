@@ -9,6 +9,9 @@
 #include <algorithm>
 #include <signal.h>
 #include <sys/wait.h>
+#include <spawn.h>
+#include <unistd.h>
+#include <cerrno>
 
 #include "argProcessor.hpp"
 
@@ -20,6 +23,47 @@ using namespace std;
 
 
 static int VERBOSE_LEVEL = 0;
+
+
+extern char **environ;
+
+/* Run a shell command and return the raw wait status, the same value that
+   system() returns.  system() is not used here because Darwin's libc holds a
+   process-wide lock for the whole lifetime of the child, which serializes the
+   OpenMP loop below and makes ParaFly run one command at a time on macOS
+   (trinityrnaseq issue #1483).  posix_spawn() takes no such lock, so the same
+   code path is used on every platform.
+
+   The child inherits the environment (environ) and the current working
+   directory, as it did under system().  Because the raw wait status is
+   returned, the WIFSIGNALED()/WTERMSIG() handling and the failed-command
+   bookkeeping in the caller are unchanged.  A child that cannot be created
+   yields -1, which system() also does on failure.  */
+static int run_shell(const char* cmd) {
+
+    char* const sh_argv[] = { const_cast<char*>("sh"),
+                              const_cast<char*>("-c"),
+                              const_cast<char*>(cmd),
+                              NULL };
+
+    pid_t pid;
+    /* posix_spawn() reports failure through its return value, not errno. */
+    int spawn_err = posix_spawn(&pid, "/bin/sh", NULL, NULL, sh_argv, environ);
+    if (spawn_err != 0) {
+        errno = spawn_err;
+        return -1;
+    }
+
+    int status;
+    while (waitpid(pid, &status, 0) == -1) {
+        if (errno != EINTR) {
+            return -1;
+        }
+    }
+
+    return status;
+}
+
 
 int main(int argc, char* argv[]) {
     
@@ -175,11 +219,11 @@ int main(int argc, char* argv[]) {
         int ret = -1;
         int try_count = 0;
         while (ret != 0 && try_count < max_retries) {
-            ret = system(command.c_str());
+            ret = run_shell(command.c_str());
             if (ret != 0 && try_count < max_retries) {
                 try_count++;
                 cerr << "warning, cmd: " << command << " failed with ret: " << ret << ", going to retry." << endl;
-                system("sleep 10"); // give the system a short break to recover
+                sleep(10); // give the system a short break to recover
             }
         }
         

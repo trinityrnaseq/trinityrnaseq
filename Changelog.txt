@@ -1,3 +1,11 @@
+# Trinity-v2.16.4 (in development)
+- ParaFly runs its commands with posix_spawn() instead of system(). On macOS, system() let only one command run at a
+  time, so Trinity's Phase 2 used a single core regardless of --CPU; the sample assembly at --CPU 4 now takes 38 s
+  instead of 96 s on an Apple Silicon Mac. No change in speed or results on Linux (#1483)
+- ParaFly now stops at once on Ctrl-C (SIGINT to the process group) and exits with status 130, on Linux and macOS.
+  Previously system() made ParaFly ignore the signal: with the default -max_retry it retried the interrupted commands
+  and kept running, and with -max_retry 1 it exited with status 2 once the running commands had finished
+
 # Trinity-v2.16.3 November 23, 2026
 - Inchworm and Chrysalis use CMake's FindOpenMP instead of a hardcoded -fopenmp, so they build with Apple clang + libomp on macOS (e.g. Homebrew) without patching; no change on Linux/GCC. CMake >= 3.9 now required (Inchworm#3, Chrysalis#3, thanks @BenjaminDEMAILLE)
 - ParaFly (trinity-plugins/Makefile) is built with Apple clang's OpenMP flags (-Xpreprocessor -fopenmp -lomp) on macOS, finding Homebrew's libomp automatically; on Linux it is built exactly as before. On macOS, set CMAKE_PREFIX_PATH and CXXFLAGS to Homebrew's libomp before running make (see the Installing Trinity wiki page)

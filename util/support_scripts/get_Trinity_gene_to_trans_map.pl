@@ -5,7 +5,7 @@ use warnings;
 
 
 while (<>) {
-    if (/>(\S+)/) {
+    if (/^>(\S+)/) {
         my $acc = $1;
         if ($acc =~ /^(.*c\d+_g\d+)(_i\d+)/) {
             my $gene = $1;

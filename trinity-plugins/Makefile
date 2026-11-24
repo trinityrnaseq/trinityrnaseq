@@ -5,7 +5,7 @@ CXX = g++
 CC = gcc
 COLLECTL_CODE="collectl-4.1.0"
 PARAFLY_CODE="ParaFly"
-TRIMMOMATIC_CODE=Trimmomatic-0.36
+TRIMMOMATIC_CODE=Trimmomatic-0.40
 
 # ParaFly OpenMP flags.
 #

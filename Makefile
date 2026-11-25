@@ -43,6 +43,29 @@ plugins:
 	cd trinity-plugins && $(MAKE) plugins
 	sh ./util/support_scripts/plugin_install_tests.sh
 
+
+# Optional: rebuild Trinity's Java programs (Butterfly.jar, ExitTester.jar) from source.
+# The release already includes these jars, so 'make' only needs a Java runtime; 'make jars'
+# needs a JDK (javac and jar, version 8 or later). Override JAVAC=/path/to/javac JAR=/path/to/jar if needed.
+JAVAC ?= javac
+JAR   ?= jar
+JAVAC_RELEASE := $(shell $(JAVAC) --release 8 -version >/dev/null 2>&1 && echo "--release 8" || echo "-source 8 -target 8")
+
+jars: butterfly_jar exittester_jar
+
+butterfly_jar:
+	cd Butterfly/Butterfly && $(MAKE) JAVAC="$(JAVAC)" JAR="$(JAR)"
+	cp Butterfly/Butterfly/build/Butterfly.jar Butterfly/Butterfly.jar
+
+exittester_jar:
+	rm -rf util/support_scripts/build_ExitTester
+	mkdir -p util/support_scripts/build_ExitTester
+	$(JAVAC) -nowarn $(JAVAC_RELEASE) -d util/support_scripts/build_ExitTester util/support_scripts/ExitTester.java
+	$(JAR) cfe util/support_scripts/ExitTester.jar ExitTester -C util/support_scripts/build_ExitTester ExitTester.class
+	rm -rf util/support_scripts/build_ExitTester
+
+.PHONY: jars butterfly_jar exittester_jar
+
 test:
 	@echo
 	@echo "Checking for Trinity essentials (built from 'make all'):"

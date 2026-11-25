@@ -1,3 +1,12 @@
+# Trinity-v2.16.5 (in development)
+- New optional 'make jars' rebuilds Butterfly.jar and util/support_scripts/ExitTester.jar from source (needs a JDK 8 or
+  later: javac and jar). The release still ships both jars, so 'make' needs only a Java runtime. ExitTester.java is now
+  included, and the Butterfly submodule now pins the source the shipped Butterfly.jar was built from (Butterfly
+  master previously held 2019 source without the 2021-2022 fixes). Packagers can now build everything from source with
+  'make', 'make plugins' and 'make jars'
+- Inchworm: the old prebuilt binaries in Inchworm/src are removed from the repository (the build installs to
+  Inchworm/bin); the Butterfly submodule no longer has a nested submodule that pointed to a private repository
+
 # Trinity-v2.16.4 November 25, 2026
 - ParaFly runs its commands with posix_spawn() instead of system(). On macOS, system() let only one command run at a
   time, so Trinity's Phase 2 used a single core regardless of --CPU; the sample assembly at --CPU 4 now takes 38 s

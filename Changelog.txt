@@ -1,4 +1,4 @@
-# Trinity-v2.16.5 (in development)
+# Trinity-v2.16.5 November 25, 2026
 - New optional 'make jars' rebuilds Butterfly.jar and util/support_scripts/ExitTester.jar from source (needs a JDK 8 or
   later: javac and jar). The release still ships both jars, so 'make' needs only a Java runtime. ExitTester.java is now
   included, and the Butterfly submodule now pins the source the shipped Butterfly.jar was built from (Butterfly

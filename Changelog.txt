@@ -16,6 +16,11 @@
   also dropped, so that the first record is still read (#1485, thanks @adamjohnwright)
 - get_Trinity_gene_to_trans_map.pl only takes accessions from lines that start with '>', so a comment line that
   mentions a Trinity accession no longer adds a gene/transcript pair to the map
+- Chrysalis QuantifyGraph read one byte past the end of each k-mer when computing its sequence entropy, so whether a
+  low-complexity k-mer was filtered depended on leftover memory contents. This is why Linux and macOS builds gave
+  slightly different assemblies from the same reads. It now uses the k-mer itself. FL regression: pombe FL CDS
+  4371 -> 4369, cDNA 1115 = 1115; mouse FL CDS genes/transcripts 6374/8482 -> 6383/8486, cDNA 1286/1514 -> 1287/1516
+  (Chrysalis 6c260e1; found with the macOS-vs-Linux comparison run on a Mac)
 
 # Trinity-v2.16.3 November 23, 2026
 - Inchworm and Chrysalis use CMake's FindOpenMP instead of a hardcoded -fopenmp, so they build with Apple clang + libomp on macOS (e.g. Homebrew) without patching; no change on Linux/GCC. CMake >= 3.9 now required (Inchworm#3, Chrysalis#3, thanks @BenjaminDEMAILLE)

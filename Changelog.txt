@@ -1,4 +1,4 @@
-# Trinity-v2.16.4 (in development)
+# Trinity-v2.16.4 November 25, 2026
 - ParaFly runs its commands with posix_spawn() instead of system(). On macOS, system() let only one command run at a
   time, so Trinity's Phase 2 used a single core regardless of --CPU; the sample assembly at --CPU 4 now takes 38 s
   instead of 96 s on an Apple Silicon Mac. No change in speed or results on Linux (#1483)
